@@ -1,0 +1,2767 @@
+import express from "express";
+import { createServer } from "http";
+import { MongoStorage } from "./mongodb-storage.js";
+import { authenticateToken, requireRole, requireOrganization } from "./auth.js";
+import { requireSuperAdmin, requireSuperAdminOrCompanyAdmin } from "./middleware/superAdminAuth.js";
+import { authenticateToken as roleAuthToken, requireSuperAdmin as roleRequireSuperAdmin, requireOrgAdminOrAbove, requireEmployee, requireOrganizationManagement, requireOrgAdminOnly } from "./middleware/roleAuth.js";
+import { authService } from "./services/authService.js";
+import { inviteEmailService } from "./services/inviteEmailService.js";
+// import { setupTestRoutes } from "./test-auth.js";
+import { z } from "zod";
+
+const storage = new MongoStorage();
+
+// Validation schemas
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6)
+});
+
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  organizationName: z.string().optional()
+});
+
+const createTaskSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  projectId: z.string().optional(),
+  assignedToId: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  dueDate: z.string().optional(),
+  tags: z.array(z.string()).default([])
+});
+
+const smartTaskInputSchema = z.object({
+  input: z.string().min(1),
+  projectId: z.string().optional()
+});
+
+export async function registerRoutes(app) {
+  // Validation middleware
+  const validateBody = (schema) => {
+    return (req, res, next) => {
+      try {
+        req.body = schema.parse(req.body);
+        next();
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ 
+            message: "Validation failed", 
+            errors: error.errors 
+          });
+        }
+        next(error);
+      }
+    };
+  };
+
+  // New Authentication Routes for User Management Module
+
+  // Individual user registration
+  app.post("/api/auth/register-individual", async (req, res) => {
+    try {
+      const { email, firstName, lastName } = req.body;
+
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const result = await authService.registerIndividual({ email, firstName, lastName });
+      res.json(result);
+    } catch (error) {
+      console.error("Individual registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Legacy endpoint for compatibility
+  app.post("/api/auth/register/individual", async (req, res) => {
+    try {
+      const { email, firstName, lastName } = req.body;
+
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const result = await authService.registerIndividual({ email, firstName, lastName });
+      res.json(result);
+    } catch (error) {
+      console.error("Individual registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Organization registration
+  app.post("/api/auth/register-organization", async (req, res) => {
+    try {
+      const { organizationName, organizationSlug, email, firstName, lastName } = req.body;
+
+      if (!organizationName || !email || !firstName || !lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const result = await authService.registerOrganization({ 
+        organizationName, 
+        organizationSlug,
+        email, 
+        firstName, 
+        lastName 
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Organization registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Legacy endpoint for compatibility
+  app.post("/api/auth/register/organization", async (req, res) => {
+    try {
+      const { organizationName, email, firstName, lastName } = req.body;
+
+      if (!organizationName || !email || !firstName || !lastName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const result = await authService.registerOrganization({ 
+        organizationName, email, firstName, lastName 
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Organization registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+
+
+  // Resend verification code
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const result = await authService.resendVerificationCode(email);
+      res.json(result);
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Complete individual registration
+  app.post("/api/auth/complete-registration", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const result = await authService.completeIndividualRegistration(email, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Complete registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Complete organization registration
+  app.post("/api/auth/complete-organization-registration", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const result = await authService.completeOrganizationRegistration(email, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Complete organization registration error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Forgot password
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const result = await authService.forgotPassword(email);
+      res.json(result);
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Validate reset token
+  app.post("/api/auth/validate-reset-token", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Reset token is required" });
+      }
+
+      const result = await authService.validateResetToken(token);
+      res.json(result);
+    } catch (error) {
+      console.error("Validate reset token error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Reset password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      const result = await authService.resetPassword(token, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Validate reset token
+  app.post("/api/auth/validate-reset-token", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const result = await authService.validateResetToken(token);
+      res.json(result);
+    } catch (error) {
+      console.error("Validate reset token error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Verify token and get user info for password setup
+  app.post("/api/auth/verify-token", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      const result = await authService.validateVerificationToken(token);
+      res.json(result);
+    } catch (error) {
+      console.error("Verify token error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Set password for verified user
+  app.post("/api/auth/set-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      const result = await authService.setPasswordWithToken(token, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Set password error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Reset password
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      const result = await authService.resetPassword(token, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Auth verification endpoint
+  app.get('/api/auth/verify', authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Return consistent user data structure
+      const userData = {
+        id: user._id,
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationId: user.organization || user.organizationId || null,
+        isActive: user.isActive,
+        emailVerified: user.emailVerified
+      };
+
+      res.json(userData);
+    } catch (error) {
+      console.error('Auth verification error:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
+
+  // Resend verification code
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const result = await authService.resendVerificationCode(email);
+      res.json(result);
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Update login route to use auth service
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      const result = await authService.login(email, password);
+      res.json(result);
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(401).json({ message: error.message });
+    }
+  });
+
+  // Legacy auth routes
+  app.post("/api/auth/register", validateBody(registerSchema), async (req, res) => {
+    try {
+      const { email, password, firstName, lastName, organizationName } = req.body;
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      let organizationId;
+      if (organizationName) {
+        const slug = organizationName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const organization = await storage.createOrganization({
+          name: organizationName,
+          slug,
+        });
+        organizationId = organization._id;
+
+        // Create default task statuses
+        const defaultStatuses = [
+          { name: "To Do", color: "#6B7280", order: 0, isDefault: true, organization: organizationId },
+          { name: "In Progress", color: "#3B82F6", order: 1, organization: organizationId },
+          { name: "Review", color: "#F59E0B", order: 2, organization: organizationId },
+          { name: "Done", color: "#10B981", order: 3, isCompleted: true, organization: organizationId },
+        ];
+
+        for (const status of defaultStatuses) {
+          await storage.createTaskStatus(status);
+        }
+      }
+
+      const user = await storage.createUser({
+        email,
+        firstName,
+        lastName,
+        password,
+        organization: organizationId,
+        role: organizationId ? "admin" : "member",
+      });
+
+      const token = storage.generateToken(user);
+
+      res.status(201).json({
+        message: "User created successfully",
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          organizationId: user.organization,
+        },
+        token,
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.post("/api/auth/login", validateBody(loginSchema), async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const isValidPassword = await storage.verifyPassword(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
+      await storage.updateUser(user._id, { lastLoginAt: new Date() });
+
+      const token = storage.generateToken(user);
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          organizationId: user.organization,
+        },
+        token,
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Protected routes
+  app.get("/api/auth/me", authenticateToken, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        organizationId: user.organization,
+        profileImageUrl: user.profileImageUrl,
+        preferences: user.preferences,
+      });
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ message: "Failed to get user data" });
+    }
+  });
+
+  // User invitation routes - Block individual users
+  app.post("/api/users/invite", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { users } = req.body;
+
+      if (!users || !Array.isArray(users) || users.length === 0) {
+        return res.status(400).json({ message: "Users array is required" });
+      }
+
+      const results = [];
+      const errors = [];
+
+      for (const userData of users) {
+        try {
+          // Check if user already exists
+          const existingUser = await storage.getUserByEmail(userData.email);
+          if (existingUser && existingUser.organization?.toString() === req.user.organizationId) {
+            errors.push(userData.email + " already exists. That user will not be reinvited.");
+            continue;
+          }
+
+          // Generate invite token
+          const inviteToken = storage.generateEmailVerificationToken();
+          const inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+          // Create invited user record
+          const invitedUser = await storage.createUser({
+            email: userData.email,
+            role: userData.role || 'employee',
+            status: 'invited',
+            inviteToken,
+            inviteTokenExpiry,
+            invitedBy: req.user.id,
+            invitedAt: new Date(),
+            organization: req.user.organizationId,
+            isActive: false,
+            emailVerified: false
+          });
+
+          // Send invitation email
+          const adminUser = await storage.getUser(req.user.id);
+          const organization = await storage.getOrganization(req.user.organizationId);
+
+          if (inviteEmailService.isServiceAvailable()) {
+            await inviteEmailService.sendInvitationEmail(
+              userData.email,
+              inviteToken,
+              organization.name,
+              userData.role || 'employee',
+              `${adminUser.firstName} ${adminUser.lastName}`
+            );
+          } else {
+            console.warn(`Email service not available - invitation sent to ${userData.email} but no email delivered`);
+          }
+
+          results.push({
+            email: userData.email,
+            status: 'invited',
+            role: userData.role || 'employee'
+          });
+
+        } catch (error) {
+          errors.push(`Failed to invite ${userData.email}: ${error.message}`);
+        }
+      }
+
+      res.json({
+        message: `Successfully invited ${results.length} users`,
+        invited: results,
+        errors
+      });
+    } catch (error) {
+      console.error("Invite users error:", error);
+      res.status(500).json({ message: "Failed to invite users" });
+    }
+  });
+
+  // Validate invitation token
+  app.post("/api/auth/validate-invite-token", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+
+      // Find user by invite token
+      const user = await storage.getUserByInviteToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired invitation" });
+      }
+
+      if (user.inviteTokenExpiry < new Date()) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      // Get organization details
+      const organization = await storage.getOrganization(user.organization);
+
+      res.json({
+        email: user.email,
+        role: user.role,
+        organizationName: organization.name,
+        organizationId: user.organization
+      });
+    } catch (error) {
+      console.error("Validate invite token error:", error);
+      res.status(500).json({ message: "Failed to validate invitation token" });
+    }
+  });
+
+  // Accept invitation route
+  app.post("/api/auth/accept-invite", async (req, res) => {
+    try {
+      const { token, firstName, lastName, password } = req.body;
+
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Find user by invite token
+      const user = await storage.getUserByInviteToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired invitation" });
+      }
+
+      if (user.inviteTokenExpiry < new Date()) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      // Update user with account details
+      const hashedPassword = await storage.hashPassword(password);
+      await storage.updateUser(user._id, {
+        firstName,
+        lastName,
+        passwordHash: hashedPassword,
+        status: 'active',
+        isActive: true,
+        emailVerified: true,
+        inviteToken: null,
+        inviteTokenExpiry: null
+      });
+
+      const activatedUser = await storage.getUser(user._id);
+      const authToken = storage.generateToken(activatedUser);
+
+      res.json({
+        message: "Account activated successfully",
+        token: authToken,
+        user: {
+          id: activatedUser._id,
+          email: activatedUser.email,
+          firstName: activatedUser.firstName,
+          lastName: activatedUser.lastName,
+          role: activatedUser.role,
+          organizationId: activatedUser.organization
+        }
+      });
+    } catch (error) {
+      console.error("Accept invite error:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
+
+  // Get invitation details
+  app.get("/api/auth/invite/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const user = await storage.getUserByInviteToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid invitation" });
+      }
+
+      if (user.inviteTokenExpiry < new Date()) {
+        return res.status(400).json({ message: "Invitation has expired" });
+      }
+
+      const organization = await storage.getOrganization(user.organization);
+
+      res.json({
+        email: user.email,
+        roles: user.roles || ['member'],
+        organizationName: organization?.name || 'Unknown Organization',
+        valid: true
+      });
+    } catch (error) {
+      console.error("Get invite details error:", error);
+      res.status(500).json({ message: "Failed to get invitation details" });
+    }
+  });
+
+  // Get organization users with license info - Block individual users
+  app.get("/api/users/organization", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const users = await storage.getOrganizationUsersDetailed(req.user.organizationId);
+      const organization = await storage.getOrganization(req.user.organizationId);
+
+      const licenseInfo = {
+        totalLicenses: organization?.maxUsers || 10,
+        licenseType: 'Standard',
+        usedLicenses: users.filter(u => u.status === 'active').length,
+        availableLicenses: (organization?.maxUsers || 10) - users.filter(u => u.status === 'active').length
+      };
+
+      res.json({
+        users,
+        licenseInfo
+      });
+    } catch (error) {
+      console.error("Get organization users error:", error);
+      res.status(500).json({ message: "Failed to get organization users" });
+    }
+  });
+
+  // Deactivate user
+  app.patch("/api/users/:id/deactivate", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.organization?.toString() !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.updateUser(id, {
+        status: 'inactive',
+        isActive: false
+      });
+
+      res.json({ message: "User deactivated successfully" });
+    } catch (error) {
+      console.error("Deactivate user error:", error);
+      res.status(500).json({ message: "Failed to deactivate user" });
+    }
+  });
+
+  // Resend invitation
+  app.post("/api/users/:id/resend-invite", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.organization?.toString() !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (user.status === 'active') {
+        return res.status(400).json({ message: "User is already active" });
+      }
+
+      // Generate new invite token
+      const inviteToken = storage.generateEmailVerificationToken();
+      const inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await storage.updateUser(id, {
+        inviteToken,
+        inviteTokenExpiry,
+        status: 'invited'
+      });
+
+      // Resend invitation email
+      const adminUser = await storage.getUser(req.user.id);
+      const organization = await storage.getOrganization(req.user.organizationId);
+
+      await storage.sendInvitationEmail(
+        user.email,
+        inviteToken,
+        organization.name,
+        user.roles || ['member'],
+        `${adminUser.firstName} ${adminUser.lastName}`
+      );
+
+      res.json({ message: "Invitation resent successfully" });
+    } catch (error) {
+      console.error("Resend invite error:", error);
+      res.status(500).json({ message: "Failed to resend invitation" });
+    }
+  });
+
+  // Revoke invitation
+  app.delete("/api/organization/revoke-invite/:userId", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user || user.organization.toString() !== req.user.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.status !== 'invited') {
+        return res.status(400).json({ message: "Only invited users can be revoked" });
+      }
+
+      // Delete the invited user
+      await storage.deleteUser(userId);
+
+      res.json({ message: "Invitation revoked successfully" });
+    } catch (error) {
+      console.error("Revoke invite error:", error);
+      res.status(500).json({ message: "Failed to revoke invitation" });
+    }
+  });
+
+  // Dashboard routes
+  app.get("/api/dashboard/stats", authenticateToken, async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats(req.user.id, req.user.organizationId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Dashboard stats error:", error);
+      res.status(500).json({ message: "Failed to get dashboard stats" });
+    }
+  });
+
+  // Task routes
+  app.get("/api/tasks", async (req, res) => {
+    try {
+      const filters = {
+        projectId: req.query.projectId,
+        assignedToId: req.query.assignedToId,
+        createdById: req.query.createdById,
+        statusId: req.query.statusId,
+        priority: req.query.priority,
+        search: req.query.search,
+      };
+
+      const tasks = await storage.getTasks(filters);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Get tasks error:", error);
+      res.status(500).json({ message: "Failed to get tasks" });
+    }
+  });
+
+  app.post("/api/tasks", authenticateToken, validateBody(createTaskSchema), async (req, res) => {
+    try {
+      const taskData = {
+        ...req.body,
+        organization: req.user.organizationId,
+        createdBy: req.user.id,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+      };
+
+      const task = await storage.createTask(taskData);
+
+      // Create notification for assignee if different from creator
+      if (task.assignedTo && task.assignedTo.toString() !== task.createdBy.toString()) {
+        await storage.createNotification({
+          user: task.assignedTo,
+          type: "task_assigned",
+          title: "New task assigned",
+          message: `You have been assigned the task: ${task.title}`,
+          data: { taskId: task._id },
+        });
+      }
+
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Create task error:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.post("/api/tasks/smart-create", authenticateToken, validateBody(smartTaskInputSchema), async (req, res) => {
+    try {
+      const { input, projectId } = req.body;
+
+      const parsed = parseSmartTaskInput(input);
+
+      const taskData = {
+        title: parsed.title,
+        description: parsed.description,
+        project: projectId || parsed.projectId,
+        priority: parsed.priority || "medium",
+        dueDate: parsed.dueDate,
+        tags: parsed.tags,
+        organization: req.user.organizationId,
+        createdBy: req.user.id,
+        metadata: { originalInput: input, parsedData: parsed },
+      };
+
+      const task = await storage.createTask(taskData);
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Smart create task error:", error);
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.get("/api/tasks/:id", authenticateToken, async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      if (task.organization?.toString() !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(task);
+    } catch (error) {
+      console.error("Get task error:", error);
+      res.status(500).json({ message: "Failed to get task" });
+    }
+  });
+
+  app.put("/api/tasks/:id", authenticateToken, async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      if (task.organization?.toString() !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updateData = {
+        ...req.body,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+        completedAt: req.body.completed ? new Date() : null,
+      };
+
+      const updatedTask = await storage```python
+.updateTask(req.params.id, updateData);
+      res.json(updatedTask);
+    } catch (error) {
+      console.error("Update task error:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", authenticateToken, async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      if (task.organization?.toString() !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteTask(req.params.id);
+      res.json({ message: "Task deleted successfully" });
+    } catch (error) {
+      console.error("Delete task error:", error);
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // Task comments routes
+  app.get("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task || task.organization?.toString() !== req.user.organizationId) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      const comments = await storage.getTaskComments(req.params.id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Get task comments error:", error);
+      res.status(500).json({ message: "Failed to get comments" });
+    }
+  });
+
+  app.post("/api/tasks/:id/comments", authenticateToken, async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task || task.organization?.toString() !== req.user.organizationId) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      const commentData = {
+        task: req.params.id,
+        user: req.user.id,
+        content: req.body.content,
+        mentions: req.body.mentions || [],
+      };
+
+      const comment = await storage.createTaskComment(commentData);
+
+      // Create notifications for mentions
+      if (commentData.mentions?.length > 0) {
+        for (const userId of commentData.mentions) {
+          await storage.createNotification({
+            user: userId,
+            type: "mention",
+            title: "You were mentioned",
+            message: "You were mentioned in a comment on task: " + task.title,
+            data: { taskId: task._id, commentId: comment._id },
+          });
+        }
+      }
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Create comment error:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // Notifications routes
+  app.get("/api/notifications", authenticateToken, async (req, res) => {
+    try {
+      const isRead = req.query.isRead === 'true' ? true : req.query.isRead === 'false' ? false : undefined;
+      const notifications = await storage.getNotifications(req.user.id, isRead);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.put("/api/notifications/:id/read", authenticateToken, async (req, res) => {
+    try {
+      await storage.markNotificationRead(req.params.id);
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      console.error("Mark notification read error:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  app.put("/api/notifications/read-all", authenticateToken, async (req, res) => {
+    try {
+      await storage.markAllNotificationsRead(req.user.id);
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      console.error("Mark all notifications read error:", error);
+      res.status(500).json({ message: "Failed to mark notifications as read" });
+    }
+  });
+
+  // Organization/Admin routes
+  app.get("/api/organization/users", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const users = await storage.getOrganizationUsers(req.user.organizationId);
+      res.json(users);
+    } catch (error) {
+      console.error("Get organization users error:", error);
+      res.status(500).json({ message: "Failed to get organization users" });
+    }
+  });
+
+  // Multi-user invitation endpoint
+  app.post("/api/organization/invite-users", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { invites } = req.body;
+
+      if (!invites || !Array.isArray(invites) || invites.length === 0) {
+        return res.status(400).json({ message: "Invalid invitation data" });
+      }
+
+      // Validate each invitation with comprehensive checks
+      const validationErrors = [];
+      const validInvites = [];
+
+      for (const invite of invites) {
+        const errors = [];
+
+        // Basic structure validation
+        if (!invite.email || !invite.roles || !Array.isArray(invite.roles)) {
+          errors.push("Email and roles are required");
+        }
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (invite.email && !emailRegex.test(invite.email.trim())) {
+          errors.push("Invalid email format");
+        }
+
+        // Check if user already exists in organization
+        if (invite.email) {
+          const existingUser = await storage.getUserByEmail(invite.email.trim());
+          if (existingUser && existingUser.organization?.toString() === req.user.organizationId) {
+            errors.push(invite.email + " already exists. That user will not be reinvited.");
+          }
+        }
+
+        // Role validation - ensure member role is included
+        if (invite.roles && Array.isArray(invite.roles)) {
+          if (!invite.roles.includes("member")) {
+            errors.push("Member role is required");
+          }
+
+          // Validate role names
+          const validRoles = ["member", "manager", "admin"];
+          const invalidRoles = invite.roles.filter(role => !validRoles.includes(role));
+          if (invalidRoles.length > 0) {
+            errors.push(`Invalid roles: ${invalidRoles.join(", ")}`);
+          }
+        }
+
+        if (errors.length > 0) {
+          validationErrors.push({
+            email: invite.email,
+            errors: errors
+          });
+        } else {
+          validInvites.push(invite);
+        }
+      }
+
+      // If there are validation errors, return them
+      if (validationErrors.length > 0) {
+        return res.status(400).json({ 
+          message: "Validation errors found",
+          errors: validationErrors,
+          validCount: validInvites.length,
+          errorCount: validationErrors.length
+        });
+      }
+
+      // Check license limits
+      const licenseInfo = await storage.getOrganizationLicenseInfo(req.user.organizationId);
+      if (licenseInfo && invites.length > licenseInfo.availableSlots) {
+        return res.status(400).json({ 
+          message: `License limit exceeded. You can only invite ${licenseInfo.availableSlots} more users.`,
+          availableSlots: licenseInfo.availableSlots 
+        });
+      }
+
+      const results = [];
+      let successCount = 0;
+      let failureCount = 0;
+      const invitationErrors = [];
+
+      // Process each invitation
+      for (const invite of invites) {
+        try {
+          // Create invitation with multiple roles
+          const inviteData = {
+            email: invite.email,
+            roles: invite.roles,
+            organizationId: req.user.organizationId,
+            invitedBy: req.user.id,
+            invitedByName: `${req.user.firstName} ${req.user.lastName}`,
+            organizationName: req.user.organizationName || "Organization"
+          };
+
+          await storage.inviteUserToOrganization(inviteData);
+          results.push({ email: invite.email, status: "success" });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to invite ${invite.email}:`, error);
+          results.push({ email: invite.email, status: "failed", error: error.message });
+          failureCount++;
+
+          if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            invitationErrors.push({
+              email: invite.email,
+              error: "Email already exists in the system"
+            });
+          } else {
+            invitationErrors.push({
+              email: invite.email,
+              error: error.message
+            });
+          }
+        }
+      }
+
+      if (successCount === 0 && failureCount > 0) {
+         return res.status(400).json({
+            message: `Failed to invite all users.`,
+            successCount,
+            totalCount: invites.length,
+            errors: invitationErrors
+         });
+      }
+
+      // Return a summary toast message
+      let toastMessage = `${successCount} out of ${invites.length} invitations sent successfully.`;
+
+      if(failureCount > 0){
+         toastMessage = `${successCount} out of ${invites.length} invitations sent successfully, ${failureCount} failed.`;
+      }
+
+      res.json({
+        message: toastMessage,
+        successCount,
+        totalCount: invites.length,
+        results,
+        errors: invitationErrors.length > 0 ? invitationErrors : undefined
+      });
+
+    } catch (error) {
+      console.error("Multi-user invitation error:", error);
+      res.status(500).json({ message: "Failed to send invitations" });
+    }
+  });
+
+  // Get organization license information
+  app.get("/api/organization/license", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const licenseInfo = await storage.getOrganizationLicenseInfo(req.user.organizationId);
+      res.json(licenseInfo);
+    } catch (error) {
+      console.error("Get license info error:", error);
+      res.status(500).json({ message: "Failed to get license information" });
+    }
+  });
+
+  // Check if email exists in organization
+  app.post("/api/organization/check-email-exists", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists in the organization (including invited users)
+      const existingUser = await storage.getUserByEmail(email);
+      const exists = existingUser && existingUser.organization?.toString() === req.user.organizationId;
+
+      res.json({ exists, email });
+    } catch (error) {
+      console.error("Check email exists error:", error);
+      res.status(500).json({ message: "Failed to check email existence" });
+    }
+  });
+
+  // Get detailed organization users
+  app.get("/api/organization/users-detailed", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const users = await storage.getOrganizationUsersDetailed(req.user.organizationId);
+      res.json(users);
+    } catch (error) {
+      console.error("Get organization users detailed error:", error);
+      res.status(500).json({ message: "Failed to get organization users" });
+    }
+  });
+
+  // Deactivate user endpoint
+  app.put("/api/organization/users/:userId/deactivate", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Get user to verify they belong to the organization
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied. User not in your organization" });
+      }
+
+      // Prevent self-deactivation
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: "Cannot deactivate your own account" });
+      }
+
+      // Update user status to deactivated
+      await storage.updateUser(userId, { 
+        status: "deactivated",
+        deactivatedAt: new Date(),
+        deactivatedBy: req.user.id
+      });
+
+      res.json({ 
+        message: "User deactivated successfully",
+        userId: userId
+      });
+
+    } catch (error) {
+      console.error("Deactivate user error:", error);
+      res.status(500).json({ message: "Failed to deactivate user" });
+    }
+  });
+
+  // Resend invite endpoint
+  app.post("/api/organization/users/:userId/resend-invite", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Get user to verify they belong to the organization and are pending
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied. User not in your organization" });
+      }
+
+      if (user.status !== "pending") {
+        return res.status(400).json({ message: "User is not in pending status" });
+      }
+
+      // Generate new invite token
+      const inviteToken = storage.generateEmailVerificationToken();
+
+      // Update user with new invite token
+      await storage.updateUser(userId, { 
+        inviteToken: inviteToken,
+        inviteTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        lastInviteSent: new Date()
+      });
+
+      // Send invitation email
+      const organizationName = req.user.organizationName || "Organization";
+      const invitedByName = `${req.user.firstName} ${req.user.lastName}`;
+
+      await storage.sendInvitationEmail(
+        user.email, 
+        inviteToken, 
+        organizationName, 
+        user.roles || [user.role], 
+        invitedByName
+      );
+
+      res.json({ 
+        message: "Invitation resent successfully",
+        userId: userId,
+        email: user.email
+      });
+
+    } catch (error) {
+      console.error("Resend invite error:", error);
+      res.status(500).json({ message: "Failed to resend invitation" });
+    }
+  });
+
+  app.get("/api/organization/usage", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const months = parseInt(req.query.months) || 12;
+      const usage = await storage.getUsageStats(req.user.organizationId, months);
+      res.json(usage);
+    } catch (error) {
+      console.error("Get usage stats error:", error);
+      res.status(500).json({ message: "Failed to get usage statistics" });
+    }
+  });
+
+  // Invitation validation and completion endpoints
+  app.get("/api/auth/validate-invite", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+
+      const invitedUser = await storage.getUserByInviteToken(token);
+      if (!invitedUser) {
+        return res.status(410).json({ message: "Invite link is invalid or expired" });
+      }
+
+      // Check if invitation has expired
+      if (invitedUser.inviteTokenExpiry && new Date() > new Date(invitedUser.inviteTokenExpiry)) {
+        return res.status(410).json({ message: "Invite link is invalid or expired" });
+      }
+
+      // Check if invitation has already been accepted
+      if (invitedUser.status === 'active') {
+        return res.status(409).json({ 
+          message: "This invitation has already been accepted",
+          alreadyRegistered: true
+        });
+      }
+
+      // Additional check: if user has password hash, they're already registered
+      if (invitedUser.passwordHash) {
+        return res.status(409).json({ 
+          message: "You are already registered. Please log in.",
+          alreadyRegistered: true
+        });
+      }
+
+      // Get organization details
+      const organization = await storage.getOrganization(invitedUser.organization);
+
+      res.json({
+        email: invitedUser.email,
+        roles: invitedUser.roles || [invitedUser.role],
+        role: invitedUser.role,
+        organizationName: organization?.name || "Organization",
+        organizationId: invitedUser.organization,
+        invitedByName: invitedUser.invitedByName,
+        invitedAt: invitedUser.invitedAt
+      });
+
+    } catch (error) {
+      console.error("Validate invite error:", error);
+      res.status(500).json({ message: "Failed to validate invitation" });
+    }
+  });
+
+  app.post("/api/auth/complete-invite", async (req, res) => {
+    try {
+      const { token, firstName, lastName, password } = req.body;
+
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const invitedUser = await storage.getUserByInviteToken(token);
+      if (!invitedUser) {
+        return res.status(410).json({ message: "Invite link is invalid or expired" });
+      }
+
+      // Check if invitation has expired
+      if (invitedUser.inviteTokenExpiry && new Date() > new Date(invitedUser.inviteTokenExpiry)) {
+        return res.status(410).json({ message: "Invite link is invalid or expired" });
+      }
+
+      // Final check: ensure invitation hasn't already been accepted
+      if (invitedUser.status === 'active') {
+        return res.status(409).json({ 
+          message: "This invitation has already been accepted",
+          alreadyRegistered: true
+        });
+      }
+
+      // Additional check: if user has password hash, they're already registered
+      if (invitedUser.passwordHash) {
+        return res.status(409).json({ 
+          message: "You are already registered. Please log in.",
+          alreadyRegistered: true
+        });
+      }
+
+      // Complete the user invitation
+      const completedUser = await storage.completeUserInvitation(token, {
+        firstName,
+        lastName,
+        password
+      });
+
+      // Generate authentication token
+      const authToken = storage.generateToken(completedUser);
+
+      res.json({
+        message: "Registration completed successfully",
+        token: authToken,
+        user: {
+          id: completedUser._id,
+          email: completedUser.email,
+          firstName: completedUser.firstName,
+          lastName: completedUser.lastName,
+          role: completedUser.role,
+          organizationId: completedUser.organization
+        }
+      });
+
+    } catch (error) {
+      console.error("Complete invite error:", error);
+      res.status(500).json({ message: error.message || "Failed to complete registration" });
+    }
+  });
+
+  // Projects routes
+  app.get("/api/projects", authenticateToken, async (req, res) => {
+    try {
+      const projects = await storage.getProjects({ organizationId: req.user.organizationId });
+      res.json(projects);
+    } catch (error) {
+      console.error("Get projects error:", error);
+      res.status(500).json({ message: "Failed to get projects" });
+    }
+  });
+
+  app.post("/api/projects", authenticateToken, async (req, res) => {
+    try {
+      const projectData = {
+        ...req.body,
+        organization: req.user.organizationId,
+        owner: req.user.id,
+      };
+
+      const project = await storage.createProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Create project error:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
+  // Task statuses routes
+  app.get("/api/task-statuses", authenticateToken, async (req, res) => {
+    try {
+      const statuses = await storage.getTaskStatuses(req.user.organizationId);
+      res.json(statuses);
+    } catch (error) {
+      console.error("Get task statuses error:", error);
+      res.status(500).json({ message: "Failed to get task statuses" });
+    }
+  });
+
+  // Setup email and calendar integration routes
+  await setupEmailCalendarRoutes(app);
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
+
+// Smart task input parsing function
+function parseSmartTaskInput(input) {
+  const result = { tags: [] };
+
+  // Extract due date patterns
+  const dueDatePatterns = [
+    /(?:due|by|until)\s+(\d{1,2}\/\d{1,2}\/\d{4})/i,
+    /(?:due|by|until)\s+(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i,
+    /(?:due|by|until)\s+(\d{1,2}\/\d{1,2})/i,
+  ];
+
+  for (const pattern of dueDatePatterns) {
+    const match = input.match(pattern);
+    if (match) {
+      result.dueDate = parseDateString(match[1]);
+      input = input.replace(match[0], '').trim();
+      break;
+    }
+  }
+
+  // Extract priority
+  const priorityMatch = input.match(/(?:priority|pri)\s+(low|medium|high|urgent)/i);
+  if (priorityMatch) {
+    result.priority = priorityMatch[1].toLowerCase();
+    input = input.replace(priorityMatch[0], '').trim();
+  }
+
+  // Extract tags
+  const tagMatches = input.match(/#[\w-]+/g);
+  if (tagMatches) {
+    result.tags = tagMatches.map(tag => tag.substring(1));
+    input = input.replace(/#[\w-]+/g, '').trim();
+  }
+
+  // Extract mentions
+  const mentionMatches = input.match(/@[\w-]+/g);
+  if (mentionMatches) {
+    result.mentions = mentionMatches.map(mention => mention.substring(1));
+    input = input.replace(/@[\w-]+/g, '').trim();
+  }
+
+  // The remaining text is the title
+  result.title = input.trim();
+
+  return result;
+}
+
+function parseDateString(dateStr) {
+  const today = new Date();
+
+  switch (dateStr.toLowerCase()) {
+    case 'today':
+      return today;
+    case 'tomorrow':
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+    case 'monday':
+    case 'tuesday':
+    case 'wednesday':
+    case 'thursday':
+    case 'friday':
+    case 'saturday':
+    case 'sunday':
+      const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const targetDay = daysOfWeek.indexOf(dateStr.toLowerCase());
+      const currentDay = today.getDay();
+      const daysUntilTarget = (targetDay - currentDay + 7) % 7 || 7;
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + daysUntilTarget);
+      return targetDate;
+    default:
+      // Try to parse as a regular date
+      const parsed = new Date(dateStr);
+      return isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+}
+
+// Email & Calendar Integration
+async function setupEmailCalendarRoutes(app) {
+  // Create simple mock services for now - integrations will be available once properly configured
+  const emailService = {
+    initializeGmail: () => false,
+    initializeIMAP: () => false,
+    syncEmails: () => ({ emailsProcessed: 0, tasksCreated: 0 }),
+    gmail: null,
+    imapConfig: null
+  };
+
+  const calendarService = {
+    initializeGoogleCalendar: () => false,
+    initializeOutlook: () => false,
+    syncCalendars: () => ({ eventsProcessed: 0, tasksCreated: 0 }),
+    getUpcomingEvents: () => [],
+    getIntegrationStatus: () => ({ googleCalendar: false, outlook: false, isRunning: false })
+  };
+
+  // Email integration setup
+  app.post("/api/integrations/email/setup", authenticateToken, async (req, res) => {
+    try {
+      const { type, credentials } = req.body;
+
+      if (type === 'gmail') {
+        const success = await emailService.initializeGmail(credentials);
+        if (success) {
+          res.json({ message: "Gmail integration configured successfully" });
+        } else {
+          res.status(400).json({ message: "Failed to configure Gmail integration" });
+        }
+      } else if (type === 'imap') {
+        emailService.initializeIMAP(credentials);
+        res.json({ message: "IMAP integration configured successfully" });
+      } else {
+        res.status(400).json({ message: "Invalid email integration type" });
+      }
+    } catch (error) {
+      console.error("Email setup error:", error);
+      res.status(500).json({ message: "Failed to setup email integration" });
+    }
+  });
+
+  // Manual email sync
+  app.post("/api/integrations/email/sync", authenticateToken, async (req, res) => {
+    try {
+      const { method = 'gmail' } = req.body;
+      const result = await emailService.syncEmails(
+        req.user.organizationId,
+        req.user.id,
+        method
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Email sync error:", error);
+      res.status(500).json({ message: "Failed to sync emails" });
+    }
+  });
+
+  // Calendar integration setup
+  app.post("/api/integrations/calendar/setup", authenticateToken, async (req, res) => {
+    try {
+      const { type, credentials } = req.body;
+
+      if (type === 'google') {
+        const success = await calendarService.initializeGoogleCalendar(credentials);
+        if (success) {
+          res.json({ message: "Google Calendar integration configured successfully" });
+        } else {
+          res.status(400).json({ message: "Failed to configure Google Calendar integration" });
+        }
+      } else if (type === 'outlook') {
+        const success = await calendarService.initializeOutlook(credentials);
+        if (success) {
+          res.json({ message: "Outlook Calendar integration configured successfully" });
+        } else {
+          res.status(400).json({ message: "Failed to configure Outlook integration" });
+        }
+      } else {
+        res.status(400).json({ message: "Invalid calendar integration type" });
+      }
+    } catch (error) {
+      console.error("Calendar setup error:", error);
+      res.status(500).json({ message: "Failed to setup calendar integration" });
+    }
+  });
+
+  // Manual calendar sync
+  app.post("/api/integrations/calendar/sync", authenticateToken, async (req, res) => {
+    try {
+      const { sources = ['google'], outlookAccessToken } = req.body;
+      const result = await calendarService.syncCalendars(
+        req.user.organizationId,
+        req.user.id,
+        sources,
+        outlookAccessToken
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Calendar sync error:", error);
+      res.status(500).json({ message: "Failed to sync calendar events" });
+    }
+  });
+
+  // Get upcoming events
+  app.get("/api/integrations/calendar/events", authenticateToken, async (req, res) => {
+    try {
+      const { sources = ['google'], outlookAccessToken } = req.query;
+      const sourcesArray = typeof sources === 'string' ? [sources] : sources;
+
+      const events = await calendarService.getUpcomingEvents(
+        req.user.organizationId,
+        req.user.id,
+        sourcesArray,
+        outlookAccessToken
+      );
+      res.json(events);
+    } catch (error) {
+      console.error("Get events error:", error);
+      res.status(500).json({ message: "Failed to fetch calendar events" });
+    }
+  });
+
+  // Get integration status
+  app.get("/api/integrations/status", authenticateToken, async (req, res) => {
+    try {
+      const calendarStatus = calendarService.getIntegrationStatus();
+      res.json({
+        email: {
+          gmail: !!emailService.gmail,
+          imap: !!emailService.imapConfig
+        },
+        calendar: calendarStatus
+      });
+    } catch (error) {
+      console.error("Integration status error:", error);
+      res.status(500).json({ message: "Failed to get integration status" });
+    }
+  });
+
+  // Role Management API Routes
+
+  // Get all roles
+  app.get("/api/roles", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const roles = await storage.getRoles(req.user.organizationId);
+      res.json(roles);
+    } catch (error) {
+      console.error("Get roles error:", error);
+      res.status(500).json({ message: "Failed to fetch roles" });
+    }
+  });
+
+  // Create a new role
+  app.post("/api/roles", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { name, description, permissions = [] } = req.body;
+
+      if (!name || name.trim() === '') {
+        return res.status(400).json({ message: "Role name is required" });
+      }
+
+      // Check if role name already exists in the organization
+      const existingRole = await storage.getRoleByName(name.trim(), req.user.organizationId);
+      if (existingRole) {
+        return res.status(400).json({ message: "Role name already exists in your organization" });
+      }
+
+      const role = await storage.createRole({
+        name: name.trim(),
+        description: description?.trim() || '',
+        permissions: Array.isArray(permissions) ? permissions : [],
+        organizationId: req.user.organizationId,
+        createdBy: req.user.id
+      });
+
+      res.status(201).json(role);
+    } catch (error) {
+      console.error("Create role error:", error);
+      res.status(500).json({ message: "Failed to create role" });
+    }
+  });
+
+  // Update a role
+  app.put("/api/roles/:id", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, permissions } = req.body;
+
+      if (!name || name.trim() === '') {
+        return res.status(400).json({ message: "Role name is required" });
+      }
+
+      // Check if the role exists and belongs to the organization
+      const existingRole = await storage.getRole(id);
+      if (!existingRole) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      if (existingRole.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Check if the new name conflicts with another role
+      if (name.trim() !== existingRole.name) {
+        const conflictingRole = await storage.getRoleByName(name.trim(), req.user.organizationId);
+        if (conflictingRole && conflictingRole._id.toString() !== id) {
+          return res.status(400).json({ message: "Role name already exists in your organization" });
+        }
+      }
+
+      const updatedRole = await storage.updateRole(id, {
+        name: name.trim(),
+        description: description?.trim() || '',
+        permissions: Array.isArray(permissions) ? permissions : existingRole.permissions,
+        updatedBy: req.user.id
+      });
+
+      res.json(updatedRole);
+    } catch (error) {
+      console.error("Update role error:", error);
+      res.status(500).json({ message: "Failed to update role" });
+    }  });
+
+  // Delete a role
+  app.delete("/api/roles/:id", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Check if the role exists and belongs to the organization
+      const existingRole = await storage.getRole(id);
+      if (!existingRole) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      if (existingRole.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Check if any users are assigned to this role
+      const usersWithRole = await storage.getUsersByRole(id);
+      if (usersWithRole.length > 0) {
+        return res.status(400).json({ 
+          message: `Cannot delete role. ${usersWithRole.length} user(s) are assigned to this role. Please reassign or remove these users first.` 
+        });
+      }
+
+      await storage.deleteRole(id);
+      res.json({ message: "Role deleted successfully" });
+    } catch (error) {
+      console.error("Delete role error:", error);
+      res.status(500).json({ message: "Failed to delete role" });
+    }
+  });
+
+  // Get role by ID
+  app.get("/api/roles/:id", authenticateToken, requireOrganization, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const role = await storage.getRole(id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      if (role.organizationId !== req.user.organizationId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(role);
+    } catch (error) {
+      console.error("Get role error:", error);
+      res.status(500).json({ message: "Failed to fetch role" });
+    }
+  });
+
+  // Assign role to user
+  app.post("/api/roles/assign", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { userId, roleId } = req.body;
+
+      if (!userId || !roleId) {
+        return res.status(400).json({ message: "User ID and Role ID are required" });
+      }
+
+      // Verify role exists and belongs to organization
+      const role = await storage.getRole(roleId);
+      if (!role || role.organizationId !== req.user.organizationId) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      // Verify user exists and belongs to organization
+      const user = await storage.getUser(userId);
+      if (!user || user.organizationId !== req.user.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user's role
+      const updatedUser = await storage.updateUser(userId, { roleId });
+      res.json({ message: "Role assigned successfully", user: updatedUser });
+    } catch (error) {
+      console.error("Assign role error:", error);
+      res.status(500).json({ message: "Failed to assign role" });
+    }
+  });
+
+  // Get users by role
+  app.get("/api/roles/:id/users", authenticateToken, requireOrganization, async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Verify role exists and belongs to organization
+      const role = await storage.getRole(id);
+      if (!role || role.organizationId !== req.user.organizationId) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      const users = await storage.getUsersByRole(id);
+      res.json(users);
+    } catch (error) {
+      console.error("Get users by role error:", error);
+      res.status(500).json({ message: "Failed to fetch users for role" });
+    }
+  });
+
+  // Reports API Routes
+
+  // Get report data
+  app.get("/api/reports", async (req, res) => {
+    try {
+      // Return mock report data for now to ensure UI works
+      const mockReportData = {
+        summary: {
+          totalUsers: 12,
+          totalTasks: 48,
+          avgCompletion: 75,
+          overdueTasks: 6
+        },
+        userPerformance: [
+          {
+            userId: "1",
+            userName: "John Doe",
+            userEmail: "john@example.com",
+            department: "Engineering",
+            totalTasks: 15,
+            completedTasks: 12,
+            inProgressTasks: 2,
+            overdueTasks: 1,
+            progressPercentage: 80,
+            hoursLogged: 45
+          },
+          {
+            userId: "2",
+            userName: "Jane Smith",
+            userEmail: "jane@example.com",
+            department: "Design",
+            totalTasks: 12,
+            completedTasks: 9,
+            inProgressTasks: 2,
+            overdueTasks: 1,
+            progressPercentage: 75,
+            hoursLogged: 38
+          },
+          {
+            userId: "3",
+            userName: "Mike Johnson",
+            userEmail: "mike@example.com",
+            department: "Marketing",
+            totalTasks: 10,
+            completedTasks: 7,
+            inProgressTasks: 2,
+            overdueTasks: 1,
+            progressPercentage: 70,
+            hoursLogged: 32
+          }
+        ],
+        userTaskData: [
+          { userName: "John Doe", totalTasks: 15, completedTasks: 12 },
+          { userName: "Jane Smith", totalTasks: 12, completedTasks: 9 },
+          { userName: "Mike Johnson", totalTasks: 10, completedTasks: 7 }
+        ],
+        statusDistribution: [
+          { name: "Completed", value: 28 },
+          { name: "In Progress", value: 12 },
+          { name: "Todo", value: 6 },
+          { name: "Review", value: 2 }
+        ],
+        trendData: [
+          { date: "2024-05-01", completed: 5, created: 8, overdue: 2 },
+          { date: "2024-05-02", completed: 3, created: 6, overdue: 1 },
+          { date: "2024-05-03", completed: 7, created: 9, overdue: 3 },
+          { date: "2024-05-04", completed: 4, created: 5, overdue: 2 },
+          { date: "2024-05-05", completed: 6, created: 7, overdue: 1 }
+        ],
+        taskDetails: [
+          {
+            _id: "1",
+            title: "Design user interface mockups",
+            assignedTo: { firstName: "Jane", lastName: "Smith" },
+            project: { name: "Web App Redesign" },
+            status: "completed",
+            priority: "high",
+            dueDate: "2024-05-10",
+            progress: 100
+          },
+          {
+            _id: "2",
+            title: "Implement authentication system",
+            assignedTo: { firstName: "John", lastName: "Doe" },
+            project: { name: "Backend API" },
+            status: "in-progress",
+            priority: "medium",
+            dueDate: "2024-05-15",
+            progress: 75
+          },
+          {
+            _id: "3",
+            title: "Create marketing campaign",
+            assignedTo: { firstName: "Mike", lastName: "Johnson" },
+            project: { name: "Product Launch" },
+            status: "todo",
+            priority: "low",
+            dueDate: "2024-05-20",
+            progress: 0
+          }
+        ]
+      };
+
+      res.json(mockReportData);
+    } catch (error) {
+      console.error("Get reports error:", error);
+      res.status(500).json({ message: "Failed to fetch report data" });
+    }
+  });
+
+  // Get filter options for reports
+  app.get("/api/reports/filters", async (req, res) => {
+    try {
+      const filterOptions = {
+        users: [
+          { _id: "1", firstName: "John", lastName: "Doe", email: "john@example.com" },
+          { _id: "2", firstName: "Jane", lastName: "Smith", email: "jane@example.com" },
+          { _id: "3", firstName: "Mike", lastName: "Johnson", email: "mike@example.com" }
+        ],
+        projects: [
+          { _id: "1", name: "Web App Redesign" },
+          { _id: "2", name: "Backend API" },
+          { _id: "3", name: "Product Launch" }
+        ],
+        departments: ["Engineering", "Design", "Marketing"]
+      };
+
+      res.json(filterOptions);
+    } catch (error) {
+      console.error("Get report filters error:", error);
+      res.status(500).json({ message: "Failed to fetch filter options" });
+    }
+  });
+
+  // Export reports
+  app.get("/api/reports/export", async (req, res) => {
+    try {
+      const { format } = req.query;
+
+      if (format === 'csv') {
+        const csvData = `User Name,Email,Department,Total Tasks,Completed Tasks,In Progress Tasks,Overdue Tasks,Progress Percentage,Hours Logged
+"John Doe","john@example.com","Engineering",15,12,2,1,"80%","45h"
+"Jane Smith","jane@example.com","Design",12,9,2,1,"75%","38h"
+"Mike Johnson","mike@example.com","Marketing",10,7,2,1,"70%","32h"`;
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="user-reports.csv"');
+        res.send(csvData);
+      } else if (format === 'pdf') {
+        res.status(501).json({ message: "PDF export functionality is not yet implemented" });
+      } else {
+        res.status(400).json({ message: "Invalid format specified" });
+      }
+    } catch (error) {
+      console.error("Export reports error:", error);
+      res.status(500).json({ message: "Failed to export report" });
+    }
+  });
+
+  // Super Admin API Routes
+
+  // Get platform analytics
+  app.get("/api/super-admin/analytics", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const analytics = await storage.getPlatformAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Get platform analytics error:", error);
+      res.status(500).json({ message: "Failed to fetch platform analytics" });
+    }
+  });
+
+  // Get all companies
+  app.get("/api/super-admin/companies", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      res.json(companies);
+    } catch (error) {
+      console.error("Get companies error:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  // Get company details
+  app.get("/api/super-admin/companies/:id", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.getCompanyDetails(id);
+
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      res.json(company);
+    } catch (error) {
+      console.error("Get company details error:", error);
+      res.status(500).json({ message: "Failed to fetch company details" });
+    }
+  });
+
+  // Update company status
+  app.patch("/api/super-admin/companies/:id/status", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+
+      const company = await storage.updateCompanyStatus(id, isActive);
+
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      res.json(company);
+    } catch (error) {
+      console.error("Update company status error:", error);
+      res.status(500).json({ message: "Failed to update company status" });
+    }
+  });
+
+  // Get all users across companies
+  app.get("/api/super-admin/users", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsersAcrossCompanies();
+      res.json(users);
+    } catch (error) {
+      console.error("Get all users error:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Assign company admin
+  app.post("/api/super-admin/assign-admin", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const { companyId, userId } = req.body;
+
+      if (!companyId || !userId) {
+        return res.status(400).json({ message: "Company ID and User ID are required" });
+      }
+
+      const user = await storage.assignCompanyAdmin(companyId, userId);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "Admin assigned successfully", user });
+    } catch (error) {
+      console.error("Assign admin error:", error);
+      res.status(500).json({ message: "Failed to assign admin" });
+    }
+  });
+
+  // Get system logs
+  app.get("/api/super-admin/logs", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const { limit = 100 } = req.query;
+      const logs = await storage.getSystemLogs(parseInt(limit));
+      res.json(logs);
+    } catch (error) {
+      console.error("Get system logs error:", error);
+      res.status(500).json({ message: "Failed to fetch system logs" });
+    }
+  });
+
+  // Create super admin user
+  app.post("/api/super-admin/create-super-admin", authenticateToken, requireSuperAdmin, async (req, res) => {
+    try {
+      const { email, firstName, lastName, password } = req.body;
+
+      if (!email || !firstName || !lastName || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const superAdmin = await storage.createSuperAdmin({
+        email,
+        firstName,
+        lastName,
+        password
+      });
+
+      res.status(201).json({ 
+        message: "Super admin created successfully", 
+        user: { 
+          id: superAdmin._id, 
+          email: superAdmin.email, 
+          firstName: superAdmin.firstName, 
+          lastName: superAdmin.lastName 
+        } 
+      });
+    } catch (error) {
+      console.error("Create super admin error:", error);
+      res.status(500).json({ message: "Failed to create super admin" });
+    }
+  });
+
+  // Company Admin User Management API Routes
+
+  // Get organization license information
+  app.get("/api/organization/license", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const licenseInfo = await storage.getOrganizationLicenseInfo(req.user.organizationId);
+      res.json(licenseInfo);
+    } catch (error) {
+      console.error("Get license info error:", error);
+      res.status(500).json({ message: "Failed to fetch license information" });
+    }
+  });
+
+  // Get organization users with detailed information
+  app.get("/api/organization/users-detailed", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      console.log('Fetching users for organization:', req.user.organizationId);
+      console.log('User role:', req.user.role);
+      const users = await storage.getOrganizationUsersDetailed(req.user.organizationId);
+      console.log('Found users:', users.length);
+      res.json(users);
+    } catch (error) {
+      console.error("Get organization users error:", error);
+      res.status(500).json({ message: "Failed to fetch organization users" });
+    }
+  });
+
+  // Invite users to organization (supports multiple users)
+  app.post("/api/organization/invite-user", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const { inviteUsers } = req.body;
+      const invitedBy = req.user.id;
+      const organizationId = req.user.organizationId;
+
+      console.log('Invite request:', { inviteUsers, invitedBy, organizationId });
+
+      // Handle both single user and multiple users
+      const usersToInvite = Array.isArray(inviteUsers) ? inviteUsers : [{ email: req.body.email, roles: req.body.roles }];
+
+      if (!usersToInvite || usersToInvite.length === 0) {
+        return res.status(400).json({ message: "Invalid invite data" });
+      }
+
+      const results = [];
+      const errors = [];
+
+      for (const userData of usersToInvite) {
+        try {
+          if (!userData.email || !userData.roles) {
+            errors.push(`Missing email or roles for invitation`);
+            continue;
+          }
+
+          // Check if user already exists
+          const existingUser = await storage.getUserByEmail(userData.email);
+          if (existingUser && existingUser.organization?.toString() === organizationId) {
+            errors.push(`User ${userData.email} is already invited or registered with this organization`);
+            continue;
+          }
+
+          // Create invitation
+          const invitedUser = await storage.inviteUserToOrganization({
+            email: userData.email,
+            organizationId: organizationId,
+            roles: userData.roles,
+            invitedBy: invitedBy
+          });
+
+          // Get organization and inviter details
+          const organization = await storage.getOrganization(organizationId);
+          const inviter = await storage.getUser(invitedBy);
+          const inviterName = `${inviter.firstName} ${inviter.lastName}`;
+
+          // Send invitation email
+          try {
+            await storage.sendInvitationEmail(
+              userData.email,
+              invitedUser.inviteToken,
+              organization.name,
+              userData.roles,
+              inviterName
+            );
+          } catch (emailError) {
+            console.error('Email sending failed:', emailError);
+            // Continue even if email fails - user is still invited
+          }
+
+          results.push({
+            email: userData.email,
+            status: 'invited',
+            invitedAt: new Date()
+          });
+
+        } catch (userError) {
+          console.error(`Error inviting user ${userData.email}:`, userError);
+          errors.push(`Failed to invite ${userData.email}: ${userError.message}`);
+        }
+      }
+
+      if (errors.length > 0 && results.length === 0) {
+        return res.status(400).json({ 
+          message: "All invitations failed", 
+          errors 
+        });
+      }
+
+      res.json({
+        message: `Successfully invited ${results.length} user(s)`,
+        invited: results,
+        errors: errors.length > 0 ? errors : undefined
+      });
+
+    } catch (error) {
+      console.error("Invite users error:", error);
+      res.status(500).json({ message: "Failed to invite users" });
+    }
+  });
+
+  // Test endpoint to create sample data
+  app.post("/api/test/create-data", async (req, res) => {
+    try {
+      // Get or create organization
+      let organization = await storage.getOrganizationBySlug('demo-company');
+      if (!organization) {
+        organization = await storage.createOrganization({
+          name: 'Demo Company',
+          slug: 'demo-company',
+          type: 'company',
+          status: 'active',
+          settings: {
+            allowPublicSignup: false,
+            requireEmailVerification: true
+          }
+        });
+      }
+
+      // Create admin user
+      let adminUser = await storage.getUserByEmail('admin@demo.com');
+      if (!adminUser) {
+        adminUser = await storage.createUser({
+          firstName: 'Admin',
+          lastName: 'User',
+          email: 'admin@demo.com',
+          password: 'secret',
+          role: 'admin',
+          organization: organization._id,
+          status: 'active',
+          isActive: true,
+          emailVerified: true,
+          roles: ['admin']
+        });
+      }
+
+      // Create sample users with different statuses
+      const sampleUsers = [
+        {
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          roles: ['member'],
+          organization: organization._id,
+          status: 'invited',
+          invitedBy: adminUser._id,
+          isActive: false,
+          emailVerified: false
+        },
+        {
+          firstName: 'Jane',
+          lastName: 'Smith',
+          email: 'jane.smith@example.com',
+          roles: ['employee'],
+          organization: organization._id,
+          status: 'invited',
+          invitedBy: adminUser._id,
+          isActive: false,
+          emailVerified: false
+        },
+        {
+          firstName: 'Mike',
+          lastName: 'Johnson',
+          email: 'mike.johnson@example.com',
+          roles: ['member'],
+          organization: organization._id,
+          status: 'active',
+          invitedBy: adminUser._id,
+          isActive: true,
+          emailVerified: true,
+          password: 'user123'
+        }
+      ];
+
+      let created = 0;
+      for (const userData of sampleUsers) {
+        const existingUser = await storage.getUserByEmail(userData.email);
+        if (!existingUser) {
+          await storage.createUser(userData);
+          created++;
+        }
+      }
+
+      res.json({
+        message: `Test data created successfully. Admin: admin@demo.com / secret. Created ${created} new users.`,
+        organizationId: organization._id,
+        adminId: adminUser._id
+      });
+
+    } catch (error) {
+      console.error('Test data creation error:', error);
+      res.status(500).json({ message: 'Failed to create test data: ' + error.message });
+    }
+  });
+
+  // Accept user invitation
+  app.get("/api/auth/invitation/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const invitedUser = await storage.getInvitedUser(token);
+      if (!invitedUser) {
+        return res.status(404).json({ message: "Invalid or expired invitation" });
+      }
+
+      const organization = await storage.getOrganization(invitedUser.organizationId);
+
+      res.json({
+        message: "Invitation found",
+        invitation: {
+          email: invitedUser.email,
+          role: invitedUser.role,
+          organizationName: organization.name,
+          valid: true
+        }
+      });
+    } catch (error) {
+      console.error("Get invitation error:", error);
+      res.status(500).json({ message: "Failed to retrieve invitation" });
+    }
+  });
+
+  // Complete user invitation
+  app.post("/api/auth/complete-invitation", async (req, res) => {
+    try {
+      const { token, firstName, lastName, password } = req.body;
+
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const user = await storage.completeUserInvitation(token, { firstName, lastName, password });
+
+      // Generate auth token
+      const authToken = storage.generateToken(user);
+
+      res.json({
+        message: "Account setup completed successfully",
+        token: authToken,
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          organizationId: user.organizationId
+        }
+      });
+    } catch (error) {
+      console.error("Complete invitation error:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Deactivate user (admin only)
+  app.patch("/api/organization/users/:userId/deactivate", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      // Prevent self-deactivation
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: "Cannot deactivate your own account" });
+      }
+
+      const user = await storage.updateUser(userId, { isActive: false });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User deactivated successfully" });
+    } catch (error) {
+      console.error("Deactivate user error:", error);
+      res.status(500).json({ message: "Failed to deactivate user" });
+    }
+  });
+
+  // Reactivate user (admin only)
+  app.patch("/api/organization/users/:userId/activate", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { userId } = req.params;
+
+      const user = await storage.updateUser(userId, { isActive: true });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User activated successfully" });
+    } catch (error) {
+      console.error("Activate user error:", error);
+      res.status(500).json({ message: "Failed to activate user" });
+    }
+  });
+
+  // Update user role (admin only)
+  app.patch("/api/organization/users/:userId/role", roleAuthToken, requireOrganizationManagement, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+
+      if (!role || !['admin', 'member'].includes(role)) {
+        return res.status(400).json({ message: "Valid role is required (admin or member)" });
+      }
+
+      // Prevent changing own role
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: "Cannot change your own role" });
+      }
+
+      const user = await storage.updateUser(userId, { role });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ 
+        message: "User role updated successfully",
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      console.error("Update user role error:", error);
+      res.status(500).json({ message: "Failed to update user role" });
+    }
+  });
+
+  // Role-based Dashboard API Routes
+
+  // Super Admin Dashboard Routes
+  app.get("/api/superadmin/platform-stats", roleAuthToken, roleRequireSuperAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getPlatformAnalytics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Get platform stats error:", error);
+      res.status(500).json({ message: "Failed to fetch platform statistics" });
+    }
+  });
+
+  app.get("/api/superadmin/organizations", roleAuthToken, roleRequireSuperAdmin, async (req, res) => {
+    try {
+      const organizations = await storage.getAllCompanies();
+      res.json(organizations);
+    } catch (error) {
+      console.error("Get organizations error:", error);
+      res.status(500).json({ message: "Failed to fetch organizations" });
+    }
+  });
+
+  app.get("/api/superadmin/system-logs", roleAuthToken, roleRequireSuperAdmin, async (req, res) => {
+    try {
+      const logs = await storage.getSystemLogs(100);
+      res.json(logs);
+    } catch (error) {
+      console.error("Get system logs error:", error);
+      res.status(500).json({ message: "Failed to fetch system logs" });
+    }
+  });
+
+  // Admin Dashboard Routes
+  app.get("/api/admin/organization-stats", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const stats = await storage.getDashboardStats(req.user.organizationId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Get organization stats error:", error);
+      res.status(500).json({ message: "Failed to fetch organization statistics" });
+    }
+  });
+
+  app.get("/api/admin/users", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const users = await storage.getOrganizationUsersDetailed(req.user.organizationId);
+      res.json(users);
+    } catch (error) {
+      console.error("Get organization users error:", error);
+      res.status(500).json({ message: "Failed to fetch organization users" });
+    }
+  });
+
+  app.get("/api/admin/projects", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const projects = await storage.getProjects({ organizationId: req.user.organizationId });
+      res.json(projects);
+    } catch (error) {
+      console.error("Get organization projects error:", error);
+      res.status(500).json({ message: "Failed to fetch organization projects" });
+    }
+  });
+
+  app.get("/api/admin/tasks", roleAuthToken, requireOrgAdminOrAbove, async (req, res) => {
+    try {
+      const tasks = await storage.getTasks({ organizationId: req.user.organizationId });
+      res.json(tasks);
+    } catch (error) {
+      console.error("Get organization tasks error:", error);
+      res.status(500).json({ message: "Failed to fetch organization tasks" });
+    }
+  });
+
+  // Admin user invitation
+  app.post("/api/admin/invite-user", roleAuthToken, requireOrgAdminOnly, async (req, res) => {
+    try {
+      const { email, role = 'employee' } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const organization = await storage.getOrganization(req.user.organizationId);
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      const inviteData = {
+        email,
+        role,
+        organizationId: req.user.organizationId,
+        organizationName: organization.name,
+        invitedBy: req.user.id
+      };
+
+      const result = await storage.inviteUserToOrganization(inviteData);
+      res.json(result);
+    } catch (error) {
+      console.error("Invite user error:", error);
+      res.status(500).json({ message: error.message || "Failed to send invitation" });
+    }
+  });
+
+  // Employee Dashboard Routes
+  app.get("/api/employee/my-tasks", roleAuthToken, requireEmployee, async (req, res) => {
+    try {
+      const tasks = await storage.getTasks({ 
+        assignedTo: req.user.id,
+        organizationId: req.user.organizationId 
+      });
+      res.json(tasks);
+    } catch (error) {
+      console.error("Get my tasks error:", error);
+      res.status(500).json({ message: "Failed to fetch your tasks" });
+    }
+  });
+
+  app.get("/api/employee/my-stats", roleAuthToken, requireEmployee, async (req, res) => {
+    try {
+      const tasks = await storage.getTasks({ 
+        assignedTo: req.user.id,
+        organizationId: req.user.organizationId 
+      });
+
+      const stats = {
+        totalTasks: tasks.length,
+        completedTasks: tasks.filter(t => t.status === 'completed').length,
+        inProgressTasks: tasks.filter(t => t.status === 'in_progress').length,
+        newTasksThisWeek: tasks.filter(t => {
+          const taskDate = new Date(t.createdAt);
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return taskDate > weekAgo;
+        }).length,
+        completionRate: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0,
+        overdueTasks: tasks.filter(t => {
+          if (!t.dueDate) return false;
+          return new Date(t.dueDate) < new Date() && t.status !== 'completed';
+        }).length
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Get my stats error:", error);
+      res.status(500).json({ message: "Failed to fetch your statistics" });
+    }
+  });
+
+  app.get("/api/employee/my-projects", roleAuthToken, requireEmployee, async (req, res) => {
+    try {
+      const tasks = await storage.getTasks({ 
+        assignedTo: req.user.id,
+        organizationId: req.user.organizationId 
+      });
+
+      const projectIds = [...new Set(tasks.map(t => t.project).filter(Boolean))];
+      const projects = [];
+
+      for (const projectId of projectIds) {
+        const project = await storage.getProject(projectId);
+        if (project) {
+          const myTasksInProject = tasks.filter(t => t.project?.toString() === projectId.toString());
+          projects.push({
+            ...project,
+            myTasksCount: myTasksInProject.length,
+            progress: myTasksInProject.length > 0 ? 
+              Math.round((myTasksInProject.filter(t => t.status === 'completed').length / myTasksInProject.length) * 100) : 0
+          });
+        }
+      }
+
+      res.json(projects);
+    } catch (error) {
+      console.error("Get my projects error:", error);
+      res.status(500).json({ message: "Failed to fetch your projects" });
+    }
+  });
+
+  app.get("/api/employee/notifications", roleAuthToken, requireEmployee, async (req, res) => {
+    try {
+      const notifications = await storage.getUserNotifications(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Setup test routes (development only)
+  if (process.env.NODE_ENV === 'development') {
+    // await setupTestRoutes(app);
+  }
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+  return httpServer;
+}
