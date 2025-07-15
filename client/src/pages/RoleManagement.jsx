@@ -1,12 +1,26 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Shield, Plus, Edit, Trash2, Users, Check, X, Save, UserCog } from "lucide-react";
+import {
+  Shield,
+  Plus,
+  Edit,
+  Trash2,
+  Users,
+  Check,
+  X,
+  Save,
+  UserCog,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function RoleManagement() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
-  const [newRole, setNewRole] = useState({ name: "", description: "", permissions: [] });
+  const [newRole, setNewRole] = useState({
+    name: "",
+    description: "",
+    permissions: [],
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -27,16 +41,16 @@ export function RoleManagement() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(roleData)
+        body: JSON.stringify(roleData),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to create role");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -64,16 +78,16 @@ export function RoleManagement() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(roleData)
+        body: JSON.stringify(roleData),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to update role");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -99,15 +113,15 @@ export function RoleManagement() {
       const response = await fetch(`/api/roles/${roleId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
-        }
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to delete role");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -133,16 +147,16 @@ export function RoleManagement() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ userId, roleId })
+        body: JSON.stringify({ userId, roleId }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to assign role");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -150,7 +164,9 @@ export function RoleManagement() {
         title: "Role assigned successfully",
         description: "The user's role has been updated",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/organization/users-detailed"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/organization/users-detailed"],
+      });
     },
     onError: (error) => {
       toast({
@@ -162,10 +178,22 @@ export function RoleManagement() {
   });
 
   const availablePermissions = [
-    "read_tasks", "create_tasks", "edit_tasks", "delete_tasks",
-    "read_projects", "create_projects", "edit_projects", "delete_projects",
-    "read_users", "invite_users", "edit_users", "delete_users",
-    "read_reports", "create_reports", "edit_reports", "delete_reports"
+    "read_tasks",
+    "create_tasks",
+    "edit_tasks",
+    "delete_tasks",
+    "read_projects",
+    "create_projects",
+    "edit_projects",
+    "delete_projects",
+    "read_users",
+    "invite_users",
+    "edit_users",
+    "delete_users",
+    "read_reports",
+    "create_reports",
+    "edit_reports",
+    "delete_reports",
   ];
 
   const handleCreateRole = (e) => {
@@ -186,7 +214,11 @@ export function RoleManagement() {
   };
 
   const handleDeleteRole = (roleId) => {
-    if (window.confirm("Are you sure you want to delete this role? Users with this role will need to be reassigned.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this role? Users with this role will need to be reassigned."
+      )
+    ) {
       deleteRoleMutation.mutate(roleId);
     }
   };
@@ -198,12 +230,12 @@ export function RoleManagement() {
   const togglePermission = (permission, isNewRole = false) => {
     if (isNewRole) {
       const permissions = newRole.permissions.includes(permission)
-        ? newRole.permissions.filter(p => p !== permission)
+        ? newRole.permissions.filter((p) => p !== permission)
         : [...newRole.permissions, permission];
       setNewRole({ ...newRole, permissions });
     } else if (editingRole) {
       const permissions = editingRole.permissions.includes(permission)
-        ? editingRole.permissions.filter(p => p !== permission)
+        ? editingRole.permissions.filter((p) => p !== permission)
         : [...editingRole.permissions, permission];
       setEditingRole({ ...editingRole, permissions });
     }
@@ -225,8 +257,8 @@ export function RoleManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-100">Role Management</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-black">Role Management</h1>
+          <p className="text-gray-600 mt-1">
             Manage roles and permissions for your organization
           </p>
         </div>
@@ -240,20 +272,27 @@ export function RoleManagement() {
       </div>
 
       {/* Roles List */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700">
+      <div className="bg-gray-100 rounded-lg border border-gray-200">
         <div className="p-6">
-          <h3 className="text-lg font-medium text-gray-100 mb-4">Organization Roles</h3>
-          
+          <h3 className="text-lg font-medium text-gray-100 mb-4">
+            Organization Roles
+          </h3>
+
           {roles.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-black">
               <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No custom roles created yet</p>
-              <p className="text-sm">Create your first role to get started</p>
+              <p className="text-sm text-black">
+                Create your first role to get started
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {roles.map((role) => (
-                <div key={role._id} className="border border-gray-600 rounded-lg p-4">
+                <div
+                  key={role._id}
+                  className="border border-gray-600 rounded-lg p-4"
+                >
                   {editingRole && editingRole._id === role._id ? (
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -264,7 +303,12 @@ export function RoleManagement() {
                           <input
                             type="text"
                             value={editingRole.name}
-                            onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
+                            onChange={(e) =>
+                              setEditingRole({
+                                ...editingRole,
+                                name: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
@@ -275,31 +319,43 @@ export function RoleManagement() {
                           <input
                             type="text"
                             value={editingRole.description}
-                            onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
+                            onChange={(e) =>
+                              setEditingRole({
+                                ...editingRole,
+                                description: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Permissions
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           {availablePermissions.map((permission) => (
-                            <label key={permission} className="flex items-center space-x-2 cursor-pointer">
+                            <label
+                              key={permission}
+                              className="flex items-center space-x-2 cursor-pointer"
+                            >
                               <input
                                 type="checkbox"
-                                checked={editingRole.permissions.includes(permission)}
+                                checked={editingRole.permissions.includes(
+                                  permission
+                                )}
                                 onChange={() => togglePermission(permission)}
                                 className="rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                               />
-                              <span className="text-sm text-gray-300">{permission.replace(/_/g, ' ')}</span>
+                              <span className="text-sm text-gray-300">
+                                {permission.replace(/_/g, " ")}
+                              </span>
                             </label>
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-end space-x-2">
                         <button
                           onClick={() => setEditingRole(null)}
@@ -319,8 +375,12 @@ export function RoleManagement() {
                   ) : (
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-medium text-gray-100">{role.name}</h4>
-                        <p className="text-sm text-gray-400">{role.description}</p>
+                        <h4 className="font-medium text-gray-100">
+                          {role.name}
+                        </h4>
+                        <p className="text-sm text-gray-400">
+                          {role.description}
+                        </p>
                         <div className="mt-2">
                           <span className="text-xs text-gray-500">
                             {role.permissions?.length || 0} permissions
@@ -352,38 +412,45 @@ export function RoleManagement() {
       </div>
 
       {/* User Role Assignments */}
-      <div className="bg-gray-800 rounded-lg border border-gray-700">
+      <div className="bg-gray-100 rounded-lg border border-gray-200">
         <div className="p-6">
-          <h3 className="text-lg font-medium text-gray-100 mb-4">User Role Assignments</h3>
-          
+          <h3 className="text-lg font-medium text-black mb-4">
+            User Role Assignments
+          </h3>
+
           {users.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-black">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No users found</p>
             </div>
           ) : (
             <div className="space-y-3">
               {users.map((user) => (
-                <div key={user._id} className="flex items-center justify-between p-3 border border-gray-600 rounded-lg">
+                <div
+                  key={user._id}
+                  className="flex items-center justify-between p-3 border border-gray-600 rounded-lg"
+                >
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                       <UserCog className="h-4 w-4 text-gray-300" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-100">
+                      <p className="font-medium text-black">
                         {user.firstName} {user.lastName}
                       </p>
-                      <p className="text-sm text-gray-400">{user.email}</p>
+                      <p className="text-sm text-black">{user.email}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <select
                       value={user.role || "employee"}
                       onChange={(e) => {
-                        const roleId = e.target.value === "employee" || e.target.value === "org_admin" 
-                          ? e.target.value 
-                          : roles.find(r => r.name === e.target.value)?._id;
+                        const roleId =
+                          e.target.value === "employee" ||
+                          e.target.value === "org_admin"
+                            ? e.target.value
+                            : roles.find((r) => r.name === e.target.value)?._id;
                         if (roleId) {
                           handleAssignRole(user._id, roleId);
                         }
@@ -399,12 +466,14 @@ export function RoleManagement() {
                         </option>
                       ))}
                     </select>
-                    
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      user.isActive 
-                        ? "bg-green-900 text-green-300" 
-                        : "bg-red-900 text-red-300"
-                    }`}>
+
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        user.isActive
+                          ? "bg-green-900 text-green-300"
+                          : "bg-red-900 text-red-300"
+                      }`}
+                    >
                       {user.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -420,8 +489,10 @@ export function RoleManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg border border-gray-700 w-full max-w-2xl mx-4">
             <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-100 mb-4">Create New Role</h2>
-              
+              <h2 className="text-xl font-bold text-gray-100 mb-4">
+                Create New Role
+              </h2>
+
               <form onSubmit={handleCreateRole} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -431,7 +502,9 @@ export function RoleManagement() {
                     <input
                       type="text"
                       value={newRole.name}
-                      onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                      onChange={(e) =>
+                        setNewRole({ ...newRole, name: e.target.value })
+                      }
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       required
                     />
@@ -443,37 +516,48 @@ export function RoleManagement() {
                     <input
                       type="text"
                       value={newRole.description}
-                      onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+                      onChange={(e) =>
+                        setNewRole({ ...newRole, description: e.target.value })
+                      }
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Permissions
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                     {availablePermissions.map((permission) => (
-                      <label key={permission} className="flex items-center space-x-2 cursor-pointer">
+                      <label
+                        key={permission}
+                        className="flex items-center space-x-2 cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           checked={newRole.permissions.includes(permission)}
                           onChange={() => togglePermission(permission, true)}
                           className="rounded border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
                         />
-                        <span className="text-sm text-gray-300">{permission.replace(/_/g, ' ')}</span>
+                        <span className="text-sm text-gray-300">
+                          {permission.replace(/_/g, " ")}
+                        </span>
                       </label>
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
                   <button
                     type="button"
                     onClick={() => {
                       setIsCreateModalOpen(false);
-                      setNewRole({ name: "", description: "", permissions: [] });
+                      setNewRole({
+                        name: "",
+                        description: "",
+                        permissions: [],
+                      });
                     }}
                     className="px-4 py-2 text-gray-300 hover:text-gray-100 transition-colors"
                   >

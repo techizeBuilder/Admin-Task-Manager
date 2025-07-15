@@ -118,7 +118,7 @@ export default function TeamMembersWidget({
 
   if (isLoading) {
     return (
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+      <Card className="bg-white  border border-slate-200  shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
             <Users className="h-5 w-5 mr-2 text-blue-600" />

@@ -196,7 +196,8 @@ export function SimpleSidebar() {
       </div>
     );
   };
-
+const validUser = JSON.parse(localStorage.getItem("user"));
+  console.log(validUser,"nidhi")
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-56 bg-sidebarDark border-r border-gray-600/30 shadow-xl">
       <div className="flex flex-col h-full">
@@ -211,7 +212,7 @@ export function SimpleSidebar() {
             <p className="text-xs text-gray-300">
               {isIndividualUser
                 ? "Individual"
-                : `${user?.firstName} ${user?.lastName}`}
+                : `${validUser?.firstName} ${validUser?.lastName}`}
             </p>
             {/* <p className="text-xs text-gray-300">{user?.email}</p> */}
           </div>

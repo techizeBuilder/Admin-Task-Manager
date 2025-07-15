@@ -1,3 +1,4 @@
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -66,6 +67,7 @@ import {
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import SecureRoute from "./components/ProtectedRoute";
 import ForbiddenPage from "./pages/ForbiddenPage";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

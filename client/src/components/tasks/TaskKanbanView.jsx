@@ -317,7 +317,7 @@ export function TaskKanbanView() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Kanban Board
           </h2>
-          <p className="text-slate-600 dark:text-slate-300 mt-1">
+          <p className="text-slate-600  mt-1">
             Drag and drop tasks to update their status
           </p>
         </div>
@@ -339,7 +339,7 @@ export function TaskKanbanView() {
           return (
             <Card 
               key={column.id} 
-              className={`border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800 transition-all duration-200 ${
+              className={`border-slate-200  shadow-sm bg-white  transition-all duration-200 ${
                 dragOverColumn === column.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
               }`}
               onDragOver={(e) => handleDragOver(e, column.id)}

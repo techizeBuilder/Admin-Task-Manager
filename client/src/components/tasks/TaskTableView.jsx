@@ -271,10 +271,10 @@ export function TaskTableView() {
   return (
     <div className="space-y-3">
       {/* Filters and Search */}
-      <Card className="border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
+      <Card className="border-slate-200  shadow-sm bg-gray-100 ">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-slate-900 dark:text-white flex items-center">
-            <Filter className="h-4 w-4 mr-1 text-blue-600" />
+          <CardTitle className="text-sm font-medium text-slate-900  flex items-center">
+            <Filter className="h-4 w-4 mr-1 text-blue-600 font-semibold" />
             Search & Filters
           </CardTitle>
         </CardHeader>
@@ -290,7 +290,7 @@ export function TaskTableView() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} className="">
               <SelectTrigger className="border-slate-300 h-8 text-sm">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -351,9 +351,9 @@ export function TaskTableView() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-200 dark:border-slate-700">
+                <TableRow className="border-slate-200 bg-gray-100">
                   <TableHead 
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-slate-700 dark:text-slate-300 py-2 text-sm"
+                    className="cursor-pointer hover:bg-slate-50  font-medium text-slate-700  py-2 text-sm"
                     onClick={() => handleSort("title")}
                   >
                     <div className="flex items-center space-x-1">
@@ -363,10 +363,10 @@ export function TaskTableView() {
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="font-medium text-slate-700 dark:text-slate-300 py-2 text-sm">Description</TableHead>
-                  <TableHead className="font-medium text-slate-700 dark:text-slate-300 py-2 text-sm">Assigned User</TableHead>
+                  <TableHead className="font-medium text-slate-700  py-2 text-sm">Description</TableHead>
+                  <TableHead className="font-medium text-slate-700  py-2 text-sm">Assigned User</TableHead>
                   <TableHead 
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-slate-700 dark:text-slate-300 py-2 text-sm"
+                    className="cursor-pointer hover:bg-slate-50  font-medium text-slate-700  py-2 text-sm"
                     onClick={() => handleSort("dueDate")}
                   >
                     <div className="flex items-center space-x-1">
@@ -376,9 +376,9 @@ export function TaskTableView() {
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="font-medium text-slate-700 dark:text-slate-300 py-2 text-sm">Status</TableHead>
+                  <TableHead className="font-medium text-slate-700  py-2 text-sm">Status</TableHead>
                   <TableHead 
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-slate-700 dark:text-slate-300 py-2 text-sm"
+                    className="cursor-pointer hover:bg-slate-50  font-medium text-slate-700  py-2 text-sm"
                     onClick={() => handleSort("priority")}
                   >
                     <div className="flex items-center space-x-1">
@@ -388,7 +388,7 @@ export function TaskTableView() {
                       )}
                     </div>
                   </TableHead>
-                  <TableHead className="font-medium text-slate-700 dark:text-slate-300 text-right py-2 text-sm">Actions</TableHead>
+                  <TableHead className="font-medium text-slate-700  text-right py-2 text-sm">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -427,16 +427,16 @@ export function TaskTableView() {
                       <TableCell className="font-medium text-slate-900 dark:text-white">
                         <div className="max-w-xs truncate">{task.title}</div>
                       </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-300">
+                      <TableCell className="text-slate-600 ">
                         <div className="max-w-xs truncate">{task.description || "No description"}</div>
                       </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-300">
+                      <TableCell className="text-slate-600 ">
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-slate-400" />
                           <span>{getUserName(task.assignedToId)}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-600 dark:text-slate-300">
+                      <TableCell className="text-slate-600 ">
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-slate-400" />
                           <span>{formatDate(task.dueDate)}</span>

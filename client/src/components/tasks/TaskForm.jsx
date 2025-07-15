@@ -186,12 +186,12 @@ export function TaskForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl">
-        <DialogHeader className="pb-6 border-b border-slate-200 dark:border-slate-700">
-          <DialogTitle className="text-2xl font-bold text-slate-900 dark:text-white">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white  border-slate-200  shadow-2xl">
+        <DialogHeader className="pb-6 border-b border-slate-200 ">
+          <DialogTitle className="text-2xl font-bold text-slate-900 ">
             {initialData ? 'Edit Task' : 'Create New Task'}
           </DialogTitle>
-          <DialogDescription className="text-slate-600 dark:text-slate-300 font-medium mt-2">
+          <DialogDescription className="text-slate-600  font-medium mt-2">
             {initialData ? 'Update the task details below' : 'Fill in the details below to create a new task'}
           </DialogDescription>
         </DialogHeader>
@@ -199,7 +199,7 @@ export function TaskForm({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8 pt-6">
           {/* Title Field */}
           <div className="space-y-3">
-            <Label htmlFor="title" className="text-sm font-semibold text-slate-900 dark:text-white">
+            <Label htmlFor="title" className="text-sm font-semibold text-slate-900 ">
               Task Title <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <div className="relative">
@@ -207,7 +207,7 @@ export function TaskForm({
                 id="title"
                 {...register("title")}
                 placeholder="Enter a descriptive task title..."
-                className={`bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 font-medium h-12 px-4 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 ${errors.title ? 'border-red-500 dark:border-red-400' : ''}`}
+                className={`bg-white  border-slate-300  text-slate-900  placeholder:text-slate-500  font-medium h-12 px-4 focus:border-blue-500  focus:ring-2 focus:ring-blue-200  ${errors.title ? 'border-red-500 dark:border-red-400' : ''}`}
               />
               {errors.title && (
                 <AlertCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-red-600 dark:text-red-400" />
@@ -223,7 +223,7 @@ export function TaskForm({
 
           {/* Description Field */}
           <div className="space-y-3">
-            <Label htmlFor="description" className="text-sm font-semibold text-slate-900 dark:text-white">
+            <Label htmlFor="description" className="text-sm font-semibold text-slate-900 ">
               Description
             </Label>
             <Textarea
@@ -231,7 +231,7 @@ export function TaskForm({
               {...register("description")}
               placeholder="Provide detailed information about the task..."
               rows={5}
-              className={`bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 font-medium p-4 resize-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 ${errors.description ? 'border-red-500 dark:border-red-400' : ''}`}
+              className={`bg-white  border-slate-300  text-slate-900  placeholder:text-slate-500  font-medium p-4 resize-none focus:border-blue-500  focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 ${errors.description ? 'border-red-500 dark:border-red-400' : ''}`}
             />
             {errors.description && (
               <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2 mt-2">
@@ -244,7 +244,7 @@ export function TaskForm({
           {/* Priority and Status Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-slate-900 dark:text-white">
+              <Label className="text-sm font-semibold text-slate-900 ">
                 Priority <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Controller
@@ -252,15 +252,15 @@ export function TaskForm({
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={`bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white h-12 px-4 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 ${errors.priority ? 'border-red-500 dark:border-red-400' : ''}`}>
-                      <SelectValue placeholder="Select priority" className="text-slate-500 dark:text-slate-400" />
+                    <SelectTrigger className={`bg-white  border-slate-300  text-slate-900  h-12 px-4 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 ${errors.priority ? 'border-red-500 dark:border-red-400' : ''}`}>
+                      <SelectValue placeholder="Select priority" className="text-slate-500 " />
                     </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 shadow-xl">
+                    <SelectContent className="bg-white  border-slate-300  shadow-xl">
                       {priorityLevels.map((priority) => (
                         <SelectItem 
                           key={priority.value} 
                           value={priority.value} 
-                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 py-3 px-4"
+                          className="text-slate-900  hover:bg-slate-100  py-3 px-4"
                         >
                           <div className="flex items-center gap-3">
                             <span className="text-lg">{priority.icon}</span>
@@ -281,21 +281,21 @@ export function TaskForm({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-slate-900 dark:text-white">Status</Label>
+              <Label className="text-sm font-semibold text-slate-900 ">Status</Label>
               <Controller
                 name="statusId"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white h-12 px-4 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800">
+                    <SelectTrigger className="bg-white  border-slate-300 dark:border-slate-600 text-slate-900  h-12 px-4 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800">
                       <SelectValue placeholder="Select status" className="text-slate-500 dark:text-slate-400" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 shadow-xl">
+                    <SelectContent className="bg-white  border-slate-300 dark:border-slate-600 shadow-xl">
                       {taskStatuses.map((status) => (
                         <SelectItem 
                           key={status._id} 
                           value={status._id} 
-                          className="text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 py-3 px-4 font-medium"
+                          className="text-slate-900  hover:bg-slate-100 dark:hover:bg-slate-700 py-3 px-4 font-medium"
                         >
                           {status.name}
                         </SelectItem>
@@ -539,6 +539,7 @@ export function TaskForm({
             </Button>
             <Button
               type="submit"
+              variant="outline"
               disabled={!isValid || isLoading}
               className="bg-blue-600 text-white hover:bg-blue-700 disabled:bg-slate-400 disabled:text-slate-200 px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
             >

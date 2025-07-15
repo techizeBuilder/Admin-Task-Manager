@@ -4,6 +4,12 @@ export default {
     "./client/src/**/*.{js,ts,jsx,tsx}",
     "./client/index.html",
   ],
+  safelist: [
+    'from-blue-500', 'to-blue-600',
+    'from-green-500', 'to-green-600',
+    'from-purple-500', 'to-purple-600',
+    'from-orange-500', 'to-orange-600',
+  ],
   theme: {
     extend: {
       colors: {
@@ -14,11 +20,11 @@ export default {
           200: '#bfdbfe',
           300: '#93c5fd',
           400: '#60a5fa',
-          500: '#3b82f6', // Main primary blue
+          500: '#3b82f6', 
           600: '#2563eb',
           700: '#1d4ed8',
           800: '#1e40af',
-          900: '#1e3a8a', // Dark navy
+          900: '#1e3a8a', 
           950: '#172554',
         },
         navy: {
@@ -30,8 +36,8 @@ export default {
           500: '#64748b',
           600: '#475569',
           700: '#334155',
-          800: '#1e293b', // Main navy
-          900: '#0f172a', // Dark navy
+          800: '#1e293b', 
+          900: '#0f172a', 
           950: '#020617',
         },
         dark: {
@@ -45,7 +51,7 @@ export default {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-          950: '#000000', // Pure black
+          950: '#000000',
         },
         accent: {
           50: '#f0f9ff',
@@ -97,8 +103,8 @@ export default {
         },
         // Custom sidebar color
         sidebarDark: '#253140',
-        sidebarHover: '#2d3a4d', // Lighter shade for hover
-        sidebarActive: '#1f2937', // Darker shade for active
+        sidebarHover: '#2d3a4d', 
+        sidebarActive: '#1f2937', 
       },
       fontFamily: {
         sans: ['Inter', 'Poppins', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],

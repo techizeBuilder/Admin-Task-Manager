@@ -156,7 +156,7 @@ export default function TeamMembers() {
       if (!response.ok) {
         const error = await response.text();
         throw new Error(
-          error || `Failed to send invitations: ${response.status}`,
+          error || `Failed to send invitations: ${response.status}`
         );
       }
 
@@ -235,8 +235,9 @@ export default function TeamMembers() {
     let filtered = teamMembers.filter((user) => {
       // Enhanced search functionality
       const searchQuery = searchTerm.toLowerCase();
-      const userName =
-        `${user.firstName || ""} ${user.lastName || ""}`.toLowerCase();
+      const userName = `${user.firstName || ""} ${
+        user.lastName || ""
+      }`.toLowerCase();
       const userEmail = user.email?.toLowerCase() || "";
       const userRoles = (user.roles || [user.role]).join(" ").toLowerCase();
 
@@ -296,20 +297,20 @@ export default function TeamMembers() {
     if (user.firstName && user.lastName) {
       return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
     }
-    
+
     // Priority 2: Use first name + email prefix if only first name exists
     if (user.firstName && user.email) {
-      const emailPrefix = user.email.split('@')[0];
+      const emailPrefix = user.email.split("@")[0];
       return `${user.firstName[0]}${emailPrefix[0]}`.toUpperCase();
     }
-    
+
     // Priority 3: Use first two characters of email prefix as fallback
     if (user.email) {
-      const emailPrefix = user.email.split('@')[0];
+      const emailPrefix = user.email.split("@")[0];
       return emailPrefix.substring(0, 2).toUpperCase();
     }
-    
-    return 'U';
+
+    return "U";
   };
 
   const getRoleIcon = (roles) => {
@@ -430,7 +431,7 @@ export default function TeamMembers() {
           <Button
             variant="outline"
             onClick={() => {
-              window.location.href = '/login';
+              window.location.href = "/login";
             }}
           >
             Re-login
@@ -442,640 +443,641 @@ export default function TeamMembers() {
 
   return (
     <div className="space-y-6">
-        {/* License Information Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-blue-600" />
-              License Information
-            </CardTitle>
-            <CardDescription>
-              Current subscription and usage details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-600 rounded-lg">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-lg font-bold text-blue-600">
-                    {licenseInfo?.usedLicenses || 0}
-                  </span>
+      {/* License Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Shield className="h-6 w-6 text-blue-600" />
+            License Information
+          </CardTitle>
+          <CardDescription>
+            Current subscription and usage details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Users className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-1">
-                  Active Users
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Currently using licenses
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-600 rounded-lg">
-                    <Shield className="h-5 w-5 text-white" />
-                  </div>
-                  <span className="text-lg font-bold text-green-600">
-                    {licenseInfo?.totalLicenses || 0}
-                  </span>
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-1">
-                  Total Licenses
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Available for your organization
-                </p>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-600 rounded-lg">
-                    <Shield className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <span className="text-lg font-bold text-purple-600">
-                    {licenseInfo?.licenseType || "Standard"}
-                  </span>
-                </div>
-                <h4 className="font-semibold text-gray-900 mb-1">Plan Type</h4>
-                <p className="text-sm text-gray-600">Current subscription</p>
-              </div>
-            </div>
-
-            <div className="mt-6 bg-white rounded-lg p-4 border border-gray-100">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  License Usage
-                </span>
-                <span className="text-sm text-gray-600">
-                  {licenseInfo?.usedLicenses || 0} of{" "}
-                  {licenseInfo?.totalLicenses || 0} used
+                <span className="text-lg font-bold text-blue-600">
+                  {licenseInfo?.usedLicenses || 0}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${licenseInfo?.totalLicenses > 0 ? (licenseInfo.usedLicenses / licenseInfo.totalLicenses) * 100 : 0}%`,
-                  }}
-                ></div>
-              </div>
+              <h4 className="font-semibold text-gray-900 mb-1">Active Users</h4>
+              <p className="text-sm text-gray-600">Currently using licenses</p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Team Members Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Members ({teamMembers.length})</CardTitle>
-            <CardDescription>
-              All team members including active users and pending invitations
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Enhanced Filter Controls */}
-            <div className="space-y-4 mb-6">
-              {/* Primary Search and Actions */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search by name, email, or role..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      className="pl-10"
-                    />
-                  </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-600 rounded-lg">
+                  <Shield className="h-5 w-5 text-white" />
                 </div>
-                <div className="flex gap-2">
-                  {/* <Button
+                <span className="text-lg font-bold text-green-600">
+                  {licenseInfo?.totalLicenses || 0}
+                </span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-1">
+                Total Licenses
+              </h4>
+              <p className="text-sm text-gray-600">
+                Available for your organization
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-purple-600 rounded-lg">
+                  <Shield className="h-5 w-5 text-purple-600" />
+                </div>
+                <span className="text-lg font-bold text-purple-600">
+                  {licenseInfo?.licenseType || "Standard"}
+                </span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-1">Plan Type</h4>
+              <p className="text-sm text-gray-600">Current subscription</p>
+            </div>
+          </div>
+
+          <div className="mt-6 bg-white rounded-lg p-4 border border-gray-100">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                License Usage
+              </span>
+              <span className="text-sm text-gray-600">
+                {licenseInfo?.usedLicenses || 0} of{" "}
+                {licenseInfo?.totalLicenses || 0} used
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: `${
+                    licenseInfo?.totalLicenses > 0
+                      ? (licenseInfo.usedLicenses / licenseInfo.totalLicenses) *
+                        100
+                      : 0
+                  }%`,
+                }}
+              ></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Team Members Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Members ({teamMembers.length})</CardTitle>
+          <CardDescription>
+            All team members including active users and pending invitations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Enhanced Filter Controls */}
+          <div className="space-y-4 mb-6">
+            {/* Primary Search and Actions */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search by name, email, or role..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {/* <Button
                     onClick={() => setInviteModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
                     Invite Members
                   </Button> */}
-                  <Button
-                    onClick={refreshData}
-                    variant="outline"
-                    className="whitespace-nowrap"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-
-              {/* Filter Row */}
-              <div className="flex flex-wrap gap-3">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Filters:
-                  </span>
-                </div>
-
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value);
-                    setCurrentPage(1);
-                  }}
+                <Button
+                  onClick={refreshData}
+                  variant="outline"
+                  className="whitespace-nowrap"
                 >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Active
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="invited">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        Invited
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={roleFilter}
-                  onValueChange={(value) => {
-                    setRoleFilter(value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="All Roles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="admin">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-3 w-3 text-yellow-600" />
-                        Admin
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="employee">
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="h-3 w-3 text-blue-600" />
-                        Employee
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="member">
-                      <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-gray-600" />
-                        Member
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="manager">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-3 w-3 text-purple-600" />
-                        Manager
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {(searchTerm ||
-                  statusFilter !== "all" ||
-                  roleFilter !== "all") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("all");
-                      setRoleFilter("all");
-                      setCurrentPage(1);
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-
-              {/* Results Summary */}
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div>
-                  Showing {filteredAndPaginatedData.users.length} of{" "}
-                  {filteredAndPaginatedData.totalItems} members
-                  {searchTerm && ` matching "${searchTerm}"`}
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>
-                      {teamMembers.filter((u) => u.status === "active").length}{" "}
-                      Active
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    <span>
-                      {teamMembers.filter((u) => u.status === "invited").length}{" "}
-                      Invited
-                    </span>
-                  </div>
-                </div>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
               </div>
             </div>
 
-            {filteredAndPaginatedData.users.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="h-12 w-12 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  No team members added yet
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Start building your team by inviting members to collaborate.
-                </p>
-                <Button
-                  onClick={() => setInviteModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invite First Member
-                </Button>
+            {/* Filter Row */}
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  Filters:
+                </span>
               </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role(s)</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Invited At</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndPaginatedData.users.map((user) => (
-                        <TableRow key={user._id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs font-semibold">
-                                  {getInitials(user)}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900">
-                                  {getDisplayName(user)}
-                                </div>
-                                {user.status === "invited" && (
-                                  <div className="text-xs text-gray-500">
-                                    Pending registration
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-gray-900">
-                              {user.email}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getRoleIcon(user.roles || [user.role])}
-                              <div className="flex flex-wrap gap-1">
-                                {(user.roles || [user.role]).map((role) => (
-                                  <span
-                                    key={role}
-                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(role)}`}
-                                  >
-                                    {role.charAt(0).toUpperCase() +
-                                      role.slice(1)}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(user.status)}
-                              <span
-                                className={`text-sm font-medium ${getStatusColor(user.status)}`}
-                              >
-                                {user.status === "invited"
-                                  ? "Pending"
-                                  : "Active"}
+
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Active
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="invited">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      Invited
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Crown className="h-3 w-3 text-yellow-600" />
+                      Admin
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="employee">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-3 w-3 text-blue-600" />
+                      Employee
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="member">
+                    <div className="flex items-center gap-2">
+                      <User className="h-3 w-3 text-gray-600" />
+                      Member
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="manager">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-3 w-3 text-purple-600" />
+                      Manager
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(searchTerm ||
+                statusFilter !== "all" ||
+                roleFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                    setRoleFilter("all");
+                    setCurrentPage(1);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div>
+                Showing {filteredAndPaginatedData.users.length} of{" "}
+                {filteredAndPaginatedData.totalItems} members
+                {searchTerm && ` matching "${searchTerm}"`}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>
+                    {teamMembers.filter((u) => u.status === "active").length}{" "}
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span>
+                    {teamMembers.filter((u) => u.status === "invited").length}{" "}
+                    Invited
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {filteredAndPaginatedData.users.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-12 w-12 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No team members added yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Start building your team by inviting members to collaborate.
+              </p>
+              <Button
+                onClick={() => setInviteModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Invite First Member
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role(s)</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Invited At</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAndPaginatedData.users.map((user) => (
+                      <TableRow key={user._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-semibold">
+                                {getInitials(user)}
                               </span>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-gray-600">
-                              <div className="font-medium">
-                                {getRelativeTime(
-                                  user.invitedAt || user.createdAt,
-                                )}
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {getDisplayName(user)}
                               </div>
-                              {(user.invitedAt || user.createdAt) && (
-                                <div className="text-xs text-gray-400">
-                                  {formatDate(user.invitedAt || user.createdAt)}
+                              {user.status === "invited" && (
+                                <div className="text-xs text-gray-500">
+                                  Pending registration
                                 </div>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {user.status === "invited" && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      resendInviteMutation.mutate(user._id)
-                                    }
-                                    disabled={resendInviteMutation.isPending}
-                                  >
-                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                    Resend Invite
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      revokeInviteMutation.mutate(user._id)
-                                    }
-                                    disabled={revokeInviteMutation.isPending}
-                                    className="text-red-600"
-                                  >
-                                    <UserX className="h-4 w-4 mr-2" />
-                                    Revoke Invite
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-900">
+                            {user.email}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getRoleIcon(user.roles || [user.role])}
+                            <div className="flex flex-wrap gap-1">
+                              {(user.roles || [user.role]).map((role) => (
+                                <span
+                                  key={role}
+                                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(
+                                    role
+                                  )}`}
+                                >
+                                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(user.status)}
+                            <span
+                              className={`text-sm font-medium ${getStatusColor(
+                                user.status
+                              )}`}
+                            >
+                              {user.status === "invited" ? "Pending" : "Active"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-600">
+                            <div className="font-medium">
+                              {getRelativeTime(
+                                user.invitedAt || user.createdAt
+                              )}
+                            </div>
+                            {(user.invitedAt || user.createdAt) && (
+                              <div className="text-xs text-gray-400">
+                                {formatDate(user.invitedAt || user.createdAt)}
+                              </div>
                             )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {user.status === "invited" && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    resendInviteMutation.mutate(user._id)
+                                  }
+                                  disabled={resendInviteMutation.isPending}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Resend Invite
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    revokeInviteMutation.mutate(user._id)
+                                  }
+                                  disabled={revokeInviteMutation.isPending}
+                                  className="text-red-600"
+                                >
+                                  <UserX className="h-4 w-4 mr-2" />
+                                  Revoke Invite
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Enhanced Pagination Controls */}
+              {filteredAndPaginatedData.totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t gap-4">
+                  <div className="text-sm text-gray-700">
+                    Showing {filteredAndPaginatedData.currentStart} to{" "}
+                    {filteredAndPaginatedData.currentEnd} of{" "}
+                    {filteredAndPaginatedData.totalItems} members
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={!filteredAndPaginatedData.hasPrevPage}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {/* Smart pagination: show first page, current range, and last page */}
+                      {currentPage > 2 && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(1)}
+                            className="w-8 h-8 p-0"
+                          >
+                            1
+                          </Button>
+                          {currentPage > 3 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                        </>
+                      )}
+
+                      {Array.from(
+                        {
+                          length: Math.min(
+                            5,
+                            filteredAndPaginatedData.totalPages
+                          ),
+                        },
+                        (_, i) => {
+                          const page =
+                            Math.max(
+                              1,
+                              Math.min(
+                                filteredAndPaginatedData.totalPages - 4,
+                                currentPage - 2
+                              )
+                            ) + i;
+                          if (page > filteredAndPaginatedData.totalPages)
+                            return null;
+                          return (
+                            <Button
+                              key={page}
+                              variant={
+                                page === currentPage ? "default" : "outline"
+                              }
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {page}
+                            </Button>
+                          );
+                        }
+                      )}
+
+                      {currentPage <
+                        filteredAndPaginatedData.totalPages - 1 && (
+                        <>
+                          {currentPage <
+                            filteredAndPaginatedData.totalPages - 2 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setCurrentPage(
+                                filteredAndPaginatedData.totalPages
+                              )
+                            }
+                            className="w-8 h-8 p-0"
+                          >
+                            {filteredAndPaginatedData.totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={!filteredAndPaginatedData.hasNextPage}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invite Users Modal */}
+      <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Invite Team Members
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Add new team members to your organization. Each member will
+              receive an email invitation.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 pt-6">
+            {inviteUsers.map((user, index) => (
+              <div
+                key={index}
+                className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">
+                        Team Member {index + 1}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Enter details for the new team member
+                      </p>
+                    </div>
+                  </div>
+                  {inviteUsers.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeInviteUser(index)}
+                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                    >
+                      <UserX className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
-                {/* Enhanced Pagination Controls */}
-                {filteredAndPaginatedData.totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t gap-4">
-                    <div className="text-sm text-gray-700">
-                      Showing {filteredAndPaginatedData.currentStart} to{" "}
-                      {filteredAndPaginatedData.currentEnd} of{" "}
-                      {filteredAndPaginatedData.totalItems} members
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                        disabled={!filteredAndPaginatedData.hasPrevPage}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        {/* Smart pagination: show first page, current range, and last page */}
-                        {currentPage > 2 && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(1)}
-                              className="w-8 h-8 p-0"
-                            >
-                              1
-                            </Button>
-                            {currentPage > 3 && (
-                              <span className="px-2 text-gray-400">...</span>
-                            )}
-                          </>
-                        )}
-
-                        {Array.from(
-                          {
-                            length: Math.min(
-                              5,
-                              filteredAndPaginatedData.totalPages,
-                            ),
-                          },
-                          (_, i) => {
-                            const page =
-                              Math.max(
-                                1,
-                                Math.min(
-                                  filteredAndPaginatedData.totalPages - 4,
-                                  currentPage - 2,
-                                ),
-                              ) + i;
-                            if (page > filteredAndPaginatedData.totalPages)
-                              return null;
-                            return (
-                              <Button
-                                key={page}
-                                variant={
-                                  page === currentPage ? "default" : "outline"
-                                }
-                                size="sm"
-                                onClick={() => setCurrentPage(page)}
-                                className="w-8 h-8 p-0"
-                              >
-                                {page}
-                              </Button>
-                            );
-                          },
-                        )}
-
-                        {currentPage <
-                          filteredAndPaginatedData.totalPages - 1 && (
-                          <>
-                            {currentPage <
-                              filteredAndPaginatedData.totalPages - 2 && (
-                              <span className="px-2 text-gray-400">...</span>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setCurrentPage(
-                                  filteredAndPaginatedData.totalPages,
-                                )
-                              }
-                              className="w-8 h-8 p-0"
-                            >
-                              {filteredAndPaginatedData.totalPages}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                        disabled={!filteredAndPaginatedData.hasNextPage}
-                      >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Invite Users Modal */}
-        <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-gray-900">
-                Invite Team Members
-              </DialogTitle>
-              <DialogDescription className="text-gray-600">
-                Add new team members to your organization. Each member will
-                receive an email invitation.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6 pt-6">
-              {inviteUsers.map((user, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {index + 1}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">
-                          Team Member {index + 1}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Enter details for the new team member
-                        </p>
-                      </div>
-                    </div>
-                    {inviteUsers.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeInviteUser(index)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                      >
-                        <UserX className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        First Name
-                      </label>
-                      <Input
-                        placeholder="Enter first name"
-                        value={user.firstName}
-                        onChange={(e) =>
-                          updateInviteUser(index, "firstName", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Last Name
-                      </label>
-                      <Input
-                        placeholder="Enter last name"
-                        value={user.lastName}
-                        onChange={(e) =>
-                          updateInviteUser(index, "lastName", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address *
+                      First Name
                     </label>
                     <Input
-                      type="email"
-                      placeholder="Enter email address"
-                      value={user.email}
+                      placeholder="Enter first name"
+                      value={user.firstName}
                       onChange={(e) =>
-                        updateInviteUser(index, "email", e.target.value)
+                        updateInviteUser(index, "firstName", e.target.value)
                       }
-                      className="w-full"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Role
+                      Last Name
                     </label>
-                    <Select
-                      value={user.roles[0]}
-                      onValueChange={(value) =>
-                        updateInviteUser(index, "roles", [value])
+                    <Input
+                      placeholder="Enter last name"
+                      value={user.lastName}
+                      onChange={(e) =>
+                        updateInviteUser(index, "lastName", e.target.value)
                       }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="member">Member</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                 </div>
-              ))}
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="outline"
-                  onClick={addInviteUser}
-                  className="flex-1"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Another Member
-                </Button>
-                <Button
-                  onClick={handleInviteSubmit}
-                  disabled={inviteUsersMutation.isPending}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  {inviteUsersMutation.isPending
-                    ? "Sending..."
-                    : "Send Invitations"}
-                </Button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address *
+                  </label>
+                  <Input
+                    type="email"
+                    placeholder="Enter email address"
+                    value={user.email}
+                    onChange={(e) =>
+                      updateInviteUser(index, "email", e.target.value)
+                    }
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Role
+                  </label>
+                  <Select
+                    value={user.roles[0]}
+                    onValueChange={(value) =>
+                      updateInviteUser(index, "roles", [value])
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="employee">Employee</SelectItem>
+                      <SelectItem value="member">Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            ))}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                variant="outline"
+                onClick={addInviteUser}
+                className="flex-1"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Another Member
+              </Button>
+              <Button
+                onClick={handleInviteSubmit}
+                disabled={inviteUsersMutation.isPending}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {inviteUsersMutation.isPending
+                  ? "Sending..."
+                  : "Send Invitations"}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

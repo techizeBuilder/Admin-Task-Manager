@@ -11,12 +11,12 @@ export default function Tasks() {
   return (
     <div className="space-y-3">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded border border-slate-200 dark:border-slate-700 shadow-sm">
+      <div className="flex items-center justify-between  bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded shadow-sm ">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-xl font-bold text-slate-900 ">
             Tasks Management
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-slate-600 ">
             Create, organize and track all your tasks
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function Tasks() {
 
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView} className="w-full">
-        <TabsList className="grid w-64 grid-cols-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-0.5">
+        <TabsList className="grid w-64 grid-cols-2 bg-gray-100  border border-slate-200  p-0.5">
           <TabsTrigger
             value="table"
             className="flex items-center space-x-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 text-sm py-1.5"
