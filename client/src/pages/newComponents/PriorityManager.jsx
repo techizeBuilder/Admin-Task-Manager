@@ -6,7 +6,6 @@ const getSystemPriorityLabel = (systemCode, systemPriorities) => {
   return systemPriority ? systemPriority.label : systemCode;
 };
 
-// Calculate due date based on priority
 export const calculateDueDateFromPriority = (
   priority,
   creationDate = new Date()
@@ -229,7 +228,7 @@ export default function PriorityManager() {
   };
 
   return (
-    <div className="space-y-6 p-5 h-auto overflow-scroll">
+    <div className="space-y-6 p-5 h-auto ">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Priority Manager</h1>
@@ -333,7 +332,7 @@ export default function PriorityManager() {
         </div>
       )}
 
-      <div className="card p-0 overflow-hidden">
+      <div className="card p-0 overflow-auto">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">

@@ -88,7 +88,7 @@ export default function MilestoneManager() {
         </button>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid grid-cols-3 gap-6">
         {milestones.map(milestone => (
           <div key={milestone.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between mb-4">

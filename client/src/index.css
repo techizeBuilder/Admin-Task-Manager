@@ -3821,8 +3821,9 @@
 
 .info-field {
   display: flex;
+  
   align-items: center;
-  justify-content: space-between;
+ 
   padding: 0.5rem 0;
   border-bottom: 1px solid #f3f4f6;
 }

@@ -17,6 +17,11 @@ import {
   Bell,
   Database,
   CreditCard,
+  RefreshCcw,
+  CheckCircle2,
+  Milestone,
+  ChartScatter,
+  CalendarMinus2,
 } from "lucide-react";
 
 export function SimpleSidebar() {
@@ -61,11 +66,28 @@ export function SimpleSidebar() {
       href: "/dashboard",
       icon: LayoutDashboard,
     },
-    // {
-    //   name: "Tasks",
-    //   href: "/tasks",
-    //   icon: CheckSquare,
-    // },
+    {
+      name: "Tasks",
+      href: "/tasks",
+      icon: CheckSquare,
+    },
+    {
+      name: "Notification",
+      href: "/notification",
+      icon: CheckSquare,
+    },
+    {
+      name: "Analytics",
+      href: "/analytics",
+      icon: ChartScatter,
+      description: "Analytics",
+    },
+    {
+      name: "DeadLine",
+      href: "/deadlines",
+      icon: CalendarMinus2,
+      description: "Deadlines",
+    },
     // {
     //   name: "Projects",
     //   href: "/projects",
@@ -134,6 +156,43 @@ export function SimpleSidebar() {
         ]
       : []),
     {
+      name: "RecurringTaskManager",
+      href: "/admin/recurring",
+      icon: RefreshCcw,
+      description: "RecurringTaskManager",
+    },
+    {
+      name: "ApprovalManager",
+      href: "/admin/approval",
+      icon: CheckCircle2,
+      description: "ApprovalManager",
+    },
+    {
+      name: "MilestoneMAnager",
+      href: "/admin/milestone",
+      icon: Milestone,
+      description: "Milestone",
+    },
+    {
+      name: "StatusManager",
+      href: "/admin/StatusManager",
+      icon: Milestone,
+      description: "StatusManager",
+    },
+    {
+      name: "PriorityManager",
+      href: "/admin/PriorityManager",
+      icon: Milestone,
+      description: "PriorityManager",
+    },
+    {
+      name: "Activity Feed",
+      href: "/admin/activity-feed",
+      icon: Milestone,
+      description: "Activity Feed",
+    },
+    
+    {
       name: "Admin Settings",
       href: "/admin-settings",
       icon: UserCog,
@@ -196,8 +255,8 @@ export function SimpleSidebar() {
       </div>
     );
   };
-const validUser = JSON.parse(localStorage.getItem("user"));
-  console.log(validUser,"nidhi")
+  const validUser = JSON.parse(localStorage.getItem("user"));
+  console.log(validUser, "nidhi");
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-56 bg-sidebarDark border-r border-gray-600/30 shadow-xl">
       <div className="flex flex-col h-full">

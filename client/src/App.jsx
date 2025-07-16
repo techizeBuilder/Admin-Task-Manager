@@ -1,4 +1,3 @@
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -67,7 +66,17 @@ import {
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import SecureRoute from "./components/ProtectedRoute";
 import ForbiddenPage from "./pages/ForbiddenPage";
-
+import TaskDetail from "./pages/newComponents/TaskDetail";
+import AdminSettings from "./pages/admin/Admin-settings";
+import AdminNotification from "./pages/admin/AdminNotification";
+import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
+import ApprovalManager from "./pages/newComponents/ApprovalManager";
+import MilestoneManager from "./pages/newComponents/MilestoneManager";
+import StatusManager from "./pages/newComponents/StatusManager";
+import PriorityManager from "./pages/newComponents/PriorityManager";
+import ActivityFeed from "./pages/newComponents/ActivityFeed";
+import TaskAnalytics from "./pages/newComponents/TaskAnalytics";
+import Deadlines from "./pages/newComponents/Deadlines";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -348,11 +357,29 @@ function App() {
             />
           </AdminLayout>
         </Route>
+
+        <Route path="/analytics">
+          <AdminLayout>
+            <ProtectedRoute component={TaskAnalytics} />
+          </AdminLayout>
+        </Route>
+        <Route path="/deadlines">
+          <AdminLayout>
+            <ProtectedRoute component={Deadlines} />
+          </AdminLayout>
+        </Route>
+        
         <Route path="/tasks">
           <AdminLayout>
             <ProtectedRoute component={Tasks} />
           </AdminLayout>
         </Route>
+        <Route path="/task/view">
+          <AdminLayout>
+            <ProtectedRoute component={TaskDetail} />
+          </AdminLayout>
+        </Route>
+
         <Route path="/users">
           <AdminLayout>
             <ProtectedRoute component={Users} />
@@ -427,6 +454,56 @@ function App() {
             />
           </AdminLayout>
         </Route>
+        <Route path="/admin/recurring">
+          <AdminLayout>
+            <ProtectedRoute
+              component={RecurringTaskManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/admin/approval">
+          <AdminLayout>
+            <ProtectedRoute
+              component={ApprovalManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/milestone">
+          <AdminLayout>
+            <ProtectedRoute
+              component={MilestoneManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/StatusManager">
+          <AdminLayout>
+            <ProtectedRoute
+              component={StatusManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/PriorityManager">
+          <AdminLayout>
+            <ProtectedRoute
+              component={PriorityManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/activity-feed">
+          <AdminLayout>
+            <ProtectedRoute
+              component={ActivityFeed}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
         <Route path="/projects">
           <AdminLayout>
             <ProtectedRoute component={Projects} />
@@ -454,22 +531,15 @@ function App() {
         </Route>
         <Route path="/admin-settings">
           <AdminLayout>
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">
-                  Admin Settings
-                </h1>
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                    System Configuration
-                  </h2>
-                  <p className="text-gray-600">
-                    Admin configuration options and system settings will be
-                    available here.
-                  </p>
-                </div>
-              </div>
-            </ProtectedRoute>
+            <ProtectedRoute
+              component={AdminSettings}
+              allowedRoles={["admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/notification">
+          <AdminLayout>
+            <ProtectedRoute component={AdminNotification} />
           </AdminLayout>
         </Route>
         {/* Settings Routes */}

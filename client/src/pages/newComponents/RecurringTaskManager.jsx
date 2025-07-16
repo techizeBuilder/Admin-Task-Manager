@@ -530,11 +530,11 @@ function RecurringTaskForm({ onClose }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Task Information */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
           Task Details
         </h3>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Task Title *
@@ -622,13 +622,13 @@ function RecurringTaskForm({ onClose }) {
 
       {/* Recurrence Pattern */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
           Recurrence Pattern
         </h3>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Frequency *
             </label>
             <select
@@ -646,7 +646,7 @@ function RecurringTaskForm({ onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Repeat Every
             </label>
             <input
@@ -661,7 +661,7 @@ function RecurringTaskForm({ onClose }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Time
             </label>
             <input
@@ -676,7 +676,7 @@ function RecurringTaskForm({ onClose }) {
 
         {formData.frequency === "weekly" && (
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Repeat On Days
             </label>
             <div className="flex flex-wrap gap-2">
@@ -698,7 +698,7 @@ function RecurringTaskForm({ onClose }) {
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Start Date *
           </label>

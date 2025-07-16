@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import TeamMembersWidget from "@/components/admin/TeamMembersWidget";
 import AnnualSelfAppraisal from "../newComponents/AnnualSelfAppraisal";
+import TaskCreationTile from "../newComponents/TaskCreationTitle";
+import CreateTask from "../newComponents/CreateTask";
+import ApprovalTaskCreator from "../newComponents/ApprovalTaskCreator";
 const sampleEmployeeData = {
   employeeId: "EMP001",
   fullName: "John Smith",
@@ -34,6 +37,10 @@ const sampleEmployeeData = {
   hireDate: "2022-01-15",
 };
 export default function Dashboard() {
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [selectedTaskType, setSelectedTaskType] = useState("regular");
+  const [showSelfAppraisal, setShowSelfAppraisal] = useState(false);
+  const [showApprovalTaskModal, setShowApprovalTaskModal] = useState(false);
   // Get current user data to check role
   const { data: user } = useQuery({
     queryKey: ["/api/auth/verify"],
@@ -72,7 +79,19 @@ export default function Dashboard() {
       setLoading(false);
     }, 1000);
   }, []);
-
+  const handleCreateTask = (taskType) => {
+    if (taskType === "approval") {
+      setShowApprovalTaskModal(true);
+    } else {
+      setSelectedTaskType(taskType);
+      setShowCreateTask(true);
+    }
+  };
+  
+  const handleCreateApprovalTask = (approvalTaskData) => {
+    console.log("Approval task created:", approvalTaskData);
+    setShowApprovalTaskModal(false);
+  };
   if (loading) {
     return (
       <div className="h-full flex flex-col">
@@ -281,7 +300,48 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
+      <div className="mt-3 mb-3">
+        <div className="card flex justify-between items-center">
+          <h2 className="font-bold text-xl">Tasks </h2>
+          <div className="flex gap-3">
+            <TaskCreationTile
+              type="regular"
+              title="Simple Task"
+              icon="📋"
+              color="blue"
+              onClick={() => handleCreateTask("regular")}
+            />
+            <TaskCreationTile
+              type="recurring"
+              title="Recurring Task"
+              icon="🔄"
+              color="green"
+              onClick={() => handleCreateTask("recurring")}
+            />
+            <TaskCreationTile
+              type="milestone"
+              title="Milestone"
+              icon="🎯"
+              color="purple"
+              onClick={() => handleCreateTask("milestone")}
+            />
+            <TaskCreationTile
+              type="approval"
+              title="Approval Task"
+              icon="✅"
+              color="orange"
+              onClick={() => handleCreateTask("approval")}
+            />
+             <button
+              className="btn btn-secondary text-nowrap"
+              onClick={() => setShowSelfAppraisal(true)}
+            >
+              <span className="">📝</span>
+              Self-Appraisal
+            </button>
+          </div>
+        </div>
+      </div>
       {/* Left Column - Stats Cards */}
       <div className="lg:col-span-1 xl:col-span-1 space-y-2 sm:space-y-3 mb-5 mt-2">
         <div className="grid grid-cols-4 gap-1 sm:gap-2">
@@ -465,16 +525,146 @@ export default function Dashboard() {
           </Card>
 
           {/* Team Members Widget - Only show for organizational users */}
-          
         </div>
 
         {canAccessTeamFeatures && (
-            <div className="flex-shrink-0">
-              <TeamMembersWidget showActions={false} maxItems={3} />
-            </div>
-          )}
+          <div className="flex-shrink-0">
+            <TeamMembersWidget showActions={false} maxItems={3} />
+          </div>
+        )}
       </div>
-  
+      {showCreateTask && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
+          <div
+            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowCreateTask(false)}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+            style={{
+              width: "min(90vw, 600px)",
+              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+              borderLeft: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <div className="drawer-header">
+              <h2 className="text-2xl font-bold text-white">Create New Task</h2>
+              <button
+                onClick={() => setShowCreateTask(false)}
+                className="close-btn"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="drawer-body">
+              <CreateTask
+                onClose={() => setShowCreateTask(false)}
+                initialTaskType={selectedTaskType}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Annual Self-Appraisal Form */}
+      {showSelfAppraisal && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-gray-500 opacity-75"
+            onClick={() => setShowSelfAppraisal(false)}
+          ></div>
+          <div className="flex items-center justify-center min-h-screen px-4 py-8">
+            <div className="relative bg-white rounded shadow-lg max-w-3xl mx-auto">
+              <div className="flex justify-between items-center bg-gray-100 p-4 border-b">
+                <h2 className="text-lg font-semibold">
+                  Annual Self-Appraisal Form
+                </h2>
+                <button
+                  onClick={() => setShowSelfAppraisal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    ></path>
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4">
+                <AnnualSelfAppraisal
+                  onClose={() => setShowSelfAppraisal(false)}
+                  employeeData={sampleEmployeeData}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showApprovalTaskModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
+          <div
+            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowApprovalTaskModal(false)}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+            style={{
+              width: "min(90vw, 600px)",
+              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+              borderLeft: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <div className="drawer-header">
+              <h2 className="text-2xl font-bold text-white">
+                Create Approval Task
+              </h2>
+              <button
+                onClick={() => setShowApprovalTaskModal(false)}
+                className="close-btn"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="drawer-body">
+              <ApprovalTaskCreator
+                onClose={() => setShowApprovalTaskModal(false)}
+                onSubmit={handleCreateApprovalTask}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
