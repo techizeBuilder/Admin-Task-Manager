@@ -148,7 +148,43 @@ export function SimpleSidebar() {
           },
         ]
       : []),
-
+      ...(user?.role === "manager"
+        ? [
+            {
+              name: "Dashboard",
+              href: "/dashboard",
+              icon: LayoutDashboard,
+            },
+            {
+              name: "Tasks",
+              href: "/tasks",
+              icon: CheckSquare,
+            },
+            {
+              name: "Notification",
+              href: "/notification",
+              icon: CheckSquare,
+            },
+            {
+              name: "Analytics",
+              href: "/analytics",
+              icon: ChartScatter,
+              description: "Analytics",
+            },
+            {
+              name: "DeadLine",
+              href: "/deadlines",
+              icon: CalendarMinus2,
+              description: "Deadlines",
+            },
+            {
+              name: "Settings",
+              href: "/setting",
+              icon: UserCog,
+              description: "System configuration",
+            },
+          ]
+        : []),
     // {
     //   name: "Projects",
     //   href: "/projects",

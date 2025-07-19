@@ -50,7 +50,6 @@ export function TaskCard({ task, onEdit, onDelete, className }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
         <div className="flex items-center gap-2 mb-3">
           <Badge className={cn("text-xs px-2 py-1", statusColor)}>
             {task.status.replace("-", " ")}
