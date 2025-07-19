@@ -2624,18 +2624,19 @@
 
 /* Enhanced Analytics Page Styles */
 .analytics-container {
-  padding: 2rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 14px;
+  /* background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); */
   min-height: 100vh;
 }
 
 .analytics-header {
   background: white;
-  border-radius: 24px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
   border: 1px solid #e5e7eb;
+  -webkit-border-radius: 14px;
+  -moz-border-radius: 14px;
+  -ms-border-radius: 14px;
+  -o-border-radius: 14px;
 }
 
 .header-content {
@@ -2647,7 +2648,7 @@
 }
 
 .analytics-title {
-  font-size: 2.5rem;
+  font-size: 25px;
   font-weight: 800;
   color: #1f2937;
   margin: 0;
@@ -2658,7 +2659,7 @@
 }
 
 .analytics-subtitle {
-  font-size: 1.125rem;
+  font-size: 16px;
   color: #6b7280;
   margin: 0.5rem 0 0 0;
 }
@@ -2670,13 +2671,17 @@
 }
 
 .period-selector {
-  padding: 0.75rem 1rem;
+  padding: 8px 1rem;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   background: white;
   font-weight: 500;
   color: #374151;
   transition: all 0.2s ease;
+  -webkit-border-radius: 12px;
+  -moz-border-radius: 12px;
+  -ms-border-radius: 12px;
+  -o-border-radius: 12px;
 }
 
 .period-selector:focus {
@@ -2686,7 +2691,7 @@
 }
 
 .export-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 8px 1rem;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white;
   border: none;
@@ -2694,7 +2699,11 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+
+  -webkit-transition: all 0.2s ease;
+  -moz-transition: all 0.2s ease;
+  -ms-transition: all 0.2s ease;
+  -o-transition: all 0.2s ease;
 }
 
 .export-btn:hover {
@@ -2705,20 +2714,23 @@
 /* Metrics Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
 .metric-card {
   background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 18px;
+  padding: 14px 20px;
   border: 1px solid #e5e7eb;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  -webkit-border-radius: 18px;
+  -moz-border-radius: 18px;
+  -ms-border-radius: 18px;
+  -o-border-radius: 18px;
 }
 
 .metric-card::before {
@@ -2817,7 +2829,7 @@
 }
 
 .metric-value {
-  font-size: 2.5rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: #1f2937;
   line-height: 1;
@@ -3821,9 +3833,9 @@
 
 .info-field {
   display: flex;
-  
+
   align-items: center;
- 
+
   padding: 0.5rem 0;
   border-bottom: 1px solid #f3f4f6;
 }

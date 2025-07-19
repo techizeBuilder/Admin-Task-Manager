@@ -61,33 +61,94 @@ export function SimpleSidebar() {
   const canManageRoles = !isIndividualUser && canManageOrganization;
 
   const mainNavigation = [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Tasks",
-      href: "/tasks",
-      icon: CheckSquare,
-    },
-    {
-      name: "Notification",
-      href: "/notification",
-      icon: CheckSquare,
-    },
-    {
-      name: "Analytics",
-      href: "/analytics",
-      icon: ChartScatter,
-      description: "Analytics",
-    },
-    {
-      name: "DeadLine",
-      href: "/deadlines",
-      icon: CalendarMinus2,
-      description: "Deadlines",
-    },
+    ...(user?.role === "member"
+      ? [
+          {
+            name: "Dashboard",
+            href: "/dashboard",
+            icon: LayoutDashboard,
+          },
+          {
+            name: "Tasks",
+            href: "/tasks",
+            icon: CheckSquare,
+          },
+          {
+            name: "DeadLine",
+            href: "/deadlines",
+            icon: CalendarMinus2,
+            description: "Deadlines",
+          },
+          {
+            name: "Notification",
+            href: "/notification",
+            icon: CheckSquare,
+          },
+        ]
+      : []),
+    ...(user?.role === "employee"
+      ? [
+          {
+            name: "Dashboard",
+            href: "/dashboard",
+            icon: LayoutDashboard,
+          },
+          {
+            name: "Tasks",
+            href: "/tasks",
+            icon: CheckSquare,
+          },
+          {
+            name: "DeadLine",
+            href: "/deadlines",
+            icon: CalendarMinus2,
+            description: "Deadlines",
+          },
+          // {
+          //   name: "Notification",
+          //   href: "/notification",
+          //   icon: CheckSquare,
+          // },
+        ]
+      : []),
+    ...(user?.role === "individual"
+      ? [
+          {
+            name: "Dashboard",
+            href: "/dashboard",
+            icon: LayoutDashboard,
+          },
+          {
+            name: "Tasks",
+            href: "/tasks",
+            icon: CheckSquare,
+          },
+          {
+            name: "Notification",
+            href: "/notification",
+            icon: CheckSquare,
+          },
+          {
+            name: "Analytics",
+            href: "/analytics",
+            icon: ChartScatter,
+            description: "Analytics",
+          },
+          {
+            name: "DeadLine",
+            href: "/deadlines",
+            icon: CalendarMinus2,
+            description: "Deadlines",
+          },
+          {
+            name: "Settings",
+            href: "/setting",
+            icon: UserCog,
+            description: "System configuration",
+          },
+        ]
+      : []),
+
     // {
     //   name: "Projects",
     //   href: "/projects",
@@ -191,7 +252,7 @@ export function SimpleSidebar() {
       icon: Milestone,
       description: "Activity Feed",
     },
-    
+
     {
       name: "Admin Settings",
       href: "/admin-settings",
@@ -223,7 +284,7 @@ export function SimpleSidebar() {
         <div className="flex-1">
           <div className="font-medium">{item.name}</div>
           <div
-            className="text-xs text-gray-400 group-hover:text-gray-300 border-b border-gray-400 pb-2
+            className="text-xs text-gray-400 group-hover:text-gray-300  border-gray-400 pb-2
             border-b-[1px]"
           >
             {item.description}

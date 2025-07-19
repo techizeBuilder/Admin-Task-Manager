@@ -428,7 +428,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
 
     const incompleteSubtasks = task.subtasks.filter(
       (subtask) =>
-        subtask.status !== "completed" && subtask.status !== "cancelled",
+        subtask.status !== "completed" && subtask.status !== "cancelled"
     );
 
     return incompleteSubtasks.length === 0;
@@ -437,30 +437,29 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
   // Get valid status transitions based on business rules
   const getValidStatusTransitions = (currentStatusCode, task = null) => {
     const currentStatus = companyStatuses.find(
-      (s) => s.code === currentStatusCode && s.active,
+      (s) => s.code === currentStatusCode && s.active
     );
     if (!currentStatus) return [];
 
     let validTransitions = currentStatus.allowedTransitions.filter(
       (transitionCode) => {
         const targetStatus = companyStatuses.find(
-          (s) => s.code === transitionCode && s.active,
+          (s) => s.code === transitionCode && s.active
         );
         return targetStatus !== null;
-      },
+      }
     );
 
     // Apply sub-task completion logic for parent tasks
     if (task && task.subtasks && task.subtasks.length > 0) {
       const hasIncompleteSubtasks = task.subtasks.some(
-        (subtask) =>
-          subtask.status !== "DONE" && subtask.status !== "CANCELLED",
+        (subtask) => subtask.status !== "DONE" && subtask.status !== "CANCELLED"
       );
 
       // Block completion if sub-tasks are incomplete
       if (hasIncompleteSubtasks) {
         validTransitions = validTransitions.filter(
-          (transition) => transition !== "DONE",
+          (transition) => transition !== "DONE"
         );
       }
     }
@@ -474,7 +473,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     oldStatusCode,
     newStatusCode,
     userId,
-    reason = null,
+    reason = null
   ) => {
     const historyEntry = {
       id: Date.now(),
@@ -505,11 +504,11 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     taskId,
     newStatusCode,
     requiresConfirmation = false,
-    reason = null,
+    reason = null
   ) => {
     const task = tasks.find((t) => t.id === taskId);
     const newStatus = companyStatuses.find(
-      (s) => s.code === newStatusCode && s.active,
+      (s) => s.code === newStatusCode && s.active
     );
 
     if (!task || !newStatus) {
@@ -527,10 +526,12 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     const validTransitions = getValidStatusTransitions(task.status, task);
     if (!validTransitions.includes(newStatusCode)) {
       const currentStatusObj = companyStatuses.find(
-        (s) => s.code === task.status,
+        (s) => s.code === task.status
       );
       alert(
-        `Invalid status transition from "${currentStatusObj?.label || task.status}" to "${newStatus.label}". Please follow the allowed workflow.`,
+        `Invalid status transition from "${
+          currentStatusObj?.label || task.status
+        }" to "${newStatus.label}". Please follow the allowed workflow.`
       );
       return;
     }
@@ -538,10 +539,10 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     // Check sub-task completion logic
     if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
       const incompleteCount = task.subtasks.filter(
-        (s) => s.status !== "completed" && s.status !== "cancelled",
+        (s) => s.status !== "completed" && s.status !== "cancelled"
       ).length;
       alert(
-        `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
+        `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`
       );
       return;
     }
@@ -578,8 +579,8 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               lastModified: new Date().toISOString(),
               lastModifiedBy: currentUser.name,
             }
-          : t,
-      ),
+          : t
+      )
     );
 
     // Log the status change for audit trail
@@ -588,14 +589,16 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
       oldStatusCode,
       newStatusCode,
       currentUser.id,
-      reason,
+      reason
     );
 
     // Show success notification (in real app, would be a toast notification)
     const oldStatus = companyStatuses.find((s) => s.code === oldStatusCode);
     const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
     console.log(
-      `✅ Status updated: "${task.title}" changed from "${oldStatus?.label || oldStatusCode}" to "${newStatus.label}"`,
+      `✅ Status updated: "${task.title}" changed from "${
+        oldStatus?.label || oldStatusCode
+      }" to "${newStatus.label}"`
     );
   };
 
@@ -645,7 +648,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     // Handle subtasks deletion
     if (options.deleteSubtasks && task.subtasks && task.subtasks.length > 0) {
       console.log(
-        `Deleted ${task.subtasks.length} subtasks for task: ${task.title}`,
+        `Deleted ${task.subtasks.length} subtasks for task: ${task.title}`
       );
     }
 
@@ -656,7 +659,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
       task.linkedItems.length > 0
     ) {
       console.log(
-        `Deleted ${task.linkedItems.length} linked items for task: ${task.title}`,
+        `Deleted ${task.linkedItems.length} linked items for task: ${task.title}`
       );
     }
 
@@ -679,7 +682,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
   // Handle bulk task deletion
   const handleBulkDeleteTasks = () => {
     const selectedTaskObjects = tasks.filter((t) =>
-      selectedTasks.includes(t.id),
+      selectedTasks.includes(t.id)
     );
     const errors = [];
 
@@ -696,17 +699,17 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
 
     if (
       window.confirm(
-        `Are you sure you want to delete ${selectedTasks.length} selected tasks? This action cannot be undone.`,
+        `Are you sure you want to delete ${selectedTasks.length} selected tasks? This action cannot be undone.`
       )
     ) {
       setTasks((prevTasks) =>
-        prevTasks.filter((task) => !selectedTasks.includes(task.id)),
+        prevTasks.filter((task) => !selectedTasks.includes(task.id))
       );
       setSelectedTasks([]);
       setShowBulkActions(false);
       showToast(
         `${selectedTaskObjects.length} tasks deleted successfully`,
-        "success",
+        "success"
       );
     }
   };
@@ -723,7 +726,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
   // Handle bulk status update
   const handleBulkStatusUpdate = (newStatusCode) => {
     const selectedTaskObjects = tasks.filter((t) =>
-      selectedTasks.includes(t.id),
+      selectedTasks.includes(t.id)
     );
     const errors = [];
 
@@ -735,10 +738,10 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
 
       if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
         const incompleteCount = task.subtasks.filter(
-          (s) => s.status !== "completed" && s.status !== "cancelled",
+          (s) => s.status !== "completed" && s.status !== "cancelled"
         ).length;
         errors.push(
-          `"${task.title}" has ${incompleteCount} incomplete sub-tasks`,
+          `"${task.title}" has ${incompleteCount} incomplete sub-tasks`
         );
         return;
       }
@@ -758,8 +761,8 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               status: newStatusCode,
               progress: newStatusCode === "DONE" ? 100 : task.progress,
             }
-          : task,
-      ),
+          : task
+      )
     );
 
     // Clear selection
@@ -768,7 +771,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
 
     const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
     console.log(
-      `Bulk updated ${selectedTasks.length} tasks to ${newStatus.label} by ${currentUser.name}`,
+      `Bulk updated ${selectedTasks.length} tasks to ${newStatus.label} by ${currentUser.name}`
     );
   };
 
@@ -812,8 +815,8 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     ) {
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
-          task.id === taskId ? { ...task, title: editingTitle.trim() } : task,
-        ),
+          task.id === taskId ? { ...task, title: editingTitle.trim() } : task
+        )
       );
     }
     setEditingTaskId(null);
@@ -842,9 +845,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
 
   const handleSaveEditedTask = (updatedTask) => {
     setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task,
-      ),
+      prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
     );
     setShowEditModal(false);
     setEditingTask(null);
@@ -903,8 +904,8 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               subtasks: [...(task.subtasks || []), newSubtask],
               subtaskCount: (task.subtaskCount || 0) + 1,
             }
-          : task,
-      ),
+          : task
+      )
     );
 
     setShowSubtaskCreator(null);
@@ -921,11 +922,11 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           ? {
               ...task,
               subtasks: task.subtasks.map((subtask) =>
-                subtask.id === updatedSubtask.id ? updatedSubtask : subtask,
+                subtask.id === updatedSubtask.id ? updatedSubtask : subtask
               ),
             }
-          : task,
-      ),
+          : task
+      )
     );
     setSelectedSubtask(null);
   };
@@ -941,12 +942,12 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           ? {
               ...task,
               subtasks: task.subtasks.filter(
-                (subtask) => subtask.id !== subtaskId,
+                (subtask) => subtask.id !== subtaskId
               ),
               subtaskCount: Math.max(0, (task.subtaskCount || 0) - 1),
             }
-          : task,
-      ),
+          : task
+      )
     );
 
     // Show success toast notification
@@ -972,11 +973,11 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                       status: newStatus,
                       progress: newStatus === "DONE" ? 100 : subtask.progress,
                     }
-                  : subtask,
+                  : subtask
               ),
             }
-          : task,
-      ),
+          : task
+      )
     );
   };
 
@@ -1040,14 +1041,14 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Modern Filters Section */}
       <div className="bg-gray-200 rounded-2xl shadow-sm border border-white/20 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="flex-1">
             <div className="relative">
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+                className="absolute  left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1111,7 +1112,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all duration-200"
+              className="px-3 py-2 bg-white/80 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent  transition-all duration-200"
             >
               <option value="all">All Status</option>
               <option value="todo">To Do</option>
@@ -1123,7 +1124,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all duration-200"
+              className="px-3 py-2 bg-white/80  border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
               <option value="all">All Priority</option>
               <option value="low">Low</option>
@@ -1135,7 +1136,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
             <select
               value={taskTypeFilter}
               onChange={(e) => setTaskTypeFilter(e.target.value)}
-              className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all duration-200"
+              className="px-3 py-2 bg-white/80  border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
               <option value="all">All Task Types</option>
               <option value="Simple Task">Simple Task</option>
@@ -1144,7 +1145,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               <option value="Approval Task">Approval Task</option>
             </select>
 
-            <select className="px-3 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all duration-200">
+            <select className="px-3 py-2 bg-white/80  border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
               <option>All Categories</option>
               <option>Development</option>
               <option>Design</option>
@@ -1192,12 +1193,12 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
       </div>
 
       {/* Modern Tasks Table */}
-      <div className="bg-white/80 rounded-lg  border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white/80 rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto ">
           <Table className="w-full">
             <TableHeader className="bg-gradient-to-r from-gray-100 to-gray-200 border-b border-gray-200 ">
               <TableRow className="hover:bg-gray-50/50 transition-colors">
-                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12 ">
+                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase w-12 ">
                   <input
                     type="checkbox"
                     checked={
@@ -1207,30 +1208,30 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 transition-colors"
                   />
                 </TableHead>
-                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Task
                 </TableHead>
-                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase">
                   Assignee
                 </TableHead>
-                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Status
                 </TableHead>
-                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 bg-gray-200 py-4 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Priority
                 </TableHead>
-                <TableHead className="px-6 py-4 bg-gray-200 0 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 py-4 bg-gray-200 0 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Due Date
                 </TableHead>
-                <TableHead className="px-6 py-4 bg-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 py-4 bg-gray-200 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Progress
                 </TableHead>
-                <TableHead className="px-6 py-4 bg-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <TableHead className="px-6 py-4 bg-gray-200 text-left text-xs font-semibold text-gray-600 uppercase ">
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="bg-white/50 backdrop-blur-sm divide-y divide-gray-100">
+            <TableBody className="bg-white/50 divide-y divide-gray-100">
               {tasks
                 .filter((task) => {
                   // Apply search filter
@@ -1415,7 +1416,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                                       title={`Recurring from Task #${task.recurringFromTaskId}`}
                                       onClick={() =>
                                         console.log(
-                                          `View master task ${task.recurringFromTaskId}`,
+                                          `View master task ${task.recurringFromTaskId}`
                                         )
                                       }
                                     >
@@ -1464,12 +1465,12 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                             task.priority === "High"
                               ? "bg-gradient-to-r from-red-100 to-red-200 text-red-800"
                               : task.priority === "Medium"
-                                ? "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800"
-                                : task.priority === "Low"
-                                  ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800"
-                                  : task.priority === "Urgent"
-                                    ? "bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800"
-                                    : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800"
+                              ? "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800"
+                              : task.priority === "Low"
+                              ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800"
+                              : task.priority === "Urgent"
+                              ? "bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800"
+                              : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800"
                           }`}
                         >
                           {task.priority}
@@ -1554,7 +1555,34 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                           <TableCell className="px-6 py-3">
                             <div className="pl-8">
                               <div className="flex items-center gap-2">
-                                <span className="text-blue-500 text-lg">↳</span>
+                                {/* <span className="text-blue-500 text-lg">↳</span> */}
+
+                                <svg
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <circle
+                                    cx="6"
+                                    cy="4"
+                                    r="2"
+                                    fill="currentColor"
+                                  />
+                                  <path
+                                    d="M6 6v2a2 2 0 002 2h4"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                  />
+                                  <circle
+                                    cx="16"
+                                    cy="10"
+                                    r="2"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+
                                 <span
                                   className="font-semibold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors"
                                   onClick={() =>
@@ -1597,7 +1625,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                                 handleSubtaskStatusChange(
                                   task.id,
                                   subtask.id,
-                                  newStatus,
+                                  newStatus
                                 )
                               }
                               canEdit={canEditTaskStatus(subtask)}
@@ -1730,7 +1758,15 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               <h2 className="text-2xl font-bold text-white">
                 Create New Task
                 {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
+                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }
+                  )}`}
               </h2>
               <button
                 onClick={() => setShowCreateTaskDrawer(false)}
@@ -1786,7 +1822,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
             handleStatusChange(
               showStatusConfirmation.taskId,
               showStatusConfirmation.newStatusCode,
-              false,
+              false
             );
             setShowStatusConfirmation(null);
           }}
@@ -1838,7 +1874,15 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
               <h2 className="text-2xl font-bold text-white">
                 Create Approval Task
                 {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`}
+                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }
+                  )}`}
               </h2>
               <button
                 onClick={() => setShowApprovalTaskModal(false)}
@@ -1898,7 +1942,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           onDelete={() =>
             handleDeleteSubtask(
               selectedSubtask.parentTaskId,
-              selectedSubtask.id,
+              selectedSubtask.id
             )
           }
           currentUser={currentUser}
@@ -1939,7 +1983,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                     newStatus = "DONE";
                   } else if (task.approvalMode === "all") {
                     const allApproved = updatedApprovers.every(
-                      (a) => a.status === "approved",
+                      (a) => a.status === "approved"
                     );
                     if (allApproved) newStatus = "DONE";
                   }
@@ -1952,7 +1996,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                   approvers: updatedApprovers,
                   status: newStatus,
                 };
-              }),
+              })
             );
 
             // Close modal after action
@@ -1969,7 +2013,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           onConfirm={() =>
             handleDeleteSubtask(
               showDeleteSubtaskConfirmation.taskId,
-              showDeleteSubtaskConfirmation.subtaskId,
+              showDeleteSubtaskConfirmation.subtaskId
             )
           }
           onCancel={() => setShowDeleteSubtaskConfirmation(null)}
@@ -2001,7 +2045,7 @@ function TaskStatusDropdown({
   const [validTransitions, setValidTransitions] = useState([]);
 
   const currentStatusObj = statuses.find(
-    (s) => s.code === currentStatus && s.active,
+    (s) => s.code === currentStatus && s.active
   );
   const badgeStyle = currentStatusObj
     ? {
@@ -2016,7 +2060,7 @@ function TaskStatusDropdown({
       const transitions = currentStatusObj.allowedTransitions.filter(
         (transitionCode) => {
           const targetStatus = statuses.find(
-            (s) => s.code === transitionCode && s.active,
+            (s) => s.code === transitionCode && s.active
           );
 
           // Check if target status exists and is active
@@ -2030,13 +2074,13 @@ function TaskStatusDropdown({
           ) {
             const hasIncompleteSubtasks = task.subtasks.some(
               (subtask) =>
-                subtask.status !== "DONE" && subtask.status !== "CANCELLED",
+                subtask.status !== "DONE" && subtask.status !== "CANCELLED"
             );
             return !hasIncompleteSubtasks;
           }
 
           return true;
-        },
+        }
       );
 
       setValidTransitions(transitions);
@@ -2128,7 +2172,7 @@ function TaskStatusDropdown({
                 </div>
                 {validTransitions.map((transitionCode) => {
                   const targetStatus = statuses.find(
-                    (s) => s.code === transitionCode && s.active,
+                    (s) => s.code === transitionCode && s.active
                   );
                   if (!targetStatus) return null;
 
@@ -2172,7 +2216,7 @@ function TaskStatusDropdown({
                 <div className="text-xs text-gray-400 mt-1">
                   {task.subtasks?.length > 0 &&
                   task.subtasks.some(
-                    (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+                    (s) => s.status !== "DONE" && s.status !== "CANCELLED"
                   )
                     ? "Complete all sub-tasks first"
                     : "This status cannot be changed further"}
@@ -2689,7 +2733,7 @@ function SubtaskCreator({ parentTask, onClose, onSubmit, currentUser }) {
                 value={formData.assigneeId}
                 onChange={(e) => {
                   const member = teamMembers.find(
-                    (m) => m.id === parseInt(e.target.value),
+                    (m) => m.id === parseInt(e.target.value)
                   );
                   setFormData((prev) => ({
                     ...prev,
@@ -2972,9 +3016,21 @@ function CalendarDatePicker({ onClose, onDateSelect, taskType }) {
                     h-10 text-sm rounded-lg transition-all duration-200
                     ${!date ? "invisible" : ""}
                     ${isPast ? "text-gray-300 cursor-not-allowed" : ""}
-                    ${isSelectable && !isSelected && !isToday ? "text-gray-900 hover:bg-gray-100" : ""}
-                    ${isToday && !isSelected ? "bg-blue-100 text-blue-800 font-medium" : ""}
-                    ${isSelected ? `bg-${typeInfo.color}-500 text-white font-medium shadow-lg` : ""}
+                    ${
+                      isSelectable && !isSelected && !isToday
+                        ? "text-gray-900 hover:bg-gray-100"
+                        : ""
+                    }
+                    ${
+                      isToday && !isSelected
+                        ? "bg-blue-100 text-blue-800 font-medium"
+                        : ""
+                    }
+                    ${
+                      isSelected
+                        ? `bg-${typeInfo.color}-500 text-white font-medium shadow-lg`
+                        : ""
+                    }
                     ${isSelectable ? "cursor-pointer" : ""}
                   `}
                 >
@@ -3006,7 +3062,9 @@ function CalendarDatePicker({ onClose, onDateSelect, taskType }) {
             <button
               onClick={handleConfirmDate}
               disabled={!selectedDate}
-              className={`flex-1 btn ${selectedDate ? "btn-primary" : "btn-disabled"}`}
+              className={`flex-1 btn ${
+                selectedDate ? "btn-primary" : "btn-disabled"
+              }`}
             >
               Continue
             </button>
@@ -3163,7 +3221,7 @@ function SubtaskDetailPanel({
                   value={formData.assigneeId}
                   onChange={(e) => {
                     const member = teamMembers.find(
-                      (m) => m.id === parseInt(e.target.value),
+                      (m) => m.id === parseInt(e.target.value)
                     );
                     setFormData((prev) => ({
                       ...prev,
@@ -3207,7 +3265,9 @@ function SubtaskDetailPanel({
                 </select>
               ) : (
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(subtask.status)}`}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                    subtask.status
+                  )}`}
                 >
                   {subtask.status}
                 </span>
@@ -3239,7 +3299,9 @@ function SubtaskDetailPanel({
                 </select>
               ) : (
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(subtask.priority)}`}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(
+                    subtask.priority
+                  )}`}
                 >
                   {subtask.priority}
                 </span>
@@ -3443,7 +3505,7 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
         task.id,
         currentUser.id,
         showApprovalConfirm.action,
-        showApprovalConfirm.comment,
+        showApprovalConfirm.comment
       );
       setShowApprovalConfirm(null);
       setComment("");
@@ -3479,8 +3541,8 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                       overallStatus === "approved"
                         ? "bg-green-500/20 text-green-100"
                         : overallStatus === "rejected"
-                          ? "bg-red-500/20 text-red-100"
-                          : "bg-yellow-500/20 text-yellow-100"
+                        ? "bg-red-500/20 text-red-100"
+                        : "bg-yellow-500/20 text-yellow-100"
                     }`}
                   >
                     {overallStatus.charAt(0).toUpperCase() +
@@ -3558,10 +3620,10 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                     task.priority === "critical"
                       ? "bg-red-100 text-red-800"
                       : task.priority === "high"
-                        ? "bg-orange-100 text-orange-800"
-                        : task.priority === "medium"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
+                      ? "bg-orange-100 text-orange-800"
+                      : task.priority === "medium"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-green-100 text-green-800"
                   }`}
                 >
                   {task.priority?.charAt(0).toUpperCase() +
@@ -3644,10 +3706,10 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                     approver.status === "approved"
                       ? "border-green-200 bg-green-50"
                       : approver.status === "rejected"
-                        ? "border-red-200 bg-red-50"
-                        : approver.status === "pending"
-                          ? "border-blue-200 bg-blue-50"
-                          : "border-gray-200 bg-gray-50"
+                      ? "border-red-200 bg-red-50"
+                      : approver.status === "pending"
+                      ? "border-blue-200 bg-blue-50"
+                      : "border-gray-200 bg-gray-50"
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -3658,10 +3720,10 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                             (approver.status === "approved"
                               ? "✅"
                               : approver.status === "rejected"
-                                ? "❌"
-                                : approver.status === "pending"
-                                  ? "⏳"
-                                  : "⏸️")}
+                              ? "❌"
+                              : approver.status === "pending"
+                              ? "⏳"
+                              : "⏸️")}
                         </span>
                       </div>
                       <div className="flex-1">
@@ -3684,10 +3746,10 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                               approver.status === "approved"
                                 ? "bg-green-100 text-green-800"
                                 : approver.status === "rejected"
-                                  ? "bg-red-100 text-red-800"
-                                  : approver.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-gray-100 text-gray-800"
+                                ? "bg-red-100 text-red-800"
+                                : approver.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-gray-100 text-gray-800"
                             }`}
                           >
                             {approver.status?.charAt(0).toUpperCase() +
@@ -3697,7 +3759,7 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
                             <span className="ml-2 text-xs text-gray-500">
                               on{" "}
                               {new Date(
-                                approver.approvedAt,
+                                approver.approvedAt
                               ).toLocaleDateString()}
                             </span>
                           )}

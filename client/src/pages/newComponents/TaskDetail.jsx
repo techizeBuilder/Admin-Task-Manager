@@ -589,50 +589,22 @@ function CoreInfoPanel({ task, onUpdate, permissions }) {
   return (
     <div className="core-info-panel">
       <div className="info-grid">
-        {/* Description */}
-        <div className="info-section full-width">
-          <h3>Description</h3>
-          <EditableTextArea
-            value={task.description}
-            onSave={(newDesc) => onUpdate({ ...task, description: newDesc })}
-            canEdit={permissions.canEdit}
-            placeholder="Add task description..."
-          />
-        </div>
-
-        {/* Date Information */}
-        <div className="info-section">
-          <h4>Timeline</h4>
-          <div className="info-field">
-            <label>Start Date:</label>
-            <EditableDateField
-              value={task.startDate}
-              onSave={(newDate) => onUpdate({ ...task, startDate: newDate })}
-              canEdit={permissions.canEdit}
-            />
+        {task.reminders.length > 0 && (
+          <div className="full-width">
+            <h4>Active Reminders</h4>
+            <div className="reminders-list">
+              {task.reminders.map((reminder) => (
+                <div key={reminder.id} className="reminder-item">
+                  <span className="reminder-icon">⏰</span>
+                  <span>{reminder.message}</span>
+                  <span className="reminder-date">({reminder.date})</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="info-field">
-            <label>Due Date:</label>
-            <EditableDateField
-              value={task.dueDate}
-              onSave={(newDate) => onUpdate({ ...task, dueDate: newDate })}
-              canEdit={permissions.canEdit}
-            />
-          </div>
-          <div className="info-field">
-            <label>Time Estimate:</label>
-            <EditableTextField
-              value={task.timeEstimate}
-              onSave={(newEstimate) =>
-                onUpdate({ ...task, timeEstimate: newEstimate })
-              }
-              canEdit={permissions.canEdit}
-            />
-          </div>
-        </div>
-
+        )}
         {/* Task Relationships */}
-        <div className="info-section">
+        <div className="">
           <h4>Relationships</h4>
           {task.parentTaskId && (
             <div className="info-field">
@@ -666,8 +638,39 @@ function CoreInfoPanel({ task, onUpdate, permissions }) {
           </div>
         </div>
 
+        {/* Date Information */}
+        <div className="">
+          <h4>Timeline</h4>
+          <div className="info-field">
+            <label>Start Date:</label>
+            <EditableDateField
+              value={task.startDate}
+              onSave={(newDate) => onUpdate({ ...task, startDate: newDate })}
+              canEdit={permissions.canEdit}
+            />
+          </div>
+          <div className="info-field">
+            <label>Due Date:</label>
+            <EditableDateField
+              value={task.dueDate}
+              onSave={(newDate) => onUpdate({ ...task, dueDate: newDate })}
+              canEdit={permissions.canEdit}
+            />
+          </div>
+          <div className="info-field">
+            <label>Time Estimate:</label>
+            <EditableTextField
+              value={task.timeEstimate}
+              onSave={(newEstimate) =>
+                onUpdate({ ...task, timeEstimate: newEstimate })
+              }
+              canEdit={permissions.canEdit}
+            />
+          </div>
+        </div>
+
         {/* Creation Info */}
-        <div className="info-section">
+        <div className="">
           <h4>Task Details</h4>
           <div className="info-field">
             <label>Created By:</label>
@@ -684,20 +687,6 @@ function CoreInfoPanel({ task, onUpdate, permissions }) {
         </div>
 
         {/* Reminders */}
-        {task.reminders.length > 0 && (
-          <div className="info-section full-width">
-            <h4>Active Reminders</h4>
-            <div className="reminders-list">
-              {task.reminders.map((reminder) => (
-                <div key={reminder.id} className="reminder-item">
-                  <span className="reminder-icon">⏰</span>
-                  <span>{reminder.message}</span>
-                  <span className="reminder-date">({reminder.date})</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Milestone Information */}
         {task.taskType === "milestone" && task.milestones.length > 0 && (
@@ -768,6 +757,16 @@ function CoreInfoPanel({ task, onUpdate, permissions }) {
             </div>
           </div>
         )}
+      </div>
+      {/* Description */}
+      <div className="!w-full p-[1.5rem] mt-[-40px]">
+        <h3>Description</h3>
+        <EditableTextArea
+          value={task.description}
+          onSave={(newDesc) => onUpdate({ ...task, description: newDesc })}
+          canEdit={permissions.canEdit}
+          placeholder="Add task description..."
+        />
       </div>
     </div>
   );
@@ -1619,13 +1618,13 @@ function EditableTextArea({ value, onSave, canEdit, placeholder }) {
 
   if (isEditing) {
     return (
-      <div className="editable-textarea-container">
+      <div className="editable-textarea-container ">
         <textarea
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleSave}
           autoFocus
-          className="editable-textarea"
+          className="editable-textarea w-full"
           rows="4"
           placeholder={placeholder}
         />
@@ -1878,85 +1877,7 @@ function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
                     selectedSubtask?.id === subtask.id ? null : subtask
                   )
                 }
-              >
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="text-lg">
-                      {getStatusIcon(subtask.status)}
-                    </span>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">
-                        {subtask.title}
-                      </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                        <span>Due: {subtask.dueDate}</span>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            subtask.priority === "high"
-                              ? "bg-red-100 text-red-800"
-                              : subtask.priority === "medium"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {subtask.priority}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <SubtaskStatusDropdown
-                        subtask={subtask}
-                        onUpdate={handleUpdateSubtask}
-                        canEdit={canEditSubtask(subtask)}
-                      />
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
-                            {subtask.assignee?.charAt(0) || "U"}
-                          </span>
-                        </div>
-                        <span className="text-sm text-gray-600 hidden sm:inline">
-                          {subtask.assignee}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    {canDeleteSubtask(subtask) && (
-                      <button
-                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm("Delete this sub-task?")) {
-                            handleDeleteSubtask(subtask.id);
-                          }
-                        }}
-                        title="Delete sub-task"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.8558L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                    <span className="text-gray-400">
-                      {selectedSubtask?.id === subtask.id ? "▼" : "▶"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              ></div>
             ))}
 
             {filteredSubtasks.length === 0 && !showInlineAdd && (
@@ -1988,6 +1909,129 @@ function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
                 </button>
               </div>
             )}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Type
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Task
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Due Date
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Priority
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Assignee
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {subtasks.map((subtask) => (
+                  <tr key={subtask.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-lg">
+                        {getStatusIcon(subtask.status)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">
+                        {subtask.title}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {subtask.dueDate}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <SubtaskStatusDropdown
+                        subtask={subtask}
+                        onUpdate={handleUpdateSubtask}
+                        canEdit={canEditSubtask(subtask)}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <div className="w-full h-full bg-gray-300 rounded-full flex items-center justify-center">
+                            <span className="text-xs font-medium text-gray-600">
+                              {subtask.assignee?.charAt(0) || "U"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm text-gray-900 hidden sm:block">
+                            {subtask.assignee || "Unassigned"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {canDeleteSubtask(subtask) && (
+                          <button
+                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm("Delete this sub-task?")) {
+                                handleDeleteSubtask(subtask.id);
+                              }
+                            }}
+                            title="Delete sub-task"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        )}
+
+                        <button
+                          className="text-gray-400 hover:text-blue-600"
+                          onClick={() => toggleSubtaskDetails(subtask.id)}
+                        >
+                          {selectedSubtask?.id === subtask.id ? "▼" : "▶"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

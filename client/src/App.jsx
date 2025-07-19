@@ -269,7 +269,8 @@ function App() {
         <Route path="/accept-invite" component={SimpleAcceptInvite} />
         <Route path="/register/invite/:token" component={SimpleAcceptInvite} />
         <Route path="/forbidden" component={ForbiddenPage} />
-
+       
+        
         {/* Role-based Dashboard Routes */}
         <Route path="/superadmin">
           <RequireSuperAdmin>
@@ -374,6 +375,12 @@ function App() {
             <ProtectedRoute component={Tasks} />
           </AdminLayout>
         </Route>
+        <Route path="/setting">
+          <AdminLayout>
+            <ProtectedRoute component={AdminSettings} />
+          </AdminLayout>
+        </Route>
+       
         <Route path="/task/view">
           <AdminLayout>
             <ProtectedRoute component={TaskDetail} />

@@ -146,7 +146,7 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
 
   return (
     <div className="create-task-container">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
           {/* Task Name */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
@@ -203,14 +203,14 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
                     {availableApprovers.map(approver => (
                       <div
                         key={approver.id}
-                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                        className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
                           formData.approverIds.includes(approver.id)
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                         }`}
                         onClick={() => handleApproverToggle(approver.id)}
                       >
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
                           <div className="flex-shrink-0">
                             <span className="text-lg">{approver.avatar}</span>
                           </div>
@@ -235,7 +235,7 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
               </div>
 
               {/* Approval Mode */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
                     Approval Mode *
@@ -274,7 +274,7 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
               </div>
 
               {/* Priority and Visibility */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
                     Priority
@@ -312,7 +312,7 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
               </div>
 
               {/* Auto-Approval */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
@@ -366,12 +366,12 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
               </div>
 
               {/* Attachments */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700">
                   Attachments
                 </label>
                 <div 
-                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
+                  className={`border-2 border-dashed rounded-lg px-4 py-3 text-center transition-all duration-200 ${
                     dragActive 
                       ? 'border-blue-500 bg-blue-50' 
                       : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'

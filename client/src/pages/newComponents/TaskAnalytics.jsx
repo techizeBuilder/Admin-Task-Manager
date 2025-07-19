@@ -38,7 +38,7 @@ export default function TaskAnalytics() {
   return (
     <div className="analytics-container h-auto overflow-scroll">
       {/* Header Section */}
-      <div className="analytics-header">
+      <div className="analytics-header shadow-sm px-4 py-2 mb-5">
         <div className="header-content">
           <div>
             <h1 className="analytics-title">📊 Task Analytics</h1>
@@ -54,7 +54,7 @@ export default function TaskAnalytics() {
                 <option key={tf.value} value={tf.value}>{tf.label}</option>
               ))}
             </select>
-            <button className="export-btn">
+            <button className="export-btn shadow-sm">
               📤 Export Report
             </button>
           </div>
@@ -63,7 +63,7 @@ export default function TaskAnalytics() {
 
       {/* Key Metrics Cards */}
       <div className="metrics-grid">
-        <div className="metric-card featured">
+        <div className="metric-card featured shadow-sm">
           <div className="metric-header">
             <div className="metric-icon total">📊</div>
             <div className="metric-trend positive">+12%</div>
@@ -75,7 +75,7 @@ export default function TaskAnalytics() {
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card shadow-sm">
           <div className="metric-header">
             <div className="metric-icon completed">✅</div>
             <div className="metric-trend positive">+8%</div>
@@ -87,7 +87,7 @@ export default function TaskAnalytics() {
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card shadow-sm">
           <div className="metric-header">
             <div className="metric-icon progress">🔄</div>
             <div className="metric-trend neutral">-2%</div>
@@ -99,7 +99,7 @@ export default function TaskAnalytics() {
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card shadow-sm">
           <div className="metric-header">
             <div className="metric-icon pending">⏳</div>
             <div className="metric-trend neutral">+5%</div>
@@ -111,7 +111,7 @@ export default function TaskAnalytics() {
           </div>
         </div>
 
-        <div className="metric-card alert">
+        <div className="metric-card alert shadow-sm">
           <div className="metric-header">
             <div className="metric-icon overdue">⚠️</div>
             <div className="metric-trend negative">+3</div>
@@ -123,8 +123,9 @@ export default function TaskAnalytics() {
           </div>
         </div>
 
+      </div>
         {/* Completion Rate Circle */}
-        <div className="metric-card completion-card">
+        <div className="metric-card completion-card mb-3">
           <div className="completion-circle-container">
             <h3 className="metric-label mb-4">Overall Progress</h3>
             <div className="completion-circle">
@@ -163,7 +164,6 @@ export default function TaskAnalytics() {
             <div className="completion-message">🎉 Excellent progress!</div>
           </div>
         </div>
-      </div>
 
       {/* Charts Section */}
       <div className="charts-section">

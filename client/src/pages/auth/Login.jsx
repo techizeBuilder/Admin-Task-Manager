@@ -128,7 +128,7 @@ export default function Login() {
       if (response.ok) {
         localStorage.setItem("token", result.token);
         localStorage.setItem("user", JSON.stringify(result.user));
-
+        localStorage.setItem("role", JSON.stringify(result.user.role));
         // Set user data in cache immediately to prevent loading state
         queryClient.setQueryData(["/api/auth/verify"], {
           ...result.user,

@@ -527,13 +527,12 @@ function RecurringTaskForm({ onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-3 mt-3">
       {/* Basic Task Information */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="card px-4 py-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">
           Task Details
         </h3>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -621,7 +620,7 @@ function RecurringTaskForm({ onClose }) {
       </div>
 
       {/* Recurrence Pattern */}
-      <div className="card">
+      <div className="card px-4 py-3">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
           Recurrence Pattern
         </h3>
@@ -675,7 +674,7 @@ function RecurringTaskForm({ onClose }) {
         </div>
 
         {formData.frequency === "weekly" && (
-          <div className="mt-6">
+          <div className="mt-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Repeat On Days
             </label>
@@ -714,12 +713,12 @@ function RecurringTaskForm({ onClose }) {
       </div>
 
       {/* End Condition */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">
+      <div className="card py-2 px-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">
           End Condition
         </h3>
 
-        <div className="space-y-4">
+        <div className="space-x-2 flex">
           <div className="flex items-center space-x-3">
             <input
               type="radio"
@@ -774,7 +773,7 @@ function RecurringTaskForm({ onClose }) {
               onChange={handleChange}
               className="form-radio"
             />
-            <label htmlFor="on" className="text-sm text-gray-700">
+            <label htmlFor="on" className="text-sm text-gray-700 text-nowrap">
               End on
             </label>
             {formData.endConditionType === "on" && (
