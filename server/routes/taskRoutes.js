@@ -67,6 +67,12 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       linkedTaskIds: taskData.linkedTaskIds ? JSON.parse(taskData.linkedTaskIds) : []
     };
 
+    console.log('Task data received:', {
+      title: parsedTaskData.title,
+      category: parsedTaskData.category,
+      taskType: parsedTaskData.taskType
+    });
+
     // Handle file attachments
     let attachments = [];
     if (req.files && req.files.length > 0) {

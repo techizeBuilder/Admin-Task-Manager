@@ -46,6 +46,7 @@ export default function CreateTask({
   });
   const onSubmit = async (formData) => {
     try {
+      console.log('Form submission data:', formData); // Debug log
       const submitData = new FormData();
 
       // Add basic task data
@@ -54,7 +55,12 @@ export default function CreateTask({
       submitData.append("taskType", taskType);
       submitData.append("priority", formData.priority);
       submitData.append("visibility", formData.visibility);
-      submitData.append("category", formData.category || "");
+      if (formData.category && formData.category.trim()) {
+        submitData.append("category", formData.category);
+        console.log('Category being sent:', formData.category); // Debug log
+      } else {
+        console.log('No category selected or empty category'); // Debug log
+      }
 
       if (formData.dueDate) {
         submitData.append("dueDate", formData.dueDate);
