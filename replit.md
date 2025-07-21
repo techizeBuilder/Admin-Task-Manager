@@ -126,7 +126,17 @@ TaskSetu is a comprehensive team management and task tracking application built 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+Latest updates:
+- July 21, 2025: Successfully migrated TaskSetu from Replit Agent to Replit environment
+- July 21, 2025: Integrated comprehensive task API with MongoDB storage for all task types
+- July 21, 2025: Updated CreateTask and ApprovalTaskCreator components to use React Hook Form
+- July 21, 2025: Fixed organization validation to support both individual users and organization members
+- July 21, 2025: Configured authentication-protected endpoints with file upload support
+
 ## Changelog
 
 Changelog:
-- June 14, 2025. Initial setup
+- June 14, 2025: Initial setup
+- July 21, 2025: Migration to Replit completed with full API integration

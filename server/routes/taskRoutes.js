@@ -84,7 +84,6 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
     const baseTask = {
       title: parsedTaskData.title,
       description: parsedTaskData.description || '',
-      organization: user.organization,
       createdBy: user.id,
       assignedTo: parsedTaskData.assignedTo || user.id,
       status: parsedTaskData.status || 'todo',
@@ -104,6 +103,11 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    // Add organization only if user has one (for org users, not individual users)
+    if (user.organizationId) {
+      baseTask.organization = user.organizationId;
+    }
 
     // Add task type specific fields
     switch (parsedTaskData.taskType) {
@@ -179,9 +183,15 @@ router.get("/tasks", authenticateToken, async (req, res) => {
     } = req.query;
 
     const filter = { 
-      organization: user.organization,
       isDeleted: { $ne: true }
     };
+
+    // Filter by organization for org users, or by creator for individual users
+    if (user.organizationId) {
+      filter.organization = user.organizationId;
+    } else {
+      filter.createdBy = user.id;
+    }
 
     // Apply filters
     if (type) filter.taskType = type;

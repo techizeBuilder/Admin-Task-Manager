@@ -10,26 +10,26 @@ export default function CreateTask({
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
-  const { 
-    register, 
-    handleSubmit, 
-    watch, 
-    setValue, 
-    reset, 
-    formState: { errors, isSubmitting }
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      title: '',
-      description: '',
-      priority: 'medium',
-      visibility: 'private',
-      dueDate: preFilledDate || '',
-      assignedTo: '',
-      category: '',
+      title: "",
+      description: "",
+      priority: "medium",
+      visibility: "private",
+      dueDate: preFilledDate || "",
+      assignedTo: "",
+      category: "",
       tags: [],
       collaborators: [],
-      attachments: []
-    }
+      attachments: [],
+    },
   });
 
   const [taskType, setTaskType] = useState(initialTaskType);
@@ -38,84 +38,98 @@ export default function CreateTask({
   const [attachments, setAttachments] = useState([]);
   const [recurrenceData, setRecurrenceData] = useState(null);
   const [milestoneData, setMilestoneData] = useState(null);
-
+  const [moreOptionsData, setMoreOptionsData] = useState({
+    referenceProcess: "",
+    customForm: "",
+    dependencies: [],
+    taskTypeAdvanced: "simple",
+  });
   const onSubmit = async (formData) => {
     try {
       const submitData = new FormData();
-      
+
       // Add basic task data
-      submitData.append('title', formData.title);
-      submitData.append('description', formData.description || '');
-      submitData.append('taskType', taskType);
-      submitData.append('priority', formData.priority);
-      submitData.append('visibility', formData.visibility);
-      submitData.append('category', formData.category || '');
-      
+      submitData.append("title", formData.title);
+      submitData.append("description", formData.description || "");
+      submitData.append("taskType", taskType);
+      submitData.append("priority", formData.priority);
+      submitData.append("visibility", formData.visibility);
+      submitData.append("category", formData.category || "");
+
       if (formData.dueDate) {
-        submitData.append('dueDate', formData.dueDate);
+        submitData.append("dueDate", formData.dueDate);
       }
       if (formData.startDate) {
-        submitData.append('startDate', formData.startDate);
+        submitData.append("startDate", formData.startDate);
       }
       if (formData.assignedTo) {
-        submitData.append('assignedTo', formData.assignedTo);
+        submitData.append("assignedTo", formData.assignedTo);
       }
 
       // Add task-specific data based on type
-      if (taskType === 'recurring' && recurrenceData) {
-        submitData.append('recurrencePattern', JSON.stringify(recurrenceData));
+      if (taskType === "recurring" && recurrenceData) {
+        submitData.append("recurrencePattern", JSON.stringify(recurrenceData));
       }
-      
-      if (taskType === 'milestone' && milestoneData) {
-        submitData.append('milestoneData', JSON.stringify(milestoneData));
-        submitData.append('milestoneType', milestoneData.type || 'standalone');
+
+      if (taskType === "milestone" && milestoneData) {
+        submitData.append("milestoneData", JSON.stringify(milestoneData));
+        submitData.append("milestoneType", milestoneData.type || "standalone");
         if (milestoneData.linkedTaskIds) {
-          submitData.append('linkedTaskIds', JSON.stringify(milestoneData.linkedTaskIds));
+          submitData.append(
+            "linkedTaskIds",
+            JSON.stringify(milestoneData.linkedTaskIds),
+          );
         }
       }
 
       // Add collaborators
       if (collaborators.length > 0) {
-        submitData.append('collaboratorIds', JSON.stringify(collaborators.map(c => c.id)));
+        submitData.append(
+          "collaboratorIds",
+          JSON.stringify(collaborators.map((c) => c.id)),
+        );
       }
 
       // Add tags
       if (formData.tags && formData.tags.length > 0) {
-        submitData.append('tags', JSON.stringify(formData.tags));
+        submitData.append("tags", JSON.stringify(formData.tags));
       }
 
       // Handle file attachments
       if (attachments.length > 0) {
         attachments.forEach((attachment, index) => {
           if (attachment.file) {
-            submitData.append('attachments', attachment.file);
+            submitData.append("attachments", attachment.file);
           }
         });
       }
 
       // Get auth token from localStorage
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       const response = await axios.post("/api/create-task", submitData, {
-        headers: { 
+        headers: {
           "Content-Type": "multipart/form-data",
-          "Authorization": token ? `Bearer ${token}` : ""
+          Authorization: token ? `Bearer ${token}` : "",
         },
       });
-      
+
       console.log("Task created successfully:", response.data);
-      
+
       // Reset form after successful submission
       reset();
       setAttachments([]);
       setCollaborators([]);
       setRecurrenceData(null);
       setMilestoneData(null);
-      
+
       if (onClose) onClose();
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task: " + (error.response?.data?.message || error.message));
+      alert(
+        "Failed to create task: " +
+          (error.response?.data?.message || error.message),
+      );
     }
   };
 
