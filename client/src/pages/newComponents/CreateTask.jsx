@@ -109,7 +109,12 @@ export default function CreateTask({
         submitData.append("customForm", moreOptionsData.customForm);
       }
       if (moreOptionsData.dependencies && moreOptionsData.dependencies.length > 0) {
-        submitData.append("dependsOnTaskIds", JSON.stringify(moreOptionsData.dependencies));
+        // Ensure dependencies are properly formatted as an array
+        const dependencyArray = Array.isArray(moreOptionsData.dependencies) 
+          ? moreOptionsData.dependencies 
+          : [moreOptionsData.dependencies];
+        submitData.append("dependsOnTaskIds", JSON.stringify(dependencyArray));
+        console.log('Dependencies being sent:', dependencyArray); // Debug log
       }
       // Always save the advanced task type - this identifies if it's simple, complex, etc.
       submitData.append("taskTypeAdvanced", moreOptionsData.taskTypeAdvanced || "simple");

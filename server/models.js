@@ -297,11 +297,11 @@ const taskSchema = new mongoose.Schema(
     // Advanced task fields for comprehensive task management
     taskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' },
     mainTaskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' }, // Clear task category identification
-    taskTypeAdvanced: { type: String, enum: ['simple', 'complex'], default: 'simple' }, // Simple/Complex classification
+    taskTypeAdvanced: { type: String, enum: ['simple', 'complex', 'recurring', 'milestone', 'approval'], default: 'simple' }, // Task complexity classification
     category: { type: String, default: '' },
     visibility: { type: String, enum: ['private', 'team', 'organization'], default: 'private' },
     collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    dependencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+    dependencies: [{ type: String }], // Store as strings for now, can be converted to ObjectIds later when tasks exist
     attachments: [{
       id: { type: String },
       name: { type: String },

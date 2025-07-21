@@ -58,7 +58,8 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       // Parse arrays and objects
       tags: taskData.tags ? JSON.parse(taskData.tags) : [],
       collaboratorIds: taskData.collaboratorIds ? JSON.parse(taskData.collaboratorIds) : [],
-      dependsOnTaskIds: taskData.dependsOnTaskIds ? JSON.parse(taskData.dependsOnTaskIds) : [],
+      dependsOnTaskIds: taskData.dependsOnTaskIds ? 
+        (typeof taskData.dependsOnTaskIds === 'string' ? JSON.parse(taskData.dependsOnTaskIds) : taskData.dependsOnTaskIds) : [],
       // Parse specific task type data
       recurrencePattern: taskData.recurrencePattern ? JSON.parse(taskData.recurrencePattern) : null,
       milestoneData: taskData.milestoneData ? JSON.parse(taskData.milestoneData) : null,
@@ -75,7 +76,9 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       taskTypeAdvanced: parsedTaskData.taskTypeAdvanced,
       referenceProcess: parsedTaskData.referenceProcess,
       customForm: parsedTaskData.customForm,
-      dependencies: parsedTaskData.dependsOnTaskIds
+      dependencies: parsedTaskData.dependsOnTaskIds,
+      dependenciesType: typeof parsedTaskData.dependsOnTaskIds,
+      dependenciesArray: Array.isArray(parsedTaskData.dependsOnTaskIds)
     });
 
     // Handle file attachments
@@ -108,7 +111,7 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       category: parsedTaskData.category,
       visibility: parsedTaskData.visibility || 'private',
       collaborators: parsedTaskData.collaboratorIds,
-      dependencies: parsedTaskData.dependsOnTaskIds,
+      dependencies: parsedTaskData.dependsOnTaskIds && parsedTaskData.dependsOnTaskIds.length > 0 ? parsedTaskData.dependsOnTaskIds : [],
       attachments: attachments,
       customFields: {},
       // Advanced options - always save these fields
