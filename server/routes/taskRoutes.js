@@ -70,7 +70,12 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
     console.log('Task data received:', {
       title: parsedTaskData.title,
       category: parsedTaskData.category,
-      taskType: parsedTaskData.taskType
+      taskType: parsedTaskData.taskType,
+      mainTaskType: parsedTaskData.mainTaskType,
+      taskTypeAdvanced: parsedTaskData.taskTypeAdvanced,
+      referenceProcess: parsedTaskData.referenceProcess,
+      customForm: parsedTaskData.customForm,
+      dependencies: parsedTaskData.dependsOnTaskIds
     });
 
     // Handle file attachments
@@ -97,6 +102,8 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
       taskType: parsedTaskData.taskType || 'regular',
+      mainTaskType: parsedTaskData.mainTaskType || parsedTaskData.taskType, // Clear identification of task category
+      taskTypeAdvanced: parsedTaskData.taskTypeAdvanced || 'simple', // Simple/Complex classification
       tags: parsedTaskData.tags,
       category: parsedTaskData.category,
       visibility: parsedTaskData.visibility || 'private',
@@ -104,6 +111,9 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), a
       dependencies: parsedTaskData.dependsOnTaskIds,
       attachments: attachments,
       customFields: {},
+      // Advanced options - always save these fields
+      referenceProcess: parsedTaskData.referenceProcess || null,
+      customForm: parsedTaskData.customForm || null,
       isArchived: false,
       isDeleted: false,
       createdAt: new Date(),

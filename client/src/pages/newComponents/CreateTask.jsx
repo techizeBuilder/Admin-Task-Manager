@@ -101,6 +101,22 @@ export default function CreateTask({
         submitData.append("tags", JSON.stringify(formData.tags));
       }
 
+      // Always add advanced options data to ensure all settings are saved
+      if (moreOptionsData.referenceProcess) {
+        submitData.append("referenceProcess", moreOptionsData.referenceProcess);
+      }
+      if (moreOptionsData.customForm) {
+        submitData.append("customForm", moreOptionsData.customForm);
+      }
+      if (moreOptionsData.dependencies && moreOptionsData.dependencies.length > 0) {
+        submitData.append("dependsOnTaskIds", JSON.stringify(moreOptionsData.dependencies));
+      }
+      // Always save the advanced task type - this identifies if it's simple, complex, etc.
+      submitData.append("taskTypeAdvanced", moreOptionsData.taskTypeAdvanced || "simple");
+      
+      // Add the main task type to clearly identify the task category
+      submitData.append("mainTaskType", taskType); // This will be "regular", "recurring", "milestone", "approval"
+
       // Handle file attachments
       if (attachments.length > 0) {
         attachments.forEach((attachment, index) => {

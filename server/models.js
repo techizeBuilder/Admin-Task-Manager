@@ -294,6 +294,51 @@ const taskSchema = new mongoose.Schema(
     },
     estimatedHours: Number,
     actualHours: Number,
+    // Advanced task fields for comprehensive task management
+    taskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' },
+    mainTaskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' }, // Clear task category identification
+    taskTypeAdvanced: { type: String, enum: ['simple', 'complex'], default: 'simple' }, // Simple/Complex classification
+    category: { type: String, default: '' },
+    visibility: { type: String, enum: ['private', 'team', 'organization'], default: 'private' },
+    collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    dependencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+    attachments: [{
+      id: { type: String },
+      name: { type: String },
+      filename: { type: String },
+      size: { type: Number },
+      type: { type: String },
+      url: { type: String }
+    }],
+    customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
+    
+    // Advanced options fields - always available regardless of task type
+    referenceProcess: { type: String, default: null }, // Links to existing process/workflow
+    customForm: { type: String, default: null }, // Links to predefined form for data collection
+    
+    // Milestone fields
+    isMilestone: { type: Boolean, default: false },
+    milestoneType: { type: String, enum: ['standalone', 'project'], default: 'standalone' },
+    milestoneData: {
+      type: { type: String },
+      linkedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+      completionCriteria: [{ type: String }]
+    },
+    linkedTasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+    
+    // Approval task fields
+    isApprovalTask: { type: Boolean, default: false },
+    approvalMode: { type: String, enum: ['any', 'all', 'majority'], default: 'any' },
+    approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    approvers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    approvalDecisions: [{
+      approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      decision: { type: String, enum: ['approved', 'rejected'] },
+      comment: { type: String },
+      timestamp: { type: Date, default: Date.now }
+    }],
+    autoApproveEnabled: { type: Boolean, default: false },
+    autoApproveAfter: { type: Number }, // hours
   },
   {
     timestamps: true,
