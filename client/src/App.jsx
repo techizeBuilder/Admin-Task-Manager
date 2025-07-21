@@ -269,8 +269,7 @@ function App() {
         <Route path="/accept-invite" component={SimpleAcceptInvite} />
         <Route path="/register/invite/:token" component={SimpleAcceptInvite} />
         <Route path="/forbidden" component={ForbiddenPage} />
-       
-        
+
         {/* Role-based Dashboard Routes */}
         <Route path="/superadmin">
           <RequireSuperAdmin>
@@ -313,23 +312,19 @@ function App() {
           </SuperAdminLayout>
         </Route>
         <Route path="/super-admin/analytics">
-          <ProtectedRoute
-            component={SuperAdminDashboard}
-            requiredRole="super_admin"
-          />
+          <SuperAdminLayout>
+            <ProtectedRoute
+              component={TaskAnalytics}
+              requiredRole="super_admin"
+            />
+          </SuperAdminLayout>
         </Route>
         <Route path="/super-admin/settings">
           <SuperAdminLayout>
-            <ProtectedRoute requiredRole="super_admin">
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  System Settings
-                </h1>
-                <p className="text-gray-600 mt-2">
-                  System configuration options coming soon.
-                </p>
-              </div>
-            </ProtectedRoute>
+            <ProtectedRoute
+              component={AdminSettings}
+              requiredRole="super_admin"
+            ></ProtectedRoute>
           </SuperAdminLayout>
         </Route>
         <Route path="/super-admin/login-customization">
@@ -369,7 +364,7 @@ function App() {
             <ProtectedRoute component={Deadlines} />
           </AdminLayout>
         </Route>
-        
+
         <Route path="/tasks">
           <AdminLayout>
             <ProtectedRoute component={Tasks} />
@@ -380,7 +375,7 @@ function App() {
             <ProtectedRoute component={AdminSettings} />
           </AdminLayout>
         </Route>
-       
+
         <Route path="/task/view">
           <AdminLayout>
             <ProtectedRoute component={TaskDetail} />
