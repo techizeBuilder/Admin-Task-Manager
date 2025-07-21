@@ -93,27 +93,32 @@ export const taskTypeApi = {
   }
 };
 
-// Task field definitions for frontend validation
+// Task field definitions matching backend - based on user requirements
 export const TASK_FIELDS = {
   simple: [
-    'title', 'description', 'priority', 'dueDate', 'assignedTo', 
-    'category', 'tags', 'status', 'visibility'
+    // Basic fields for Simple Task
+    'title', 'description', 'assignedTo', 'priority', 'category', 
+    'status', 'dueDate', 'tags', 'attachments',
+    // Advanced options for Simple Task
+    'referenceProcess', 'customForm', 'dependencies', 'taskTypeAdvanced'
   ],
   milestone: [
     'title', 'description', 'priority', 'dueDate', 'assignedTo',
-    'category', 'tags', 'status', 'visibility', 'milestoneType',
-    'completionCriteria', 'linkedTasks', 'projectPhase'
+    'category', 'tags', 'status', 'milestoneType',
+    'completionCriteria', 'linkedTasks', 'projectPhase',
+    'referenceProcess', 'customForm', 'dependencies'
   ],
   recurring: [
     'title', 'description', 'priority', 'assignedTo', 'category',
-    'tags', 'status', 'visibility', 'recurrencePattern', 'frequency',
-    'interval', 'endDate', 'maxOccurrences', 'nextDueDate'
+    'tags', 'status', 'recurrencePattern', 'frequency',
+    'interval', 'endDate', 'maxOccurrences', 'nextDueDate',
+    'referenceProcess', 'customForm', 'dependencies'
   ],
   approval: [
     'title', 'description', 'priority', 'dueDate', 'assignedTo',
-    'category', 'tags', 'status', 'visibility', 'approvers',
+    'category', 'tags', 'status', 'approvers',
     'approvalMode', 'autoApproveEnabled', 'autoApproveAfter',
-    'approvalCriteria', 'requiredApprovals'
+    'approvalCriteria', 'referenceProcess', 'customForm', 'dependencies'
   ]
 };
 
