@@ -490,7 +490,7 @@ async function initializeSampleData() {
     await setupVite(app, server);
   }
 
-  const PORT = Number(process.env.PORT) || 4000;
+  const PORT = Number(process.env.PORT) || 5000;
   server.listen(PORT, (err) => {
     if (err) {
       console.error(`Failed to start server on port ${PORT}:`, err);
