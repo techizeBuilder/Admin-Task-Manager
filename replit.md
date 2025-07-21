@@ -149,13 +149,6 @@ Latest updates:
   * Implemented taskTypeApi.js frontend library for easy API integration
   * Added TaskTypeDemo component for testing all task types
   * Fixed task type mapping (simple -> regular) for MongoDB compatibility
-- July 21, 2025: **INTEGRATED** - Updated Frontend Components to Use New API:
-  * Modified CreateTask component to use taskTypeApi instead of old endpoints
-  * Updated ApprovalTaskCreator to use new type-specific API structure
-  * Converted FormData approach to JSON-based API calls for core task data
-  * Maintained backward compatibility for file attachments (TODO: implement in new API)
-  * All task creation now flows through unified task type validation system
-  * Confirmed working integration with successful test task creation
 
 ## Changelog
 

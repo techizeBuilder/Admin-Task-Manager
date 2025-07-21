@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import axios from 'axios'
-import { taskTypeApi } from '../../api/taskTypeApi'
 
 export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, selectedDate }) {
   const {
@@ -96,41 +95,51 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
     }
 
     try {
-      // Remove FormData approach, use new API directly
+      const formDataToSend = new FormData();
       
-      // Build task data object for new API
-      const taskData = {
-        title: formData.title,
-        description: formData.description || '',
-        dueDate: formData.dueDate,
-        priority: formData.priority,
-        visibility: formData.visibility,
-        approvalMode: formData.approvalMode,
-        autoApproveEnabled: formData.autoApproveEnabled,
-        status: 'todo'
-      };
-
-      // Add auto-approve timeout if enabled
+      // Add basic task data
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description || '');
+      formDataToSend.append('taskType', 'approval');
+      formDataToSend.append('dueDate', formData.dueDate);
+      formDataToSend.append('priority', formData.priority);
+      formDataToSend.append('visibility', formData.visibility);
+      formDataToSend.append('approvalMode', formData.approvalMode);
+      formDataToSend.append('autoApproveEnabled', formData.autoApproveEnabled);
       if (formData.autoApproveAfter) {
-        taskData.autoApproveAfter = parseInt(formData.autoApproveAfter);
+        formDataToSend.append('autoApproveAfter', formData.autoApproveAfter);
+      }
+      
+      // Add approver IDs as JSON
+      formDataToSend.append('approverIds', JSON.stringify(approverIds));
+      
+      // Add collaborators if any
+      if (collaborators.length > 0) {
+        formDataToSend.append('collaboratorIds', JSON.stringify(collaborators));
       }
 
-      console.log('Sending approval task data to new API:', { type: 'approval', data: taskData });
-
-      // Use new task type API
-      const response = await taskTypeApi.createTask('approval', taskData);
-
-      console.log("Approval task created successfully:", response);
-
-      // Handle file attachments if any (fallback for now)
+      // Handle file attachments
       if (attachments && attachments.length > 0) {
-        console.log('File attachments detected, handling separately...');
-        // TODO: Implement file upload in new API or handle via separate endpoint
+        for (let i = 0; i < attachments.length; i++) {
+          formDataToSend.append("attachments", attachments[i].file);
+        }
       }
+
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post("/api/create-task", formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+      });
+
+      console.log("Approval task created successfully:", response.data);
       
       // Call the onSubmit callback if provided
       if (onSubmit) {
-        onSubmit(response.data || response);
+        onSubmit(response.data.task);
       }
       
       // Close the form

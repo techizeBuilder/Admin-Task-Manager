@@ -4,7 +4,6 @@ import axios from "axios";
 import { calculateDueDateFromPriority } from "../newComponents/PriorityManager";
 import RecurringTaskManager from "./RecurringTaskManager";
 import MilestoneManager from "../newComponents/MilestoneManager";
-import { taskTypeApi } from "../../api/taskTypeApi";
 
 export default function CreateTask({
   onClose,
@@ -47,100 +46,102 @@ export default function CreateTask({
   });
   const onSubmit = async (formData) => {
     try {
-      console.log('Form submission data:', formData);
-      
-      // Map task types to new API format
-      const taskTypeMapping = {
-        'regular': 'simple',
-        'recurring': 'recurring', 
-        'milestone': 'milestone'
-      };
-      
-      const apiTaskType = taskTypeMapping[taskType] || 'simple';
-      
-      // Build task data object for new API
-      const taskData = {
-        title: formData.title,
-        description: formData.description || "",
-        priority: formData.priority,
-        visibility: formData.visibility,
-        status: 'todo'
-      };
+      console.log('Form submission data:', formData); // Debug log
+      const submitData = new FormData();
 
-      // Add optional fields if they exist
+      // Add basic task data
+      submitData.append("title", formData.title);
+      submitData.append("description", formData.description || "");
+      submitData.append("taskType", taskType);
+      submitData.append("priority", formData.priority);
+      submitData.append("visibility", formData.visibility);
       if (formData.category && formData.category.trim()) {
-        taskData.category = formData.category;
-        console.log('Category being sent:', formData.category);
+        submitData.append("category", formData.category);
+        console.log('Category being sent:', formData.category); // Debug log
+      } else {
+        console.log('No category selected or empty category'); // Debug log
       }
 
       if (formData.dueDate) {
-        taskData.dueDate = formData.dueDate;
+        submitData.append("dueDate", formData.dueDate);
       }
-      
+      if (formData.startDate) {
+        submitData.append("startDate", formData.startDate);
+      }
       if (formData.assignedTo) {
-        taskData.assignedTo = formData.assignedTo;
-      }
-
-      // Add tags
-      if (formData.tags && formData.tags.length > 0) {
-        taskData.tags = formData.tags;
+        submitData.append("assignedTo", formData.assignedTo);
       }
 
       // Add task-specific data based on type
       if (taskType === "recurring" && recurrenceData) {
-        taskData.recurrencePattern = recurrenceData;
-        // Add individual fields for new API
-        if (recurrenceData.frequency) {
-          taskData.frequency = recurrenceData.frequency;
-          taskData.interval = recurrenceData.interval || 1;
-          if (recurrenceData.endDate) {
-            taskData.endDate = recurrenceData.endDate;
-          }
-          if (recurrenceData.maxOccurrences) {
-            taskData.maxOccurrences = recurrenceData.maxOccurrences;
-          }
-        }
+        submitData.append("recurrencePattern", JSON.stringify(recurrenceData));
       }
 
       if (taskType === "milestone" && milestoneData) {
-        taskData.milestoneType = milestoneData.type || "standalone";
-        if (milestoneData.completionCriteria) {
-          taskData.completionCriteria = Array.isArray(milestoneData.completionCriteria) 
-            ? milestoneData.completionCriteria 
-            : [milestoneData.completionCriteria];
-        }
+        submitData.append("milestoneData", JSON.stringify(milestoneData));
+        submitData.append("milestoneType", milestoneData.type || "standalone");
         if (milestoneData.linkedTaskIds) {
-          taskData.linkedTasks = milestoneData.linkedTaskIds;
+          submitData.append(
+            "linkedTaskIds",
+            JSON.stringify(milestoneData.linkedTaskIds),
+          );
         }
       }
 
-      // Add advanced options data
+      // Add collaborators
+      if (collaborators.length > 0) {
+        submitData.append(
+          "collaboratorIds",
+          JSON.stringify(collaborators.map((c) => c.id)),
+        );
+      }
+
+      // Add tags
+      if (formData.tags && formData.tags.length > 0) {
+        submitData.append("tags", JSON.stringify(formData.tags));
+      }
+
+      // Always add advanced options data to ensure all settings are saved
       if (moreOptionsData.referenceProcess) {
-        taskData.referenceProcess = moreOptionsData.referenceProcess;
+        submitData.append("referenceProcess", moreOptionsData.referenceProcess);
       }
       if (moreOptionsData.customForm) {
-        taskData.customForm = moreOptionsData.customForm;
+        submitData.append("customForm", moreOptionsData.customForm);
       }
       if (moreOptionsData.dependencies && moreOptionsData.dependencies.length > 0) {
+        // Ensure dependencies are properly formatted as an array
         const dependencyArray = Array.isArray(moreOptionsData.dependencies) 
           ? moreOptionsData.dependencies 
           : [moreOptionsData.dependencies];
-        taskData.dependencies = dependencyArray;
-        console.log('Dependencies being sent:', dependencyArray);
+        submitData.append("dependsOnTaskIds", JSON.stringify(dependencyArray));
+        console.log('Dependencies being sent:', dependencyArray); // Debug log
       }
+      // Always save the advanced task type - this identifies if it's simple, complex, etc.
+      submitData.append("taskTypeAdvanced", moreOptionsData.taskTypeAdvanced || "simple");
+      
+      // Add the main task type to clearly identify the task category
+      submitData.append("mainTaskType", taskType); // This will be "regular", "recurring", "milestone", "approval"
 
-      console.log('Sending task data to new API:', { type: apiTaskType, data: taskData });
-
-      // Use new task type API
-      const response = await taskTypeApi.createTask(apiTaskType, taskData);
-
-      console.log("Task created successfully:", response);
-
-      // Handle file attachments if any (fallback to old API for now)
+      // Handle file attachments
       if (attachments.length > 0) {
-        console.log('File attachments detected, handling separately...');
-        // TODO: Implement file upload in new API or handle via separate endpoint
+        attachments.forEach((attachment, index) => {
+          if (attachment.file) {
+            submitData.append("attachments", attachment.file);
+          }
+        });
       }
+
+      // Get auth token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await axios.post("/api/create-task", submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      console.log("Task created successfully:", response.data);
 
       // Reset form after successful submission
       reset();
@@ -148,18 +149,13 @@ export default function CreateTask({
       setCollaborators([]);
       setRecurrenceData(null);
       setMilestoneData(null);
-      setMoreOptionsData({
-        referenceProcess: "",
-        customForm: "",
-        dependencies: [],
-        taskTypeAdvanced: "simple",
-      });
 
       if (onClose) onClose();
     } catch (error) {
       console.error("Error creating task:", error);
       alert(
-        "Failed to create task: " + error.message
+        "Failed to create task: " +
+          (error.response?.data?.message || error.message),
       );
     }
   };
