@@ -42,7 +42,7 @@ async function initializeSampleData() {
     const existingOrgs = await Organization.countDocuments();
     const existingUsers = await User.countDocuments();
     console.log(
-      `Found ${existingOrgs} organizations and ${existingUsers} users in database`
+      `Found ${existingOrgs} organizations and ${existingUsers} users in database`,
     );
 
     if (existingOrgs > 0 && existingUsers > 1) {
@@ -468,7 +468,7 @@ async function initializeSampleData() {
 
       console.log("Comprehensive sample data initialized successfully");
       console.log(
-        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`
+        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`,
       );
     } catch (error) {
       console.error("Error initializing sample data:", error);
