@@ -13,16 +13,25 @@ export default function CreateTask({
   const { register, handleSubmit, watch, setValue, reset } = useForm();
   const [taskType, setTaskType] = useState(initialTaskType);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-
+  const [moreOptionsData, setMoreOptionsData] = useState({
+    referenceProcess: "",
+    customForm: "",
+    dependencies: [],
+    taskTypeAdvanced: "simple",
+  });
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
-      
+
       // Add basic task data
       Object.keys(data).forEach((key) => {
-        if (key !== 'attachments' && data[key] !== undefined && data[key] !== null) {
+        if (
+          key !== "attachments" &&
+          data[key] !== undefined &&
+          data[key] !== null
+        ) {
           // For complex objects, stringify them
-          if (typeof data[key] === 'object') {
+          if (typeof data[key] === "object") {
             formData.append(key, JSON.stringify(data[key]));
           } else {
             formData.append(key, data[key]);
@@ -31,7 +40,7 @@ export default function CreateTask({
       });
 
       // Add task type
-      formData.append('taskType', taskType);
+      formData.append("taskType", taskType);
 
       // Handle file attachments
       if (data.attachments && data.attachments.length > 0) {
@@ -41,20 +50,23 @@ export default function CreateTask({
       }
 
       // Get auth token from localStorage
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       const response = await axios.post("/api/create-task", formData, {
-        headers: { 
+        headers: {
           "Content-Type": "multipart/form-data",
-          "Authorization": token ? `Bearer ${token}` : ""
+          Authorization: token ? `Bearer ${token}` : "",
         },
       });
-      
+
       console.log("Task created successfully:", response.data);
       if (onClose) onClose();
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task: " + (error.response?.data?.message || error.message));
+      alert(
+        "Failed to create task: " +
+          (error.response?.data?.message || error.message),
+      );
     }
   };
 
@@ -406,7 +418,485 @@ export default function CreateTask({
       {taskType === "recurring" && <RecurringTaskManager onClose={onClose} />}
 
       {/* Milestone Task Form */}
-      {taskType === "milestone" && <MilestoneManager onClose={onClose} />}
+      {taskType === "milestone" && (
+        <form className=" bg-white p-6 rounded-xl card max-w-4xl mx-auto mt-3">
+          {/* Main Form Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-1">
+            {/* Left Column */}
+            <div className="space-y-2">
+              <div className="">
+                <div className="flex gap-3">
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z"
+                    />
+                  </svg>
+                  <label
+                    htmlFor="taskName"
+                    className=" flex items-center gap-2 text-gray-700 font-medium text-sm"
+                  >
+                    Milestone Title*
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  id="taskName"
+                  placeholder="Enter milestone title"
+                  className="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+                <label
+                  htmlFor="isMilestone"
+                  className="flex items-start space-x-3 cursor-pointer"
+                >
+                  <div className="flex items-center h-5">
+                    <input
+                      type="checkbox"
+                      id="isMilestone"
+                      defaultChecked={true}
+                      className="w-4 h-4 rounded border-2 border-amber-400 text-amber-600 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-amber-800">
+                      Milestone Toggle*
+                    </span>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Required to mark this task as a milestone
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="">
+                <div className="flex gap-3">
+                  <svg
+                    className="w-4 h-4 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
+                  </svg>
+                  <label
+                    htmlFor="milestoneType"
+                    className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                  >
+                    Milestone Type
+                  </label>
+                </div>
+                <select
+                  id="milestoneType"
+                  className="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-700"
+                >
+                  <option value="standalone">🎯 Standalone Milestone</option>
+                  <option value="linked">🔗 Linked to Tasks</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="">
+                  <div className="flex gap-3">
+                    <svg
+                      className="w-4 h-4 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <label
+                      htmlFor="dueDate"
+                      className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                    >
+                      Due Date*
+                    </label>
+                  </div>
+                  <input
+                    type="date"
+                    id="dueDate"
+                    className="form-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="">
+                  <div className="flex gap-3">
+                    <svg
+                      className="w-4 h-4 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    <label
+                      htmlFor="assignedTo"
+                      className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                    >
+                      Assigned To
+                    </label>
+                  </div>
+                  <select
+                    id="assignedTo"
+                    className="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-700"
+                  >
+                    <option value="Current User">👤 Current User</option>
+                    <option value="John Smith">👨‍💼 John Smith</option>
+                    <option value="Sarah Wilson">👩‍💼 Sarah Wilson</option>
+                    <option value="Mike Johnson">👨‍💻 Mike Johnson</option>
+                    <option value="Emily Davis">👩‍💻 Emily Davis</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-2">
+              <div className="">
+                <div className="flex gap-2">
+                  <svg
+                    className="w-4 h-4 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                    />
+                  </svg>
+                  <label
+                    htmlFor="linkedTasks"
+                    className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                  >
+                    Link to Tasks
+                  </label>
+                </div>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {[
+                      "UI Design Complete",
+                      "Backend API Development",
+                      "Testing Phase",
+                      "Deployment",
+                    ].map((task, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center space-x-3 p-2 bg-white rounded-md border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 transition-colors cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-${
+                              ["green", "blue", "purple", "orange"][i]
+                            }-600`}
+                          >
+                            {["✅", "⚙️", "🧪", "🚀"][i]}
+                          </span>
+                          <span className="text-sm text-gray-700">{task}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-indigo-600 mt-2 flex items-start gap-1">
+                    <svg
+                      className="w-3 h-3 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Select tasks to monitor for this milestone
+                  </p>
+                </div>
+              </div>
+
+              <div className="">
+                <div className="flex gap-3">
+                  <svg
+                    className="w-4 h-4 text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h7"
+                    />
+                  </svg>
+                  <label
+                    htmlFor="description"
+                    className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                  >
+                    Description
+                  </label>
+                </div>
+                <textarea
+                  id="description"
+                  placeholder="Describe the milestone..."
+                  rows="4"
+                  className="form-textarea w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="">
+                  <div className="flex gap-3">
+                    <svg
+                      className="w-4 h-4 text-yellow-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    <label
+                      htmlFor="visibility"
+                      className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                    >
+                      Visibility
+                    </label>
+                  </div>
+                  <select
+                    id="visibility"
+                    className="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-gray-700"
+                  >
+                    <option value="private">🔒 Private</option>
+                    <option value="public">👥 Public</option>
+                  </select>
+                </div>
+
+                <div className="">
+                  <div className="flex gap-3">
+                    <svg
+                      className="w-4 h-4 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <label
+                      htmlFor="priority"
+                      className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                    >
+                      Priority
+                    </label>
+                  </div>
+                  <select
+                    id="priority"
+                    className="form-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-700"
+                  >
+                    <option value="low">🟢 Low</option>
+                    <option value="medium" selected>
+                      🟡 Medium
+                    </option>
+                    <option value="high">🟠 High</option>
+                    <option value="critical">🔴 Critical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="">
+                <div className="flex gap-2">
+                  <svg
+                    className="w-4 h-4 text-teal-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  <label
+                    htmlFor="collaborators"
+                    className="form-label flex items-center gap-2 text-gray-700 font-medium text-sm"
+                  >
+                    Collaborators
+                  </label>
+                </div>
+                <div className="bg-teal-50 border border-teal-100 rounded-lg p-4">
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {[
+                      {
+                        initials: "CU",
+                        name: "Current User",
+                        email: "current@company.com",
+                        color: "teal",
+                      },
+                      {
+                        initials: "JS",
+                        name: "John Smith",
+                        email: "john@company.com",
+                        color: "blue",
+                      },
+                      {
+                        initials: "SW",
+                        name: "Sarah Wilson",
+                        email: "sarah@company.com",
+                        color: "purple",
+                      },
+                      {
+                        initials: "MJ",
+                        name: "Mike Johnson",
+                        email: "mike@company.com",
+                        color: "green",
+                      },
+                      {
+                        initials: "ED",
+                        name: "Emily Davis",
+                        email: "emily@company.com",
+                        color: "pink",
+                      },
+                    ].map((person, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center space-x-3 p-2 bg-white rounded-md border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition-colors cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                        />
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-7 h-7 rounded-full bg-${person.color}-500 flex items-center justify-center text-white text-xs font-bold`}
+                          >
+                            {person.initials}
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-700">
+                              {person.name}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              {person.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-teal-600 mt-2 flex items-start gap-1">
+                    <svg
+                      className="w-3 h-3 mt-0.5 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Optional - for updates & comments visibility
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 mt-2 pt-3 border-t border-gray-200">
+            <button
+              type="button"
+              className="px-5 py-2.5 text-sm font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              <svg
+                className="w-4 h-4 mr-1 inline-block"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 text-sm font-medium rounded-md border border-transparent text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex items-center gap-1"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create Milestone
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* More Options Modal */}
       {showMoreOptions && (
@@ -460,15 +950,15 @@ function MoreOptionsModal({ data, onChange, onClose, onSave }) {
   ];
 
   const filteredProcesses = referenceProcesses.filter((process) =>
-    process.name.toLowerCase().includes(searchTerms.process.toLowerCase())
+    process.name.toLowerCase().includes(searchTerms.process.toLowerCase()),
   );
 
   const filteredForms = customForms.filter((form) =>
-    form.name.toLowerCase().includes(searchTerms.form.toLowerCase())
+    form.name.toLowerCase().includes(searchTerms.form.toLowerCase()),
   );
 
   const filteredTasks = existingTasks.filter((task) =>
-    task.name.toLowerCase().includes(searchTerms.dependencies.toLowerCase())
+    task.name.toLowerCase().includes(searchTerms.dependencies.toLowerCase()),
   );
 
   const handleDependencyToggle = (taskId) => {
