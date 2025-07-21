@@ -15,7 +15,6 @@ import {
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
 import { taskRoutes } from "./routes/taskRoutes.js";
-import { taskTypeRoutes } from './routes/taskTypeRoutes.js';
 
 export async function registerRoutes(app) {
   // Configure CORS
@@ -1502,7 +1501,6 @@ export async function registerRoutes(app) {
 
   // Task routes
   app.use("/api", taskRoutes);
-  app.use("/api", taskTypeRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {

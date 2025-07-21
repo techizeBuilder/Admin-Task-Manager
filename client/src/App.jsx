@@ -73,7 +73,6 @@ import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
 import StatusManager from "./pages/newComponents/StatusManager";
-import TaskTypeDemo from "./components/TaskTypeDemo";
 import PriorityManager from "./pages/newComponents/PriorityManager";
 import ActivityFeed from "./pages/newComponents/ActivityFeed";
 import TaskAnalytics from "./pages/newComponents/TaskAnalytics";
@@ -472,12 +471,6 @@ function App() {
               component={ApprovalManager}
               allowedRoles={["superadmin", "org_admin", "admin"]}
             />
-          </AdminLayout>
-        </Route>
-
-        <Route path="/demo/task-types">
-          <AdminLayout>
-            <ProtectedRoute component={TaskTypeDemo} />
           </AdminLayout>
         </Route>
         <Route path="/admin/milestone">
