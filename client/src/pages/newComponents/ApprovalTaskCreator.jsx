@@ -87,7 +87,7 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     if (!formData.title.trim()) {
@@ -105,24 +105,70 @@ export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, 
       return
     }
 
-    const approvalTask = {
-      ...formData,
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
-      createdBy: 'Current User',
-      status: 'pending',
-      approvers: formData.approverIds.map(id => {
-        const approver = availableApprovers.find(a => a.id === id)
-        return {
-          ...approver,
-          status: 'pending',
-          comment: null,
-          approvedAt: null
-        }
-      })
-    }
+    try {
+      const formDataToSend = new FormData();
+      
+      // Add basic task data
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('taskType', 'approval');
+      formDataToSend.append('dueDate', formData.dueDate);
+      formDataToSend.append('priority', formData.priority);
+      formDataToSend.append('visibility', formData.visibility);
+      formDataToSend.append('approvalMode', formData.approvalMode);
+      formDataToSend.append('autoApproveEnabled', formData.autoApproveEnabled);
+      if (formData.autoApproveAfter) {
+        formDataToSend.append('autoApproveAfter', formData.autoApproveAfter);
+      }
+      
+      // Add approver IDs as JSON
+      formDataToSend.append('approverIds', JSON.stringify(formData.approverIds));
+      
+      // Add collaborators if any
+      if (formData.collaborators.length > 0) {
+        formDataToSend.append('collaboratorIds', JSON.stringify(formData.collaborators));
+      }
 
-    onSubmit(approvalTask)
+      // Handle file attachments
+      if (formData.attachments && formData.attachments.length > 0) {
+        for (let i = 0; i < formData.attachments.length; i++) {
+          formDataToSend.append("attachments", formData.attachments[i].file);
+        }
+      }
+
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch("/api/create-task", {
+        method: 'POST',
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: formDataToSend
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create approval task');
+      }
+
+      const result = await response.json();
+      console.log("Approval task created successfully:", result);
+      
+      // Call the onSubmit callback if provided
+      if (onSubmit) {
+        onSubmit(result.task);
+      }
+      
+      // Close the form
+      if (onClose) {
+        onClose();
+      }
+      
+    } catch (error) {
+      console.error("Error creating approval task:", error);
+      alert("Failed to create approval task: " + error.message);
+    }
   }
 
   const getPriorityColor = (priority) => {

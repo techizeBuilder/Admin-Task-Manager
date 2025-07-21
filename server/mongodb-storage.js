@@ -1592,6 +1592,104 @@ export class MongoStorage {
       .populate('invitedBy', 'firstName lastName email')
       .sort({ createdAt: -1 });
   }
+
+  // Task operations
+  async createTask(taskData) {
+    const task = new Task(taskData);
+    return await task.save();
+  }
+
+  async getTaskById(id) {
+    return await Task.findById(id)
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('createdBy', 'firstName lastName email')
+      .populate('project', 'name')
+      .populate('organization', 'name');
+  }
+
+  async getTasksByFilter(filter, options = {}) {
+    const { page = 1, limit = 50, sort = { createdAt: -1 } } = options;
+    const skip = (page - 1) * limit;
+    
+    return await Task.find(filter)
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('createdBy', 'firstName lastName email')
+      .populate('project', 'name')
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+  }
+
+  async updateTask(id, updateData) {
+    return await Task.findByIdAndUpdate(id, updateData, { new: true });
+  }
+
+  async deleteTask(id) {
+    return await Task.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+  }
+
+  // Task approval operations
+  async createTaskApproval(approvalData) {
+    // For MongoDB, we'll store approvals as part of the task document
+    // This is a simplified implementation
+    const task = await Task.findById(approvalData.taskId);
+    if (!task.approvalRecords) {
+      task.approvalRecords = [];
+    }
+    
+    const approval = {
+      approverId: approvalData.approverId,
+      status: approvalData.status,
+      comment: approvalData.comment || '',
+      createdAt: new Date()
+    };
+    
+    task.approvalRecords.push(approval);
+    await task.save();
+    return approval;
+  }
+
+  async getTaskApprovals(taskId) {
+    const task = await Task.findById(taskId);
+    return task?.approvalRecords || [];
+  }
+
+  async getTaskApprovalByTaskAndUser(taskId, userId) {
+    const task = await Task.findById(taskId);
+    return task?.approvalRecords?.find(approval => 
+      approval.approverId.toString() === userId.toString()
+    );
+  }
+
+  async updateTaskApproval(approvalId, updateData) {
+    // Since we're storing approvals in the task document for simplicity,
+    // we need to handle this differently - this method should update by approval ID
+    // For now, we'll keep it simple and find the task containing this approval
+    const task = await Task.findOne({ 'approvalRecords._id': approvalId });
+    if (task) {
+      const approval = task.approvalRecords.id(approvalId);
+      if (approval) {
+        Object.assign(approval, updateData);
+        await task.save();
+        return approval;
+      }
+    }
+    return null;
+  }
+
+  // Project operations
+  async getProjectsByOrganization(organizationId) {
+    return await Project.find({ 
+      $or: [
+        { organization: organizationId },
+        { organizationId: organizationId }
+      ]
+    }).sort({ createdAt: -1 });
+  }
+
+  async getProject(id) {
+    return await Project.findById(id);
+  }
 }
 
 export const storage = new MongoStorage();

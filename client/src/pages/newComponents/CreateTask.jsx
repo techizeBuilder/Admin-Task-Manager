@@ -17,18 +17,44 @@ export default function CreateTask({
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
-      Object.keys(data).forEach((key) => formData.append(key, data[key]));
+      
+      // Add basic task data
+      Object.keys(data).forEach((key) => {
+        if (key !== 'attachments' && data[key] !== undefined && data[key] !== null) {
+          // For complex objects, stringify them
+          if (typeof data[key] === 'object') {
+            formData.append(key, JSON.stringify(data[key]));
+          } else {
+            formData.append(key, data[key]);
+          }
+        }
+      });
+
+      // Add task type
+      formData.append('taskType', taskType);
+
+      // Handle file attachments
       if (data.attachments && data.attachments.length > 0) {
-        formData.append("attachments", data.attachments[0]);
+        for (let i = 0; i < data.attachments.length; i++) {
+          formData.append("attachments", data.attachments[i]);
+        }
       }
 
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      
       const response = await axios.post("/api/create-task", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
       });
+      
       console.log("Task created successfully:", response.data);
       if (onClose) onClose();
     } catch (error) {
       console.error("Error creating task:", error);
+      alert("Failed to create task: " + (error.response?.data?.message || error.message));
     }
   };
 

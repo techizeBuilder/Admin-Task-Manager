@@ -14,6 +14,7 @@ import {
 } from "./middleware/upload.js";
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
+import { taskRoutes } from "./routes/taskRoutes.js";
 
 export async function registerRoutes(app) {
   // Configure CORS
@@ -1497,6 +1498,9 @@ export async function registerRoutes(app) {
 
   // Login customization routes
   registerLoginCustomizationRoutes(app);
+
+  // Task routes
+  app.use("/api", taskRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
