@@ -964,7 +964,7 @@ export default function CreateTask({
       {/* More Options Modal */}
       {showMoreOptions && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-4 overlay-animate">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-animate-slide-right">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[98vh] overflow-y-auto modal-animate-slide-right">
             <MoreOptionsModal
               data={moreOptionsData}
               onChange={(field, value) =>
