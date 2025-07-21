@@ -142,6 +142,13 @@ Latest updates:
   * Task type classification (simple/complex/recurring/milestone/approval)
   * Comprehensive MongoDB schema with all advanced fields
   * Individual and organization user support verified
+- July 21, 2025: **NEW** - Task Type-Specific API System Implemented:
+  * Created dedicated `/api/tasks` endpoint for type-specific task creation
+  * Built task validation system with field filtering for each task type
+  * Added complete CRUD operations with proper MongoDB enum mapping
+  * Implemented taskTypeApi.js frontend library for easy API integration
+  * Added TaskTypeDemo component for testing all task types
+  * Fixed task type mapping (simple -> regular) for MongoDB compatibility
 
 ## Changelog
 
