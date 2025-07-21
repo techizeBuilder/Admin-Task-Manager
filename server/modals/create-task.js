@@ -6,6 +6,10 @@ const TaskSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     taskType: {
       type: String,
       enum: ["Simple", "Recurring", "Milestone", "Approval"],
@@ -140,4 +144,4 @@ const TaskSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Task", TaskSchema);
+export default mongoose.model("TaskTitle", TaskSchema);

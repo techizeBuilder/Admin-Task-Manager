@@ -2,9 +2,10 @@ import express from "express";
 import mongoose from "mongoose";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
+import morgan from "morgan";
 
 const app = express();
-
+app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -490,7 +491,7 @@ async function initializeSampleData() {
     await setupVite(app, server);
   }
 
-  const PORT = Number(process.env.PORT) || 4000;
+  const PORT = Number(process.env.PORT) || 5000;
   server.listen(PORT, (err) => {
     if (err) {
       console.error(`Failed to start server on port ${PORT}:`, err);

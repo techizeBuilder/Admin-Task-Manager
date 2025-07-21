@@ -688,7 +688,7 @@ const formResponseSchema = new mongoose.Schema(
       enum: ["submitted", "in_progress", "completed", "rejected"],
       default: "submitted",
     },
-    currentStep: String, // Current step ID in process flow
+    currentStep: String, 
     stepHistory: [
       {
         stepId: String,
