@@ -149,13 +149,6 @@ Latest updates:
   * Implemented taskTypeApi.js frontend library for easy API integration
   * Added TaskTypeDemo component for testing all task types
   * Fixed task type mapping (simple -> regular) for MongoDB compatibility
-- July 21, 2025: **UPDATED** - Simple Task Fields Specification Completed:
-  * Implemented exact Simple Task fields as per user requirements:
-    - Basic: Title, Description, Assign to, Priority, Category, Initial Status, Due Date, Tags, Attachments
-    - Advanced Options: Reference Process, Custom Form, Dependencies, Task Type
-  * Fixed MongoDB validation issues for visibility and approval mode enums
-  * Updated TaskTypeDemo with Simple Task advanced options form fields
-  * All task creation and retrieval working correctly with proper field validation
 
 ## Changelog
 

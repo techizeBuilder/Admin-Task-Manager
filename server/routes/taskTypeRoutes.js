@@ -5,32 +5,27 @@ import { authenticateToken } from '../middleware/roleAuth.js';
 const router = express.Router();
 const storage = new MongoStorage();
 
-// Task type field definitions based on user requirements
+// Task type field definitions
 const TASK_TYPE_FIELDS = {
   simple: [
-    // Basic fields for Simple Task
-    'title', 'description', 'assignedTo', 'priority', 'category', 
-    'status', 'dueDate', 'tags', 'attachments',
-    // Advanced options for Simple Task
-    'referenceProcess', 'customForm', 'dependencies', 'taskTypeAdvanced'
+    'title', 'description', 'priority', 'dueDate', 'assignedTo', 
+    'category', 'tags', 'status', 'visibility'
   ],
   milestone: [
     'title', 'description', 'priority', 'dueDate', 'assignedTo',
-    'category', 'tags', 'status', 'milestoneType',
-    'completionCriteria', 'linkedTasks', 'projectPhase',
-    'referenceProcess', 'customForm', 'dependencies'
+    'category', 'tags', 'status', 'visibility', 'milestoneType',
+    'completionCriteria', 'linkedTasks', 'projectPhase'
   ],
   recurring: [
     'title', 'description', 'priority', 'assignedTo', 'category',
-    'tags', 'status', 'recurrencePattern', 'frequency',
-    'interval', 'endDate', 'maxOccurrences', 'nextDueDate',
-    'referenceProcess', 'customForm', 'dependencies'
+    'tags', 'status', 'visibility', 'recurrencePattern', 'frequency',
+    'interval', 'endDate', 'maxOccurrences', 'nextDueDate'
   ],
   approval: [
     'title', 'description', 'priority', 'dueDate', 'assignedTo',
-    'category', 'tags', 'status', 'approvers',
+    'category', 'tags', 'status', 'visibility', 'approvers',
     'approvalMode', 'autoApproveEnabled', 'autoApproveAfter',
-    'approvalCriteria', 'referenceProcess', 'customForm', 'dependencies'
+    'approvalCriteria', 'requiredApprovals'
   ]
 };
 
@@ -105,10 +100,10 @@ router.post('/tasks', authenticateToken, async (req, res) => {
       // Spread validated fields into main object for compatibility
       ...validatedData,
       
-      // Set defaults for common fields  
+      // Set defaults for common fields
       status: validatedData.status || 'todo',
       priority: validatedData.priority || 'medium',
-      visibility: 'private', // Always set to private for validation compatibility
+      visibility: validatedData.visibility || 'private',
       tags: Array.isArray(validatedData.tags) ? validatedData.tags : [],
       
       // Handle organization for different user types
@@ -154,24 +149,11 @@ router.post('/tasks', authenticateToken, async (req, res) => {
 
       case 'approval':
         taskObj.isApprovalTask = true;
-        
-        // Validate and set approval mode
-        const validApprovalModes = ['any', 'all', 'majority'];
-        taskObj.approvalMode = validApprovalModes.includes(validatedData.approvalMode) 
-          ? validatedData.approvalMode 
-          : 'any';
-          
+        taskObj.approvalMode = validatedData.approvalMode || 'any';
         taskObj.approvalStatus = 'pending';
-        
-        // Handle approvers - ensure they're ObjectIds or empty array
-        taskObj.approvers = [];
-        if (validatedData.approvers && Array.isArray(validatedData.approvers)) {
-          // Filter out invalid ObjectIds for now, in production you'd validate these exist
-          taskObj.approvers = validatedData.approvers.filter(approver => 
-            typeof approver === 'string' && approver.length === 24
-          );
-        }
-        
+        taskObj.approvers = Array.isArray(validatedData.approvers) 
+          ? validatedData.approvers 
+          : (validatedData.approvers ? [validatedData.approvers] : []);
         taskObj.autoApproveEnabled = validatedData.autoApproveEnabled || false;
         if (validatedData.autoApproveAfter) {
           taskObj.autoApproveAfter = parseInt(validatedData.autoApproveAfter);
@@ -232,10 +214,9 @@ router.get('/tasks/:id', authenticateToken, async (req, res) => {
     }
 
     // Check if user has access to this task
-    const hasAccess = task.createdBy?.toString() === user.id.toString() ||
+    const hasAccess = task.createdBy.toString() === user.id.toString() ||
                      task.assignedTo?.toString() === user.id.toString() ||
-                     (user.organizationId && task.organization?.toString() === user.organizationId.toString()) ||
-                     !task.organization; // Allow access to tasks without organization for individual users
+                     (user.organizationId && task.organization?.toString() === user.organizationId.toString());
 
     if (!hasAccess) {
       return res.status(403).json({

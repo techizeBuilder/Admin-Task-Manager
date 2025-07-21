@@ -213,44 +213,6 @@ const TaskTypeDemo = () => {
           </select>
         </div>
 
-        {selectedType === 'simple' && (
-          <>
-            <div className="form-group">
-              <label>Reference Process:</label>
-              <input
-                type="text"
-                value={taskData.referenceProcess || ''}
-                onChange={(e) => handleInputChange('referenceProcess', e.target.value)}
-                placeholder="e.g., SOP-001"
-                className="form-control"
-                style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Custom Form:</label>
-              <input
-                type="text"
-                value={taskData.customForm || ''}
-                onChange={(e) => handleInputChange('customForm', e.target.value)}
-                placeholder="e.g., FORM-001"
-                className="form-control"
-                style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-              />
-            </div>
-            <div className="form-group">
-              <label>Dependencies (comma-separated):</label>
-              <input
-                type="text"
-                value={taskData.dependencies ? taskData.dependencies.join(', ') : ''}
-                onChange={(e) => handleInputChange('dependencies', e.target.value.split(',').map(d => d.trim()).filter(d => d))}
-                placeholder="task-001, task-002"
-                className="form-control"
-                style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}
-              />
-            </div>
-          </>
-        )}
-
         {renderTypeSpecificFields()}
 
         <button 
