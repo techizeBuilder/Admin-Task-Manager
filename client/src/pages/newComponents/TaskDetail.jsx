@@ -3601,8 +3601,8 @@ function SnoozeModal({ task, onSubmit, onClose }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-content">
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="modal-content space-y-1">
+          <div className="mt-1 mb-2">
             <label>Snooze until:</label>
             <input
               type="datetime-local"
@@ -3615,7 +3615,7 @@ function SnoozeModal({ task, onSubmit, onClose }) {
             />
           </div>
 
-          <div className="form-group">
+          <div className="mt-2">
             <label>Optional note:</label>
             <textarea
               value={snoozeData.note}
@@ -3794,7 +3794,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
       <div className="fixed top-0 right-0 h-full w-1/2 bg-white shadow-2xl z-50 overflow-y-auto drawer-animate">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white text-lg">📝</span>
@@ -3829,8 +3829,8 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
           </div>
 
           {/* Form Content */}
-          <div className="flex-1 p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex-1 px-6 py-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {/* Sub-task Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -3965,7 +3965,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
 
               {/* Priority */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Priority (optional)
                 </label>
                 <select
@@ -3988,7 +3988,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
 
               {/* Due Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Due Date
                   <span className="text-xs text-blue-600 ml-2">
                     (Auto-suggested from priority)
@@ -4013,7 +4013,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description (optional)
                 </label>
                 <textarea
@@ -4037,12 +4037,12 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
 
               {/* Attachments */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Attachments (optional)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                    className="mx-auto h-12 w-12 text-gray-400 mb-2"
                     stroke="currentColor"
                     fill="none"
                     viewBox="0 0 48 48"
@@ -4054,7 +4054,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <div className="mt-4">
+                  <div className="mt-1">
                     <label className="cursor-pointer">
                       <span className="text-blue-600 hover:text-blue-500 font-medium">
                         Upload files
@@ -4074,7 +4074,7 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
                     </label>
                     <p className="text-gray-500"> or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 mt-1">
                     PNG, JPG, PDF up to 10MB
                   </p>
                 </div>
@@ -4129,19 +4129,19 @@ function SubtaskDrawer({ parentTask, currentUser, onSubmit, onClose }) {
           </div>
 
           {/* Footer Actions */}
-          <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="border-t border-gray-200 px-4 py-2 bg-gray-50">
             <div className="flex space-x-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={!formData.title.trim()}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 Create Sub-task
               </button>
@@ -4280,14 +4280,14 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overlay-animate">
       <div
-        className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto modal-animate-slide-right"
+        className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-4xl w-full max-h-[98vh] overflow-y-auto modal-animate-slide-right"
         style={{
           boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
           border: "1px solid rgba(255,255,255,0.2)",
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-lg">✏️</span>
@@ -4320,15 +4320,15 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="px-6 py-3">
+          <div className="space-y-3">
             {/* Basic Information */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white px-6 py-2 rounded-xl border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Basic Information
               </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                 {/* Title */}
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -4401,12 +4401,12 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
             </div>
 
             {/* Assignment & Priority */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white px-6 py-3 rounded-xl border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Assignment & Priority
               </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                 {/* Assignee */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -4465,12 +4465,12 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
             </div>
 
             {/* Timeline */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white px-6 py-3 rounded-xl border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Timeline
               </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                 {/* Start Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -4516,12 +4516,12 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
             </div>
 
             {/* Tags & Risk */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-white px-6 py-3 rounded-xl border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Tags & Risk Management
               </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                 {/* Tags */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -4582,7 +4582,7 @@ function TaskEditModal({ task, onSave, onClose, permissions }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
+          <div className="flex justify-end gap-3 pt-3 border-t border-gray-200 mt-3">
             <button
               type="button"
               onClick={onClose}

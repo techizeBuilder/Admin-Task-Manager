@@ -321,13 +321,13 @@ export function TaskKanbanView() {
             Drag and drop tasks to update their status
           </p>
         </div>
-        <Button 
+        {/* <Button 
           onClick={() => setShowCreateForm(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Task
-        </Button>
+        </Button> */}
       </div>
 
       {/* Kanban Columns */}

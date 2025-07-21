@@ -34,6 +34,8 @@ const taskFormSchema = insertTaskSchema.extend({
   dueDate: z.string().optional(),
 });
 
+
+
 type TaskFormData = z.infer<typeof taskFormSchema>;
 
 interface TaskModalProps {

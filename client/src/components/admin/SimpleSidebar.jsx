@@ -330,6 +330,7 @@ export function SimpleSidebar() {
     </Link>
   );
 
+  
   const renderSection = (title, items, sectionKey) => {
     if (items.length === 0) return null;
 
@@ -353,7 +354,7 @@ export function SimpleSidebar() {
     );
   };
   const validUser = JSON.parse(localStorage.getItem("user"));
-  console.log(validUser, "nidhi");
+  
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-56 bg-sidebarDark border-r border-gray-600/30 shadow-xl">
       <div className="flex flex-col h-full">
