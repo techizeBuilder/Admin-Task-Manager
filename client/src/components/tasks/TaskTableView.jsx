@@ -2866,7 +2866,7 @@ function CalendarDatePicker({ onClose, onDateSelect, taskType }) {
 
   const handleConfirmDate = () => {
     if (selectedDate) {
-      const dateStr = selectedDate.toISOString().split("T")[0];
+      const dateStr = selectedDate.toISOString()[0];
       onDateSelect(dateStr);
     }
   };
