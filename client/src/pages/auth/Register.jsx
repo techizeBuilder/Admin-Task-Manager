@@ -111,6 +111,19 @@ export default function Register() {
       const result = await response.json();
 
       if (response.ok) {
+        // Handle email resent scenario
+        if (result.resent) {
+          toast({
+            title: "Verification Email Resent",
+            description: result.message || "We've re-sent your verification link.",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          // Don't redirect, stay on the form
+          return;
+        }
+
+        // Handle auto-authentication
         if (result.autoAuthenticated && result.token) {
           localStorage.setItem("token", result.token);
           toast({
@@ -124,6 +137,7 @@ export default function Register() {
           });
           setLocation("/dashboard");
         } else {
+          // Handle new registration
           localStorage.setItem("verificationEmail", formData.email);
           localStorage.setItem("registrationEmail", formData.email);
           localStorage.setItem("registrationType", selectedType);
