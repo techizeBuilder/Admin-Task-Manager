@@ -16,9 +16,20 @@ export default function SuperAdminHeader() {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
 
-  const { data: user } = useQuery({
+  const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
   });
+
+  const { data: profileUser } = useQuery({
+    queryKey: ["/api/profile"],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Merge profile data with auth data
+  const user = {
+    ...authUser,
+    ...profileUser, // Profile data takes higher priority
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');

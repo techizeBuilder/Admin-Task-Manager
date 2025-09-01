@@ -84,13 +84,8 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
       <AvatarImage
         src={imageUrl}
         alt={getDisplayName()}
-        onLoad={() => {
-          // Successfully loaded image
-          console.log('Avatar image loaded successfully:', imageUrl);
-        }}
         onError={(e) => {
           // If profile image fails to load, hide the img element to show fallback
-          console.log('Avatar image failed to load:', imageUrl, 'User:', user);
           e.currentTarget.style.display = 'none';
         }}
       />
