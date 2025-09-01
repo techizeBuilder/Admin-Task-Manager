@@ -311,6 +311,13 @@ export default function Header({ user }) {
                   size="md" 
                   className="h-8 w-8"
                 />
+                {/* Debug: Show current user data */}
+                {process.env.NODE_ENV === 'development' && console.log('Header UserAvatar - currentUser:', {
+                  firstName: currentUser?.firstName,
+                  lastName: currentUser?.lastName,
+                  profileImageUrl: currentUser?.profileImageUrl,
+                  email: currentUser?.email
+                })}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

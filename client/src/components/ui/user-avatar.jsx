@@ -90,7 +90,7 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
         }}
         onError={(e) => {
           // If profile image fails to load, hide the img element to show fallback
-          console.log('Avatar image failed to load:', imageUrl);
+          console.log('Avatar image failed to load:', imageUrl, 'User:', user);
           e.currentTarget.style.display = 'none';
         }}
       />
