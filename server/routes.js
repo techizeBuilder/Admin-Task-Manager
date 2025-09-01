@@ -384,7 +384,7 @@ export async function registerRoutes(app) {
       if (existingUser) {
         return res
           .status(400)
-          .json({ message: "User with this email already exists" });
+          .json({ message: "This email is already registered. Please Login or Reset Password." });
       }
 
       // Create pending user
@@ -463,7 +463,7 @@ export async function registerRoutes(app) {
       if (existingUser) {
         return res
           .status(400)
-          .json({ message: "User with this email already exists" });
+          .json({ message: "This email is already registered. Please Login or Reset Password." });
       }
 
       // Generate slug from organization name
