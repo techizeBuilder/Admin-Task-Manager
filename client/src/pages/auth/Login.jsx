@@ -289,6 +289,20 @@ export default function Login() {
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
+          profileImageUrl: result.user.profileImageUrl,
+        });
+
+        // Also fetch fresh profile data to ensure avatar is loaded with cache busting
+        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+        queryClient.prefetchQuery({
+          queryKey: ["/api/profile"],
+          queryFn: () => fetch("/api/profile", {
+            headers: { 
+              'Authorization': `Bearer ${result.token}`,
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          }).then(res => res.json())
         });
 
         toast({

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, Search, User, Settings, LogOut, Edit3 } from "lucide-react";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export default function Header({ user }) {
   const [, setLocation] = useLocation();
@@ -68,9 +69,11 @@ export default function Header({ user }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const queryClient = useQueryClient();
 
-  // Fetch fresh user data for the header - prioritize profile API
+  // Fetch fresh user data for the header - prioritize profile API with cache busting
   const { data: profileUser } = useQuery({
     queryKey: ["/api/profile"],
+    staleTime: 0, // Always fetch fresh profile data
+    gcTime: 0, // Don't cache profile data
   });
 
   const { data: authUser } = useQuery({
@@ -302,15 +305,11 @@ export default function Header({ user }) {
                 variant="ghost"
                 className="relative h-6 w-6 rounded-full p-0"
               >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={currentUser?.profileImageUrl}
-                    alt={getDisplayName()}
-                  />
-                  <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar 
+                  user={currentUser} 
+                  size="md" 
+                  className="h-8 w-8"
+                />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent

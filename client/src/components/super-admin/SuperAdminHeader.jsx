@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getInitials } from "@/lib/utils";
 import { Link } from "wouter";
+import { UserAvatar } from "@/components/ui/user-avatar";
 export default function SuperAdminHeader() {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
@@ -63,12 +64,11 @@ export default function SuperAdminHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 hover:bg-gray-50 rounded-full p-1 transition-colors cursor-pointer">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={user?.profileImageUrl} />
-                <AvatarFallback className="text-xs bg-blue-600 text-white font-semibold">
-                  {getInitials(user?.firstName, user?.lastName, user?.email)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar 
+                user={user} 
+                size="sm" 
+                className="h-6 w-6"
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

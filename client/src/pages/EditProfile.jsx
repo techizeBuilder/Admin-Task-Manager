@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { User, Camera, Save, ArrowLeft, X } from "lucide-react";
 
@@ -143,8 +144,14 @@ export default function EditProfile() {
       setSelectedFile(null);
       setImagePreview(null);
 
+      // Invalidate all user-related queries with cache busting
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
+      
+      // Force immediate refetch of profile data to ensure avatar updates
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/profile"] });
+      }, 100);
       setLocation("/dashboard");
     },
     onError: (error) => {
@@ -283,12 +290,11 @@ export default function EditProfile() {
               {/* Profile Image Section */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={getCurrentProfileImage()} />
-                    <AvatarFallback className="h-24 w-24 text-lg bg-blue-600 text-white font-semibold">
-                      {getInitials()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar 
+                    user={currentUser} 
+                    size="xl" 
+                    className="h-24 w-24"
+                  />
                   {imagePreview && (
                     <button
                       type="button"
