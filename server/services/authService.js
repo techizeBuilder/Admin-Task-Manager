@@ -74,13 +74,13 @@ export class AuthService {
     // Check if user already exists (registered and verified)
     const existingUser = await storage.getUserByEmail(email);
     if (existingUser) {
-      throw new Error('An account with this email address is already registered. Please sign in or use a different email.');
+      throw new Error('This email is already registered. Please Login or Reset Password.');
     }
 
     // Check if there's already a pending registration
     const existingPendingUser = await storage.getPendingUserByEmail(email);
     if (existingPendingUser) {
-      throw new Error('A verification email has already been sent to this email address. Please check your inbox or try again in 30 minutes.');
+      throw new Error('This email is already registered. Please Login or Reset Password.');
     }
 
     // Auto-authenticate in development mode
@@ -139,13 +139,13 @@ export class AuthService {
     // Check if user already exists (registered and verified)
     const existingUser = await storage.getUserByEmail(email);
     if (existingUser) {
-      throw new Error('An account with this email address is already registered. Please sign in or use a different email.');
+      throw new Error('This email is already registered. Please Login or Reset Password.');
     }
 
     // Check if there's already a pending registration
     const existingPendingUser = await storage.getPendingUserByEmail(email);
     if (existingPendingUser) {
-      throw new Error('A verification email has already been sent to this email address. Please check your inbox or try again in 30 minutes.');
+      throw new Error('This email is already registered. Please Login or Reset Password.');
     }
 
     // Use provided slug or generate from name
