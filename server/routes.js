@@ -1,3 +1,4 @@
+import "./env.ts"; // Ensure environment variables are loaded
 import { createServer } from "http";
 import cors from "cors";
 import express from "express";
@@ -73,6 +74,50 @@ export async function registerRoutes(app) {
       res.status(401).json({ 
         success: false, 
         message: error.message || 'Authentication failed' 
+      });
+    }
+  });
+
+  // Registration endpoint
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { firstName, lastName, email, password, confirmPassword, userType } = req.body;
+      
+      // Basic validation
+      if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "All fields are required"
+        });
+      }
+      
+      if (password !== confirmPassword) {
+        return res.status(400).json({
+          success: false,
+          message: "Passwords do not match"
+        });
+      }
+      
+      // Handle individual registration
+      if (userType === 'individual') {
+        const result = await authService.registerIndividual({
+          firstName,
+          lastName,
+          email,
+          password
+        });
+        res.json({ success: true, ...result });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid user type"
+        });
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({
+        success: false,
+        message: error.message || "Registration failed"
       });
     }
   });

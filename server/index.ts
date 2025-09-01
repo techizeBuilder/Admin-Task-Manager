@@ -1,3 +1,4 @@
+import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
 import { setupVite, serveStatic, log } from "./vite.js";

@@ -466,9 +466,7 @@ export default function Register() {
                     placeholder="Email address"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.email}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                   )}
                 </div>
 
@@ -690,9 +688,7 @@ export default function Register() {
                     placeholder="Enter admin email address"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.email}
-                    </p>
+                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
                     This will be the admin account for your organization
