@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { MongoStorage } from '../mongodb-storage.js';
 import { emailService } from './emailService.js';
+import { LoginAttempt } from '../models.js';
 
 const storage = new MongoStorage();
 
@@ -20,7 +21,6 @@ export class AuthService {
     // Login attempt tracking
     this.MAX_LOGIN_ATTEMPTS = 3;
     this.LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
-    this.loginAttempts = new Map(); // In-memory storage for login attempts
   }
 
   // Generate JWT token
@@ -371,64 +371,95 @@ export class AuthService {
     };
   }
 
-  // Check if user is locked out
-  isUserLockedOut(email) {
-    const attempts = this.loginAttempts.get(email);
-    if (!attempts) return { locked: false };
-    
-    if (attempts.count >= this.MAX_LOGIN_ATTEMPTS) {
-      const timeLeft = this.LOCKOUT_TIME - (Date.now() - attempts.firstAttempt);
-      if (timeLeft > 0) {
-        return { 
-          locked: true, 
-          timeLeft: Math.ceil(timeLeft / 1000), // return seconds
-          minutes: Math.ceil(timeLeft / (60 * 1000)) // return minutes
-        };
-      } else {
-        // Lockout period has expired, reset attempts
-        this.loginAttempts.delete(email);
-        return { locked: false };
+  // Check if user is locked out (Database version)
+  async isUserLockedOut(email) {
+    try {
+      const loginAttempt = await LoginAttempt.findOne({ email });
+      if (!loginAttempt) return { locked: false };
+      
+      // Check if lockout has expired
+      if (loginAttempt.isLocked && loginAttempt.lockoutExpiresAt) {
+        if (new Date() > loginAttempt.lockoutExpiresAt) {
+          // Lockout has expired, remove the record
+          await LoginAttempt.deleteOne({ email });
+          return { locked: false };
+        } else {
+          // Still locked
+          const timeLeft = Math.ceil((loginAttempt.lockoutExpiresAt - Date.now()) / 1000);
+          return { 
+            locked: true, 
+            timeLeft: timeLeft,
+            minutes: Math.ceil(timeLeft / 60)
+          };
+        }
       }
+      
+      return { locked: false };
+    } catch (error) {
+      console.error('Error checking lockout status:', error);
+      return { locked: false }; // Fail open for security
     }
-    
-    return { locked: false };
   }
 
-  // Record failed login attempt
-  recordFailedAttempt(email) {
-    const attempts = this.loginAttempts.get(email);
-    const now = Date.now();
-    
-    if (!attempts) {
-      this.loginAttempts.set(email, {
-        count: 1,
-        firstAttempt: now,
-        lastAttempt: now
-      });
-    } else {
-      // If more than 15 minutes have passed since first attempt, reset counter
-      if (now - attempts.firstAttempt > this.LOCKOUT_TIME) {
-        this.loginAttempts.set(email, {
-          count: 1,
-          firstAttempt: now,
-          lastAttempt: now
+  // Record failed login attempt (Database version)
+  async recordFailedAttempt(email, ipAddress = null, userAgent = null) {
+    try {
+      const now = new Date();
+      const existingAttempt = await LoginAttempt.findOne({ email });
+      
+      if (!existingAttempt) {
+        // First failed attempt
+        await LoginAttempt.create({
+          email,
+          attemptCount: 1,
+          firstAttemptAt: now,
+          lastAttemptAt: now,
+          ipAddress,
+          userAgent
         });
       } else {
-        attempts.count += 1;
-        attempts.lastAttempt = now;
+        // Check if 15 minutes have passed since first attempt
+        const timeSinceFirst = now - existingAttempt.firstAttemptAt;
+        
+        if (timeSinceFirst > this.LOCKOUT_TIME) {
+          // Reset the counter if more than 15 minutes have passed
+          existingAttempt.attemptCount = 1;
+          existingAttempt.firstAttemptAt = now;
+          existingAttempt.lastAttemptAt = now;
+          existingAttempt.isLocked = false;
+          existingAttempt.lockoutExpiresAt = null;
+        } else {
+          // Increment attempt count
+          existingAttempt.attemptCount += 1;
+          existingAttempt.lastAttemptAt = now;
+          
+          // Lock account if max attempts reached
+          if (existingAttempt.attemptCount >= this.MAX_LOGIN_ATTEMPTS) {
+            existingAttempt.isLocked = true;
+            existingAttempt.lockoutExpiresAt = new Date(now.getTime() + this.LOCKOUT_TIME);
+          }
+        }
+        
+        await existingAttempt.save();
       }
+    } catch (error) {
+      console.error('Error recording failed attempt:', error);
     }
   }
 
-  // Clear login attempts (on successful login)
-  clearLoginAttempts(email) {
-    this.loginAttempts.delete(email);
+  // Clear login attempts (on successful login) (Database version)
+  async clearLoginAttempts(email) {
+    try {
+      await LoginAttempt.deleteOne({ email });
+    } catch (error) {
+      console.error('Error clearing login attempts:', error);
+    }
   }
 
   // Login
-  async login(email, password) {
+  async login(email, password, ipAddress = null, userAgent = null) {
     // Check if user is locked out
-    const lockoutStatus = this.isUserLockedOut(email);
+    const lockoutStatus = await this.isUserLockedOut(email);
     if (lockoutStatus.locked) {
       const error = new Error('Account temporarily locked due to too many failed login attempts. Please try again later.');
       error.isLockout = true;
@@ -450,7 +481,7 @@ export class AuthService {
     });
     
     if (!user) {
-      this.recordFailedAttempt(email);
+      await this.recordFailedAttempt(email, ipAddress, userAgent);
       throw new Error('Invalid email or password');
     }
 
@@ -468,11 +499,12 @@ export class AuthService {
 
     const isValidPassword = await this.verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
-      this.recordFailedAttempt(email);
+      await this.recordFailedAttempt(email, ipAddress, userAgent);
       
-      // Check remaining attempts
-      const attempts = this.loginAttempts.get(email);
-      const remainingAttempts = this.MAX_LOGIN_ATTEMPTS - (attempts?.count || 0);
+      // Check current attempt count to determine remaining attempts
+      const loginAttempt = await LoginAttempt.findOne({ email });
+      const currentCount = loginAttempt?.attemptCount || 0;
+      const remainingAttempts = this.MAX_LOGIN_ATTEMPTS - currentCount;
       
       if (remainingAttempts <= 0) {
         const error = new Error('Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes.');
@@ -488,7 +520,7 @@ export class AuthService {
     }
 
     // Clear login attempts on successful login
-    this.clearLoginAttempts(email);
+    await this.clearLoginAttempts(email);
 
     // Update last login
     await storage.updateUser(user._id, { lastLoginAt: new Date() });

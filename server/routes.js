@@ -43,7 +43,9 @@ export async function registerRoutes(app) {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
-      const result = await authService.login(email, password);
+      const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+      const userAgent = req.get('User-Agent');
+      const result = await authService.login(email, password, ipAddress, userAgent);
       res.json(result);
     } catch (error) {
       console.error("Login error:", error);
