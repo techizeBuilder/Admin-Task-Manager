@@ -281,27 +281,22 @@ export default function Login() {
         localStorage.setItem("token", result.token);
         localStorage.setItem("user", JSON.stringify(result.user));
         localStorage.setItem("role", JSON.stringify(result.user.role));
-        // Set user data in cache immediately to prevent loading state
-        queryClient.setQueryData(["/api/auth/verify"], {
+        
+        // Create consistent user data object with profile image prioritized
+        const userDataForCache = {
           ...result.user,
           _id: result.user.id,
+          id: result.user.id,
           role: result.user.role,
           email: result.user.email,
           firstName: result.user.firstName,
           lastName: result.user.lastName,
-          profileImageUrl: result.user.profileImageUrl,
-        });
+          profileImageUrl: result.user.profileImageUrl || null, // Ensure it's set even if null
+        };
 
-        // Prefetch profile data but don't invalidate immediately to prevent flicker
-        queryClient.setQueryData(["/api/profile"], {
-          ...result.user,
-          _id: result.user.id,
-          role: result.user.role,
-          email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          profileImageUrl: result.user.profileImageUrl,
-        });
+        // Set user data in both caches immediately to prevent loading state
+        queryClient.setQueryData(["/api/auth/verify"], userDataForCache);
+        queryClient.setQueryData(["/api/profile"], userDataForCache);
 
         toast({
           title: "Welcome back!",

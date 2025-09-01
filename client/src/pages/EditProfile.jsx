@@ -144,20 +144,25 @@ export default function EditProfile() {
       setSelectedFile(null);
       setImagePreview(null);
 
-      // Update both auth and profile cache immediately with new data
-      queryClient.setQueryData(["/api/auth/verify"], {
+      // Force immediate cache update with new profile data including image
+      const updatedUserData = {
         ...data.user,
-        profileImageUrl: data.user.profileImageUrl
-      });
+        profileImageUrl: data.user.profileImageUrl,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email
+      };
+
+      // Update all user data caches immediately
+      queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
+      queryClient.setQueryData(["/api/profile"], updatedUserData);
       
-      queryClient.setQueryData(["/api/profile"], {
-        ...data.user,
-        profileImageUrl: data.user.profileImageUrl
-      });
-      
-      // Then invalidate to ensure fresh data on next fetch
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
+      // Force refresh of all user-related queries to ensure consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
+        queryClient.refetchQueries({ queryKey: ["/api/profile"] });
+      }, 100);
       setLocation("/dashboard");
     },
     onError: (error) => {

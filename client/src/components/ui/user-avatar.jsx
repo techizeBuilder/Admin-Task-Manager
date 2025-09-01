@@ -67,9 +67,9 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
     return user?.email?.split("@")[0] || "User";
   };
 
-  // Generate cache-busting URL for profile images
+  // Generate cache-busting URL for profile images - prioritize image over initials
   const getImageUrl = () => {
-    if (!user?.profileImageUrl) return undefined;
+    if (!user?.profileImageUrl) return null;
     
     // Use a more stable cache busting approach - only update every minute to prevent constant reloading
     const cacheTime = Math.floor(Date.now() / (60 * 1000)); // Updates every minute
@@ -81,14 +81,20 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
   
   return (
     <Avatar className={`${getSizeClasses()} ${className}`} {...props}>
-      <AvatarImage
-        src={imageUrl}
-        alt={getDisplayName()}
-        onError={(e) => {
-          // If profile image fails to load, hide the img element to show fallback
-          e.currentTarget.style.display = 'none';
-        }}
-      />
+      {imageUrl ? (
+        <AvatarImage
+          src={imageUrl}
+          alt={getDisplayName()}
+          onError={(e) => {
+            // If profile image fails to load, hide the img element to show fallback
+            console.log('Profile image failed to load, showing initials:', imageUrl);
+            e.currentTarget.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('Profile image loaded successfully:', imageUrl);
+          }}
+        />
+      ) : null}
       <AvatarFallback className={`bg-blue-600 text-white ${getFontSizeClass()} font-semibold`}>
         {getInitials()}
       </AvatarFallback>
