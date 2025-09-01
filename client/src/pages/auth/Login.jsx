@@ -28,6 +28,7 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const [showLockoutModal, setShowLockoutModal] = useState(false);
   const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
+  const [checkingLockout, setCheckingLockout] = useState(false);
   const [loginSettings, setLoginSettings] = useState({
     backgroundColor: "#f3f4f6",
     gradientFrom: "#e5e7eb",
@@ -65,6 +66,38 @@ export default function Login() {
     }
   }, []);
 
+  // Check lockout status when page loads or email changes
+  useEffect(() => {
+    const checkLockoutStatus = async () => {
+      if (!formData.email || !validateEmail(formData.email)) return;
+      
+      setCheckingLockout(true);
+      try {
+        const response = await fetch("/api/auth/check-lockout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        });
+
+        const result = await response.json();
+        if (response.ok && result.success && result.locked) {
+          setLockoutTimeLeft(result.timeLeft);
+          setShowLockoutModal(true);
+        }
+      } catch (error) {
+        console.error("Error checking lockout status:", error);
+      } finally {
+        setCheckingLockout(false);
+      }
+    };
+
+    // Only check if email is valid and not currently loading
+    if (formData.email && validateEmail(formData.email) && !isLoading) {
+      const debounceTimer = setTimeout(checkLockoutStatus, 500); // Debounce
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [formData.email, isLoading]);
+
   const generateBackgroundStyle = () => {
     if (loginSettings.backgroundImage) {
       return {
@@ -97,6 +130,12 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Check if user is currently locked out
+    if (showLockoutModal) {
+      return; // Prevent submission if locked out
+    }
+    
     const newErrors = {};
 
     if (!formData.email.trim()) {
@@ -425,10 +464,10 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || showLockoutModal}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-lg"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Signing in..." : showLockoutModal ? "Account Locked" : "Sign In"}
             </button>
           </form>
 

@@ -77,6 +77,33 @@ export async function registerRoutes(app) {
     }
   });
 
+  // Check lockout status endpoint
+  app.post("/api/auth/check-lockout", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Email is required' 
+        });
+      }
+      
+      const lockoutStatus = await authService.isUserLockedOut(email);
+      res.json({
+        success: true,
+        locked: lockoutStatus.locked,
+        timeLeft: lockoutStatus.timeLeft || 0,
+        minutes: lockoutStatus.minutes || 0
+      });
+    } catch (error) {
+      console.error("Check lockout error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error checking lockout status' 
+      });
+    }
+  });
+
   app.get("/api/auth/verify", authenticateToken, async (req, res) => {
     try {
       res.json(req.user);
