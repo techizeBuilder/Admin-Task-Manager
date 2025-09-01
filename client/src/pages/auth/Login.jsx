@@ -361,10 +361,10 @@ export default function Login() {
   if (showForgotPassword) {
     return (
       <div
-        className="min-h-screen flex items-center justify-end p-4"
+        className="min-h-screen flex items-center justify-center p-4"
         style={generateBackgroundStyle()}
       >
-        <div className="max-w-sm w-full mr-8">
+        <div className="max-w-md w-full">
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-lg">
             {!resetSent ? (
               <>
@@ -428,13 +428,17 @@ export default function Login() {
               </>
             ) : (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="h-8 w-8 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   Check Your Email
                 </h2>
-                <p className="text-gray-600 mb-6">
-                  Hurray, you have successfully created your credentials” Click
-                  ‘Login’ to start your efficient task management journey with
-                  <span className="font-medium">Tasksetu.com</span>
+                <p className="text-gray-600 mb-4">
+                  We've sent a password reset link to <strong>{resetEmail}</strong>
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  Please check your email and click the reset link to create a new password. The link will expire in 30 minutes for security reasons.
                 </p>
                 <p className="text-sm text-gray-500 mb-6">
                   The link will expire in 30 minutes for security reasons.
@@ -445,9 +449,9 @@ export default function Login() {
                     setResetSent(false);
                     setResetEmail("");
                   }}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Log In 
+                  Back to Sign In
                 </button>
               </div>
             )}
