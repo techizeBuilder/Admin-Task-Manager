@@ -192,10 +192,9 @@ export async function registerRoutes(app) {
       const user = await storage.getUserByEmail(email);
       console.log("User found for forgot password:", user?.email, "firstName:", user?.firstName)
       if (!user) {
-        // Return success even if user doesn't exist for security
-        return res.json({
-          message:
-            "If an account with that email exists, a password reset link has been sent.",
+        // Return user-friendly error message for non-existent emails
+        return res.status(400).json({
+          message: "No account found with this email."
         });
       }
 
@@ -213,8 +212,7 @@ export async function registerRoutes(app) {
       await emailService.sendPasswordResetEmail(email, resetToken, user.firstName || user.lastName || 'User');
 
       res.json({
-        message:
-          "If an account with that email exists, a password reset link has been sent.",
+        message: "Password reset link has been sent to your email."
       });
     } catch (error) {
       console.error("Forgot password error:", error);

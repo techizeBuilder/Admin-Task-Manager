@@ -129,6 +129,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Latest updates:
+- September 1, 2025: Enhanced forgot password error handling - shows clear "No account found with this email." message instead of generic responses for better user experience
 - September 1, 2025: Fixed Reset Password page alignment and messaging - centered layout, proper success messages, improved visual design with icons and better button styling
 - September 1, 2025: Enhanced email templates with different designs for organization vs individual registration - organization emails include company name and specific messaging about team collaboration
 - September 1, 2025: Added organization name validation - must be 2-100 characters with proper error messages
