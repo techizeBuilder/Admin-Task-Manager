@@ -227,79 +227,79 @@ export default function Register() {
         </div>
 
         {/* Right Side - Registration Options */}
-        <div className="w-80 bg-white flex items-center justify-center p-3 shadow-2xl">
+        <div className="w-96 bg-white flex items-center justify-center p-6 shadow-2xl">
           <div
-            className={`w-full max-w-xs transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-0 transform scale-95" : "opacity-100 transform scale-100"}`}
+            className={`w-full max-w-sm transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-0 transform scale-95" : "opacity-100 transform scale-100"}`}
           >
-            <div className="text-center mb-3">
-              <div className="w-8 h-8 bg-[#253140] rounded-lg flex items-center justify-center mx-auto mb-2">
-                <span className="text-white font-bold text-xs">TS</span>
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-[#253140] rounded-xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-white font-bold text-lg">TS</span>
               </div>
-              <h2 className="text-base font-bold text-gray-900 mb-1">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
                 Get Started
               </h2>
-              <p className="text-[10px] text-gray-600">
+              <p className="text-sm text-gray-600">
                 Choose your account type to begin
               </p>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               {/* Individual User Option */}
               <button
                 onClick={() => handleTypeSelection("individual")}
-                className="w-full text-left p-1.5 bg-gradient-to-r from-blue-50 to-blue-100 rounded border-2 border-blue-200 hover:border-blue-400 hover:shadow-sm transition-all duration-300 group transform hover:scale-[1.02]"
+                className="w-full text-left p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200 hover:border-blue-400 hover:shadow-md transition-all duration-300 group transform hover:scale-[1.02]"
               >
-                <div className="flex items-center gap-1.5">
-                  <div className="p-1 bg-blue-600 rounded group-hover:bg-blue-700 transition-colors">
-                    <User className="h-2.5 w-2.5 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600 rounded-lg group-hover:bg-blue-700 transition-colors">
+                    <User className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 text-[10px]">
+                    <h3 className="font-semibold text-gray-900 text-sm">
                       Individual User
                     </h3>
-                    <p className="text-[8px] text-gray-600">
+                    <p className="text-xs text-gray-600">
                       Personal task management
                     </p>
                   </div>
-                  <ArrowRight className="h-2.5 w-2.5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                 </div>
               </button>
 
               {/* Organization Option */}
               <button
                 onClick={() => handleTypeSelection("organization")}
-                className="w-full text-left p-1.5 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-sm transition-all duration-300 group transform hover:scale-[1.02]"
+                className="w-full text-left p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-md transition-all duration-300 group transform hover:scale-[1.02]"
               >
-                <div className="flex items-center gap-1.5">
-                  <div className="p-1 bg-indigo-600 rounded group-hover:bg-indigo-700 transition-colors">
-                    <Building2 className="h-2.5 w-2.5 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-600 rounded-lg group-hover:bg-indigo-700 transition-colors">
+                    <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 text-[10px]">
+                    <h3 className="font-semibold text-gray-900 text-sm">
                       Organization
                     </h3>
-                    <p className="text-[8px] text-gray-600">
+                    <p className="text-xs text-gray-600">
                       Complete workspace for teams
                     </p>
                   </div>
-                  <ArrowRight className="h-2.5 w-2.5 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
                 </div>
               </button>
             </div>
 
             {/* Footer Links */}
-            <div className="mt-3 text-center space-y-0.5">
-              <p className="text-[9px] text-gray-600">
+            <div className="mt-6 text-center space-y-2">
+              <p className="text-sm text-gray-600">
                 Already have an account?{" "}
                 <Link
                   href="/login"
-                  className="text-[#253140] hover:text-blue-700 font-medium"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
                 >
                   Sign in here
                 </Link>
               </p>
 
-              <div className="text-[8px] text-gray-500">
+              <div className="text-xs text-gray-500">
                 <Link href="/super-admin" className="hover:text-gray-700">
                   Platform Administrator Access
                 </Link>

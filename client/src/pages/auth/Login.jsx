@@ -299,11 +299,11 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-end p-4"
+      className="min-h-screen flex items-center justify-center p-4"
       style={generateBackgroundStyle()}
     >
-      <div className="max-w-sm w-full mr-8">
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-lg">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-xl">
           {/* Success Message */}
           {successMessage && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -316,16 +316,19 @@ export default function Login() {
             </div>
           )}
 
-          <div className="text-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-600 mt-1 text-sm">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">TS</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+            <p className="text-gray-600 mt-2">
               Sign in to your TaskSetu account
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-3">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="relative">
@@ -333,11 +336,12 @@ export default function Login() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`w-full px-3 py-1.5 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
                     errors.email ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="Enter your email"
                 />
+                <Mail className="h-5 w-5 text-gray-400 absolute right-3 top-3.5" />
               </div>
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -345,7 +349,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -355,7 +359,7 @@ export default function Login() {
                   onChange={(e) =>
                     handleInputChange("password", e.target.value)
                   }
-                  className={`w-full px-3 py-2 pr-8 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
                     errors.password ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="Enter your password"
@@ -363,12 +367,12 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-3 w-3" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="h-3 w-3" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -383,11 +387,11 @@ export default function Login() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-2 block text-xs text-gray-700"
+                  className="ml-2 block text-sm text-gray-700"
                 >
                   Remember me
                 </label>
@@ -395,7 +399,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className="text-xs text-blue-600 hover:text-blue-700"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 Forgot password?
               </button>
@@ -411,7 +415,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full text-white py-2 px-4 rounded-md bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-lg"
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </button>
