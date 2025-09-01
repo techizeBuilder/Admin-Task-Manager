@@ -47,7 +47,31 @@ export async function registerRoutes(app) {
       res.json(result);
     } catch (error) {
       console.error("Login error:", error);
-      res.status(401).json({ message: error.message });
+      
+      // Handle lockout errors specially
+      if (error.isLockout) {
+        return res.status(423).json({ 
+          success: false, 
+          message: error.message,
+          isLockout: true,
+          timeLeft: error.timeLeft,
+          minutes: error.minutes
+        });
+      }
+      
+      // Handle remaining attempts warnings
+      if (error.remainingAttempts !== undefined) {
+        return res.status(401).json({ 
+          success: false, 
+          message: error.message,
+          remainingAttempts: error.remainingAttempts
+        });
+      }
+      
+      res.status(401).json({ 
+        success: false, 
+        message: error.message || 'Authentication failed' 
+      });
     }
   });
 

@@ -16,6 +16,11 @@ export class AuthService {
     // Testing configuration - disable email verification bypass for production email flow
     this.BYPASS_EMAIL_VERIFICATION = false; // Always require email verification
     this.AUTO_AUTHENTICATE_ON_REGISTER = false; // Always require verification
+    
+    // Login attempt tracking
+    this.MAX_LOGIN_ATTEMPTS = 3;
+    this.LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes in milliseconds
+    this.loginAttempts = new Map(); // In-memory storage for login attempts
   }
 
   // Generate JWT token
@@ -366,8 +371,72 @@ export class AuthService {
     };
   }
 
+  // Check if user is locked out
+  isUserLockedOut(email) {
+    const attempts = this.loginAttempts.get(email);
+    if (!attempts) return { locked: false };
+    
+    if (attempts.count >= this.MAX_LOGIN_ATTEMPTS) {
+      const timeLeft = this.LOCKOUT_TIME - (Date.now() - attempts.firstAttempt);
+      if (timeLeft > 0) {
+        return { 
+          locked: true, 
+          timeLeft: Math.ceil(timeLeft / 1000), // return seconds
+          minutes: Math.ceil(timeLeft / (60 * 1000)) // return minutes
+        };
+      } else {
+        // Lockout period has expired, reset attempts
+        this.loginAttempts.delete(email);
+        return { locked: false };
+      }
+    }
+    
+    return { locked: false };
+  }
+
+  // Record failed login attempt
+  recordFailedAttempt(email) {
+    const attempts = this.loginAttempts.get(email);
+    const now = Date.now();
+    
+    if (!attempts) {
+      this.loginAttempts.set(email, {
+        count: 1,
+        firstAttempt: now,
+        lastAttempt: now
+      });
+    } else {
+      // If more than 15 minutes have passed since first attempt, reset counter
+      if (now - attempts.firstAttempt > this.LOCKOUT_TIME) {
+        this.loginAttempts.set(email, {
+          count: 1,
+          firstAttempt: now,
+          lastAttempt: now
+        });
+      } else {
+        attempts.count += 1;
+        attempts.lastAttempt = now;
+      }
+    }
+  }
+
+  // Clear login attempts (on successful login)
+  clearLoginAttempts(email) {
+    this.loginAttempts.delete(email);
+  }
+
   // Login
   async login(email, password) {
+    // Check if user is locked out
+    const lockoutStatus = this.isUserLockedOut(email);
+    if (lockoutStatus.locked) {
+      const error = new Error('Account temporarily locked due to too many failed login attempts. Please try again later.');
+      error.isLockout = true;
+      error.timeLeft = lockoutStatus.timeLeft;
+      error.minutes = lockoutStatus.minutes;
+      throw error;
+    }
+
     const user = await storage.getUserByEmail(email);
     
     console.log("Login debug - User object:", {
@@ -381,6 +450,7 @@ export class AuthService {
     });
     
     if (!user) {
+      this.recordFailedAttempt(email);
       throw new Error('Invalid email or password');
     }
 
@@ -398,8 +468,27 @@ export class AuthService {
 
     const isValidPassword = await this.verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
-      throw new Error('Invalid email or password');
+      this.recordFailedAttempt(email);
+      
+      // Check remaining attempts
+      const attempts = this.loginAttempts.get(email);
+      const remainingAttempts = this.MAX_LOGIN_ATTEMPTS - (attempts?.count || 0);
+      
+      if (remainingAttempts <= 0) {
+        const error = new Error('Account temporarily locked due to too many failed login attempts. Please try again in 15 minutes.');
+        error.isLockout = true;
+        error.timeLeft = 15 * 60; // 15 minutes in seconds
+        error.minutes = 15;
+        throw error;
+      }
+      
+      const error = new Error(`Invalid email or password. ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.`);
+      error.remainingAttempts = remainingAttempts;
+      throw error;
     }
+
+    // Clear login attempts on successful login
+    this.clearLoginAttempts(email);
 
     // Update last login
     await storage.updateUser(user._id, { lastLoginAt: new Date() });

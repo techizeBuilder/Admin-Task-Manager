@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import LockoutModal from "@/components/LockoutModal";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -25,6 +26,8 @@ export default function Login() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetSent, setResetSent] = useState(false);
+  const [showLockoutModal, setShowLockoutModal] = useState(false);
+  const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
   const [loginSettings, setLoginSettings] = useState({
     backgroundColor: "#f3f4f6",
     gradientFrom: "#e5e7eb",
@@ -147,7 +150,15 @@ export default function Login() {
         // Use role-based redirection from server response
         navigate(result.redirectTo || "/dashboard");
       } else {
-        setErrors({ submit: result.message || "Invalid email or password" });
+        // Handle lockout scenario
+        if (response.status === 423 && result.isLockout) {
+          setLockoutTimeLeft(result.timeLeft);
+          setShowLockoutModal(true);
+          setErrors({}); // Clear form errors when showing lockout modal
+        } else {
+          // Handle remaining attempts warning or regular error
+          setErrors({ submit: result.message || "Invalid email or password" });
+        }
       }
     } catch (error) {
       setErrors({ submit: "Network error. Please try again." });
@@ -434,6 +445,13 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {/* Lockout Modal */}
+      <LockoutModal
+        isOpen={showLockoutModal}
+        timeLeft={lockoutTimeLeft}
+        onClose={() => setShowLockoutModal(false)}
+      />
     </div>
   );
 }
