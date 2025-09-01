@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { AlertTriangle, Clock } from "lucide-react";
 
 const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
   const [remainingTime, setRemainingTime] = useState(timeLeft);
@@ -8,7 +8,7 @@ const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
     if (!isOpen || remainingTime <= 0) return;
 
     const timer = setInterval(() => {
-      setRemainingTime(prev => {
+      setRemainingTime((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           onClose(); // Auto-close modal when time is up
@@ -30,7 +30,7 @@ const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const minutes = Math.floor(remainingTime / 60);
@@ -70,25 +70,21 @@ const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
 
         <div className="space-y-3 text-sm text-gray-600">
           <p>
-            <strong>Why was my account locked?</strong><br />
-            Your account was temporarily locked after 3 failed login attempts to protect your security.
+            <strong>Why was my account locked?</strong>
+            <br />
+            Your account was temporarily locked after 3 failed login attempts to
+            protect your security.
           </p>
           <p>
-            <strong>What should I do?</strong><br />
-            Please wait {minutes > 0 && `${minutes} minute${minutes !== 1 ? 's' : ''}`} 
-            {minutes > 0 && seconds > 0 && ' and '}
-            {seconds > 0 && `${seconds} second${seconds !== 1 ? 's' : ''}`} 
-            before trying to log in again. Make sure you're using the correct email and password.
+            <strong>What should I do?</strong>
+            <br />
+            Please wait{" "}
+            {minutes > 0 && `${minutes} minute${minutes !== 1 ? "s" : ""}`}
+            {minutes > 0 && seconds > 0 && " and "}
+            {seconds > 0 && `${seconds} second${seconds !== 1 ? "s" : ""}`}
+            before trying to log in again. Make sure you're using the correct
+            email and password.
           </p>
-        </div>
-
-        <div className="flex justify-end mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>
