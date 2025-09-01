@@ -129,8 +129,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Latest updates:
+- September 1, 2025: Added smart registration flow - users with pending verification automatically get re-sent verification emails with "We've re-sent your verification link." message
 - September 1, 2025: Enhanced login form with comprehensive inline validation - real-time feedback, submit button control, and accessibility features
-- September 1, 2025: Standardized error messages - all duplicate email errors now show "This email is already registered. Please Login or Reset Password."
+- September 1, 2025: Standardized error messages - fully registered emails show "This email is already registered. Please Login or Reset Password."
 - September 1, 2025: Added rate limiting (10 attempts/minute) with user-friendly error messages and visual validation indicators
 - September 1, 2025: Fixed critical Mailtrap email service configuration - environment variables now loading properly at startup
 - September 1, 2025: Added missing /api/auth/register endpoint for user registration functionality  

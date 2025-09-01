@@ -382,6 +382,35 @@ export async function registerRoutes(app) {
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
+        // If user exists but is pending verification, resend verification email
+        if (existingUser.status === 'pending' || existingUser.status === 'invited' || !existingUser.emailVerified) {
+          // Generate new verification token
+          const verificationToken = storage.generateEmailVerificationToken();
+          
+          // Update user with new verification token
+          await storage.updateUser(existingUser._id, {
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          });
+
+          // Resend verification email
+          const emailSent = await emailService.sendVerificationEmail(
+            email,
+            verificationToken,
+            existingUser.firstName || firstName,
+          );
+
+          if (emailSent) {
+            console.log("Verification email re-sent successfully to:", email);
+          }
+
+          return res.status(200).json({
+            message: "We've re-sent your verification link.",
+            resent: true
+          });
+        }
+
+        // User is fully registered
         return res
           .status(400)
           .json({ message: "This email is already registered. Please Login or Reset Password." });
@@ -461,6 +490,35 @@ export async function registerRoutes(app) {
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
+        // If user exists but is pending verification, resend verification email
+        if (existingUser.status === 'pending' || existingUser.status === 'invited' || !existingUser.emailVerified) {
+          // Generate new verification token
+          const verificationToken = storage.generateEmailVerificationToken();
+          
+          // Update user with new verification token
+          await storage.updateUser(existingUser._id, {
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          });
+
+          // Resend verification email
+          const emailSent = await emailService.sendVerificationEmail(
+            email,
+            verificationToken,
+            existingUser.firstName || firstName,
+          );
+
+          if (emailSent) {
+            console.log("Verification email re-sent successfully to:", email);
+          }
+
+          return res.status(200).json({
+            message: "We've re-sent your verification link.",
+            resent: true
+          });
+        }
+
+        // User is fully registered
         return res
           .status(400)
           .json({ message: "This email is already registered. Please Login or Reset Password." });
