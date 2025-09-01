@@ -393,11 +393,12 @@ export async function registerRoutes(app) {
             emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           });
 
-          // Resend verification email
+          // Resend verification email for individual user
           const emailSent = await emailService.sendVerificationEmail(
             email,
             verificationToken,
             existingUser.firstName || firstName,
+            null, // Individual registration - no organization
           );
 
           if (emailSent) {
@@ -439,11 +440,12 @@ export async function registerRoutes(app) {
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       });
 
-      // Send verification email
+      // Send verification email for individual user
       const emailSent = await emailService.sendVerificationEmail(
         email,
         verificationToken,
         firstName,
+        null, // Individual registration - no organization
       );
 
       if (emailSent) {
@@ -506,11 +508,12 @@ export async function registerRoutes(app) {
             emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
           });
 
-          // Resend verification email
+          // Resend verification email for organization user
           const emailSent = await emailService.sendVerificationEmail(
             email,
             verificationToken,
             existingUser.firstName || firstName,
+            organizationName, // Organization registration - include org name
           );
 
           if (emailSent) {
@@ -582,7 +585,7 @@ export async function registerRoutes(app) {
         emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       });
 
-      // Send verification email with organization name
+      // Send verification email with organization name  
       const emailSent = await emailService.sendVerificationEmail(
         email,
         verificationToken,

@@ -43,11 +43,65 @@ class EmailService {
     }
 
     try {
+      // Determine if this is organization registration
+      const isOrganization = organizationName !== null && organizationName !== undefined;
+      
       const mailOptions = {
         to: email,
         from: "noreply@tasksetu.com",
-        subject: "✅ Complete Your Tasksetu Registration",
-        html: `
+        subject: isOrganization 
+          ? "✅ Verify Your Organization's Account on Tasksetu" 
+          : "✅ Complete Your Tasksetu Registration",
+        html: isOrganization ? `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Organization Account Verification</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { background: #10B981; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Welcome to TaskSetu!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName},</h2>
+                <p>Thank you for registering your organization, <strong>${organizationName}</strong>, with Tasksetu.</p>
+                <p>To complete the setup and define your password, click below:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}" class="button">
+                    Verify & Set Password
+                  </a>
+                </div>
+                
+                <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10B981;">
+                  <p style="margin: 0; color: #166534; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
+                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}</p>
+                </div>
+                
+                <p>Once verified, you can invite your team, configure access levels, and start collaborating.</p>
+                <p><strong>Let's make teamwork easier!</strong></p>
+                
+                <p><strong>— Tasksetu Team</strong><br>
+                <a href="https://www.Tasksetu.com" style="color: #10B981;">www.Tasksetu.com</a></p>
+              </div>
+              <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        ` : `
           <!DOCTYPE html>
           <html>
           <head>
@@ -59,7 +113,7 @@ class EmailService {
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
               .header { background: #3B82F6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
               .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
-              .code { font-size: 24px; font-weight: bold; color: #3B82F6; text-align: center; background: white; padding: 15px; border-radius: 8px; margin: 20px 0; }
+              .button { background: #3B82F6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; }
               .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
             </style>
           </head>
@@ -74,8 +128,7 @@ class EmailService {
                 <p>To activate your account and set your password, please click the link below:</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${this.baseUrl}/verify?token=${verificationCode}" 
-                     style="background: #3B82F6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}" class="button">
                     👉 Verify Email & Set My Password
                   </a>
                 </div>
