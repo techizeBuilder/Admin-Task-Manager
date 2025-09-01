@@ -144,14 +144,20 @@ export default function EditProfile() {
       setSelectedFile(null);
       setImagePreview(null);
 
-      // Invalidate all user-related queries with cache busting
+      // Update both auth and profile cache immediately with new data
+      queryClient.setQueryData(["/api/auth/verify"], {
+        ...data.user,
+        profileImageUrl: data.user.profileImageUrl
+      });
+      
+      queryClient.setQueryData(["/api/profile"], {
+        ...data.user,
+        profileImageUrl: data.user.profileImageUrl
+      });
+      
+      // Then invalidate to ensure fresh data on next fetch
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
-      
-      // Force immediate refetch of profile data to ensure avatar updates
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ["/api/profile"] });
-      }, 100);
       setLocation("/dashboard");
     },
     onError: (error) => {

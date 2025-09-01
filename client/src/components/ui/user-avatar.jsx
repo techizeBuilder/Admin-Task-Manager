@@ -71,18 +71,26 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
   const getImageUrl = () => {
     if (!user?.profileImageUrl) return undefined;
     
-    // Add timestamp for cache busting to ensure fresh images load
+    // Use a more stable cache busting approach - only update every minute to prevent constant reloading
+    const cacheTime = Math.floor(Date.now() / (60 * 1000)); // Updates every minute
     const separator = user.profileImageUrl.includes('?') ? '&' : '?';
-    return `${user.profileImageUrl}${separator}t=${Date.now()}`;
+    return `${user.profileImageUrl}${separator}v=${cacheTime}`;
   };
 
+  const imageUrl = getImageUrl();
+  
   return (
     <Avatar className={`${getSizeClasses()} ${className}`} {...props}>
       <AvatarImage
-        src={getImageUrl()}
+        src={imageUrl}
         alt={getDisplayName()}
+        onLoad={() => {
+          // Successfully loaded image
+          console.log('Avatar image loaded successfully:', imageUrl);
+        }}
         onError={(e) => {
           // If profile image fails to load, hide the img element to show fallback
+          console.log('Avatar image failed to load:', imageUrl);
           e.currentTarget.style.display = 'none';
         }}
       />

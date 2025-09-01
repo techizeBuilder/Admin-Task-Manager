@@ -69,16 +69,17 @@ export default function Header({ user }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const queryClient = useQueryClient();
 
-  // Fetch fresh user data for the header - prioritize profile API with cache busting
+  // Fetch fresh user data for the header - use stable caching to prevent flickering
   const { data: profileUser } = useQuery({
     queryKey: ["/api/profile"],
-    staleTime: 0, // Always fetch fresh profile data
-    gcTime: 0, // Don't cache profile data
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
     initialData: user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Use profile data if available, fallback to auth data
