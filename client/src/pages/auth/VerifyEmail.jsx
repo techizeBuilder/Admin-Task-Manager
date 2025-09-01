@@ -112,7 +112,7 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-white border shadow-lg">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="w-6 h-6 text-blue-600" />
@@ -199,7 +199,7 @@ export default function VerifyEmail() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (
                 <>

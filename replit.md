@@ -129,6 +129,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Latest updates:
+- September 1, 2025: Fixed critical Mailtrap email service configuration - environment variables now loading properly at startup
+- September 1, 2025: Added missing /api/auth/register endpoint for user registration functionality  
+- September 1, 2025: Enhanced login security with database-stored lockout system preventing device-switching bypass
+- September 1, 2025: Implemented automatic lockout modal display on page refresh during active lockout
+- September 1, 2025: Updated email verification page styling - white card background with white button text
 - July 21, 2025: Successfully migrated TaskSetu from Replit Agent to Replit environment
 - July 21, 2025: Integrated comprehensive task API with MongoDB storage for all task types
 - July 21, 2025: Updated CreateTask and ApprovalTaskCreator components to use React Hook Form
