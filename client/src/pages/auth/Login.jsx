@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Mail,
@@ -7,6 +7,7 @@ import {
   LogIn,
   AlertCircle,
   CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -29,6 +30,15 @@ export default function Login() {
   const [showLockoutModal, setShowLockoutModal] = useState(false);
   const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
   const [checkingLockout, setCheckingLockout] = useState(false);
+  const [fieldValidation, setFieldValidation] = useState({
+    email: { isValid: false, message: "", touched: false },
+    password: { isValid: false, message: "", touched: false }
+  });
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [lastAttemptTime, setLastAttemptTime] = useState(0);
+  const firstErrorFieldRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
   const [loginSettings, setLoginSettings] = useState({
     backgroundColor: "#f3f4f6",
     gradientFrom: "#e5e7eb",
@@ -121,11 +131,92 @@ export default function Login() {
     return emailRegex.test(email);
   };
 
+  // Inline validation functions
+  const validateField = (fieldName, value) => {
+    let isValid = false;
+    let message = "";
+
+    switch (fieldName) {
+      case "email":
+        if (!value.trim()) {
+          message = "Email address is required";
+        } else if (!validateEmail(value)) {
+          message = "Invalid format, please use something like name@company.com";
+        } else {
+          isValid = true;
+          message = "";
+        }
+        break;
+      case "password":
+        if (!value.trim()) {
+          message = "Password is required";
+        } else if (value.length < 6) {
+          message = "Must be at least 6 characters long";
+        } else {
+          isValid = true;
+          message = "";
+        }
+        break;
+    }
+
+    return { isValid, message };
+  };
+
+  const handleFieldValidation = (fieldName, value) => {
+    const validation = validateField(fieldName, value);
+    setFieldValidation(prev => ({
+      ...prev,
+      [fieldName]: {
+        ...validation,
+        touched: true
+      }
+    }));
+    return validation;
+  };
+
+  // Rate limiting check
+  const checkRateLimit = () => {
+    const now = Date.now();
+    const timeDiff = now - lastAttemptTime;
+    const oneMinute = 60 * 1000;
+
+    if (timeDiff < oneMinute && attemptCount >= 10) {
+      return {
+        isBlocked: true,
+        message: "Too many login attempts. Please try again in a few minutes."
+      };
+    }
+
+    if (timeDiff >= oneMinute) {
+      setAttemptCount(0);
+    }
+
+    return { isBlocked: false, message: "" };
+  };
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // Clear previous errors
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
+
+    // Real-time validation on typing (debounced)
+    if (fieldValidation[field].touched) {
+      const validation = validateField(field, value);
+      setFieldValidation(prev => ({
+        ...prev,
+        [field]: {
+          ...validation,
+          touched: true
+        }
+      }));
+    }
+  };
+
+  const handleFieldBlur = (field, value) => {
+    handleFieldValidation(field, value);
   };
 
   const handleLogin = async (e) => {
@@ -133,25 +224,44 @@ export default function Login() {
     
     // Check if user is currently locked out
     if (showLockoutModal) {
-      return; // Prevent submission if locked out
-    }
-    
-    const newErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
       return;
     }
+
+    // Check rate limiting
+    const rateLimitCheck = checkRateLimit();
+    if (rateLimitCheck.isBlocked) {
+      setErrors({ submit: rateLimitCheck.message });
+      return;
+    }
+
+    // Validate all fields
+    const emailValidation = handleFieldValidation("email", formData.email);
+    const passwordValidation = handleFieldValidation("password", formData.password);
+
+    const hasErrors = !emailValidation.isValid || !passwordValidation.isValid;
+
+    if (hasErrors) {
+      // Focus on first error field
+      if (!emailValidation.isValid && emailInputRef.current) {
+        emailInputRef.current.focus();
+        firstErrorFieldRef.current = emailInputRef.current;
+      } else if (!passwordValidation.isValid && passwordInputRef.current) {
+        passwordInputRef.current.focus();
+        firstErrorFieldRef.current = passwordInputRef.current;
+      }
+
+      // Announce error for screen readers
+      if (firstErrorFieldRef.current) {
+        firstErrorFieldRef.current.setAttribute('aria-describedby', 'form-error');
+        firstErrorFieldRef.current.setAttribute('aria-invalid', 'true');
+      }
+
+      return;
+    }
+
+    // Update rate limiting counters
+    setAttemptCount(prev => prev + 1);
+    setLastAttemptTime(Date.now());
 
     setIsLoading(true);
     try {
@@ -383,18 +493,39 @@ export default function Login() {
               </label>
               <div className="relative">
                 <input
+                  ref={emailInputRef}
+                  id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                    errors.email ? "border-red-300" : "border-gray-300"
+                  onBlur={(e) => handleFieldBlur("email", e.target.value)}
+                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 text-sm transition-colors ${
+                    fieldValidation.email.touched
+                      ? fieldValidation.email.isValid
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-200"
+                        : "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
                   }`}
                   placeholder="Enter your email"
+                  aria-describedby={fieldValidation.email.touched && !fieldValidation.email.isValid ? "email-error" : undefined}
+                  aria-invalid={fieldValidation.email.touched && !fieldValidation.email.isValid}
                 />
-                <Mail className="h-5 w-5 text-gray-400 absolute right-3 top-3.5" />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  {fieldValidation.email.touched && (
+                    fieldValidation.email.isValid ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )
+                  )}
+                  <Mail className="h-4 w-4 text-gray-400" />
+                </div>
               </div>
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              {fieldValidation.email.touched && !fieldValidation.email.isValid && (
+                <div id="email-error" className="flex items-start gap-2 text-sm text-red-600 mt-2" role="alert">
+                  <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{fieldValidation.email.message}</span>
+                </div>
               )}
             </div>
 
@@ -404,30 +535,50 @@ export default function Login() {
               </label>
               <div className="relative">
                 <input
+                  ref={passwordInputRef}
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange("password", e.target.value)
-                  }
-                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                    errors.password ? "border-red-300" : "border-gray-300"
+                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onBlur={(e) => handleFieldBlur("password", e.target.value)}
+                  className={`w-full px-4 py-3 pr-20 border rounded-lg focus:ring-2 text-sm transition-colors ${
+                    fieldValidation.password.touched
+                      ? fieldValidation.password.isValid
+                        ? "border-green-300 focus:border-green-500 focus:ring-green-200"
+                        : "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
                   }`}
                   placeholder="Enter your password"
+                  aria-describedby={fieldValidation.password.touched && !fieldValidation.password.isValid ? "password-error" : undefined}
+                  aria-invalid={fieldValidation.password.touched && !fieldValidation.password.isValid}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                  {fieldValidation.password.touched && (
+                    fieldValidation.password.isValid ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              {fieldValidation.password.touched && !fieldValidation.password.isValid && (
+                <div id="password-error" className="flex items-start gap-2 text-sm text-red-600 mt-2" role="alert">
+                  <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{fieldValidation.password.message}</span>
+                </div>
               )}
             </div>
 
@@ -456,19 +607,52 @@ export default function Login() {
             </div>
 
             {errors.submit && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded-md text-xs flex items-start gap-2">
-                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                {errors.submit}
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm flex items-start gap-2" role="alert">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{errors.submit}</span>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading || showLockoutModal}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-lg"
-            >
-              {isLoading ? "Signing in..." : showLockoutModal ? "Account Locked" : "Sign In"}
-            </button>
+            {/* Submit Button with validation state */}
+            <div className="relative">
+              <button
+                type="submit"
+                disabled={
+                  isLoading || 
+                  showLockoutModal || 
+                  !fieldValidation.email.isValid || 
+                  !fieldValidation.password.isValid ||
+                  !formData.email.trim() ||
+                  !formData.password.trim()
+                }
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-lg"
+                title={
+                  isLoading ? "Signing in..." :
+                  showLockoutModal ? "Account is temporarily locked" :
+                  (!formData.email.trim() || !formData.password.trim() || !fieldValidation.email.isValid || !fieldValidation.password.isValid) ?
+                  "Please fill in all fields correctly to continue" :
+                  "Sign in to your account"
+                }
+                aria-label="Sign in to your account"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : showLockoutModal ? (
+                  "Account Locked"
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+              
+              {/* Screen reader announcement area */}
+              <div id="form-error" className="sr-only" aria-live="polite" role="status">
+                {fieldValidation.email.touched && !fieldValidation.email.isValid && "Email error: " + fieldValidation.email.message}
+                {fieldValidation.password.touched && !fieldValidation.password.isValid && "Password error: " + fieldValidation.password.message}
+              </div>
+            </div>
           </form>
 
           <div className="text-center mt-4 pt-4 border-t border-gray-200">
