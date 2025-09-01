@@ -564,6 +564,7 @@ export class AuthService {
         role: user.role,
         organizationId: user.organization,
         permissions: user.permissions || [],
+        profileImageUrl: user.profileImageUrl || null,
         organization: organizationInfo ? {
           id: organizationInfo._id,
           name: organizationInfo.name,
