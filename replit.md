@@ -129,6 +129,7 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 Latest updates:
+- September 1, 2025: Added organization name validation - must be 2-100 characters with proper error messages
 - September 1, 2025: Added smart registration flow - users with pending verification automatically get re-sent verification emails with "We've re-sent your verification link." message
 - September 1, 2025: Enhanced login form with comprehensive inline validation - real-time feedback, submit button control, and accessibility features
 - September 1, 2025: Standardized error messages - fully registered emails show "This email is already registered. Please Login or Reset Password."

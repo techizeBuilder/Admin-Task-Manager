@@ -72,8 +72,14 @@ export default function Register() {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (selectedType === "organization" && !formData.organizationName.trim()) {
-      newErrors.organizationName = "Organization name is required";
+    if (selectedType === "organization") {
+      if (!formData.organizationName.trim()) {
+        newErrors.organizationName = "Organization name is required";
+      } else if (formData.organizationName.trim().length < 2) {
+        newErrors.organizationName = "Organization name must be at least 2 characters";
+      } else if (formData.organizationName.trim().length > 100) {
+        newErrors.organizationName = "Organization name must be 100 characters or less";
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {

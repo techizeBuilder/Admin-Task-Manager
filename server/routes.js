@@ -487,6 +487,11 @@ export async function registerRoutes(app) {
         return res.status(400).json({ message: "All fields are required" });
       }
 
+      // Validate organization name length
+      if (organizationName.trim().length < 2 || organizationName.trim().length > 100) {
+        return res.status(400).json({ message: "Organization name must be 2-100 characters" });
+      }
+
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
