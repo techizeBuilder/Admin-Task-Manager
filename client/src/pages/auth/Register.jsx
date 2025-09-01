@@ -380,36 +380,36 @@ export default function Register() {
         </div>
 
         {/* Right Side - Registration Form */}
-        <div className="w-80 bg-white flex items-center justify-center p-3 shadow-2xl">
-          <div className="w-full max-w-xs animate-in slide-in-from-right-5 duration-500 ease-in-out">
-            <div className="mb-3">
+        <div className="w-[480px] bg-white flex items-center justify-center p-8 shadow-2xl">
+          <div className="w-full max-w-md animate-in slide-in-from-right-5 duration-500 ease-in-out">
+            <div className="mb-6">
               <button
                 onClick={handleBackToChoice}
-                className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 mb-2 transition-colors text-xs"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors text-sm"
               >
-                <ArrowLeft className="h-3 w-3" />
+                <ArrowLeft className="h-4 w-4" />
                 Back to options
               </button>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-blue-100 rounded">
-                  <User className="h-3 w-3 text-blue-600" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">
+                  <h2 className="text-xl font-bold text-gray-900">
                     Individual Account
                   </h2>
-                  <p className="text-gray-600 text-[9px]">
+                  <p className="text-gray-600 text-sm">
                     Create your personal TaskSetu account
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded border border-gray-200 p-2 shadow-sm transition-all duration-500 min-h-[250px] flex flex-col justify-between">
-              <form onSubmit={handleRegister} className="space-y-1 flex-1">
-                <div className="grid grid-cols-2 gap-1">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm transition-all duration-500">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[8px] font-medium text-gray-700 mb-0.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       First Name
                     </label>
                     <input
@@ -418,19 +418,19 @@ export default function Register() {
                       onChange={(e) =>
                         handleInputChange("firstName", e.target.value)
                       }
-                      className={`w-full px-1.5 py-0.5 text-[9px] border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         errors.firstName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="First name"
                     />
                     {errors.firstName && (
-                      <p className="text-red-500 text-[7px] mt-0.5">
+                      <p className="text-red-500 text-xs mt-1">
                         {errors.firstName}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-[8px] font-medium text-gray-700 mb-0.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Last Name
                     </label>
                     <input
@@ -439,13 +439,13 @@ export default function Register() {
                       onChange={(e) =>
                         handleInputChange("lastName", e.target.value)
                       }
-                      className={`w-full px-1.5 py-0.5 text-[9px] border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         errors.lastName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Last name"
                     />
                     {errors.lastName && (
-                      <p className="text-red-500 text-[7px] mt-0.5">
+                      <p className="text-red-500 text-xs mt-1">
                         {errors.lastName}
                       </p>
                     )}
@@ -453,28 +453,28 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label className="block text-[8px] font-medium text-gray-700 mb-0.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Email Address
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full px-1.5 py-0.5 text-[9px] border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       errors.email ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Email address"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-[7px] mt-0.5">
+                    <p className="text-red-500 text-xs mt-1">
                       {errors.email}
                     </p>
                   )}
                 </div>
 
                 {errors.submit && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-1.5 rounded text-[9px] flex items-start gap-1">
-                    <AlertCircle className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
+                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     {errors.submit}
                   </div>
                 )}
@@ -483,15 +483,15 @@ export default function Register() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-blue-600 text-white py-1 px-2 text-[10px] rounded hover:bg-blue-700 focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading ? "Creating account..." : "Create Account"}
                   </button>
                 </div>
               </form>
 
-              <div className="text-center mt-1.5 pt-1.5 border-t border-gray-100">
-                <p className="text-gray-600 text-[9px]">
+              <div className="text-center mt-4 pt-4 border-t border-gray-100">
+                <p className="text-gray-600 text-sm">
                   Already have an account?{" "}
                   <Link
                     href="/login"
@@ -580,35 +580,35 @@ export default function Register() {
         </div>
 
         {/* Right Side - Registration Form */}
-        <div className="w-80 bg-white flex items-center justify-center p-3 shadow-2xl">
-          <div className="w-full max-w-xs animate-in slide-in-from-right-5 duration-500 ease-in-out">
-            <div className="mb-3">
+        <div className="w-[480px] bg-white flex items-center justify-center p-8 shadow-2xl">
+          <div className="w-full max-w-md animate-in slide-in-from-right-5 duration-500 ease-in-out">
+            <div className="mb-6">
               <button
                 onClick={handleBackToChoice}
-                className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 mb-2 transition-colors text-xs"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors text-sm"
               >
-                <ArrowLeft className="h-3 w-3" />
+                <ArrowLeft className="h-4 w-4" />
                 Back to options
               </button>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 bg-indigo-100 rounded">
-                  <Building2 className="h-3 w-3 text-indigo-600" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Building2 className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900">
+                  <h2 className="text-xl font-bold text-gray-900">
                     Organization Account
                   </h2>
-                  <p className="text-gray-600 text-[9px]">
+                  <p className="text-gray-600 text-sm">
                     Set up your company workspace
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded border border-gray-200 p-2.5 shadow-sm transition-all duration-500 min-h-[320px] flex flex-col justify-between">
-              <form onSubmit={handleRegister} className="space-y-1.5 flex-1">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm transition-all duration-500">
+              <form onSubmit={handleRegister} className="space-y-4">
                 <div>
-                  <label className="block text-[9px] font-medium text-gray-700 mb-0.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Organization Name
                   </label>
                   <input
@@ -617,7 +617,7 @@ export default function Register() {
                     onChange={(e) =>
                       handleInputChange("organizationName", e.target.value)
                     }
-                    className={`w-full px-1 py-1 text-[10px] border rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                       errors.organizationName
                         ? "border-red-300"
                         : "border-gray-300"
@@ -625,15 +625,15 @@ export default function Register() {
                     placeholder="Enter organization name"
                   />
                   {errors.organizationName && (
-                    <p className="text-red-500 text-[8px] mt-0.5">
+                    <p className="text-red-500 text-xs mt-1">
                       {errors.organizationName}
                     </p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-1">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] font-medium text-gray-700 mb-0.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       First Name
                     </label>
                     <input
@@ -642,19 +642,19 @@ export default function Register() {
                       onChange={(e) =>
                         handleInputChange("firstName", e.target.value)
                       }
-                      className={`w-full px-1 py-1 text-[10px] border rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                         errors.firstName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Enter first name"
                     />
                     {errors.firstName && (
-                      <p className="text-red-500 text-[8px] mt-0.5">
+                      <p className="text-red-500 text-xs mt-1">
                         {errors.firstName}
                       </p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-[9px] font-medium text-gray-700 mb-0.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Last Name
                     </label>
                     <input
@@ -663,13 +663,13 @@ export default function Register() {
                       onChange={(e) =>
                         handleInputChange("lastName", e.target.value)
                       }
-                      className={`w-full px-1 py-1 text-[10px] border rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                         errors.lastName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Enter last name"
                     />
                     {errors.lastName && (
-                      <p className="text-red-500 text-[8px] mt-0.5">
+                      <p className="text-red-500 text-xs mt-1">
                         {errors.lastName}
                       </p>
                     )}
@@ -677,31 +677,31 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-medium text-gray-700 mb-0.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Admin Email Address
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full px-1 py-1 text-[10px] border rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                       errors.email ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Enter admin email address"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-[8px] mt-0.5">
+                    <p className="text-red-500 text-xs mt-1">
                       {errors.email}
                     </p>
                   )}
-                  <p className="text-[8px] text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-1">
                     This will be the admin account for your organization
                   </p>
                 </div>
 
                 {errors.submit && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-1.5 rounded text-[9px] flex items-start gap-1">
-                    <AlertCircle className="h-2.5 w-2.5 mt-0.5 flex-shrink-0" />
+                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                     {errors.submit}
                   </div>
                 )}
@@ -710,7 +710,7 @@ export default function Register() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-indigo-600 text-white py-1 px-2 text-[10px] rounded hover:bg-indigo-700 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 px-4 text-sm rounded-lg hover:from-indigo-700 hover:to-indigo-800 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading
                       ? "Creating organization..."
@@ -719,8 +719,8 @@ export default function Register() {
                 </div>
               </form>
 
-              <div className="text-center mt-1.5 pt-1.5 border-t border-gray-100">
-                <p className="text-gray-600 text-[9px]">
+              <div className="text-center mt-4 pt-4 border-t border-gray-100">
+                <p className="text-gray-600 text-sm">
                   Already have an account?{" "}
                   <Link
                     href="/login"
