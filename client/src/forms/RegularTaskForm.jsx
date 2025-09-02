@@ -3,6 +3,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { MultiSelect } from "../components/ui/MultiSelect";
+import MilestoneForm from "./MilestoneForm";
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
   const [hasError, setHasError] = useState(false);
@@ -47,12 +48,24 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     labels: [],
     attachments: [],
     isRecurring: false,
+    isMilestone: false,
     dueDate: "",
     assignee: "",
     contributors: [],
     notes: "",
     priority: "medium",
     visibility: "private",
+    milestone: {
+      type: 'standalone',
+      linkedTasks: [],
+      dueDate: '',
+      assignedTo: 'self',
+      description: '',
+      visibility: 'project',
+      priority: 'medium',
+      collaborators: [],
+      status: 'not_started'
+    },
     ...initialData,
   });
   // Recurrence data
@@ -87,9 +100,9 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
   const today = useMemo(() => {
     return new Date().toISOString().split("T")[0];
   }, []);
-  // Auto-set due date when not recurring
+  // Auto-set due date when not recurring and not milestone
   useEffect(() => {
-    if (!formData.isRecurring && !formData.dueDate) {
+    if (!formData.isRecurring && !formData.isMilestone && !formData.dueDate) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       setFormData((prev) => ({
@@ -97,7 +110,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
         dueDate: tomorrow.toISOString().split("T")[0],
       }));
     }
-  }, [formData.isRecurring, formData.dueDate]);
+  }, [formData.isRecurring, formData.isMilestone, formData.dueDate]);
   // Auto-set start date for recurring tasks
   useEffect(() => {
     if (formData.isRecurring && !recurrenceData.startDate) {
@@ -142,6 +155,26 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
       });
     }
   }, []);
+
+  const handleToggleMilestone = useCallback((isMilestone) => {
+    setFormData((prev) => ({ 
+      ...prev, 
+      isMilestone,
+      // Reset milestone data when toggling off
+      milestone: isMilestone ? prev.milestone : {
+        type: 'standalone',
+        linkedTasks: [],
+        dueDate: '',
+        assignedTo: 'self',
+        description: '',
+        visibility: 'project',
+        priority: 'medium',
+        collaborators: [],
+        status: 'not_started'
+      }
+    }));
+  }, []);
+
   const handleFileChange = useCallback(
     (event) => {
       const files = Array.from(event.target.files || event.target);
@@ -614,6 +647,32 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
           </div>
         </div>
+        {/* Milestone Toggle */}
+        <div className="card">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="milestone-toggle"
+              checked={formData.isMilestone}
+              onChange={(e) => handleToggleMilestone(e.target.checked)}
+              className="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+              data-testid="toggle-milestone"
+            />
+            <label
+              htmlFor="milestone-toggle"
+              className="text-sm font-medium text-gray-700 flex items-center gap-2"
+            >
+              <span className="text-lg">⭐</span>
+              Make this a Milestone Task
+            </label>
+          </div>
+          {formData.isMilestone && (
+            <p className="text-xs text-yellow-700 mt-2 ml-7">
+              Milestones represent significant project achievements and can track dependencies.
+            </p>
+          )}
+        </div>
+
         {/* Recurring Toggle */}
         <div className="card">
           <div className="flex items-center space-x-3">
@@ -624,17 +683,42 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               onChange={(e) => handleToggleRecurring(e.target.checked)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               data-testid="toggle-recurring"
+              disabled={formData.isMilestone}
             />
             <label
               htmlFor="recurring-toggle"
-              className="text-sm font-medium text-gray-700"
+              className={`text-sm font-medium ${formData.isMilestone ? 'text-gray-400' : 'text-gray-700'}`}
             >
               Make this a Recurring Task
+              {formData.isMilestone && (
+                <span className="text-xs text-gray-500 ml-2">(Not available for milestones)</span>
+              )}
             </label>
           </div>
         </div>
-        {/* Due Date (Non-recurring) or Recurrence Panel */}
-        {!formData.isRecurring ? (
+        {/* Milestone Fields */}
+        {formData.isMilestone && (
+          <div className="card">
+            <div className="card-header">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <span className="text-lg">⭐</span>
+                Milestone Configuration
+              </h3>
+              <p className="text-sm text-gray-600">
+                Define milestone objectives, dependencies, and success criteria
+              </p>
+            </div>
+            <MilestoneForm
+              formData={formData}
+              handleInputChange={handleInputChange}
+              validationErrors={validationErrors}
+              today={today}
+            />
+          </div>
+        )}
+
+        {/* Due Date (Non-recurring, Non-milestone) or Recurrence Panel */}
+        {!formData.isRecurring && !formData.isMilestone ? (
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">Schedule</h3>
@@ -667,7 +751,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               )}
             </div>
           </div>
-        ) : (
+        ) : formData.isRecurring && !formData.isMilestone ? (
           /* Recurrence Panel */
           <div className="card">
             <div className="card-header">
@@ -985,9 +1069,10 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               )}
             </div>
           </div>
-        )}
-        {/* Assignment & People */}
-        <div className="card relative">
+        ) : null}
+        {/* Assignment & People - Skip for milestones as they have their own assignment */}
+        {!formData.isMilestone && (
+          <div className="card relative">
           <div className="card-header">
             <h3 className="text-lg font-semibold text-gray-900">
               Assignment & People
@@ -1049,6 +1134,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
           </div>
         </div>
+        )}
+
         {/* Advanced Fields */}
         <div className="card">
           <div>
