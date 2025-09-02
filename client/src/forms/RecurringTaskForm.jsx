@@ -8,19 +8,24 @@ const ErrorBoundary = ({ children, fallback }) => {
   const [error, setError] = useState(null);
 
   if (hasError) {
-    return fallback || (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="text-red-800 font-semibold">Something went wrong</h3>
-        <p className="text-red-600 text-sm mt-1">
-          {error?.message || 'An unexpected error occurred in the form'}
-        </p>
-        <button 
-          onClick={() => {setHasError(false); setError(null);}}
-          className="mt-2 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-        >
-          Try Again
-        </button>
-      </div>
+    return (
+      fallback || (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <h3 className="text-red-800 font-semibold">Something went wrong</h3>
+          <p className="text-red-600 text-sm mt-1">
+            {error?.message || "An unexpected error occurred in the form"}
+          </p>
+          <button
+            onClick={() => {
+              setHasError(false);
+              setError(null);
+            }}
+            className="mt-2 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      )
     );
   }
 
@@ -49,7 +54,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
         ...initialData,
       };
     } catch (error) {
-      console.error('Error initializing form data:', error);
+      console.error("Error initializing form data:", error);
       return {
         title: "",
         description: "",
@@ -94,30 +99,34 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
     }));
   };
 
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    
-    try {
-      setIsSubmitting(true);
-      setValidationErrors({});
-      
-      const taskData = {
-        ...formData,
-        type: "recurring",
-      };
-      
-      console.log('Submitting recurring task data:', taskData);
-      await onSubmit(taskData);
-      
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setValidationErrors({ 
-        submit: error.message || 'Failed to create recurring task. Please try again.' 
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [formData, onSubmit]);
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+
+      try {
+        setIsSubmitting(true);
+        setValidationErrors({});
+
+        const taskData = {
+          ...formData,
+          type: "recurring",
+        };
+
+        console.log("Submitting recurring task data:", taskData);
+        await onSubmit(taskData);
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        setValidationErrors({
+          submit:
+            error.message ||
+            "Failed to create recurring task. Please try again.",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [formData, onSubmit],
+  );
 
   return (
     <ErrorBoundary>
@@ -127,12 +136,14 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
           <p className="text-red-800 text-sm">{validationErrors.submit}</p>
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Task Information */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Task Details</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Task Details
+            </h3>
             <p className="text-gray-600 text-sm">
               Fill in the basic information for your task
             </p>
@@ -140,7 +151,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
 
           <div className="space-y-3">
             {/* Title, Description, Priority Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Task Title *
@@ -160,8 +171,8 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                     }
                   }}
                   className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-                    formData.title.length > 20 
-                      ? "border-red-500 focus:ring-red-500" 
+                    formData.title.length > 20
+                      ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 focus:ring-blue-500"
                   }`}
                   placeholder="Enter recurring task title..."
@@ -178,20 +189,19 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 <div className="border border-gray-300 rounded-lg overflow-hidden">
                   <ReactQuill
                     value={formData.description}
-                    onChange={(value) => handleInputChange("description", value)}
+                    onChange={(value) =>
+                      handleInputChange("description", value)
+                    }
                     theme="snow"
                     placeholder="Enter task description..."
-                    style={{ 
-                      minHeight: "80px",
-                      fontSize: "14px"
-                    }}
+                    className="custom-editor"
                     modules={{
                       toolbar: [
-                        ['bold', 'italic', 'underline'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        ['link'],
-                        ['clean']
-                      ]
+                        ["bold", "italic", "underline"],
+                        [{ list: "ordered" }, { list: "bullet" }],
+                        ["link"],
+                        ["clean"],
+                      ],
                     }}
                     data-testid="quill-description"
                   />
@@ -204,7 +214,9 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 </label>
                 <select
                   value={formData.priority}
-                  onChange={(e) => handleInputChange("priority", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("priority", e.target.value)
+                  }
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   data-testid="select-priority"
                 >
@@ -224,8 +236,8 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
             Recurrence Pattern
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="col-span-1 md:col-span-2">
+          <div className="grid grid-cols-4 gap-3">
+            <div className="col-span-1 ">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Frequency *
               </label>
@@ -275,7 +287,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
               />
             </div>
 
-            <div className="col-span-1 md:col-span-4">
+            <div className="col-span-1 ">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Start Date *
               </label>
@@ -297,21 +309,23 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 Repeat On Days
               </label>
               <div className="flex flex-wrap gap-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                  <button
-                    key={day}
-                    type="button"
-                    className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                      formData.repeatOnDays.includes(day)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
-                    }`}
-                    onClick={() => handleDayToggle(day)}
-                    data-testid={`button-day-${day.toLowerCase()}`}
-                  >
-                    {day}
-                  </button>
-                ))}
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                  (day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                        formData.repeatOnDays.includes(day)
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                      }`}
+                      onClick={() => handleDayToggle(day)}
+                      data-testid={`button-day-${day.toLowerCase()}`}
+                    >
+                      {day}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
           )}
@@ -332,7 +346,9 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 </label>
                 <select
                   value={formData.assignee}
-                  onChange={(e) => handleInputChange("assignee", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("assignee", e.target.value)
+                  }
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   data-testid="select-assignee"
                 >
@@ -364,27 +380,40 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                     >
                       <input
                         type="checkbox"
-                        checked={formData.contributors.includes(contributor.value)}
+                        checked={formData.contributors.includes(
+                          contributor.value,
+                        )}
                         onChange={(e) => {
-                          const currentContributors = [...formData.contributors];
-                          
+                          const currentContributors = [
+                            ...formData.contributors,
+                          ];
+
                           if (e.target.checked) {
-                            if (!currentContributors.includes(contributor.value)) {
+                            if (
+                              !currentContributors.includes(contributor.value)
+                            ) {
                               currentContributors.push(contributor.value);
                             }
                           } else {
-                            const index = currentContributors.indexOf(contributor.value);
+                            const index = currentContributors.indexOf(
+                              contributor.value,
+                            );
                             if (index > -1) {
                               currentContributors.splice(index, 1);
                             }
                           }
-                          
-                          handleInputChange("contributors", currentContributors);
+
+                          handleInputChange(
+                            "contributors",
+                            currentContributors,
+                          );
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         data-testid={`checkbox-contributor-${contributor.value}`}
                       />
-                      <span className="text-sm text-gray-700">{contributor.label}</span>
+                      <span className="text-sm text-gray-700">
+                        {contributor.label}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -428,7 +457,9 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                     />
                     <div>
                       <div className="font-medium text-sm">Public</div>
-                      <div className="text-xs text-gray-500">Company visible</div>
+                      <div className="text-xs text-gray-500">
+                        Company visible
+                      </div>
                     </div>
                   </label>
                 </div>
@@ -505,15 +536,16 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                   End on Date
                 </label>
               </div>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleChange}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={formData.endConditionType !== "endDate"}
-                data-testid="input-end-date"
-              />
+              {formData.endConditionType === "endDate" && (
+                <input
+                  type="date"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="input-end-date"
+                />
+              )}
             </div>
 
             <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
@@ -535,46 +567,47 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                   After Occurrences
                 </label>
               </div>
-              <input
-                type="number"
-                name="maxOccurrences"
-                value={formData.maxOccurrences}
-                onChange={handleChange}
-                placeholder="Number of times"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="1"
-                disabled={formData.endConditionType !== "maxOccurrences"}
-                data-testid="input-max-occurrences"
-              />
+              {formData.endConditionType === "maxOccurrences" && (
+                <input
+                  type="number"
+                  name="maxOccurrences"
+                  value={formData.maxOccurrences}
+                  onChange={handleChange}
+                  placeholder="Number of times"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="1"
+                  data-testid="input-max-occurrences"
+                />
+              )}
             </div>
           </div>
         </div>
 
         {/* Form Actions */}
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
+          <button
+            type="button"
+            className="btn btn-secondary"
             onClick={onClose}
             data-testid="button-cancel"
           >
             Cancel
           </button>
           <div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-secondary mr-1"
               data-testid="button-save-draft"
             >
               Save as Draft
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
               disabled={isSubmitting}
               data-testid="button-create-recurring-task"
             >
-              {isSubmitting ? 'Creating...' : 'Create Recurring Task'}
+              {isSubmitting ? "Creating..." : "Create Recurring Task"}
             </button>
           </div>
         </div>
@@ -586,18 +619,18 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
 // Validation function
 function validateForm(formData) {
   const errors = {};
-  
+
   if (!formData.title?.trim()) {
-    errors.title = 'Task title is required';
+    errors.title = "Task title is required";
   }
-  
+
   if (!formData.assignee) {
-    errors.assignee = 'Assignee is required';
+    errors.assignee = "Assignee is required";
   }
-  
+
   if (!formData.startDate) {
-    errors.startDate = 'Start date is required';
+    errors.startDate = "Start date is required";
   }
-  
+
   return errors;
 }
