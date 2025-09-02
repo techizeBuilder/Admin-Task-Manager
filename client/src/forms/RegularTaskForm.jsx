@@ -3,23 +3,19 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { MultiSelect } from "../components/ui/MultiSelect";
-
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState(null);
-
   useEffect(() => {
     const handleError = (error) => {
       console.error("RegularTaskForm Error:", error);
       setHasError(true);
       setError(error);
     };
-
     window.addEventListener("error", handleError);
     return () => window.removeEventListener("error", handleError);
   }, []);
-
   if (hasError) {
     return (
       fallback || (
@@ -41,144 +37,292 @@ const ErrorBoundary = ({ children, fallback }) => {
       )
     );
   }
-
   return children;
 };
-
 export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
-  // State with error handling and validation
-  const [formData, setFormData] = useState(() => {
-    try {
-      return {
-        title: "",
-        description: "",
-        assignee: "self",
-        priority: "low",
-        dueDate: "",
-        visibility: "private",
-        tags: "",
-        currentTagInput: "",
-        isRecurring: false,
-        attachments: [],
-        ...initialData,
-      };
-    } catch (error) {
-      console.error("Error initializing form data:", error);
-      return {
-        title: "",
-        description: "",
-        assignee: "self",
-        priority: "low",
-        dueDate: "",
-        visibility: "private",
-        tags: "",
-        currentTagInput: "",
-        isRecurring: false,
-        attachments: [],
-      };
-    }
+  // Basic task form data
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    labels: [],
+    attachments: [],
+    isRecurring: false,
+    dueDate: "",
+    assignee: "",
+    contributors: [],
+    notes: "",
+    priority: "medium",
+    visibility: "private",
+    ...initialData
   });
-
-  const [moreOptionsData, setMoreOptionsData] = useState({
-    referenceProcess: "",
-    customForm: "",
-    dependencies: [],
-    taskTypeAdvanced: "simple",
+  // Recurrence data
+  const [recurrenceData, setRecurrenceData] = useState({
+    patternType: "daily", // daily, weekly, monthly, yearly, custom
+    repeatEvery: 1,
+    weekdays: [], // for weekly
+    monthlyType: "date", // date or nth-weekday
+    monthlyDates: [], // specific dates for monthly
+    monthlyNthWeekday: { nth: 1, weekday: "monday" }, // nth weekday for monthly
+    yearlyMonth: 1,
+    yearlyDay: 1,
+    customDates: [], // for custom pattern
+    startDate: "",
+    startTime: "09:00",
+    endCondition: "never", // never, occurrences, date
+    endOccurrences: 10,
+    endDate: ""
   });
-
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [isManualDueDate, setIsManualDueDate] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
-
-  // Use external validation function
-  const validateFormData = useCallback(
-    () => validateForm(formData),
-    [formData],
-  );
-
-  // Calculate due date based on priority
-  const calculateDueDateFromPriority = (priority) => {
-    const today = new Date();
-    const days = {
-      low: 7,
-      medium: 3,
-      high: 1,
-      critical: 0,
-    };
-
-    const daysToAdd = days[priority] || 7;
-    const dueDate = new Date(today.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-    return dueDate.toISOString().split("T")[0];
-  };
-
-  // Auto-set due date when priority changes
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Get today's date in YYYY-MM-DD format
+  const today = useMemo(() => {
+    return new Date().toISOString().split('T')[0];
+  }, []);
+  // Auto-set due date when not recurring
   useEffect(() => {
-    if (!isManualDueDate && formData.priority) {
-      const calculatedDueDate = calculateDueDateFromPriority(formData.priority);
-      setFormData((prev) => ({
+    if (!formData.isRecurring && !formData.dueDate) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setFormData(prev => ({
         ...prev,
-        dueDate: calculatedDueDate,
+        dueDate: tomorrow.toISOString().split('T')[0]
       }));
     }
-  }, [formData.priority, isManualDueDate]);
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Mark due date as manual if user changes it
-    if (field === "dueDate") {
-      setIsManualDueDate(true);
+  }, [formData.isRecurring, formData.dueDate]);
+  // Auto-set start date for recurring tasks
+  useEffect(() => {
+    if (formData.isRecurring && !recurrenceData.startDate) {
+      setRecurrenceData(prev => ({
+        ...prev,
+        startDate: today
+      }));
     }
-  };
-
-  const handleMoreOptionsChange = (field, value) => {
-    setMoreOptionsData((prev) => ({
+  }, [formData.isRecurring, recurrenceData.startDate, today]);
+  const handleInputChange = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: null }));
+    }
+  }, [validationErrors]);
+  const handleRecurrenceChange = useCallback((field, value) => {
+    setRecurrenceData(prev => ({ ...prev, [field]: value }));
+  }, []);
+  const handleToggleRecurring = useCallback((isRecurring) => {
+    setFormData(prev => ({ ...prev, isRecurring }));
+    if (!isRecurring) {
+      // Reset recurrence data when turning off recurring
+      setRecurrenceData({
+        patternType: "daily",
+        repeatEvery: 1,
+        weekdays: [],
+        monthlyType: "date",
+        monthlyDates: [],
+        monthlyNthWeekday: { nth: 1, weekday: "monday" },
+        yearlyMonth: 1,
+        yearlyDay: 1,
+        customDates: [],
+        startDate: "",
+        startTime: "09:00",
+        endCondition: "never",
+        endOccurrences: 10,
+        endDate: ""
+      });
+    }
+  }, []);
+  const handleFileUpload = useCallback((event) => {
+    const files = Array.from(event.target.files);
+    const maxTotalSize = 5 * 1024 * 1024; // 5MB
+    
+    // Calculate current total size
+    const currentSize = formData.attachments.reduce((total, file) => total + file.size, 0);
+    const newFilesSize = files.reduce((total, file) => total + file.size, 0);
+    
+    if (currentSize + newFilesSize > maxTotalSize) {
+      setValidationErrors(prev => ({
+        ...prev,
+        attachments: "Total file size cannot exceed 5MB"
+      }));
+      return;
+    }
+    
+    // Append new files to existing ones
+    setFormData(prev => ({
       ...prev,
-      [field]: value,
+      attachments: [...prev.attachments, ...files]
     }));
-  };
-
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-
-      try {
-        setIsSubmitting(true);
-        setValidationErrors({});
-
-        // Validate form
-        const errors = validateFormData();
-        if (Object.keys(errors).length > 0) {
-          setValidationErrors(errors);
-          console.warn("Form validation errors:", errors);
-          return;
-        }
-
-        const taskData = {
-          ...formData,
-          ...moreOptionsData,
-          type: "regular",
-          moreOptionsData,
-        };
-
-        console.log("Submitting task data:", taskData);
-        await onSubmit(taskData);
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        setValidationErrors({
-          submit: error.message || "Failed to create task. Please try again.",
-        });
-      } finally {
-        setIsSubmitting(false);
+    
+    // Clear any previous error
+    setValidationErrors(prev => ({
+      ...prev,
+      attachments: null
+    }));
+  }, [formData.attachments]);
+  const removeFile = useCallback((index) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
+  }, []);
+  const handleWeekdayToggle = useCallback((day) => {
+    setRecurrenceData(prev => ({
+      ...prev,
+      weekdays: prev.weekdays.includes(day)
+        ? prev.weekdays.filter(d => d !== day)
+        : [...prev.weekdays, day]
+    }));
+  }, []);
+  // Generate preview of next occurrences
+  const generatePreviewOccurrences = useMemo(() => {
+    if (!formData.isRecurring || !recurrenceData.startDate) return [];
+    
+    const startDate = new Date(recurrenceData.startDate + 'T' + recurrenceData.startTime);
+    const occurrences = [];
+    let currentDate = new Date(startDate);
+    
+    for (let i = 0; i < 5; i++) {
+      occurrences.push(new Date(currentDate));
+      
+      // Calculate next occurrence based on pattern
+      switch (recurrenceData.patternType) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + recurrenceData.repeatEvery);
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + (7 * recurrenceData.repeatEvery));
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + recurrenceData.repeatEvery);
+          break;
+        case 'yearly':
+          currentDate.setFullYear(currentDate.getFullYear() + recurrenceData.repeatEvery);
+          break;
+        default:
+          // For custom, just add 7 days as placeholder
+          currentDate.setDate(currentDate.getDate() + 7);
       }
-    },
-    [formData, moreOptionsData, onSubmit, validateFormData],
-  );
-
+    }
+    
+    return occurrences;
+  }, [formData.isRecurring, recurrenceData]);
+  // Generate human-readable summary
+  const generateSummary = useMemo(() => {
+    if (!formData.isRecurring) return "";
+    
+    const patterns = {
+      daily: `Every ${recurrenceData.repeatEvery === 1 ? 'day' : `${recurrenceData.repeatEvery} days`}`,
+      weekly: `Every ${recurrenceData.repeatEvery === 1 ? 'week' : `${recurrenceData.repeatEvery} weeks`}`,
+      monthly: `Every ${recurrenceData.repeatEvery === 1 ? 'month' : `${recurrenceData.repeatEvery} months`}`,
+      yearly: `Every ${recurrenceData.repeatEvery === 1 ? 'year' : `${recurrenceData.repeatEvery} years`}`,
+      custom: 'Custom schedule'
+    };
+    
+    let summary = patterns[recurrenceData.patternType] || '';
+    
+    if (recurrenceData.startDate) {
+      summary += ` starting ${new Date(recurrenceData.startDate).toLocaleDateString()}`;
+    }
+    
+    if (recurrenceData.startTime) {
+      summary += ` at ${recurrenceData.startTime}`;
+    }
+    
+    switch (recurrenceData.endCondition) {
+      case 'occurrences':
+        summary += `, ends after ${recurrenceData.endOccurrences} times`;
+        break;
+      case 'date':
+        if (recurrenceData.endDate) {
+          summary += `, ends ${new Date(recurrenceData.endDate).toLocaleDateString()}`;
+        }
+        break;
+      default:
+        summary += ', no end date';
+    }
+    
+    return summary;
+  }, [formData.isRecurring, recurrenceData]);
+  const validateForm = useCallback(() => {
+    const errors = {};
+    
+    // Basic validation
+    if (!formData.title.trim()) {
+      errors.title = "Task title is required";
+    }
+    
+    if (!formData.assignee) {
+      errors.assignee = "Please assign this task to someone";
+    }
+    
+    // Regular task validation
+    if (!formData.isRecurring) {
+      if (!formData.dueDate) {
+        errors.dueDate = "Due date is required";
+      } else if (formData.dueDate < today) {
+        errors.dueDate = "Due date cannot be in the past";
+      }
+    }
+    
+    // Recurring task validation
+    if (formData.isRecurring) {
+      if (!recurrenceData.patternType) {
+        errors.patternType = "Pattern type is required";
+      }
+      
+      if (!recurrenceData.startDate) {
+        errors.startDate = "Start date is required";
+      } else if (recurrenceData.startDate < today) {
+        errors.startDate = "Start date cannot be in the past";
+      }
+      
+      if (recurrenceData.patternType === 'weekly' && recurrenceData.weekdays.length === 0) {
+        errors.weekdays = "Please select at least one weekday";
+      }
+      
+      if (recurrenceData.endCondition === 'date' && recurrenceData.endDate) {
+        if (recurrenceData.endDate <= recurrenceData.startDate) {
+          errors.endDate = "End date must be after start date";
+        }
+      }
+      
+      if (recurrenceData.endCondition === 'occurrences' && recurrenceData.endOccurrences < 1) {
+        errors.endOccurrences = "Number of occurrences must be at least 1";
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [formData, recurrenceData, today]);
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      setValidationErrors(prev => ({
+        ...prev,
+        submit: "Please fix the errors above before submitting"
+      }));
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const taskData = {
+        ...formData,
+        ...(formData.isRecurring ? { recurrence: recurrenceData } : {})
+      };
+      
+      await onSubmit(taskData);
+    } catch (error) {
+      console.error("Error submitting task:", error);
+      setValidationErrors(prev => ({
+        ...prev,
+        submit: "Failed to create task. Please try again."
+      }));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, recurrenceData, validateForm, onSubmit]);
   return (
     <ErrorBoundary>
       {/* Validation Error Display */}
@@ -187,89 +331,449 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
           <p className="text-red-800 text-sm">{validationErrors.submit}</p>
         </div>
       )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Task Information */}
         <div className="card">
           <div className="card-header">
-            <h3 className="text-base font-bold text-gray-900 mb-1">
-              Task Details
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Task Information
+              {formData.isRecurring && (
+                <span className="ml-2 inline-flex items-center px-2 py-1 rounded text-sm font-medium bg-blue-100 text-blue-800">
+                  🔁 Recurring
+                </span>
+              )}
             </h3>
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-sm">
               Fill in the basic information for your task
             </p>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Task Name */}
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span>Task Name *</span>
-                    {formData.isRecurring && (
-                      <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                        🔁 Recurring
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-500">
-                    {formData.title.length}/20
-                  </span>
-                </div>
+          <div className="space-y-4">
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Task Title *
+                <span className="text-xs text-gray-500 ml-2">
+                  ({formData.title.length}/100)
+                </span>
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => {
-                  if (e.target.value.length <= 20) {
+                  if (e.target.value.length <= 100) {
                     handleInputChange("title", e.target.value);
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
                   validationErrors.title
                     ? "border-red-300 focus:ring-red-500"
-                    : formData.title.length >= 18
-                      ? "border-orange-500 focus:ring-orange-500"
-                      : "border-gray-300 focus:ring-blue-500"
+                    : "border-gray-300 focus:ring-blue-500"
                 }`}
-                placeholder="Short, clear title..."
-                maxLength="20"
+                placeholder="Enter a clear, descriptive title..."
+                maxLength="100"
                 required
                 data-testid="input-task-title"
               />
               {validationErrors.title && (
-                <p
-                  className="text-red-600 text-xs mt-1"
-                  data-testid="error-task-title"
-                >
+                <p className="text-red-600 text-sm mt-1" data-testid="error-task-title">
                   {validationErrors.title}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                Guideline: Short, clear title
-              </p>
             </div>
-
             {/* Description */}
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
               <ReactQuill
-                className="custom-editor"
                 value={formData.description}
                 onChange={(value) => handleInputChange("description", value)}
                 theme="snow"
                 style={{ fontSize: "14px" }}
+                data-testid="editor-description"
               />
             </div>
+            {/* Labels/Tags */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Labels/Tags
+              </label>
+              <MultiSelect
+                options={[
+                  { value: "urgent", label: "Urgent" },
+                  { value: "research", label: "Research" },
+                  { value: "development", label: "Development" },
+                  { value: "design", label: "Design" },
+                  { value: "testing", label: "Testing" },
+                  { value: "documentation", label: "Documentation" },
+                  { value: "meeting", label: "Meeting" },
+                  { value: "review", label: "Review" }
+                ]}
+                value={formData.labels}
+                onChange={(selectedValues) => handleInputChange("labels", selectedValues)}
+                placeholder="Select or search labels..."
+                dataTestId="multi-select-labels"
+              />
+            </div>
+            {/* File Attachments */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Attachments
+                <span className="text-xs text-gray-500 ml-2">
+                  (Max 5MB total, docs/images/PDFs)
+                </span>
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={handleFileUpload}
+                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="input-attachments"
+              />
+              {validationErrors.attachments && (
+                <p className="text-red-600 text-sm mt-1" data-testid="error-attachments">
+                  {validationErrors.attachments}
+                </p>
+              )}
+              
+              {/* Display uploaded files */}
+              {formData.attachments.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {formData.attachments.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                        data-testid={`button-remove-file-${index}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500">
+                    Total size: {(formData.attachments.reduce((total, file) => total + file.size, 0) / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            {/* Assigned To */}
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Assigned To *
+        </div>
+        {/* Recurring Toggle */}
+        <div className="card">
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="recurring-toggle"
+              checked={formData.isRecurring}
+              onChange={(e) => handleToggleRecurring(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              data-testid="toggle-recurring"
+            />
+            <label htmlFor="recurring-toggle" className="text-sm font-medium text-gray-700">
+              Make this a Recurring Task
+            </label>
+          </div>
+        </div>
+        {/* Due Date (Non-recurring) or Recurrence Panel */}
+        {!formData.isRecurring ? (
+          <div className="card">
+            <div className="card-header">
+              <h3 className="text-lg font-semibold text-gray-900">Schedule</h3>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date *
+              </label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                min={today}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                  validationErrors.dueDate
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+                required
+                data-testid="input-due-date"
+              />
+              {validationErrors.dueDate && (
+                <p className="text-red-600 text-sm mt-1" data-testid="error-due-date">
+                  {validationErrors.dueDate}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Recurrence Panel */
+          <div className="card">
+            <div className="card-header">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Recurrence Settings
+              </h3>
+              <p className="text-sm text-gray-600">
+                Configure when and how often this task repeats
+              </p>
+            </div>
+            <div className="space-y-6">
+              {/* Pattern Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Pattern Type *
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  {[
+                    { value: "daily", label: "Daily" },
+                    { value: "weekly", label: "Weekly" },
+                    { value: "monthly", label: "Monthly" },
+                    { value: "yearly", label: "Yearly" },
+                    { value: "custom", label: "Custom" }
+                  ].map((pattern) => (
+                    <button
+                      key={pattern.value}
+                      type="button"
+                      onClick={() => handleRecurrenceChange("patternType", pattern.value)}
+                      className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                        recurrenceData.patternType === pattern.value
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                      }`}
+                      data-testid={`button-pattern-${pattern.value}`}
+                    >
+                      {pattern.label}
+                    </button>
+                  ))}
+                </div>
+                {validationErrors.patternType && (
+                  <p className="text-red-600 text-sm mt-1" data-testid="error-pattern-type">
+                    {validationErrors.patternType}
+                  </p>
+                )}
+              </div>
+              {/* Repeat Every */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Repeat Every
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="365"
+                      value={recurrenceData.repeatEvery}
+                      onChange={(e) => handleRecurrenceChange("repeatEvery", parseInt(e.target.value) || 1)}
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      data-testid="input-repeat-every"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {recurrenceData.patternType === 'daily' && 'day(s)'}
+                      {recurrenceData.patternType === 'weekly' && 'week(s)'}
+                      {recurrenceData.patternType === 'monthly' && 'month(s)'}
+                      {recurrenceData.patternType === 'yearly' && 'year(s)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {/* Weekly Pattern */}
+              {recurrenceData.patternType === 'weekly' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Repeat on Days *
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => handleWeekdayToggle(day)}
+                        className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                          recurrenceData.weekdays.includes(day)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                        data-testid={`button-weekday-${day.toLowerCase()}`}
+                      >
+                        {day.slice(0, 3)}
+                      </button>
+                    ))}
+                  </div>
+                  {validationErrors.weekdays && (
+                    <p className="text-red-600 text-sm mt-1" data-testid="error-weekdays">
+                      {validationErrors.weekdays}
+                    </p>
+                  )}
+                </div>
+              )}
+              {/* Start Date and Time */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={recurrenceData.startDate}
+                    onChange={(e) => handleRecurrenceChange("startDate", e.target.value)}
+                    min={today}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                      validationErrors.startDate
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-gray-300 focus:ring-blue-500"
+                    }`}
+                    required
+                    data-testid="input-start-date"
+                  />
+                  {validationErrors.startDate && (
+                    <p className="text-red-600 text-sm mt-1" data-testid="error-start-date">
+                      {validationErrors.startDate}
+                    </p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={recurrenceData.startTime}
+                    onChange={(e) => handleRecurrenceChange("startTime", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="input-start-time"
+                  />
+                </div>
+              </div>
+              {/* End Condition */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  End Condition
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="end-never"
+                      name="endCondition"
+                      value="never"
+                      checked={recurrenceData.endCondition === "never"}
+                      onChange={(e) => handleRecurrenceChange("endCondition", e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      data-testid="radio-end-never"
+                    />
+                    <label htmlFor="end-never" className="text-sm text-gray-700">
+                      Never
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="end-occurrences"
+                      name="endCondition"
+                      value="occurrences"
+                      checked={recurrenceData.endCondition === "occurrences"}
+                      onChange={(e) => handleRecurrenceChange("endCondition", e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      data-testid="radio-end-occurrences"
+                    />
+                    <label htmlFor="end-occurrences" className="text-sm text-gray-700">
+                      After
+                    </label>
+                    {recurrenceData.endCondition === "occurrences" && (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
+                          value={recurrenceData.endOccurrences}
+                          onChange={(e) => handleRecurrenceChange("endOccurrences", parseInt(e.target.value) || 1)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          data-testid="input-end-occurrences"
+                        />
+                        <span className="text-sm text-gray-600">occurrences</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="end-date"
+                      name="endCondition"
+                      value="date"
+                      checked={recurrenceData.endCondition === "date"}
+                      onChange={(e) => handleRecurrenceChange("endCondition", e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      data-testid="radio-end-date"
+                    />
+                    <label htmlFor="end-date" className="text-sm text-gray-700">
+                      By date
+                    </label>
+                    {recurrenceData.endCondition === "date" && (
+                      <input
+                        type="date"
+                        value={recurrenceData.endDate}
+                        onChange={(e) => handleRecurrenceChange("endDate", e.target.value)}
+                        min={recurrenceData.startDate || today}
+                        className={`px-2 py-1 border rounded focus:outline-none focus:ring-1 transition-colors ${
+                          validationErrors.endDate
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-blue-500"
+                        }`}
+                        data-testid="input-end-date"
+                      />
+                    )}
+                  </div>
+                  {validationErrors.endDate && (
+                    <p className="text-red-600 text-sm mt-1" data-testid="error-end-date">
+                      {validationErrors.endDate}
+                    </p>
+                  )}
+                  {validationErrors.endOccurrences && (
+                    <p className="text-red-600 text-sm mt-1" data-testid="error-end-occurrences">
+                      {validationErrors.endOccurrences}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {/* Summary */}
+              {generateSummary && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Schedule Summary</h4>
+                  <p className="text-sm text-blue-800">{generateSummary}</p>
+                </div>
+              )}
+              {/* Preview Occurrences */}
+              {generatePreviewOccurrences.length > 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-900 mb-2">Next 5 Occurrences</h4>
+                  <ul className="space-y-1">
+                    {generatePreviewOccurrences.map((date, index) => (
+                      <li key={index} className="text-sm text-gray-700">
+                        {date.toLocaleDateString()} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Assignment & People */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="text-lg font-semibold text-gray-900">Assignment & People</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Assignee */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Assign to *
               </label>
               <SearchableSelect
                 options={[
@@ -286,441 +790,77 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 dataTestId="searchable-select-assignee"
               />
               {validationErrors.assignee && (
-                <p className="text-red-600 text-xs mt-1" data-testid="error-assignee">
+                <p className="text-red-600 text-sm mt-1" data-testid="error-assignee">
                   {validationErrors.assignee}
                 </p>
               )}
             </div>
-
-            {/* Priority */}
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Priority *
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => handleInputChange("priority", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-
-            {/* Due Date */}
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Due Date *
-                {!isManualDueDate && (
-                  <span className="text-xs text-blue-600 ml-1">
-                    (Auto-filled)
-                  </span>
-                )}
-              </label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleInputChange("dueDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-
-              {isManualDueDate && (
-                <div className="flex items-center mt-1">
-                  <p className="text-xs text-gray-500">
-                    Manual override active.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsManualDueDate(false);
-                      const calculatedDueDate = calculateDueDateFromPriority(
-                        formData.priority,
-                      );
-                      setFormData((prev) => ({
-                        ...prev,
-                        dueDate: calculatedDueDate,
-                      }));
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 ml-2 underline"
-                  >
-                    Reset to auto-calculate
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Visibility */}
-            <div className="lg:col-span-1">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Visibility *
-              </label>
-              <select
-                value={formData.visibility || "private"}
-                onChange={(e) =>
-                  handleInputChange("visibility", e.target.value)
-                }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="private">🔒 Private</option>
-                <option value="public">🌐 Public</option>
-              </select>
-            </div>
-
-            {/* Labels / Tags */}
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Labels / Tags
-              </label>
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-2 min-h-[32px] p-2 border border-gray-300 rounded-lg bg-white">
-                  {formData.tags
-                    .split(",")
-                    .filter((tag) => tag.trim())
-                    .map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                      >
-                        {tag.trim()}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const tagsList = formData.tags
-                              .split(",")
-                              .filter((t) => t.trim());
-                            tagsList.splice(index, 1);
-                            handleInputChange("tags", tagsList.join(","));
-                          }}
-                          className="text-blue-600 hover:text-blue-800 font-bold"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  <input
-                    type="text"
-                    value={formData.currentTagInput}
-                    onChange={(e) =>
-                      handleInputChange("currentTagInput", e.target.value)
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === ",") {
-                        e.preventDefault();
-                        const newTag = formData.currentTagInput.trim();
-                        if (
-                          newTag &&
-                          !formData.tags.split(",").includes(newTag)
-                        ) {
-                          const currentTags = formData.tags
-                            ? formData.tags + "," + newTag
-                            : newTag;
-                          handleInputChange("tags", currentTags);
-                          handleInputChange("currentTagInput", "");
-                        }
-                      }
-                    }}
-                    placeholder={
-                      formData.tags &&
-                      formData.tags.split(",").filter((tag) => tag.trim())
-                        .length > 0
-                        ? "Add another tag..."
-                        : "Type tag and press Enter..."
-                    }
-                    className="flex-1 min-w-[120px] outline-none border-none bg-transparent text-sm"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  <span className="text-xs text-gray-500">Quick tags:</span>
-                  {["urgent", "bug", "feature", "documentation", "review"].map(
-                    (quickTag) => (
-                      <button
-                        key={quickTag}
-                        type="button"
-                        onClick={() => {
-                          if (!formData.tags.split(",").includes(quickTag)) {
-                            const currentTags = formData.tags
-                              ? formData.tags + "," + quickTag
-                              : quickTag;
-                            handleInputChange("tags", currentTags);
-                          }
-                        }}
-                        className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                      >
-                        +{quickTag}
-                      </button>
-                    ),
-                  )}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Choose existing tags or create new ones inline. Used for
-                  filtering/search.
-                </p>
-              </div>
-            </div>
-
-            {/* Attachments */}
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Attachments
-              </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
-                  onChange={(e) => {
-                    const newFiles = Array.from(e.target.files);
-                    const existingFiles = Array.from(formData.attachments || []);
-                    const allFiles = [...existingFiles, ...newFiles];
-                    
-                    const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
-                    const maxSize = 5 * 1024 * 1024; // 5MB
-                    
-                    if (totalSize > maxSize) {
-                      alert('Total file size cannot exceed 5MB');
-                      e.target.value = '';
-                      return;
-                    }
-                    
-                    handleInputChange("attachments", allFiles);
-                    e.target.value = ''; // Clear the input to allow re-selecting same files
-                  }}
-                  className="hidden"
-                  id="attachments-input"
-                  data-testid="input-attachments"
-                />
-                <label 
-                  htmlFor="attachments-input" 
-                  className="cursor-pointer flex flex-col items-center space-y-2"
-                >
-                  <svg 
-                    className="w-8 h-8 text-gray-400" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M12 4v16m8-8H4" 
-                    />
-                  </svg>
-                  <span className="text-sm text-gray-600">
-                    Click to upload files or drag and drop
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Max total size: 5 MB. Support docs, images, PDFs
-                  </span>
-                </label>
-              </div>
-              
-              {/* Show selected files */}
-              {formData.attachments && formData.attachments.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {Array.from(formData.attachments).map((file, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-xs"
-                    >
-                      <span className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 2h8a1 1 0 110 2H6a1 1 0 110-2z"/>
-                        </svg>
-                        <span>{file.name}</span>
-                        <span className="text-gray-400">
-                          ({(file.size / 1024).toFixed(1)}KB)
-                        </span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newFiles = Array.from(formData.attachments).filter((_, i) => i !== index);
-                          handleInputChange("attachments", newFiles);
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                        data-testid={`remove-attachment-${index}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  <div className="text-xs text-gray-500">
-                    Total size: {formData.attachments ? 
-                      (Array.from(formData.attachments).reduce((sum, file) => sum + file.size, 0) / 1024).toFixed(1) 
-                      : 0}KB / 5MB
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* More Options Toggle */}
-        <div className="card">
-          <div className="flex items-center justify-between">
+            {/* Contributors */}
             <div>
-              <h3 className="text-base font-semibold text-gray-900">
-                Advanced Fields
-              </h3>
-              <p className="text-xs text-gray-600">
-                Configure additional task settings (optional)
-              </p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contributors (Optional)
+                <span className="text-xs text-gray-500 ml-2">
+                  - visibility & notifications only
+                </span>
+              </label>
+              <MultiSelect
+                options={[
+                  { value: "john", label: "John Smith" },
+                  { value: "jane", label: "Jane Smith" },
+                  { value: "mike", label: "Mike Johnson" },
+                  { value: "sarah", label: "Sarah Wilson" },
+                ]}
+                value={formData.contributors}
+                onChange={(selectedValues) => handleInputChange("contributors", selectedValues)}
+                placeholder="Select contributors..."
+                dataTestId="multi-select-contributors"
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => setShowMoreOptions(!showMoreOptions)}
-              className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-400 rounded-lg transition-colors"
-            >
-              <span>{showMoreOptions ? "Hide" : "Show"} More Option</span>
-              <svg
-                className={`w-4 h-4 transition-transform ${showMoreOptions ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
           </div>
-
-          {showMoreOptions && (
-            <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
-              {/* Reference Process */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Reference Process
-                </label>
-                <select
-                  value={moreOptionsData.referenceProcess || ""}
-                  onChange={(e) =>
-                    handleMoreOptionsChange("referenceProcess", e.target.value)
-                  }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select a process...</option>
-                  <option value="sop001">Customer Onboarding SOP</option>
-                  <option value="sop002">Bug Report Workflow</option>
-                  <option value="sop003">Feature Request Process</option>
-                  <option value="sop004">Quality Assurance Checklist</option>
-                  <option value="sop005">Deployment Process</option>
-                </select>
-              </div>
-
-              {/* Custom Form */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Custom Form
-                </label>
-                <select
-                  value={moreOptionsData.customForm || ""}
-                  onChange={(e) =>
-                    handleMoreOptionsChange("customForm", e.target.value)
-                  }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select a form...</option>
-                  <option value="form001">Bug Report Form</option>
-                  <option value="form002">Feature Request Form</option>
-                  <option value="form003">Customer Feedback Form</option>
-                  <option value="form004">Project Evaluation Form</option>
-                  <option value="form005">Performance Review Form</option>
-                </select>
-              </div>
-
-              {/* Dependencies */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Dependencies (Multiple Select)
-                </label>
-                <MultiSelect
-                  options={[
-                    {
-                      value: "task001",
-                      label: "Setup Development Environment",
-                    },
-                    { value: "task002", label: "Design Database Schema" },
-                    { value: "task003", label: "Create API Endpoints" },
-                    { value: "task004", label: "Write Unit Tests" },
-                    { value: "task005", label: "User Interface Design" },
-                  ]}
-                  value={Array.isArray(moreOptionsData.dependencies) ? moreOptionsData.dependencies : []}
-                  onChange={(selectedValues) => handleMoreOptionsChange("dependencies", selectedValues)}
-                  placeholder="Select task dependencies..."
-                  dataTestId="multi-select-dependencies"
-                />
-              </div>
-
-              {/* Task Type */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Task Type *
-                </label>
-                <select
-                  value={moreOptionsData.taskTypeAdvanced || "simple"}
-                  onChange={(e) =>
-                    handleMoreOptionsChange("taskTypeAdvanced", e.target.value)
-                  }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="simple">📋 Simple</option>
-                  <option value="recurring">🔄 Recurring</option>
-                  <option value="approval">✅ Approval</option>
-                </select>
-              </div>
-            </div>
-          )}
         </div>
-
-        {/* Form Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+        {/* Notes */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="text-lg font-semibold text-gray-900">Additional Notes</h3>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes (Optional)
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => handleInputChange("notes", e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Any additional information or instructions..."
+              data-testid="textarea-notes"
+            />
+          </div>
+        </div>
+        {/* Submit Button */}
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            data-testid="button-cancel"
+          >
             Cancel
           </button>
-          <div>
-            <button type="button" className="btn btn-secondary mr-1">
-              Save as Draft
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create Task"}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`px-6 py-2 rounded-lg text-white transition-colors ${
+              isSubmitting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+            data-testid="button-submit"
+          >
+            {isSubmitting ? "Creating Task..." : "Create Task"}
+          </button>
         </div>
       </form>
     </ErrorBoundary>
   );
-}
-
-// Add validation function at the end
-function validateForm(formData) {
-  const errors = {};
-
-  if (!formData.title?.trim()) {
-    errors.title = "Task title is required";
-  }
-
-  if (!formData.assignee) {
-    errors.assignee = "Assignee is required";
-  }
-
-  if (!formData.priority) {
-    errors.priority = "Priority is required";
-  }
-
-  return errors;
-}
+};
