@@ -37,27 +37,27 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
       high: 1,
       critical: 0,
     };
-    
+
     const daysToAdd = days[priority] || 7;
     const dueDate = new Date(today.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-    return dueDate.toISOString().split('T')[0];
+    return dueDate.toISOString().split("T")[0];
   };
 
   // Auto-set due date when priority changes
   useEffect(() => {
     if (!isManualDueDate && formData.priority) {
       const calculatedDueDate = calculateDueDateFromPriority(formData.priority);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        dueDate: calculatedDueDate
+        dueDate: calculatedDueDate,
       }));
     }
   }, [formData.priority, isManualDueDate]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Mark due date as manual if user changes it
@@ -67,21 +67,21 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
   };
 
   const handleMoreOptionsChange = (field, value) => {
-    setMoreOptionsData(prev => ({
+    setMoreOptionsData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const taskData = {
       ...formData,
       ...moreOptionsData,
       type: "regular",
     };
-    
+
     onSubmit(taskData);
   };
 
@@ -135,13 +135,15 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
 
           {/* Description */}
           <div className="lg:col-span-2">
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Description
+            </label>
             <ReactQuill
               className="custom-editor"
               value={formData.description}
               onChange={(value) => handleInputChange("description", value)}
               theme="snow"
-              style={{ fontSize: '14px' }}
+              style={{ fontSize: "14px" }}
             />
           </div>
         </div>
@@ -158,15 +160,12 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="self">Self (Current User)</option>
+              <option value="self">Self</option>
               <option value="john">John Doe</option>
               <option value="jane">Jane Smith</option>
               <option value="mike">Mike Johnson</option>
               <option value="sarah">Sarah Wilson</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Default: Self. For solo users → fixed to self. For org users → assignable to others.
-            </p>
           </div>
 
           {/* Priority */}
@@ -185,9 +184,6 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <option value="high">High</option>
               <option value="critical">Critical</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Default: Low. Selecting a priority auto-sets Due Date.
-            </p>
           </div>
 
           {/* Due Date */}
@@ -207,16 +203,10 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
-            {!isManualDueDate && (
-              <p className="text-xs text-gray-500 mt-1">
-                Auto-filled from Priority. Editable by user.
-              </p>
-            )}
+
             {isManualDueDate && (
               <div className="flex items-center mt-1">
-                <p className="text-xs text-gray-500">
-                  Manual override active.
-                </p>
+                <p className="text-xs text-gray-500">Manual override active.</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -251,9 +241,6 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <option value="private">🔒 Private</option>
               <option value="public">🌐 Public</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Default: Private. Solo users → only "Private". Org users → "Private" or "Public".
-            </p>
           </div>
 
           {/* Labels / Tags */}
@@ -263,64 +250,87 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             </label>
             <div className="space-y-2">
               <div className="flex flex-wrap gap-2 min-h-[32px] p-2 border border-gray-300 rounded-lg bg-white">
-                {formData.tags.split(',').filter(tag => tag.trim()).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                  >
-                    {tag.trim()}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tagsList = formData.tags.split(',').filter(t => t.trim());
-                        tagsList.splice(index, 1);
-                        handleInputChange("tags", tagsList.join(','));
-                      }}
-                      className="text-blue-600 hover:text-blue-800 font-bold"
+                {formData.tags
+                  .split(",")
+                  .filter((tag) => tag.trim())
+                  .map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
+                      {tag.trim()}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tagsList = formData.tags
+                            .split(",")
+                            .filter((t) => t.trim());
+                          tagsList.splice(index, 1);
+                          handleInputChange("tags", tagsList.join(","));
+                        }}
+                        className="text-blue-600 hover:text-blue-800 font-bold"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
                 <input
                   type="text"
                   value={formData.currentTagInput}
-                  onChange={(e) => handleInputChange("currentTagInput", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("currentTagInput", e.target.value)
+                  }
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ',') {
+                    if (e.key === "Enter" || e.key === ",") {
                       e.preventDefault();
                       const newTag = formData.currentTagInput.trim();
-                      if (newTag && !formData.tags.split(',').includes(newTag)) {
-                        const currentTags = formData.tags ? formData.tags + ',' + newTag : newTag;
+                      if (
+                        newTag &&
+                        !formData.tags.split(",").includes(newTag)
+                      ) {
+                        const currentTags = formData.tags
+                          ? formData.tags + "," + newTag
+                          : newTag;
                         handleInputChange("tags", currentTags);
                         handleInputChange("currentTagInput", "");
                       }
                     }
                   }}
-                  placeholder={formData.tags && formData.tags.split(',').filter(tag => tag.trim()).length > 0 ? "Add another tag..." : "Type tag and press Enter..."}
+                  placeholder={
+                    formData.tags &&
+                    formData.tags.split(",").filter((tag) => tag.trim())
+                      .length > 0
+                      ? "Add another tag..."
+                      : "Type tag and press Enter..."
+                  }
                   className="flex-1 min-w-[120px] outline-none border-none bg-transparent text-sm"
                 />
               </div>
               <div className="flex flex-wrap gap-1">
                 <span className="text-xs text-gray-500">Quick tags:</span>
-                {["urgent", "bug", "feature", "documentation", "review"].map(quickTag => (
-                  <button
-                    key={quickTag}
-                    type="button"
-                    onClick={() => {
-                      if (!formData.tags.split(',').includes(quickTag)) {
-                        const currentTags = formData.tags ? formData.tags + ',' + quickTag : quickTag;
-                        handleInputChange("tags", currentTags);
-                      }
-                    }}
-                    className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    +{quickTag}
-                  </button>
-                ))}
+                {["urgent", "bug", "feature", "documentation", "review"].map(
+                  (quickTag) => (
+                    <button
+                      key={quickTag}
+                      type="button"
+                      onClick={() => {
+                        if (!formData.tags.split(",").includes(quickTag)) {
+                          const currentTags = formData.tags
+                            ? formData.tags + "," + quickTag
+                            : quickTag;
+                          handleInputChange("tags", currentTags);
+                        }
+                      }}
+                      className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                    >
+                      +{quickTag}
+                    </button>
+                  ),
+                )}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Choose existing tags or create new ones inline. Used for filtering/search.
+                Choose existing tags or create new ones inline. Used for
+                filtering/search.
               </p>
             </div>
           </div>
@@ -343,7 +353,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             onClick={() => setShowMoreOptions(!showMoreOptions)}
             className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-400 rounded-lg transition-colors"
           >
-            <span>{showMoreOptions ? "Hide" : "Show"} More Options</span>
+            <span>{showMoreOptions ? "Hide" : "Show"} More Option</span>
             <svg
               className={`w-4 h-4 transition-transform ${showMoreOptions ? "rotate-180" : ""}`}
               fill="none"
@@ -380,24 +390,30 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                   moreOptionsData.referenceProcess
                     ? {
                         value: moreOptionsData.referenceProcess,
-                        label: {
-                          "sop001": "Customer Onboarding SOP",
-                          "sop002": "Bug Report Workflow",
-                          "sop003": "Feature Request Process",
-                          "sop004": "Quality Assurance Checklist",
-                          "sop005": "Deployment Process",
-                        }[moreOptionsData.referenceProcess] || moreOptionsData.referenceProcess
+                        label:
+                          {
+                            sop001: "Customer Onboarding SOP",
+                            sop002: "Bug Report Workflow",
+                            sop003: "Feature Request Process",
+                            sop004: "Quality Assurance Checklist",
+                            sop005: "Deployment Process",
+                          }[moreOptionsData.referenceProcess] ||
+                          moreOptionsData.referenceProcess,
                       }
                     : null
                 }
                 onChange={(selectedOption) =>
-                  handleMoreOptionsChange("referenceProcess", selectedOption?.value || "")
+                  handleMoreOptionsChange(
+                    "referenceProcess",
+                    selectedOption?.value || "",
+                  )
                 }
                 placeholder="Search and select a process..."
                 isClearable
               />
               <p className="text-xs text-gray-500 mt-1">
-                Links the task to a predefined process (e.g., "Onboarding SOP"). Useful for standard workflows.
+                Links the task to a predefined process (e.g., "Onboarding SOP").
+                Useful for standard workflows.
               </p>
             </div>
 
@@ -419,24 +435,30 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                   moreOptionsData.customForm
                     ? {
                         value: moreOptionsData.customForm,
-                        label: {
-                          "form001": "Bug Report Form",
-                          "form002": "Feature Request Form",
-                          "form003": "Customer Feedback Form",
-                          "form004": "Project Evaluation Form",
-                          "form005": "Performance Review Form",
-                        }[moreOptionsData.customForm] || moreOptionsData.customForm
+                        label:
+                          {
+                            form001: "Bug Report Form",
+                            form002: "Feature Request Form",
+                            form003: "Customer Feedback Form",
+                            form004: "Project Evaluation Form",
+                            form005: "Performance Review Form",
+                          }[moreOptionsData.customForm] ||
+                          moreOptionsData.customForm,
                       }
                     : null
                 }
                 onChange={(selectedOption) =>
-                  handleMoreOptionsChange("customForm", selectedOption?.value || "")
+                  handleMoreOptionsChange(
+                    "customForm",
+                    selectedOption?.value || "",
+                  )
                 }
                 placeholder="Search and select a form..."
                 isClearable
               />
               <p className="text-xs text-gray-500 mt-1">
-                Allows attaching an existing form template. Users cannot create new forms here (only pick from existing).
+                Allows attaching an existing form template. Users cannot create
+                new forms here (only pick from existing).
               </p>
             </div>
 
@@ -454,17 +476,20 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                   { value: "task005", label: "User Interface Design" },
                 ]}
                 value={
-                  moreOptionsData.dependencies && Array.isArray(moreOptionsData.dependencies)
+                  moreOptionsData.dependencies &&
+                  Array.isArray(moreOptionsData.dependencies)
                     ? moreOptionsData.dependencies
                         .map((depId) => {
                           const taskNames = {
-                            "task001": "Setup Development Environment",
-                            "task002": "Design Database Schema",
-                            "task003": "Create API Endpoints",
-                            "task004": "Write Unit Tests",
-                            "task005": "User Interface Design",
+                            task001: "Setup Development Environment",
+                            task002: "Design Database Schema",
+                            task003: "Create API Endpoints",
+                            task004: "Write Unit Tests",
+                            task005: "User Interface Design",
                           };
-                          return taskNames[depId] ? { value: depId, label: taskNames[depId] } : null;
+                          return taskNames[depId]
+                            ? { value: depId, label: taskNames[depId] }
+                            : null;
                         })
                         .filter(Boolean)
                     : []
@@ -472,7 +497,9 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 onChange={(selectedOptions) =>
                   handleMoreOptionsChange(
                     "dependencies",
-                    selectedOptions ? selectedOptions.map((option) => option.value) : []
+                    selectedOptions
+                      ? selectedOptions.map((option) => option.value)
+                      : [],
                   )
                 }
                 placeholder="Search and select dependent tasks..."
@@ -480,7 +507,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 isClearable
               />
               <p className="text-xs text-gray-500 mt-1">
-                Select other tasks that must be completed before this task starts. Supports multiple dependencies.
+                Select other tasks that must be completed before this task
+                starts. Supports multiple dependencies.
               </p>
             </div>
 
@@ -498,19 +526,24 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 value={{
                   value: moreOptionsData.taskTypeAdvanced || "simple",
                   label:
-                    moreOptionsData.taskTypeAdvanced === "simple" || !moreOptionsData.taskTypeAdvanced
+                    moreOptionsData.taskTypeAdvanced === "simple" ||
+                    !moreOptionsData.taskTypeAdvanced
                       ? "📋 Simple"
                       : moreOptionsData.taskTypeAdvanced === "recurring"
                         ? "🔄 Recurring"
                         : "✅ Approval",
                 }}
                 onChange={(selectedOption) =>
-                  handleMoreOptionsChange("taskTypeAdvanced", selectedOption.value)
+                  handleMoreOptionsChange(
+                    "taskTypeAdvanced",
+                    selectedOption.value,
+                  )
                 }
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                Default = Simple. Defines the kind of task. Future extensibility: Milestone, Quick.
+                Default = Simple. Defines the kind of task. Future
+                extensibility: Milestone, Quick.
               </p>
             </div>
           </div>
@@ -519,11 +552,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
 
       {/* Form Actions */}
       <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={onClose}
-        >
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
           Cancel
         </button>
         <div>
