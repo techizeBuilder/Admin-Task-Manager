@@ -191,39 +191,39 @@ export function PlansLicenses() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Licenses</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{usageStats.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {licenseInfo?.planType || "Standard"} Plan
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Used Licenses</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{usageStats.used}</div>
             <p className="text-xs text-muted-foreground">
-              {usageStats.percentage}% utilization
+              Currently using licenses
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Licenses</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{usageStats.available}</div>
+            <div className="text-2xl font-bold">{usageStats.total}</div>
             <p className="text-xs text-muted-foreground">
-              {usageStats.available > 0 ? "Can invite more" : "At capacity"}
+              Available for your organization
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Plan Type</CardTitle>
+            <Crown className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{licenseInfo?.planType || "Standard"}</div>
+            <p className="text-xs text-muted-foreground">
+              Current subscription
             </p>
           </CardContent>
         </Card>
