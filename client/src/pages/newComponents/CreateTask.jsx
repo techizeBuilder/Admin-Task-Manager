@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { calculateDueDateFromPriority } from "../newComponents/PriorityManager";
-import RecurringTaskManager from "./RecurringTaskManager";
+import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneManager from "../newComponents/MilestoneManager";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 
@@ -294,7 +294,37 @@ export default function CreateTask({
       )}
 
       {/* Recurring Task Form */}
-      {taskType === "recurring" && <RecurringTaskManager onClose={onClose} />}
+      {taskType === "recurring" && (
+        <RecurringTaskForm
+          onSubmit={(formData) => {
+            // Convert RecurringTaskForm data format to match existing API
+            onSubmit({
+              title: formData.title,
+              description: formData.description,
+              assignedTo: formData.assignee,
+              priority: formData.priority,
+              visibility: formData.visibility,
+              frequency: formData.frequency,
+              repeatEvery: formData.repeatEvery,
+              startDate: formData.startDate,
+              endConditionType: formData.endConditionType,
+              endDate: formData.endDate,
+              maxOccurrences: formData.maxOccurrences,
+              time: formData.time,
+              repeatOnDays: formData.repeatOnDays,
+              contributors: formData.contributors,
+              notes: formData.notes,
+              category: "recurring",
+              taskType: "recurring",
+              ...formData
+            });
+          }}
+          onClose={onClose}
+          initialData={{
+            startDate: preFilledDate || "",
+          }}
+        />
+      )}
 
       {/* Milestone Task Form */}
       {taskType === "milestone" && (

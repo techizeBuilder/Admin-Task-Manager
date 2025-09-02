@@ -1,0 +1,423 @@
+   <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Basic Task Information */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">Task Details</h3>
+          <p className="text-gray-600 text-sm">
+            Fill in the basic information for your task
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {/* Title, Description, Priority Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Task Title *
+                <span
+                  className={`ml-2 text-sm ${formData.title.length > 20 ? "text-red-500" : "text-gray-500"}`}
+                >
+                  ({formData.title.length}/20)
+                </span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={(e) => {
+                  if (e.target.value.length <= 20) {
+                    handleInputChange("title", e.target.value);
+                  }
+                }}
+                className={`form-input ${formData.title.length > 20 ? "border-red-500" : ""}`}
+                placeholder="Enter recurring task title..."
+                maxLength="20"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter task description..."
+                rows={3}
+                className="form-input resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <SearchableSelect
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+                value={{
+                  value: formData.priority,
+                  label:
+                    formData.priority.charAt(0).toUpperCase() +
+                    formData.priority.slice(1),
+                }}
+                onChange={(selectedOption) =>
+                  handleInputChange("priority", selectedOption.value)
+                }
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recurrence Pattern */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Recurrence Pattern
+        </h3>
+
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="col-span-2 lg:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Frequency *
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "daily", label: "Daily" },
+                { value: "weekly", label: "Weekly" },
+                { value: "monthly", label: "Monthly" },
+                { value: "yearly", label: "Yearly" },
+                { value: "custom", label: "Custom" },
+              ]}
+              value={{
+                value: formData.frequency,
+                label:
+                  formData.frequency.charAt(0).toUpperCase() +
+                  formData.frequency.slice(1),
+              }}
+              onChange={(selectedOption) =>
+                handleInputChange("frequency", selectedOption.value)
+              }
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Repeat Every
+            </label>
+            <input
+              type="number"
+              name="repeatEvery"
+              value={formData.repeatEvery}
+              onChange={(e) =>
+                handleInputChange("repeatEvery", parseInt(e.target.value, 10))
+              }
+              className="form-input"
+              min="1"
+              max="365"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Time
+            </label>
+            <input
+              type="time"
+              name="time"
+              value={formData.time}
+              onChange={(e) => handleInputChange("time", e.target.value)}
+              className="form-input"
+            />
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Start Date *
+            </label>
+            <input
+              type="date"
+              name="startDate"
+              value={formData.startDate}
+              onChange={(e) => handleInputChange("startDate", e.target.value)}
+              className="form-input"
+              required
+            />
+          </div>
+        </div>
+
+        {formData.frequency === "weekly" && (
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Repeat On Days
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  className={`px-3 py-2 text-sm rounded-md border transition-colors ${
+                    formData.repeatOnDays.includes(day)
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
+                  }`}
+                  onClick={() => handleDayToggle(day)}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Assignment & People */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Assignment & People
+        </h3>
+
+        <div className="space-y-4">
+          {/* Assignment & Contributors Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign to *
+              </label>
+              <SearchableSelect
+                options={[
+                  { value: "", label: "Select assignee..." },
+                  { value: "john", label: "John Doe" },
+                  { value: "jane", label: "Jane Smith" },
+                  { value: "mike", label: "Mike Johnson" },
+                  { value: "sarah", label: "Sarah Wilson" },
+                ]}
+                value={
+                  formData.assignee
+                    ? {
+                        value: formData.assignee,
+                        label:
+                          formData.assignee === "john"
+                            ? "John Doe"
+                            : formData.assignee === "jane"
+                              ? "Jane Smith"
+                              : formData.assignee === "mike"
+                                ? "Mike Johnson"
+                                : formData.assignee === "sarah"
+                                  ? "Sarah Wilson"
+                                  : "Select assignee...",
+                      }
+                    : null
+                }
+                onChange={(selectedOption) =>
+                  handleInputChange("assignee", selectedOption?.value || "")
+                }
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contributors (Optional)
+                <span className="text-xs text-gray-500 ml-2">
+                  - visibility & notifications only
+                </span>
+              </label>
+              <SearchableSelect
+                options={[
+                  { value: "john", label: "John Smith" },
+                  { value: "jane", label: "Jane Smith" },
+                  { value: "mike", label: "Mike Johnson" },
+                  { value: "sarah", label: "Sarah Wilson" },
+                ]}
+                value={formData.contributors.map((id) => ({
+                  value: id,
+                  label: id.charAt(0).toUpperCase() + id.slice(1),
+                }))}
+                onChange={(selectedOptions) =>
+                  handleInputChange(
+                    "contributors",
+                    selectedOptions
+                      ? selectedOptions.map((opt) => opt.value)
+                      : [],
+                  )
+                }
+                isMulti={true}
+                placeholder="Select contributors..."
+              />
+            </div>
+          </div>
+
+          {/* Visibility & Notes Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visibility
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="private"
+                    checked={formData.visibility === "private"}
+                    onChange={handleChange}
+                    className="form-radio mr-2"
+                  />
+                  <div>
+                    <div className="font-medium text-sm">Private</div>
+                    <div className="text-xs text-gray-500">
+                      Creator + contributors
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="visibility"
+                    value="public"
+                    checked={formData.visibility === "public"}
+                    onChange={handleChange}
+                    className="form-radio mr-2"
+                  />
+                  <div>
+                    <div className="font-medium text-sm">Public</div>
+                    <div className="text-xs text-gray-500">Company visible</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes / Instructions (Optional)
+              </label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Add notes or instructions..."
+                rows={4}
+                className="form-input resize-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Included with each task instance
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* End Condition */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">
+          End Condition
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <input
+              type="radio"
+              id="never"
+              name="endConditionType"
+              value="never"
+              checked={formData.endConditionType === "never"}
+              onChange={handleChange}
+              className="form-radio"
+            />
+            <div className="flex-1">
+              <label
+                htmlFor="never"
+                className="text-sm font-medium text-gray-700 cursor-pointer block"
+              >
+                Never End
+              </label>
+              <span className="text-xs text-gray-500">
+                Continue indefinitely
+              </span>
+            </div>
+          </div>
+
+          <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-2 mb-2">
+              <input
+                type="radio"
+                id="after"
+                name="endConditionType"
+                value="after"
+                checked={formData.endConditionType === "after"}
+                onChange={handleChange}
+                className="form-radio"
+              />
+              <label
+                htmlFor="after"
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                End After
+              </label>
+            </div>
+            {formData.endConditionType === "after" && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  name="endValue"
+                  value={formData.endValue}
+                  onChange={(e) =>
+                    handleInputChange("endValue", parseInt(e.target.value, 10))
+                  }
+                  className="form-input w-16 text-sm"
+                  placeholder="10"
+                  min="1"
+                />
+                <span className="text-xs text-gray-600">times</span>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-2 mb-2">
+              <input
+                type="radio"
+                id="on"
+                name="endConditionType"
+                value="on"
+                checked={formData.endConditionType === "on"}
+                onChange={handleChange}
+                className="form-radio"
+              />
+              <label
+                htmlFor="on"
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                End On
+              </label>
+            </div>
+            {formData.endConditionType === "on" && (
+              <input
+                type="date"
+                name="endValue"
+                value={formData.endValue}
+                onChange={(e) => handleInputChange("endValue", e.target.value)}
+                className="form-input text-sm"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Form Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary">
+          Create Recurring Task
+        </button>
+      </div>
+    </form>
