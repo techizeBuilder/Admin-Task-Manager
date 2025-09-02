@@ -89,13 +89,15 @@ export default function Header({ user }) {
     ...profileUser, // Profile data takes highest priority and includes profileImageUrl
   };
   
-  // Debug avatar data flow
-  console.log("Header Avatar Debug:", {
-    user: user ? { email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl } : null,
-    authUser: authUser ? { email: authUser.email, firstName: authUser.firstName, lastName: authUser.lastName, profileImageUrl: authUser.profileImageUrl } : null,
-    profileUser: profileUser ? { email: profileUser.email, firstName: profileUser.firstName, lastName: profileUser.lastName, profileImageUrl: profileUser.profileImageUrl } : null,
-    currentUser: currentUser ? { email: currentUser.email, firstName: currentUser.firstName, lastName: currentUser.lastName, profileImageUrl: currentUser.profileImageUrl } : null
-  });
+  // Debug avatar data flow in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Header Avatar Debug:", {
+      user: user ? { email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl } : null,
+      authUser: authUser ? { email: authUser.email, firstName: authUser.firstName, lastName: authUser.lastName, profileImageUrl: authUser.profileImageUrl } : null,
+      profileUser: profileUser ? { email: profileUser.email, firstName: profileUser.firstName, lastName: profileUser.lastName, profileImageUrl: profileUser.profileImageUrl } : null,
+      currentUser: currentUser ? { email: currentUser.email, firstName: currentUser.firstName, lastName: currentUser.lastName, profileImageUrl: currentUser.profileImageUrl } : null
+    });
+  }
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });

@@ -144,25 +144,40 @@ export default function EditProfile() {
       setSelectedFile(null);
       setImagePreview(null);
 
+      // Clean up preview URL if it exists
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
       // Force immediate cache update with new profile data including image
       const updatedUserData = {
         ...data.user,
         profileImageUrl: data.user.profileImageUrl,
         firstName: data.user.firstName,
         lastName: data.user.lastName,
-        email: data.user.email
+        email: data.user.email,
+        id: data.user.id || data.user._id
       };
 
-      // Update all user data caches immediately
+      console.log("Profile update success - setting cache data:", updatedUserData);
+
+      // Update all user data caches immediately for instant header update
       queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
       queryClient.setQueryData(["/api/profile"], updatedUserData);
       
-      // Force refresh of all user-related queries to ensure consistency
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
-        queryClient.refetchQueries({ queryKey: ["/api/profile"] });
-      }, 100);
+      // Force invalidation and refetch to ensure all components get fresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
+      
+      // Refetch queries to ensure components re-render with new data
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/profile"],
+        type: 'active'
+      });
+      queryClient.refetchQueries({ 
+        queryKey: ["/api/auth/verify"],
+        type: 'active'  
+      });
       setLocation("/dashboard");
     },
     onError: (error) => {
@@ -204,23 +219,41 @@ export default function EditProfile() {
       return;
     }
 
-    setSelectedFile(file);
+    // Clean up previous preview URL to prevent memory leaks
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
+    setSelectedFile(file);
+    // Create immediate preview using object URL for better performance
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    
+    console.log("Image selected for preview:", previewUrl);
   };
 
   const handleRemoveImage = () => {
+    // Clean up preview URL to prevent memory leaks
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    
     setSelectedFile(null);
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
+
+  // Cleanup effect for object URLs
+  useEffect(() => {
+    return () => {
+      // Clean up any remaining object URLs when component unmounts
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -301,8 +334,12 @@ export default function EditProfile() {
               {/* Profile Image Section */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
+                  {/* Show preview first, then current profile image, then initials fallback */}
                   <UserAvatar 
-                    user={currentUser} 
+                    user={{
+                      ...currentUser,
+                      profileImageUrl: imagePreview || currentUser?.profileImageUrl
+                    }}
                     size="xl" 
                     className="h-24 w-24"
                   />

@@ -80,14 +80,16 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
   const imageUrl = getImageUrl();
   
   // Debug avatar rendering
-  console.log("UserAvatar Debug:", {
-    hasUser: !!user,
-    profileImageUrl: user?.profileImageUrl,
-    imageUrl: imageUrl,
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    initials: getInitials()
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log("UserAvatar Debug:", {
+      hasUser: !!user,
+      profileImageUrl: user?.profileImageUrl,
+      imageUrl: imageUrl,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      initials: getInitials()
+    });
+  }
   
   return (
     <Avatar className={`${getSizeClasses()} ${className}`} {...props}>
