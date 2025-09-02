@@ -141,6 +141,11 @@ export default function EditProfile() {
       // Optimistic cache update (header + edit profile dono refresh ho jayenge)
       queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
       queryClient.setQueryData(["/api/profile"], updatedUserData);
+      
+      // Invalidate the header's user data query to trigger immediate header update
+      if (data.user?.id) {
+        queryClient.invalidateQueries({ queryKey: ["/api/users", data.user.id] });
+      }
 
       // Reset local preview
       setSelectedFile(null);
