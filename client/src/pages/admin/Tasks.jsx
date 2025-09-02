@@ -320,7 +320,7 @@ export default function Tasks() {
                           </div>
                         </div>
                       </button>
-                      <button
+                      {/* <button
                         className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 transition-all duration-200 flex items-center gap-3"
                         onClick={() => handleTaskTypeSelect("recurring")}
                       >
@@ -333,7 +333,7 @@ export default function Tasks() {
                             Repeats on schedule
                           </div>
                         </div>
-                      </button>
+                      </button> */}
                       <button
                         className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 flex items-center gap-3"
                         onClick={() => handleTaskTypeSelect("milestone")}
@@ -763,11 +763,11 @@ function FullPageCalendar({
                               className="text-xs px-2 py-1 rounded-md cursor-pointer transition-colors truncate"
                               style={{
                                 backgroundColor: `${getStatusColor(
-                                  task.status
+                                  task.status,
                                 )}20`,
                                 color: getStatusColor(task.status),
                                 borderLeft: `3px solid ${getPriorityColor(
-                                  task.priority
+                                  task.priority,
                                 )}`,
                               }}
                               title={`${task.title} - ${task.status} (${task.priority})`}
@@ -860,7 +860,7 @@ function FullPageCalendar({
                         className="px-2 py-1 rounded-full font-medium"
                         style={{
                           backgroundColor: `${getPriorityColor(
-                            task.priority
+                            task.priority,
                           )}20`,
                           color: getPriorityColor(task.priority),
                         }}

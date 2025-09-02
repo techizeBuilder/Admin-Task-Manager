@@ -380,6 +380,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                     : "border-gray-300 focus:ring-blue-500"
                 }`}
                 placeholder="Enter a clear, descriptive title..."
+                style={{ WebkitTextFillColor: 'inherit' }}
                 maxLength="100"
                 required
                 data-testid="input-task-title"
@@ -393,15 +394,28 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+                Description (Optional)
               </label>
-              <ReactQuill
-                value={formData.description}
-                onChange={(value) => handleInputChange("description", value)}
-                theme="snow"
-                style={{ fontSize: "14px" }}
-                data-testid="editor-description"
-              />
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <ReactQuill
+                  value={formData.description}
+                  onChange={(value) => handleInputChange("description", value)}
+                  theme="snow"
+                  placeholder="Add detailed description, requirements, or instructions..."
+                  className="custom-editor bg-white"
+                  style={{ fontSize: "14px" }}
+                  data-testid="editor-description"
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline'],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      ['link'],
+                      ['clean']
+                    ],
+                  }}
+                />
+              </div>
             </div>
             {/* Labels/Tags */}
             <div>
@@ -888,12 +902,15 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             <button
               type="button"
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="flex items-center justify-between w-full text-left"
+              className="flex items-center justify-between w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
               data-testid="button-toggle-advanced"
             >
-              <h3 className="text-lg font-semibold text-gray-900">Advanced Options</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚙️</span>
+                <h3 className="text-lg font-medium text-gray-700">Advanced Options</h3>
+              </div>
               <svg 
-                className={`w-5 h-5 transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 transition-transform text-gray-500 ${showAdvancedOptions ? 'rotate-180' : ''}`}
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"

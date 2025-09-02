@@ -98,6 +98,30 @@
     background: rgba(249, 250, 251, 0.5);
   }
 
+  /* Custom Editor Styles */
+  .custom-editor .ql-editor {
+    @apply min-h-[120px] p-3;
+    border: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    font-size: 14px;
+  }
+
+  .custom-editor .ql-toolbar {
+    border: none;
+    border-bottom: 1px solid #d1d5db;
+    border-radius: 0.5rem 0.5rem 0 0;
+    background: #f9fafb;
+  }
+
+  .custom-editor .ql-container {
+    border: none;
+  }
+
+  .custom-editor .ql-editor::before {
+    font-style: normal;
+    color: #9ca3af;
+  }
+
   /* Navigation */
   .nav-section {
     @apply mb-8;

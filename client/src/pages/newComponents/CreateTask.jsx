@@ -47,7 +47,7 @@ export default function CreateTask({
   });
   const onSubmit = async (formData) => {
     try {
-      console.log('Form submission data:', formData); // Debug log
+      console.log("Form submission data:", formData); // Debug log
       const submitData = new FormData();
 
       // Add basic task data
@@ -58,9 +58,9 @@ export default function CreateTask({
       submitData.append("visibility", formData.visibility);
       if (formData.category && formData.category.trim()) {
         submitData.append("category", formData.category);
-        console.log('Category being sent:', formData.category); // Debug log
+        console.log("Category being sent:", formData.category); // Debug log
       } else {
-        console.log('No category selected or empty category'); // Debug log
+        console.log("No category selected or empty category"); // Debug log
       }
 
       if (formData.dueDate) {
@@ -109,17 +109,23 @@ export default function CreateTask({
       if (moreOptionsData.customForm) {
         submitData.append("customForm", moreOptionsData.customForm);
       }
-      if (moreOptionsData.dependencies && moreOptionsData.dependencies.length > 0) {
+      if (
+        moreOptionsData.dependencies &&
+        moreOptionsData.dependencies.length > 0
+      ) {
         // Ensure dependencies are properly formatted as an array
-        const dependencyArray = Array.isArray(moreOptionsData.dependencies) 
-          ? moreOptionsData.dependencies 
+        const dependencyArray = Array.isArray(moreOptionsData.dependencies)
+          ? moreOptionsData.dependencies
           : [moreOptionsData.dependencies];
         submitData.append("dependsOnTaskIds", JSON.stringify(dependencyArray));
-        console.log('Dependencies being sent:', dependencyArray); // Debug log
+        console.log("Dependencies being sent:", dependencyArray); // Debug log
       }
       // Always save the advanced task type - this identifies if it's simple, complex, etc.
-      submitData.append("taskTypeAdvanced", moreOptionsData.taskTypeAdvanced || "simple");
-      
+      submitData.append(
+        "taskTypeAdvanced",
+        moreOptionsData.taskTypeAdvanced || "simple",
+      );
+
       // Add the main task type to clearly identify the task category
       submitData.append("mainTaskType", taskType); // This will be "regular", "recurring", "milestone", "approval"
 
@@ -208,7 +214,7 @@ export default function CreateTask({
               </div>
             </div>
           </button>
-
+          {/* 
           <button
             onClick={() => setTaskType("recurring")}
             className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
@@ -236,7 +242,7 @@ export default function CreateTask({
                 </p>
               </div>
             </div>
-          </button>
+          </button> */}
           <button
             onClick={() => setTaskType("milestone")}
             className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
@@ -281,9 +287,11 @@ export default function CreateTask({
               visibility: formData.visibility,
               dueDate: formData.dueDate,
               category: "regular",
-              tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+              tags: formData.tags
+                ? formData.tags.split(",").map((tag) => tag.trim())
+                : [],
               taskType: "regular",
-              ...formData
+              ...formData,
             });
           }}
           onClose={onClose}
@@ -316,7 +324,7 @@ export default function CreateTask({
               notes: formData.notes,
               category: "recurring",
               taskType: "recurring",
-              ...formData
+              ...formData,
             });
           }}
           onClose={onClose}

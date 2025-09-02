@@ -87,7 +87,7 @@ export default function Dashboard() {
       setShowCreateTask(true);
     }
   };
-  
+
   const handleCreateApprovalTask = (approvalTaskData) => {
     console.log("Approval task created:", approvalTaskData);
     setShowApprovalTaskModal(false);
@@ -311,13 +311,13 @@ export default function Dashboard() {
               color="blue"
               onClick={() => handleCreateTask("regular")}
             />
-            <TaskCreationTile
+            {/* <TaskCreationTile
               type="recurring"
               title="Recurring Task"
               icon="🔄"
               color="green"
               onClick={() => handleCreateTask("recurring")}
-            />
+            /> */}
             <TaskCreationTile
               type="milestone"
               title="Milestone"
@@ -332,7 +332,7 @@ export default function Dashboard() {
               color="orange"
               onClick={() => handleCreateTask("approval")}
             />
-             <button
+            <button
               className="btn btn-secondary text-nowrap"
               onClick={() => setShowSelfAppraisal(true)}
             >
@@ -411,12 +411,12 @@ export default function Dashboard() {
                           activity.type === "completion"
                             ? "bg-green-100"
                             : activity.type === "creation"
-                            ? "bg-blue-100"
-                            : activity.type === "assignment"
-                            ? "bg-purple-100"
-                            : activity.type === "update"
-                            ? "bg-orange-100"
-                            : "bg-indigo-100"
+                              ? "bg-blue-100"
+                              : activity.type === "assignment"
+                                ? "bg-purple-100"
+                                : activity.type === "update"
+                                  ? "bg-orange-100"
+                                  : "bg-indigo-100"
                         }`}
                       >
                         {activity.type === "completion" && (
