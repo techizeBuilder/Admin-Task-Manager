@@ -148,43 +148,43 @@ export function SimpleSidebar() {
           },
         ]
       : []),
-    ...(user?.role === "manager"
-      ? [
-          {
-            name: "Dashboard",
-            href: "/dashboard",
-            icon: LayoutDashboard,
-          },
-          {
-            name: "Tasks",
-            href: "/tasks",
-            icon: CheckSquare,
-          },
-          {
-            name: "Notification",
-            href: "/notification",
-            icon: CheckSquare,
-          },
-          {
-            name: "Analytics",
-            href: "/analytics",
-            icon: ChartScatter,
-            description: "Analytics",
-          },
-          {
-            name: "DeadLine",
-            href: "/deadlines",
-            icon: CalendarMinus2,
-            description: "Deadlines",
-          },
-          {
-            name: "Settings",
-            href: "/setting",
-            icon: UserCog,
-            description: "System configuration",
-          },
-        ]
-      : []),
+      ...(user?.role === "manager"
+        ? [
+            {
+              name: "Dashboard",
+              href: "/dashboard",
+              icon: LayoutDashboard,
+            },
+            {
+              name: "Tasks",
+              href: "/tasks",
+              icon: CheckSquare,
+            },
+            {
+              name: "Notification",
+              href: "/notification",
+              icon: CheckSquare,
+            },
+            {
+              name: "Analytics",
+              href: "/analytics",
+              icon: ChartScatter,
+              description: "Analytics",
+            },
+            {
+              name: "DeadLine",
+              href: "/deadlines",
+              icon: CalendarMinus2,
+              description: "Deadlines",
+            },
+            {
+              name: "Settings",
+              href: "/setting",
+              icon: UserCog,
+              description: "System configuration",
+            },
+          ]
+        : []),
     // {
     //   name: "Projects",
     //   href: "/projects",
@@ -192,11 +192,6 @@ export function SimpleSidebar() {
     // },
     ...(canManageOrganization
       ? [
-          {
-            name: "Dashboard",
-            href: "/dashboard",
-            icon: LayoutDashboard,
-          },
           {
             name: "Team",
             href: "/admin/team-members",
@@ -258,10 +253,10 @@ export function SimpleSidebar() {
         ]
       : []),
     {
-      name: "Recurring",
+      name: "RecurringTaskManager",
       href: "/admin/recurring",
       icon: RefreshCcw,
-      description: "Recurring",
+      description: "RecurringTaskManager",
     },
     {
       name: "ApprovalManager",
@@ -335,6 +330,7 @@ export function SimpleSidebar() {
     </Link>
   );
 
+  
   const renderSection = (title, items, sectionKey) => {
     if (items.length === 0) return null;
 
@@ -358,7 +354,7 @@ export function SimpleSidebar() {
     );
   };
   const validUser = JSON.parse(localStorage.getItem("user"));
-
+  
   return (
     <div className="fixed inset-y-0 left-0 z-50 w-56 bg-sidebarDark border-r border-gray-600/30 shadow-xl">
       <div className="flex flex-col h-full">
