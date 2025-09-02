@@ -1749,7 +1749,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           <div
             className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
             style={{
-              width: "min(90vw, 600px)",
+              width: "min(90vw, 900px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
@@ -1865,7 +1865,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
           <div
             className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
             style={{
-              width: "min(90vw, 600px)",
+              width: "min(90vw, 900px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}

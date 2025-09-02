@@ -269,9 +269,7 @@
                         </button>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Choose existing tags or create new ones inline. Used for filtering/search.
-                    </p>
+                 
                   </div>
                 </div>
 
