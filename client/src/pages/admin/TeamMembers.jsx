@@ -58,6 +58,7 @@ import {
   Clock,
   Crown,
   User,
+  Layers,
 } from "lucide-react";
 
 export default function TeamMembers() {
@@ -156,7 +157,7 @@ export default function TeamMembers() {
       if (!response.ok) {
         const error = await response.text();
         throw new Error(
-          error || `Failed to send invitations: ${response.status}`
+          error || `Failed to send invitations: ${response.status}`,
         );
       }
 
@@ -489,7 +490,7 @@ export default function TeamMembers() {
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-purple-600 rounded-lg">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Layers className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-lg font-bold text-purple-600">
                   {licenseInfo?.licenseType || "Standard"}
@@ -760,7 +761,7 @@ export default function TeamMembers() {
                                 <span
                                   key={role}
                                   className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(
-                                    role
+                                    role,
                                   )}`}
                                 >
                                   {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -774,7 +775,7 @@ export default function TeamMembers() {
                             {getStatusIcon(user.status)}
                             <span
                               className={`text-sm font-medium ${getStatusColor(
-                                user.status
+                                user.status,
                               )}`}
                             >
                               {user.status === "invited" ? "Pending" : "Active"}
@@ -785,7 +786,7 @@ export default function TeamMembers() {
                           <div className="text-sm text-gray-600">
                             <div className="font-medium">
                               {getRelativeTime(
-                                user.invitedAt || user.createdAt
+                                user.invitedAt || user.createdAt,
                               )}
                             </div>
                             {(user.invitedAt || user.createdAt) && (
@@ -874,7 +875,7 @@ export default function TeamMembers() {
                         {
                           length: Math.min(
                             5,
-                            filteredAndPaginatedData.totalPages
+                            filteredAndPaginatedData.totalPages,
                           ),
                         },
                         (_, i) => {
@@ -883,8 +884,8 @@ export default function TeamMembers() {
                               1,
                               Math.min(
                                 filteredAndPaginatedData.totalPages - 4,
-                                currentPage - 2
-                              )
+                                currentPage - 2,
+                              ),
                             ) + i;
                           if (page > filteredAndPaginatedData.totalPages)
                             return null;
@@ -901,7 +902,7 @@ export default function TeamMembers() {
                               {page}
                             </Button>
                           );
-                        }
+                        },
                       )}
 
                       {currentPage <
@@ -916,7 +917,7 @@ export default function TeamMembers() {
                             size="sm"
                             onClick={() =>
                               setCurrentPage(
-                                filteredAndPaginatedData.totalPages
+                                filteredAndPaginatedData.totalPages,
                               )
                             }
                             className="w-8 h-8 p-0"
