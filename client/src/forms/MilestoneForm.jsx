@@ -28,6 +28,7 @@ export function MilestoneForm({
           onChange={(e) => handleMilestoneChange('type', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           data-testid="select-milestone-type"
+          required
         >
           <option value="standalone">Standalone</option>
           <option value="linked">Linked</option>
@@ -37,11 +38,11 @@ export function MilestoneForm({
         </p>
       </div>
 
-      {/* Link to Tasks - Only visible if Milestone Type = Linked */}
+      {/* Link to Tasks/Sub-tasks - Only visible if Milestone Type = Linked */}
       {formData.milestone?.type === 'linked' && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Link to Tasks/Sub-tasks *
+            Link to Tasks/Sub-tasks
           </label>
           <MultiSelect
             options={[
@@ -58,7 +59,7 @@ export function MilestoneForm({
             dataTestId="multi-select-milestone-tasks"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Select tasks that must be completed before this milestone can be achieved.
+            Prevent recursive linking (cannot link to itself or another milestone).
           </p>
           {validationErrors.linkedTasks && (
             <p className="text-red-600 text-sm mt-1" data-testid="error-linked-tasks">
@@ -88,7 +89,7 @@ export function MilestoneForm({
         />
         {formData.milestone?.type === 'linked' && (
           <p className="text-xs text-blue-600 mt-1">
-            💡 Suggested: Use the latest due date among selected dependencies
+            If Linked: default = latest due date among dependencies
           </p>
         )}
         {validationErrors.milestoneDueDate && (
@@ -116,12 +117,20 @@ export function MilestoneForm({
           placeholder="Select assignee..."
           dataTestId="searchable-select-milestone-assignee"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Single select search dropdown (1 user only).
+        </p>
+        {validationErrors.assignedTo && (
+          <p className="text-red-600 text-sm mt-1" data-testid="error-assigned-to">
+            {validationErrors.assignedTo}
+          </p>
+        )}
       </div>
 
       {/* Description */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description *
+          Description (Optional)
         </label>
         <div className="border border-gray-300 rounded-lg overflow-hidden">
           <ReactQuill
@@ -142,38 +151,34 @@ export function MilestoneForm({
             }}
           />
         </div>
-        {validationErrors.milestoneDescription && (
-          <p className="text-red-600 text-sm mt-1" data-testid="error-milestone-description">
-            {validationErrors.milestoneDescription}
-          </p>
-        )}
       </div>
 
       {/* Visibility */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Visibility
+          Visibility *
         </label>
         <select
-          value={formData.milestone?.visibility || 'project'}
+          value={formData.milestone?.visibility || 'private'}
           onChange={(e) => handleMilestoneChange('visibility', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           data-testid="select-milestone-visibility"
+          required
         >
+          <option value="private">Private</option>
           <option value="project">Project Team</option>
           <option value="organization">Organization</option>
           <option value="public">Public</option>
-          <option value="private">Private</option>
         </select>
         <p className="text-xs text-gray-500 mt-1">
-          Inherits parent project visibility by default.
+          If created under a project: inherit project visibility.
         </p>
       </div>
 
       {/* Priority */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Priority
+          Priority (Optional)
         </label>
         <select
           value={formData.milestone?.priority || 'medium'}
@@ -207,39 +212,7 @@ export function MilestoneForm({
           dataTestId="multi-select-milestone-collaborators"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Users who will receive notifications and can view milestone progress.
-        </p>
-      </div>
-
-      {/* Milestone Status Preview */}
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
-          <span className="text-lg">⭐</span>
-          Milestone Status Flow
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <span className="text-gray-400">⭐</span>
-            <span className="text-gray-600">Not Started</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-blue-500">⭐</span>
-            <span className="text-gray-600">In Progress</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-blue-600">⭐</span>
-            <span className="text-gray-600">Ready to Mark</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-green-500">⭐</span>
-            <span className="text-gray-600">Achieved</span>
-          </div>
-        </div>
-        <p className="text-xs text-blue-700 mt-2">
-          {formData.milestone?.type === 'linked' 
-            ? "Linked milestones progress automatically based on dependencies completion."
-            : "Standalone milestones can be marked as achieved manually by the assignee."
-          }
+          Notify collaborators on milestone completion.
         </p>
       </div>
     </div>

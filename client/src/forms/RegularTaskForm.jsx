@@ -61,7 +61,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
       dueDate: '',
       assignedTo: 'self',
       description: '',
-      visibility: 'project',
+      visibility: 'private',
       priority: 'medium',
       collaborators: [],
       status: 'not_started'
@@ -167,7 +167,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
         dueDate: '',
         assignedTo: 'self',
         description: '',
-        visibility: 'project',
+        visibility: 'private',
         priority: 'medium',
         collaborators: [],
         status: 'not_started'
@@ -309,14 +309,36 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     // Basic validation
     if (!formData.title.trim()) {
       errors.title = "Task title is required";
+    } else if (formData.title.length > 80) {
+      errors.title = "Task title must be 80 characters or less";
     }
 
-    if (!formData.assignee) {
+    // Assignment validation (skip for milestones as they have their own)
+    if (!formData.isMilestone && !formData.assignee) {
       errors.assignee = "Please assign this task to someone";
     }
 
-    // Regular task validation
-    if (!formData.isRecurring) {
+    // Milestone validations
+    if (formData.isMilestone) {
+      if (!formData.milestone?.assignedTo) {
+        errors.assignedTo = "Please assign this milestone to someone";
+      }
+      if (!formData.milestone?.dueDate) {
+        errors.milestoneDueDate = "Milestone due date is required";
+      } else if (formData.milestone.dueDate < today) {
+        errors.milestoneDueDate = "Due date cannot be in the past";
+      }
+      if (formData.milestone?.type === 'linked' && (!formData.milestone?.linkedTasks || formData.milestone.linkedTasks.length === 0)) {
+        errors.linkedTasks = "Please select at least one task to link";
+      }
+      // Check for circular dependencies (simplified check)
+      if (formData.milestone?.linkedTasks?.includes('self')) {
+        errors.linkedTasks = "Milestone cannot depend on itself";
+      }
+    }
+
+    // Regular task validation (only for non-milestone, non-recurring tasks)
+    if (!formData.isRecurring && !formData.isMilestone) {
       if (!formData.dueDate) {
         errors.dueDate = "Due date is required";
       } else if (formData.dueDate < today) {
@@ -324,8 +346,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
       }
     }
 
-    // Recurring task validation
-    if (formData.isRecurring) {
+    // Recurring task validation (milestones cannot be recurring)
+    if (formData.isRecurring && !formData.isMilestone) {
       if (!recurrenceData.patternType) {
         errors.patternType = "Pattern type is required";
       }
