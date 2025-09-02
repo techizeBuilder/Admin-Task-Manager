@@ -71,7 +71,12 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
   const getImageUrl = () => {
     if (!user?.profileImageUrl) return null;
 
-    // Use a more stable cache busting approach - only update every minute to prevent constant reloading
+    // If it's a blob URL (preview), return as-is
+    if (user.profileImageUrl.startsWith('blob:')) {
+      return user.profileImageUrl;
+    }
+
+    // Use cache busting for server URLs
     const cacheTime = Math.floor(Date.now() / (60 * 1000)); // Updates every minute
     const separator = user.profileImageUrl.includes("?") ? "&" : "?";
     return `${user.profileImageUrl}${separator}v=${cacheTime}`;
