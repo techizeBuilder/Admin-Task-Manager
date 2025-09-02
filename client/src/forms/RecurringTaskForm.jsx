@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
@@ -136,9 +138,9 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Title, Description, Priority Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Task Title *
@@ -173,15 +175,27 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
                 </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Enter task description..."
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  data-testid="textarea-description"
-                />
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                  <ReactQuill
+                    value={formData.description}
+                    onChange={(value) => handleInputChange("description", value)}
+                    theme="snow"
+                    placeholder="Enter task description..."
+                    style={{ 
+                      minHeight: "80px",
+                      fontSize: "14px"
+                    }}
+                    modules={{
+                      toolbar: [
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link'],
+                        ['clean']
+                      ]
+                    }}
+                    data-testid="quill-description"
+                  />
+                </div>
               </div>
 
               <div>
@@ -206,13 +220,13 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
 
         {/* Recurrence Pattern */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
             Recurrence Pattern
           </h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
-            <div className="col-span-2 lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Frequency *
               </label>
               <select
@@ -230,7 +244,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
 
             <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Repeat Every
               </label>
               <input
@@ -248,7 +262,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
 
             <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time
               </label>
               <input
@@ -261,8 +275,8 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
               />
             </div>
 
-            <div className="col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="col-span-1 md:col-span-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Start Date *
               </label>
               <input
@@ -305,13 +319,13 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
 
         {/* Assignment & People */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
             Assignment & People
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Assignment & Contributors Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assign to *
@@ -330,8 +344,8 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 </select>
               </div>
 
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Contributors (Optional)
                   <span className="text-xs text-gray-500 ml-2">
                     - visibility & notifications only
@@ -378,9 +392,9 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
 
             {/* Visibility & Notes Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Visibility
                 </label>
                 <div className="space-y-2">
@@ -421,7 +435,7 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Notes / Instructions (Optional)
                 </label>
                 <textarea
@@ -443,11 +457,11 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
 
         {/* End Condition */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
             End Condition
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
               <input
                 type="radio"
