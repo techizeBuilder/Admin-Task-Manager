@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
@@ -73,7 +73,16 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     endDate: ""
   });
   const [validationErrors, setValidationErrors] = useState({});
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [advancedOptions, setAdvancedOptions] = useState({
+    referenceProcess: "",
+    customForm: "",
+    dependencies: [],
+    taskTypeAdvanced: "simple",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
   // Get today's date in YYYY-MM-DD format
   const today = useMemo(() => {
     return new Date().toISOString().split('T')[0];
@@ -130,8 +139,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
       });
     }
   }, []);
-  const handleFileUpload = useCallback((event) => {
-    const files = Array.from(event.target.files);
+  const handleFileChange = useCallback((event) => {
+    const files = Array.from(event.target.files || event.target);
     const maxTotalSize = 5 * 1024 * 1024; // 5MB
     
     // Calculate current total size
@@ -309,7 +318,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     try {
       const taskData = {
         ...formData,
-        ...(formData.isRecurring ? { recurrence: recurrenceData } : {})
+        ...(formData.isRecurring ? { recurrence: recurrenceData } : {}),
+        advancedOptions: advancedOptions
       };
       
       await onSubmit(taskData);
@@ -415,41 +425,95 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 dataTestId="multi-select-labels"
               />
             </div>
-            {/* File Attachments */}
+            {/* File Attachments - Dropbox Style */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Attachments
+                File Attachments (Optional)
                 <span className="text-xs text-gray-500 ml-2">
-                  (Max 5MB total, docs/images/PDFs)
+                  - max 5MB total, docs/images/PDFs
                 </span>
               </label>
-              <input
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                data-testid="input-attachments"
-              />
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  isDragging 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const files = Array.from(e.dataTransfer.files);
+                  handleFileChange({ target: { files } });
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  data-testid="input-attachments"
+                />
+                
+                <div className="flex flex-col items-center gap-2">
+                  <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-blue-600 hover:text-blue-500 font-medium"
+                    >
+                      Click to upload
+                    </button>
+                    <span className="text-gray-500"> or drag and drop</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    Images, PDFs, Documents (max 5MB total)
+                  </p>
+                </div>
+              </div>
+
               {validationErrors.attachments && (
                 <p className="text-red-600 text-sm mt-1" data-testid="error-attachments">
                   {validationErrors.attachments}
                 </p>
               )}
-              
-              {/* Display uploaded files */}
+
               {formData.attachments.length > 0 && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-3 space-y-2">
                   {formData.attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <svg className="h-4 w-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm text-gray-700 truncate max-w-xs">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({Math.round(file.size / 1024)}KB)
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeFile(index)}
-                        className="text-red-600 hover:text-red-800 text-sm"
+                        className="text-red-500 hover:text-red-700 p-1"
                         data-testid={`button-remove-file-${index}`}
                       >
-                        Remove
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
                     </div>
                   ))}
@@ -818,6 +882,113 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
           </div>
         </div>
+        {/* Advanced Options */}
+        <div className="card">
+          <div className="card-header">
+            <button
+              type="button"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              className="flex items-center justify-between w-full text-left"
+              data-testid="button-toggle-advanced"
+            >
+              <h3 className="text-lg font-semibold text-gray-900">Advanced Options</h3>
+              <svg 
+                className={`w-5 h-5 transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          
+          {showAdvancedOptions && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Reference Process */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reference Process (Optional)
+                  </label>
+                  <select
+                    value={advancedOptions.referenceProcess}
+                    onChange={(e) => setAdvancedOptions(prev => ({ ...prev, referenceProcess: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="select-reference-process"
+                  >
+                    <option value="">Select process...</option>
+                    <option value="onboarding">Employee Onboarding</option>
+                    <option value="review">Performance Review</option>
+                    <option value="project-setup">Project Setup</option>
+                    <option value="quality-check">Quality Check</option>
+                  </select>
+                </div>
+
+                {/* Custom Form */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Custom Form (Optional)
+                  </label>
+                  <select
+                    value={advancedOptions.customForm}
+                    onChange={(e) => setAdvancedOptions(prev => ({ ...prev, customForm: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-testid="select-custom-form"
+                  >
+                    <option value="">Select form...</option>
+                    <option value="feedback">Feedback Form</option>
+                    <option value="checklist">Task Checklist</option>
+                    <option value="approval">Approval Form</option>
+                    <option value="report">Status Report</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Dependencies */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dependencies (Optional)
+                  <span className="text-xs text-gray-500 ml-2">
+                    - tasks that must be completed first
+                  </span>
+                </label>
+                <MultiSelect
+                  options={[
+                    { value: "task-1", label: "Setup Project Environment" },
+                    { value: "task-2", label: "Create Database Schema" },
+                    { value: "task-3", label: "Design UI Mockups" },
+                    { value: "task-4", label: "Install Dependencies" },
+                  ]}
+                  value={advancedOptions.dependencies}
+                  onChange={(selectedValues) => setAdvancedOptions(prev => ({ ...prev, dependencies: selectedValues }))}
+                  placeholder="Select dependencies..."
+                  dataTestId="multi-select-dependencies"
+                />
+              </div>
+
+              {/* Task Type Classification */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Task Classification
+                </label>
+                <select
+                  value={advancedOptions.taskTypeAdvanced}
+                  onChange={(e) => setAdvancedOptions(prev => ({ ...prev, taskTypeAdvanced: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-testid="select-task-classification"
+                >
+                  <option value="simple">Simple Task</option>
+                  <option value="complex">Complex Task</option>
+                  <option value="research">Research Task</option>
+                  <option value="development">Development Task</option>
+                  <option value="review">Review Task</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Notes */}
         <div className="card">
           <div className="card-header">

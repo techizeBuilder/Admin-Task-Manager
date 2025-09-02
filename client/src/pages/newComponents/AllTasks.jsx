@@ -1047,7 +1047,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowTaskTypeDropdown(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                   <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
                     Task Types
                   </div>
@@ -1065,20 +1065,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                       </div>
                     </div>
                   </button>
-                  <button
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
-                    onClick={() => handleTaskTypeSelect("recurring")}
-                  >
-                    <span className="text-lg">🔄</span>
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        Recurring Task
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Repeats on schedule
-                      </div>
-                    </div>
-                  </button>
+
                   <button
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                     onClick={() => handleTaskTypeSelect("milestone")}
