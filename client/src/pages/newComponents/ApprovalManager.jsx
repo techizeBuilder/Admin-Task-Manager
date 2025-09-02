@@ -1,183 +1,695 @@
+import React, { useState, useEffect } from "react";
+import ReactQuill from "react-quill";
+import SearchableSelect from "./SearchableSelect";
+import ApprovalTaskCreator from "./ApprovalTaskCreator";
+import useTasksStore from "../../../stores/tasksStore";
 
-import React, { useState } from 'react'
-import ApprovalTaskCreator from './ApprovalTaskCreator'
+// Helper functions for approval system
+const getApprovalStatusColor = (status) => {
+  const colors = {
+    not_started: "bg-gray-100 text-gray-800", // Grey
+    pending_approval: "bg-yellow-100 text-yellow-800", // Pending
+    approved: "bg-green-100 text-green-800", // Green
+    rejected: "bg-red-100 text-red-800", // Red
+    auto_approved: "bg-blue-100 text-blue-800", // Yellow for auto
+  };
+  return colors[status] || "bg-gray-100 text-gray-800";
+};
 
-export default function ApprovalManager() {
-  const [currentUser] = useState({ id: 1, name: 'Current User', role: 'manager' })
-  const [showCreateModal, setShowCreateModal] = useState(false)
+const getApprovalIcon = (status) => {
+  switch (status) {
+    case "pending_approval":
+      return "⏳";
+    case "approved":
+      return "✅";
+    case "rejected":
+      return "❌";
+    case "auto_approved":
+      return "🤖";
+    default:
+      return "📝";
+  }
+};
+
+export default function ApprovalManager({ open = false, onclose, onClose }) {
+  const { addTask, tasks, updateTask } = useTasksStore();
+  const [currentUser] = useState("Current User");
+
+  // If onClose is provided, we're being used as a form component
+  if (onClose) {
+    return <ApprovalTaskCreator onClose={onClose} onSubmit={addTask} />;
+  }
+
   const [approvalTasks, setApprovalTasks] = useState([
     {
       id: 1,
-      title: "Budget Approval Q1 2024",
-      mode: "sequential",
-      status: "pending",
-      approvers: [
-        { id: 1, name: "John Smith", role: "manager", status: "approved", comment: "Looks good", approvedAt: "2024-01-15" },
-        { id: 2, name: "Sarah Wilson", role: "director", status: "pending", comment: null, approvedAt: null },
-        { id: 3, name: "Mike Johnson", role: "cfo", status: "waiting", comment: null, approvedAt: null }
+      taskName: "Budget Approval Q4",
+      isApprovalTask: true,
+      approvers: [2, 3], // John Smith, Jane Smith
+      approvalMode: "all_must_approve",
+      dueDate: "2024-02-28",
+      autoApproveAfter: 3,
+      description: "Please review and approve the Q4 budget proposal",
+      attachments: ["budget-q4.pdf", "financial-projections.xlsx"],
+      collaborators: [4, 5], // Mike Johnson, Sarah Wilson
+      visibility: "private",
+      priority: "high",
+      status: "pending_approval",
+      approvalHistory: [
+        {
+          approverId: 2,
+          approverName: "John Smith",
+          decision: "approved",
+          comment: "Looks good to me, approved!",
+          timestamp: "2024-02-15T10:30:00Z",
+        },
       ],
-      creator: "Emily Davis",
-      createdAt: "2024-01-10",
-      dueDate: "2024-01-30",
-      autoApprove: false,
-      description: "Quarterly budget approval for development team"
+      currentApproverIndex: -1, // All must approve
+      createdBy: 1,
+      createdByName: "Current User",
     },
     {
       id: 2,
-      title: "Security Policy Update",
-      mode: "all",
-      status: "in-progress",
-      approvers: [
-        { id: 4, name: "Alex Turner", role: "security", status: "approved", comment: "Security measures adequate", approvedAt: "2024-01-12" },
-        { id: 5, name: "Lisa Chen", role: "compliance", status: "pending", comment: null, approvedAt: null },
-        { id: 6, name: "David Brown", role: "legal", status: "rejected", comment: "Need additional clauses", approvedAt: "2024-01-14" }
+      taskName: "New Hire Approval - Sarah Johnson",
+      isApprovalTask: true,
+      approvers: [2, 3, 6], // Sequential approval
+      approvalMode: "sequential",
+      dueDate: "2024-03-05",
+      autoApproveAfter: 2,
+      description: "Review and approve new hire for Marketing Manager position",
+      attachments: ["resume.pdf", "interview-notes.docx"],
+      collaborators: [4],
+      visibility: "private",
+      priority: "medium",
+      status: "pending_approval",
+      approvalHistory: [
+        {
+          approverId: 2,
+          approverName: "John Smith",
+          decision: "approved",
+          comment: "Excellent candidate, approved for next stage",
+          timestamp: "2024-02-18T14:20:00Z",
+        },
       ],
-      creator: "Security Team",
-      createdAt: "2024-01-08",
-      dueDate: "2024-01-25",
-      autoApprove: false,
-      description: "Updated security policy for remote work guidelines"
+      currentApproverIndex: 1, // Jane Smith is next
+      sequentialOrder: [2, 3, 6],
+      createdBy: 1,
+      createdByName: "Current User",
     },
-    {
-      id: 3,
-      title: "New Hire Approval",
-      mode: "any",
-      status: "approved",
-      approvers: [
-        { id: 7, name: "HR Manager", role: "hr", status: "approved", comment: "Excellent candidate", approvedAt: "2024-01-16" },
-        { id: 8, name: "Team Lead", role: "manager", status: "waiting", comment: null, approvedAt: null }
-      ],
-      creator: "Recruiting Team",
-      createdAt: "2024-01-14",
-      dueDate: "2024-01-20",
-      autoApprove: false,
-      description: "Approval for new senior developer position"
+  ]);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [showAuditModal, setShowAuditModal] = useState(null);
+
+  const teamMembers = [
+    { id: 1, name: "Current User" },
+    { id: 2, name: "John Smith" },
+    { id: 3, name: "Jane Smith" },
+    { id: 4, name: "Mike Johnson" },
+    { id: 5, name: "Sarah Wilson" },
+    { id: 6, name: "Emily Davis" },
+  ];
+
+  // Handle approval decision - Prompts 2, 3, 6, 7
+  const handleApprovalDecision = (taskId, decision, comment = "") => {
+    const task = approvalTasks.find((t) => t.id === taskId);
+    const currentUserId = 1; // Current user ID
+
+    // Prompt 7: Validation checks
+    if (!task.approvers.includes(currentUserId)) {
+      alert("Only assigned approvers can make decisions on this task.");
+      return;
     }
-  ])
 
-  const getApprovalStatus = (task) => {
-    const { approvers, mode } = task
-    const approved = approvers.filter(a => a.status === 'approved')
-    const rejected = approvers.filter(a => a.status === 'rejected')
-    const pending = approvers.filter(a => a.status === 'pending')
-
-    if (rejected.length > 0 && mode !== 'any') return 'rejected'
-    
-    switch (mode) {
-      case 'any':
-        return approved.length > 0 ? 'approved' : pending.length > 0 ? 'pending' : 'waiting'
-      case 'all':
-        return approved.length === approvers.length ? 'approved' : 
-               rejected.length > 0 ? 'rejected' : 'pending'
-      case 'sequential':
-        const currentIndex = approved.length
-        if (currentIndex === approvers.length) return 'approved'
-        if (rejected.length > 0) return 'rejected'
-        return 'pending'
-      default:
-        return 'pending'
+    if (
+      task.status === "approved" ||
+      task.status === "rejected" ||
+      task.status === "auto_approved"
+    ) {
+      alert("Task already finalized.");
+      return;
     }
-  }
 
-  const canUserApprove = (task, approver) => {
-    if (approver.status !== 'pending') return false
-    if (task.mode === 'sequential') {
-      const approverIndex = task.approvers.findIndex(a => a.id === approver.id)
-      const previousApproved = task.approvers.slice(0, approverIndex).every(a => a.status === 'approved')
-      return previousApproved
+    // Check if current user already made a decision
+    const existingDecision = task.approvalHistory.find(
+      (h) => h.approverId === currentUserId,
+    );
+    if (existingDecision) {
+      alert("You have already made a decision on this task.");
+      return;
     }
-    return true
-  }
 
-  const handleApproval = (taskId, approverId, action, comment) => {
-    setApprovalTasks(tasks => tasks.map(task => {
-      if (task.id !== taskId) return task
-      
-      const updatedApprovers = task.approvers.map(approver => {
-        if (approver.id === approverId) {
-          return {
-            ...approver,
-            status: action,
-            comment: comment || null,
-            approvedAt: new Date().toISOString().split('T')[0]
-          }
-        }
-        return approver
-      })
-
-      return {
-        ...task,
-        approvers: updatedApprovers,
-        status: getApprovalStatus({ ...task, approvers: updatedApprovers })
+    // Sequential mode validation - Prompt 7
+    if (task.approvalMode === "sequential") {
+      const currentApprover = task.sequentialOrder[task.currentApproverIndex];
+      if (currentUserId !== currentApprover) {
+        alert(
+          "It's not your turn to approve. Please wait for the previous approver.",
+        );
+        return;
       }
-    }))
-  }
+    }
 
-  const handleCreateApprovalTask = (taskData) => {
-    setApprovalTasks([...approvalTasks, taskData])
-    setShowCreateModal(false)
-  }
+    setApprovalTasks((prev) =>
+      prev.map((t) => {
+        if (t.id !== taskId) return t;
+
+        const newHistory = [
+          ...t.approvalHistory,
+          {
+            approverId: currentUserId,
+            approverName:
+              teamMembers.find((m) => m.id === currentUserId)?.name ||
+              "Unknown",
+            decision,
+            comment,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        let newStatus = t.status;
+        let newCurrentApproverIndex = t.currentApproverIndex;
+
+        // Prompt 2: Apply approval mode logic
+        switch (t.approvalMode) {
+          case "any_one":
+            // First approver decides outcome
+            newStatus = decision === "approved" ? "approved" : "rejected";
+            break;
+
+          case "all_must_approve":
+            if (decision === "rejected") {
+              // One rejection ends task
+              newStatus = "rejected";
+            } else {
+              // Check if all have approved
+              const allApprovers = t.approvers;
+              const approvedBy = newHistory
+                .filter((h) => h.decision === "approved")
+                .map((h) => h.approverId);
+              if (allApprovers.every((id) => approvedBy.includes(id))) {
+                newStatus = "approved";
+              }
+            }
+            break;
+
+          case "sequential":
+            if (decision === "rejected") {
+              // Sequential rejection ends task
+              newStatus = "rejected";
+            } else {
+              // Move to next approver or complete
+              const nextIndex = t.currentApproverIndex + 1;
+              if (nextIndex >= t.sequentialOrder.length) {
+                newStatus = "approved";
+              } else {
+                newCurrentApproverIndex = nextIndex;
+              }
+            }
+            break;
+        }
+
+        return {
+          ...t,
+          approvalHistory: newHistory,
+          status: newStatus,
+          currentApproverIndex: newCurrentApproverIndex,
+        };
+      }),
+    );
+  };
+
+  // Check for auto-approval - Prompt 4
+  useEffect(() => {
+    const checkAutoApproval = () => {
+      const now = new Date();
+
+      setApprovalTasks((prev) =>
+        prev.map((task) => {
+          if (task.status === "pending_approval" && task.autoApproveAfter) {
+            const dueDate = new Date(task.dueDate);
+            const autoApprovalDate = new Date(
+              dueDate.getTime() + task.autoApproveAfter * 24 * 60 * 60 * 1000,
+            );
+
+            if (now > autoApprovalDate) {
+              // Auto-approve the task
+              const autoApprovalHistory = {
+                approverId: 0, // System
+                approverName: "System Auto-Approval",
+                decision: "approved",
+                comment: "Auto-approved due to no response within deadline",
+                timestamp: now.toISOString(),
+              };
+
+              // Notify creator and admin (simulated)
+              console.log(
+                `Auto-approval notification: Task "${task.taskName}" has been auto-approved`,
+              );
+
+              return {
+                ...task,
+                status: "auto_approved",
+                approvalHistory: [...task.approvalHistory, autoApprovalHistory],
+              };
+            }
+          }
+          return task;
+        }),
+      );
+    };
+
+    const interval = setInterval(checkAutoApproval, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle editing approval task - Prompt 6: Restrictions
+  const handleEditTask = (task) => {
+    // Check if any approvals have been made
+    if (task.approvalHistory.length > 0 && currentUser !== "Admin") {
+      alert(
+        "Approvers cannot be changed once decision is in progress. Contact Admin.",
+      );
+      return;
+    }
+
+    setEditingTask(task);
+    setShowAddForm(true);
+  };
+
+  // Handle form submission
+  const handleTaskSubmit = (taskData) => {
+    if (editingTask) {
+      setApprovalTasks((prev) =>
+        prev.map((t) => (t.id === editingTask.id ? { ...t, ...taskData } : t)),
+      );
+      setEditingTask(null);
+    } else {
+      const newTask = {
+        ...taskData,
+        id: Date.now(),
+        status: "not_started",
+        approvalHistory: [],
+        currentApproverIndex: taskData.approvalMode === "sequential" ? 0 : -1,
+        createdBy: 1,
+        createdByName: "Current User",
+      };
+      setApprovalTasks((prev) => [...prev, newTask]);
+    }
+    setShowAddForm(false);
+  };
+
+  const handleCloseForm = () => {
+    setShowAddForm(false);
+    setEditingTask(null);
+  };
+
+  // Get current approver for display
+  const getCurrentApprover = (task) => {
+    if (task.approvalMode === "sequential" && task.currentApproverIndex >= 0) {
+      const approverId = task.sequentialOrder[task.currentApproverIndex];
+      return teamMembers.find((m) => m.id === approverId)?.name || "Unknown";
+    }
+    return null;
+  };
+
+  // Check if current user can approve
+  const canCurrentUserApprove = (task) => {
+    const currentUserId = 1;
+
+    // Not an approver
+    if (!task.approvers.includes(currentUserId)) return false;
+
+    // Task already finalized
+    if (
+      task.status === "approved" ||
+      task.status === "rejected" ||
+      task.status === "auto_approved"
+    )
+      return false;
+
+    // Already made decision
+    const existingDecision = task.approvalHistory.find(
+      (h) => h.approverId === currentUserId,
+    );
+    if (existingDecision) return false;
+
+    // Sequential mode - check turn
+    if (task.approvalMode === "sequential") {
+      const currentApprover = task.sequentialOrder[task.currentApproverIndex];
+      return currentUserId === currentApprover;
+    }
+
+    return true;
+  };
 
   return (
-    <div className="space-y-6 p-5 h-auto overflow-scroll">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Approval Tasks</h1>
-          <p className="mt-2 text-lg text-gray-600">Manage approval workflows and tasks</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select className="form-select">
-              <option>All Status</option>
-              <option>Pending</option>
-              <option>Approved</option>
-              <option>Rejected</option>
-            </select>
-            <select className="form-select">
-              <option>All Modes</option>
-              <option>Any Approver</option>
-              <option>All Approvers</option>
-              <option>Sequential</option>
-            </select>
+    <div className="approval-manager h-full flex flex-col bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <span className="text-2xl">✅</span>
+              Approval Management
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Manage approval tasks and decision workflows
+            </p>
           </div>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn btn-primary flex items-center gap-2"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Create Approval Task
           </button>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {approvalTasks.map(task => (
-            <ApprovalTaskCard 
-              key={task.id} 
-              task={task} 
-              currentUser={currentUser}
-              onApproval={handleApproval}
-            />
-          ))}
-        </div>
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
-          <div className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}></div>
-          <div className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right" style={{width: 'min(90vw, 600px)', boxShadow: '-10px 0 50px rgba(0,0,0,0.2)', borderLeft: '1px solid rgba(255,255,255,0.2)'}}>
+      {/* Approval Tasks List */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-6">
+          {approvalTasks.map((task) => (
+            <div
+              key={task.id}
+              className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-300"
+            >
+              {/* Task Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">{getApprovalIcon(task.status)}</div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">
+                      {task.taskName}
+                    </h3>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getApprovalStatusColor(task.status)}`}
+                    >
+                      {task.status.replace("_", " ").toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditTask(task)}
+                    className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                    title="Edit Task"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setShowAuditModal(task)}
+                    className="text-gray-600 hover:text-gray-800 p-1 rounded"
+                    title="View Audit Trail"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Task Details */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Due Date:</span>
+                  <span className="font-medium text-gray-900">
+                    {task.dueDate}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Mode:</span>
+                  <span className="font-medium text-gray-900 capitalize">
+                    {task.approvalMode.replace("_", " ")}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Created by:</span>
+                  <span className="font-medium text-gray-900">
+                    {task.createdByName}
+                  </span>
+                </div>
+
+                {getCurrentApprover(task) && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Current Approver:</span>
+                    <span className="font-medium text-blue-600">
+                      {getCurrentApprover(task)}
+                    </span>
+                  </div>
+                )}
+
+                {task.autoApproveAfter && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Auto-approve after:</span>
+                    <span className="font-medium text-orange-600">
+                      {task.autoApproveAfter} days
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Approvers List */}
+              <div className="mb-4">
+                <h4 className="text-xs font-medium text-gray-700 mb-2">
+                  Approvers
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {task.approvers.map((approverId) => {
+                    const approver = teamMembers.find(
+                      (m) => m.id === approverId,
+                    );
+                    const hasApproved = task.approvalHistory.find(
+                      (h) => h.approverId === approverId,
+                    );
+                    return (
+                      <span
+                        key={approverId}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          hasApproved
+                            ? hasApproved.decision === "approved"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {hasApproved &&
+                          (hasApproved.decision === "approved" ? "✅ " : "❌ ")}
+                        {approver?.name || "Unknown"}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons - Prompt 8: Inline buttons for approvers */}
+              {canCurrentUserApprove(task) && (
+                <div className="flex gap-2 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      const comment = prompt("Add a comment (optional):");
+                      handleApprovalDecision(
+                        task.id,
+                        "approved",
+                        comment || "",
+                      );
+                    }}
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                  >
+                    ✅ Approve
+                  </button>
+                  <button
+                    onClick={() => {
+                      const comment = prompt(
+                        "Please provide a reason for rejection:",
+                      );
+                      if (comment) {
+                        handleApprovalDecision(task.id, "rejected", comment);
+                      }
+                    }}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                  >
+                    ❌ Reject
+                  </button>
+                </div>
+              )}
+
+              {/* Progress Indicator */}
+              {task.approvalHistory.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="text-xs text-gray-600 mb-1">
+                    Progress: {task.approvalHistory.length} /{" "}
+                    {task.approvers.length} responded
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1">
+                    <div
+                      className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(task.approvalHistory.length / task.approvers.length) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {approvalTasks.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">✅</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No approval tasks yet
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Create approval tasks to manage decision workflows
+            </p>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn btn-primary"
+            >
+              Create Approval Task
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Audit Trail Modal - Prompt 8 */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate">
+          <div
+            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowAuditModal(null)}
+          ></div>
+          <div className="absolute inset-x-4 top-4 bottom-4 bg-white rounded-xl shadow-2xl flex flex-col max-w-2xl mx-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">
+                Audit Trail: {showAuditModal.taskName}
+              </h3>
+              <button
+                onClick={() => setShowAuditModal(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {showAuditModal.approvalHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {showAuditModal.approvalHistory.map((entry, index) => (
+                    <div key={index} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-lg ${entry.decision === "approved" ? "text-green-500" : "text-red-500"}`}
+                          >
+                            {entry.decision === "approved" ? "✅" : "❌"}
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {entry.approverName}
+                          </span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              entry.decision === "approved"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {entry.decision.toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      {entry.comment && (
+                        <p className="text-sm text-gray-700 bg-white rounded p-2">
+                          "{entry.comment}"
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No approval decisions yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Form Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate">
+          <div
+            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={handleCloseForm}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+            style={{
+              width: "min(90vw, 800px)",
+              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+              borderLeft: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
-                Create Approval Task
+                {editingTask ? "Edit Approval Task" : "Create Approval Task"}
               </h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="close-btn"
-              >
+              <button onClick={handleCloseForm} className="close-btn">
                 <svg
                   className="w-6 h-6"
                   fill="none"
@@ -195,201 +707,14 @@ export default function ApprovalManager() {
             </div>
             <div className="drawer-body">
               <ApprovalTaskCreator
-                onClose={() => setShowCreateModal(false)}
-                onSubmit={handleCreateApprovalTask}
+                onClose={handleCloseForm}
+                onSubmit={handleTaskSubmit}
+                initialData={editingTask}
               />
             </div>
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-function ApprovalTaskCard({ task, currentUser, onApproval }) {
-  const [showApprovalModal, setShowApprovalModal] = useState(false)
-  const [selectedApprover, setSelectedApprover] = useState(null)
-
-  const overallStatus = getApprovalStatus(task)
-  const userApprover = task.approvers.find(a => a.id === currentUser.id)
-  const canApprove = userApprover && canUserApprove(task, userApprover)
-
-  const handleApproveClick = (approver) => {
-    setSelectedApprover(approver)
-    setShowApprovalModal(true)
-  }
-
-  return (
-    <>
-      <div className="card hover:shadow-lg transition-shadow duration-200">
-        <div className="flex items-start justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-          <span className={`status-badge ${overallStatus === 'approved' ? 'status-completed' : overallStatus === 'rejected' ? 'bg-red-100 text-red-800' : overallStatus === 'pending' ? 'status-progress' : 'status-todo'}`}>
-            {overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1)}
-          </span>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-gray-600 text-sm">{task.description}</p>
-          
-          <div className="grid grid-cols-1 gap-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Mode:</span>
-              <span className="font-medium text-gray-900">{task.mode}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Due Date:</span>
-              <span className="font-medium text-gray-900">{task.dueDate}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Creator:</span>
-              <span className="font-medium text-gray-900">{task.creator}</span>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Approval Chain</h4>
-            <div className="space-y-2">
-              {task.approvers.map((approver, index) => (
-                <div key={approver.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">
-                      {approver.status === 'approved' ? '✅' : 
-                       approver.status === 'rejected' ? '❌' : 
-                       approver.status === 'pending' ? '⏳' : '⏸️'}
-                    </span>
-                    <div>
-                      <span className="text-sm font-medium text-gray-900">{approver.name}</span>
-                      <span className="text-xs text-gray-500 ml-1">({approver.role})</span>
-                    </div>
-                  </div>
-                  
-                  {approver.status === 'pending' && canUserApprove(task, approver) && approver.id === currentUser.id && (
-                    <button 
-                      className="btn btn-sm btn-primary"
-                      onClick={() => handleApproveClick(approver)}
-                    >
-                      Review
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showApprovalModal && (
-        <ApprovalModal
-          task={task}
-          approver={selectedApprover}
-          onApproval={onApproval}
-          onClose={() => {
-            setShowApprovalModal(false)
-            setSelectedApprover(null)
-          }}
-        />
-      )}
-    </>
-  )
-}
-
-function ApprovalModal({ task, approver, onApproval, onClose }) {
-  const [comment, setComment] = useState('')
-  const [action, setAction] = useState('')
-
-  const handleSubmit = (selectedAction) => {
-    if (!comment.trim() && selectedAction === 'rejected') {
-      alert('Please provide a comment for rejection')
-      return
-    }
-    
-    onApproval(task.id, approver.id, selectedAction, comment)
-    onClose()
-  }
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <h3>Review: {task.title}</h3>
-          <button className="close-button" onClick={onClose}>×</button>
-        </div>
-        
-        <div className="modal-content">
-          <div className="approval-details">
-            <p><strong>Description:</strong> {task.description}</p>
-            <p><strong>Mode:</strong> {task.mode}</p>
-            <p><strong>Due Date:</strong> {task.dueDate}</p>
-          </div>
-
-          <div className="form-group">
-            <label>Comment (optional for approval, required for rejection):</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Add your review comment..."
-              className="form-input"
-              rows="4"
-            />
-          </div>
-          
-          <div className="modal-actions">
-            <button 
-              className="btn-secondary" 
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button 
-              className="btn-danger"
-              onClick={() => handleSubmit('rejected')}
-            >
-              Reject
-            </button>
-            <button 
-              className="btn-success"
-              onClick={() => handleSubmit('approved')}
-            >
-              Approve
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function getApprovalStatus(task) {
-  const { approvers, mode } = task
-  const approved = approvers.filter(a => a.status === 'approved')
-  const rejected = approvers.filter(a => a.status === 'rejected')
-  const pending = approvers.filter(a => a.status === 'pending')
-
-  if (rejected.length > 0 && mode !== 'any') return 'rejected'
-  
-  switch (mode) {
-    case 'any':
-      return approved.length > 0 ? 'approved' : pending.length > 0 ? 'pending' : 'waiting'
-    case 'all':
-      return approved.length === approvers.length ? 'approved' : 
-             rejected.length > 0 ? 'rejected' : 'pending'
-    case 'sequential':
-      const currentIndex = approved.length
-      if (currentIndex === approvers.length) return 'approved'
-      if (rejected.length > 0) return 'rejected'
-      return 'pending'
-    default:
-      return 'pending'
-  }
-}
-
-function canUserApprove(task, approver) {
-  if (approver.status !== 'pending') return false
-  if (task.mode === 'sequential') {
-    const approverIndex = task.approvers.findIndex(a => a.id === approver.id)
-    const previousApproved = task.approvers.slice(0, approverIndex).every(a => a.status === 'approved')
-    return previousApproved
-  }
-  return true
+  );
 }
