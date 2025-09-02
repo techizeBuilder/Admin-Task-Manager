@@ -253,6 +253,12 @@ export function SimpleSidebar() {
         ]
       : []),
     {
+      name: "Regular Tasks",
+      href: "/admin/regular-tasks",
+      icon: CheckSquare,
+      description: "Regular Tasks",
+    },
+    {
       name: "RecurringTaskManager",
       href: "/admin/recurring",
       icon: RefreshCcw,
