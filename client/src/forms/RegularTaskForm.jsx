@@ -1,21 +1,73 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-// Using standard select for now - can be enhanced with searchable select later
-// import { SearchableSelect } from "@/components/ui/searchable-select";
+
+// Error Boundary Component for better debugging
+const ErrorBoundary = ({ children, fallback }) => {
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('RegularTaskForm Error:', error);
+      setHasError(true);
+      setError(error);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return fallback || (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <h3 className="text-red-800 font-semibold">Something went wrong</h3>
+        <p className="text-red-600 text-sm mt-1">
+          {error?.message || 'An unexpected error occurred in the form'}
+        </p>
+        <button 
+          onClick={() => {setHasError(false); setError(null);}}
+          className="mt-2 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return children;
+};
 
 export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    assignee: "self",
-    priority: "low",
-    dueDate: "",
-    visibility: "private",
-    tags: "",
-    currentTagInput: "",
-    isRecurring: false,
-    ...initialData,
+  // State with error handling and validation
+  const [formData, setFormData] = useState(() => {
+    try {
+      return {
+        title: "",
+        description: "",
+        assignee: "self",
+        priority: "low",
+        dueDate: "",
+        visibility: "private",
+        tags: "",
+        currentTagInput: "",
+        isRecurring: false,
+        ...initialData,
+      };
+    } catch (error) {
+      console.error('Error initializing form data:', error);
+      return {
+        title: "",
+        description: "",
+        assignee: "self",
+        priority: "low",
+        dueDate: "",
+        visibility: "private",
+        tags: "",
+        currentTagInput: "",
+        isRecurring: false,
+      };
+    }
   });
 
   const [moreOptionsData, setMoreOptionsData] = useState({
@@ -27,6 +79,11 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
 
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [isManualDueDate, setIsManualDueDate] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Use external validation function
+  const validateFormData = useCallback(() => validateForm(formData), [formData]);
 
   // Calculate due date based on priority
   const calculateDueDateFromPriority = (priority) => {
@@ -73,20 +130,51 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-
-    const taskData = {
-      ...formData,
-      ...moreOptionsData,
-      type: "regular",
-    };
-
-    onSubmit(taskData);
-  };
+    
+    try {
+      setIsSubmitting(true);
+      setValidationErrors({});
+      
+      // Validate form
+      const errors = validateFormData();
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        console.warn('Form validation errors:', errors);
+        return;
+      }
+      
+      const taskData = {
+        ...formData,
+        ...moreOptionsData,
+        type: "regular",
+        moreOptionsData,
+      };
+      
+      console.log('Submitting task data:', taskData);
+      await onSubmit(taskData);
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setValidationErrors({ 
+        submit: error.message || 'Failed to create task. Please try again.' 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, moreOptionsData, onSubmit, validateFormData]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <ErrorBoundary>
+      {/* Validation Error Display */}
+      {validationErrors.submit && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800 text-sm">{validationErrors.submit}</p>
+        </div>
+      )}
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
       <div className="card">
         <div className="card-header">
           <h3 className="text-base font-bold text-gray-900 mb-1">
@@ -123,11 +211,23 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                   handleInputChange("title", e.target.value);
                 }
               }}
-              className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.title.length >= 18 ? "border-orange-500" : ""}`}
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors ${
+                validationErrors.title 
+                  ? "border-red-300 focus:ring-red-500" 
+                  : formData.title.length >= 18 
+                    ? "border-orange-500 focus:ring-orange-500" 
+                    : "border-gray-300 focus:ring-blue-500"
+              }`}
               placeholder="Short, clear title..."
               maxLength="20"
               required
+              data-testid="input-task-title"
             />
+            {validationErrors.title && (
+              <p className="text-red-600 text-xs mt-1" data-testid="error-task-title">
+                {validationErrors.title}
+              </p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               Guideline: Short, clear title
             </p>
@@ -157,8 +257,13 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             <select
               value={formData.assignee}
               onChange={(e) => handleInputChange("assignee", e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                validationErrors.assignee 
+                  ? "border-red-300 focus:ring-red-500" 
+                  : "border-gray-300 focus:ring-blue-500"
+              }`}
               required
+              data-testid="select-assignee"
             >
               <option value="self">Self</option>
               <option value="john">John Doe</option>
@@ -377,40 +482,20 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Reference Process
               </label>
-              <SearchableSelect
-                options={[
-                  { value: "", label: "Select a process..." },
-                  { value: "sop001", label: "Customer Onboarding SOP" },
-                  { value: "sop002", label: "Bug Report Workflow" },
-                  { value: "sop003", label: "Feature Request Process" },
-                  { value: "sop004", label: "Quality Assurance Checklist" },
-                  { value: "sop005", label: "Deployment Process" },
-                ]}
-                value={
-                  moreOptionsData.referenceProcess
-                    ? {
-                        value: moreOptionsData.referenceProcess,
-                        label:
-                          {
-                            sop001: "Customer Onboarding SOP",
-                            sop002: "Bug Report Workflow",
-                            sop003: "Feature Request Process",
-                            sop004: "Quality Assurance Checklist",
-                            sop005: "Deployment Process",
-                          }[moreOptionsData.referenceProcess] ||
-                          moreOptionsData.referenceProcess,
-                      }
-                    : null
+              <select
+                value={moreOptionsData.referenceProcess || ""}
+                onChange={(e) =>
+                  handleMoreOptionsChange("referenceProcess", e.target.value)
                 }
-                onChange={(selectedOption) =>
-                  handleMoreOptionsChange(
-                    "referenceProcess",
-                    selectedOption?.value || "",
-                  )
-                }
-                placeholder="Search and select a process..."
-                isClearable
-              />
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a process...</option>
+                <option value="sop001">Customer Onboarding SOP</option>
+                <option value="sop002">Bug Report Workflow</option>
+                <option value="sop003">Feature Request Process</option>
+                <option value="sop004">Quality Assurance Checklist</option>
+                <option value="sop005">Deployment Process</option>
+              </select>
               <p className="text-xs text-gray-500 mt-1">
                 Links the task to a predefined process (e.g., "Onboarding SOP").
                 Useful for standard workflows.
@@ -422,40 +507,20 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Custom Form
               </label>
-              <SearchableSelect
-                options={[
-                  { value: "", label: "Select a form..." },
-                  { value: "form001", label: "Bug Report Form" },
-                  { value: "form002", label: "Feature Request Form" },
-                  { value: "form003", label: "Customer Feedback Form" },
-                  { value: "form004", label: "Project Evaluation Form" },
-                  { value: "form005", label: "Performance Review Form" },
-                ]}
-                value={
-                  moreOptionsData.customForm
-                    ? {
-                        value: moreOptionsData.customForm,
-                        label:
-                          {
-                            form001: "Bug Report Form",
-                            form002: "Feature Request Form",
-                            form003: "Customer Feedback Form",
-                            form004: "Project Evaluation Form",
-                            form005: "Performance Review Form",
-                          }[moreOptionsData.customForm] ||
-                          moreOptionsData.customForm,
-                      }
-                    : null
+              <select
+                value={moreOptionsData.customForm || ""}
+                onChange={(e) =>
+                  handleMoreOptionsChange("customForm", e.target.value)
                 }
-                onChange={(selectedOption) =>
-                  handleMoreOptionsChange(
-                    "customForm",
-                    selectedOption?.value || "",
-                  )
-                }
-                placeholder="Search and select a form..."
-                isClearable
-              />
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a form...</option>
+                <option value="form001">Bug Report Form</option>
+                <option value="form002">Feature Request Form</option>
+                <option value="form003">Customer Feedback Form</option>
+                <option value="form004">Project Evaluation Form</option>
+                <option value="form005">Performance Review Form</option>
+              </select>
               <p className="text-xs text-gray-500 mt-1">
                 Allows attaching an existing form template. Users cannot create
                 new forms here (only pick from existing).
@@ -465,47 +530,50 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             {/* Dependencies */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Dependencies
+                Dependencies (Multiple Select)
               </label>
-              <SearchableSelect
-                options={[
+              <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 max-h-32 overflow-y-auto">
+                {[
                   { value: "task001", label: "Setup Development Environment" },
                   { value: "task002", label: "Design Database Schema" },
                   { value: "task003", label: "Create API Endpoints" },
                   { value: "task004", label: "Write Unit Tests" },
                   { value: "task005", label: "User Interface Design" },
-                ]}
-                value={
-                  moreOptionsData.dependencies &&
-                  Array.isArray(moreOptionsData.dependencies)
-                    ? moreOptionsData.dependencies
-                        .map((depId) => {
-                          const taskNames = {
-                            task001: "Setup Development Environment",
-                            task002: "Design Database Schema",
-                            task003: "Create API Endpoints",
-                            task004: "Write Unit Tests",
-                            task005: "User Interface Design",
-                          };
-                          return taskNames[depId]
-                            ? { value: depId, label: taskNames[depId] }
-                            : null;
-                        })
-                        .filter(Boolean)
-                    : []
-                }
-                onChange={(selectedOptions) =>
-                  handleMoreOptionsChange(
-                    "dependencies",
-                    selectedOptions
-                      ? selectedOptions.map((option) => option.value)
-                      : [],
-                  )
-                }
-                placeholder="Search and select dependent tasks..."
-                isMulti={true}
-                isClearable
-              />
+                ].map((task) => (
+                  <label
+                    key={task.value}
+                    className="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        Array.isArray(moreOptionsData.dependencies) &&
+                        moreOptionsData.dependencies.includes(task.value)
+                      }
+                      onChange={(e) => {
+                        const currentDeps = Array.isArray(moreOptionsData.dependencies) 
+                          ? [...moreOptionsData.dependencies] 
+                          : [];
+                        
+                        if (e.target.checked) {
+                          if (!currentDeps.includes(task.value)) {
+                            currentDeps.push(task.value);
+                          }
+                        } else {
+                          const index = currentDeps.indexOf(task.value);
+                          if (index > -1) {
+                            currentDeps.splice(index, 1);
+                          }
+                        }
+                        
+                        handleMoreOptionsChange("dependencies", currentDeps);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{task.label}</span>
+                  </label>
+                ))}
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Select other tasks that must be completed before this task
                 starts. Supports multiple dependencies.
@@ -517,30 +585,18 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Task Type *
               </label>
-              <SearchableSelect
-                options={[
-                  { value: "simple", label: "📋 Simple" },
-                  { value: "recurring", label: "🔄 Recurring" },
-                  { value: "approval", label: "✅ Approval" },
-                ]}
-                value={{
-                  value: moreOptionsData.taskTypeAdvanced || "simple",
-                  label:
-                    moreOptionsData.taskTypeAdvanced === "simple" ||
-                    !moreOptionsData.taskTypeAdvanced
-                      ? "📋 Simple"
-                      : moreOptionsData.taskTypeAdvanced === "recurring"
-                        ? "🔄 Recurring"
-                        : "✅ Approval",
-                }}
-                onChange={(selectedOption) =>
-                  handleMoreOptionsChange(
-                    "taskTypeAdvanced",
-                    selectedOption.value,
-                  )
+              <select
+                value={moreOptionsData.taskTypeAdvanced || "simple"}
+                onChange={(e) =>
+                  handleMoreOptionsChange("taskTypeAdvanced", e.target.value)
                 }
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
+              >
+                <option value="simple">📋 Simple</option>
+                <option value="recurring">🔄 Recurring</option>
+                <option value="approval">✅ Approval</option>
+              </select>
               <p className="text-xs text-gray-500 mt-1">
                 Default = Simple. Defines the kind of task. Future
                 extensibility: Milestone, Quick.
@@ -559,11 +615,35 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
           <button type="button" className="btn btn-secondary mr-1">
             Save as Draft
           </button>
-          <button type="submit" className="btn btn-primary">
-            Create Task
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Task'}
           </button>
         </div>
       </div>
     </form>
+    </ErrorBoundary>
   );
+}
+
+// Add validation function at the end
+function validateForm(formData) {
+  const errors = {};
+  
+  if (!formData.title?.trim()) {
+    errors.title = 'Task title is required';
+  }
+  
+  if (!formData.assignee) {
+    errors.assignee = 'Assignee is required';
+  }
+  
+  if (!formData.priority) {
+    errors.priority = 'Priority is required';
+  }
+  
+  return errors;
 }
