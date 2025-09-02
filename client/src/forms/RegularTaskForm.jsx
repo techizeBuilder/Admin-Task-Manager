@@ -470,8 +470,11 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                   multiple
                   accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
                   onChange={(e) => {
-                    const files = Array.from(e.target.files);
-                    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+                    const newFiles = Array.from(e.target.files);
+                    const existingFiles = Array.from(formData.attachments || []);
+                    const allFiles = [...existingFiles, ...newFiles];
+                    
+                    const totalSize = allFiles.reduce((sum, file) => sum + file.size, 0);
                     const maxSize = 5 * 1024 * 1024; // 5MB
                     
                     if (totalSize > maxSize) {
@@ -480,7 +483,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                       return;
                     }
                     
-                    handleInputChange("attachments", files);
+                    handleInputChange("attachments", allFiles);
+                    e.target.value = ''; // Clear the input to allow re-selecting same files
                   }}
                   className="hidden"
                   id="attachments-input"
