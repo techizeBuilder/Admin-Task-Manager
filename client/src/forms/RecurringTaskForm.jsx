@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
+import { MultiSelect } from "../components/ui/MultiSelect";
 
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
@@ -344,20 +346,18 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assign to *
                 </label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: "john", label: "John Doe" },
+                    { value: "jane", label: "Jane Smith" },
+                    { value: "mike", label: "Mike Johnson" },
+                    { value: "sarah", label: "Sarah Wilson" },
+                  ]}
                   value={formData.assignee}
-                  onChange={(e) =>
-                    handleInputChange("assignee", e.target.value)
-                  }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="select-assignee"
-                >
-                  <option value="">Select assignee...</option>
-                  <option value="john">John Doe</option>
-                  <option value="jane">Jane Smith</option>
-                  <option value="mike">Mike Johnson</option>
-                  <option value="sarah">Sarah Wilson</option>
-                </select>
+                  onChange={(option) => handleInputChange("assignee", option.value)}
+                  placeholder="Select assignee..."
+                  dataTestId="searchable-select-recurring-assignee"
+                />
               </div>
 
               <div className="md:col-span-2">
@@ -367,56 +367,18 @@ export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
                     - visibility & notifications only
                   </span>
                 </label>
-                <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 max-h-32 overflow-y-auto">
-                  {[
+                <MultiSelect
+                  options={[
                     { value: "john", label: "John Smith" },
                     { value: "jane", label: "Jane Smith" },
                     { value: "mike", label: "Mike Johnson" },
                     { value: "sarah", label: "Sarah Wilson" },
-                  ].map((contributor) => (
-                    <label
-                      key={contributor.value}
-                      className="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.contributors.includes(
-                          contributor.value,
-                        )}
-                        onChange={(e) => {
-                          const currentContributors = [
-                            ...formData.contributors,
-                          ];
-
-                          if (e.target.checked) {
-                            if (
-                              !currentContributors.includes(contributor.value)
-                            ) {
-                              currentContributors.push(contributor.value);
-                            }
-                          } else {
-                            const index = currentContributors.indexOf(
-                              contributor.value,
-                            );
-                            if (index > -1) {
-                              currentContributors.splice(index, 1);
-                            }
-                          }
-
-                          handleInputChange(
-                            "contributors",
-                            currentContributors,
-                          );
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        data-testid={`checkbox-contributor-${contributor.value}`}
-                      />
-                      <span className="text-sm text-gray-700">
-                        {contributor.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                  ]}
+                  value={formData.contributors}
+                  onChange={(selectedValues) => handleInputChange("contributors", selectedValues)}
+                  placeholder="Select contributors..."
+                  dataTestId="multi-select-recurring-contributors"
+                />
               </div>
             </div>
 

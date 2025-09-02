@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
+import { MultiSelect } from "../components/ui/MultiSelect";
 
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
@@ -269,23 +271,25 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
               <label className="block text-xs font-semibold text-gray-700 mb-1">
                 Assigned To *
               </label>
-              <select
+              <SearchableSelect
+                options={[
+                  { value: "self", label: "Self" },
+                  { value: "john", label: "John Doe" },
+                  { value: "jane", label: "Jane Smith" },
+                  { value: "mike", label: "Mike Johnson" },
+                  { value: "sarah", label: "Sarah Wilson" },
+                ]}
                 value={formData.assignee}
-                onChange={(e) => handleInputChange("assignee", e.target.value)}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-                  validationErrors.assignee
-                    ? "border-red-300 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
-                required
-                data-testid="select-assignee"
-              >
-                <option value="self">Self</option>
-                <option value="john">John Doe</option>
-                <option value="jane">Jane Smith</option>
-                <option value="mike">Mike Johnson</option>
-                <option value="sarah">Sarah Wilson</option>
-              </select>
+                onChange={(option) => handleInputChange("assignee", option.value)}
+                placeholder="Select assignee..."
+                className={validationErrors.assignee ? "border-red-300" : ""}
+                dataTestId="searchable-select-assignee"
+              />
+              {validationErrors.assignee && (
+                <p className="text-red-600 text-xs mt-1" data-testid="error-assignee">
+                  {validationErrors.assignee}
+                </p>
+              )}
             </div>
 
             {/* Priority */}
@@ -639,8 +643,8 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Dependencies (Multiple Select)
                 </label>
-                <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 max-h-32 overflow-y-auto">
-                  {[
+                <MultiSelect
+                  options={[
                     {
                       value: "task001",
                       label: "Setup Development Environment",
@@ -649,45 +653,12 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
                     { value: "task003", label: "Create API Endpoints" },
                     { value: "task004", label: "Write Unit Tests" },
                     { value: "task005", label: "User Interface Design" },
-                  ].map((task) => (
-                    <label
-                      key={task.value}
-                      className="flex items-center space-x-2 p-1 hover:bg-gray-100 rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={
-                          Array.isArray(moreOptionsData.dependencies) &&
-                          moreOptionsData.dependencies.includes(task.value)
-                        }
-                        onChange={(e) => {
-                          const currentDeps = Array.isArray(
-                            moreOptionsData.dependencies,
-                          )
-                            ? [...moreOptionsData.dependencies]
-                            : [];
-
-                          if (e.target.checked) {
-                            if (!currentDeps.includes(task.value)) {
-                              currentDeps.push(task.value);
-                            }
-                          } else {
-                            const index = currentDeps.indexOf(task.value);
-                            if (index > -1) {
-                              currentDeps.splice(index, 1);
-                            }
-                          }
-
-                          handleMoreOptionsChange("dependencies", currentDeps);
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {task.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                  ]}
+                  value={Array.isArray(moreOptionsData.dependencies) ? moreOptionsData.dependencies : []}
+                  onChange={(selectedValues) => handleMoreOptionsChange("dependencies", selectedValues)}
+                  placeholder="Select task dependencies..."
+                  dataTestId="multi-select-dependencies"
+                />
               </div>
 
               {/* Task Type */}
