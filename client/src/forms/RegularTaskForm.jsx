@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+// Using standard select for now - can be enhanced with searchable select later
+// import { SearchableSelect } from "@/components/ui/searchable-select";
 
 export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
   const [formData, setFormData] = useState({
@@ -151,39 +152,18 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             <label className="block text-xs font-semibold text-gray-700 mb-1">
               Assigned To *
             </label>
-            <SearchableSelect
-              options={[
-                { value: "self", label: "Self (Current User)" },
-                { value: "john", label: "John Doe" },
-                { value: "jane", label: "Jane Smith" },
-                { value: "mike", label: "Mike Johnson" },
-                { value: "sarah", label: "Sarah Wilson" },
-              ]}
-              value={
-                formData.assignee
-                  ? {
-                      value: formData.assignee,
-                      label:
-                        formData.assignee === "self"
-                          ? "Self (Current User)"
-                          : formData.assignee === "john"
-                          ? "John Doe"
-                          : formData.assignee === "jane"
-                            ? "Jane Smith"
-                            : formData.assignee === "mike"
-                              ? "Mike Johnson"
-                              : formData.assignee === "sarah"
-                                ? "Sarah Wilson"
-                                : formData.assignee,
-                    }
-                  : { value: "self", label: "Self (Current User)" }
-              }
-              onChange={(selectedOption) =>
-                handleInputChange("assignee", selectedOption?.value || "self")
-              }
-              placeholder="Select assignee..."
+            <select
+              value={formData.assignee}
+              onChange={(e) => handleInputChange("assignee", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            />
+            >
+              <option value="self">Self (Current User)</option>
+              <option value="john">John Doe</option>
+              <option value="jane">Jane Smith</option>
+              <option value="mike">Mike Johnson</option>
+              <option value="sarah">Sarah Wilson</option>
+            </select>
             <p className="text-xs text-gray-500 mt-1">
               Default: Self. For solo users → fixed to self. For org users → assignable to others.
             </p>
@@ -194,29 +174,17 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             <label className="block text-xs font-semibold text-gray-700 mb-1">
               Priority *
             </label>
-            <SearchableSelect
-              options={[
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
-                { value: "critical", label: "Critical" },
-              ]}
-              value={{
-                value: formData.priority,
-                label:
-                  formData.priority === "low"
-                    ? "Low"
-                    : formData.priority === "medium"
-                      ? "Medium"
-                      : formData.priority === "high"
-                        ? "High"
-                        : "Critical",
-              }}
-              onChange={(selectedOption) =>
-                handleInputChange("priority", selectedOption.value)
-              }
+            <select
+              value={formData.priority}
+              onChange={(e) => handleInputChange("priority", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            />
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
             <p className="text-xs text-gray-500 mt-1">
               Default: Low. Selecting a priority auto-sets Due Date.
             </p>
@@ -274,20 +242,15 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             <label className="block text-xs font-semibold text-gray-700 mb-1">
               Visibility *
             </label>
-            <SearchableSelect
-              options={[
-                { value: "private", label: "🔒 Private" },
-                { value: "public", label: "🌐 Public" },
-              ]}
-              value={{
-                value: formData.visibility || "private",
-                label: formData.visibility === "public" ? "🌐 Public" : "🔒 Private",
-              }}
-              onChange={(selectedOption) =>
-                handleInputChange("visibility", selectedOption.value)
-              }
+            <select
+              value={formData.visibility || "private"}
+              onChange={(e) => handleInputChange("visibility", e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            />
+            >
+              <option value="private">🔒 Private</option>
+              <option value="public">🌐 Public</option>
+            </select>
             <p className="text-xs text-gray-500 mt-1">
               Default: Private. Solo users → only "Private". Org users → "Private" or "Public".
             </p>

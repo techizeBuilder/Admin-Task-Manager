@@ -4,6 +4,7 @@ import axios from "axios";
 import { calculateDueDateFromPriority } from "../newComponents/PriorityManager";
 import RecurringTaskManager from "./RecurringTaskManager";
 import MilestoneManager from "../newComponents/MilestoneManager";
+import { RegularTaskForm } from "../../forms/RegularTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -269,239 +270,27 @@ export default function CreateTask({
 
       {/* Conditional Task Forms */}
       {taskType === "regular" && (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 mt-3">
-          <div className="card">
-            <div className="card-header px-4 py-3">
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                Task Details
-              </h3>
-              <p className="text-gray-600 ml-1">
-                Fill in the basic information for your task
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-2">
-              {/* Title */}
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  {...register("title", { required: true })}
-                  className="form-input"
-                  placeholder="Enter task title..."
-                />
-              </div>
-
-              {/* Description */}
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  {...register("description")}
-                  className="form-textarea"
-                  placeholder="Describe the task..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 mb-1">
-                {/* Assignee */}
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assign to
-                  </label>
-                  <select {...register("assignee")} className="form-select">
-                    <option value="">Select assignee...</option>
-                    <option value="john">John Doe</option>
-                    <option value="jane">Jane Smith</option>
-                    <option value="mike">Mike Johnson</option>
-                    <option value="sarah">Sarah Wilson</option>
-                  </select>
-                </div>
-
-                {/* Priority */}
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priority
-                  </label>
-                  <select {...register("priority")} className="form-select">
-                    <option value="low">Low (30 days)</option>
-                    <option value="medium">Medium (14 days)</option>
-                    <option value="high">High (7 days)</option>
-                    <option value="critical">Critical (2 days)</option>
-                    <option value="urgent">Urgent (2 days)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Category */}
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select {...register("category")} className="form-select">
-                  <option value="">Select category...</option>
-                  <option value="development">Development</option>
-                  <option value="design">Design</option>
-                  <option value="research">Research</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="support">Support</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
-                {/* Status */}
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Initial Status
-                  </label>
-                  <select {...register("status")} className="form-select">
-                    <option value="todo">To Do</option>
-                    <option value="progress">In Progress</option>
-                    <option value="review">In Review</option>
-                  </select>
-                </div>
-
-                {/* Due Date */}
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Due Date
-                    {!watch("isManualDueDate") && (
-                      <span className="text-xs text-blue-600 ml-2">
-                        (Auto-calculated from priority)
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="date"
-                    {...register("dueDate")}
-                    className="form-input"
-                  />
-                  {!watch("isManualDueDate") && (
-                    <p className="text-xs text-gray-500 mt-1 max-w-[400px] overflow-hidden text-ellipsis text-nowrap">
-                      Due date automatically calculated based on selected
-                      priority. Change manually to override.
-                    </p>
-                  )}
-                  {watch("isManualDueDate") && (
-                    <div className="flex items-center mt-1">
-                      <p className="text-xs text-gray-500">
-                        Manual override active.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setValue("isManualDueDate", false);
-                          const calculatedDueDate =
-                            calculateDueDateFromPriority(watch("priority"));
-                          setValue("dueDate", calculatedDueDate);
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-800 ml-2 underline"
-                      >
-                        Reset to auto-calculate
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Tags */}
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  {...register("tags")}
-                  className="form-input"
-                  placeholder="Enter tags separated by commas..."
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Separate multiple tags with commas
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* File Attachments */}
-          <div className="card px-4 py-3">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Attachments
-            </h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg px-4 py-3 text-center">
-              <svg
-                className="mx-auto h-10 w-10 text-gray-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div className="mt-1">
-                <label className="cursor-pointer">
-                  <span className="text-primary-600 hover:text-primary-500">
-                    Upload files
-                  </span>
-                  <input
-                    type="file"
-                    {...register("attachments")}
-                    className="sr-only"
-                    multiple
-                  />
-                </label>
-                <p className="text-gray-500"> or drag and drop</p>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                PNG, JPG, PDF up to 10MB
-              </p>
-            </div>
-          </div>
-
-          {/* More Options Button */}
-          <div className="card px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Advanced Options
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Configure additional task settings
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowMoreOptions(true)}
-                className="btn btn-secondary flex items-center space-x-2"
-              >
-                <span>⚙️</span>
-                <span>More Options</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Form Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button type="button" className="btn btn-secondary">
-              Save as Draft
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Create Task
-            </button>
-          </div>
-        </form>
+        <RegularTaskForm
+          onSubmit={(formData) => {
+            // Convert RegularTaskForm data format to match existing API
+            onSubmit({
+              title: formData.title,
+              description: formData.description,
+              assignedTo: formData.assignee,
+              priority: formData.priority,
+              visibility: formData.visibility,
+              dueDate: formData.dueDate,
+              category: "regular",
+              tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+              taskType: "regular",
+              ...formData
+            });
+          }}
+          onClose={onClose}
+          initialData={{
+            dueDate: preFilledDate || "",
+          }}
+        />
       )}
 
       {/* Recurring Task Form */}
