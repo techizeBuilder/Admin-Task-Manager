@@ -133,51 +133,19 @@ export default function EditProfile() {
         description: "Profile updated successfully",
       });
 
-      // Update form state with new data
-      const newUserData = data.user;
-      const updatedFormData = {
-        firstName: newUserData.firstName || "",
-        lastName: newUserData.lastName || "",
+      const updatedUserData = {
+        ...data.user,
+        id: data.user.id || data.user._id,
       };
-      setFormData(updatedFormData);
-      setOriginalData(updatedFormData);
+
+      // Optimistic cache update (header + edit profile dono refresh ho jayenge)
+      queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
+      queryClient.setQueryData(["/api/profile"], updatedUserData);
+
+      // Reset local preview
       setSelectedFile(null);
       setImagePreview(null);
 
-      // Clean up preview URL if it exists
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
-      }
-
-      // Force immediate cache update with new profile data including image
-      const updatedUserData = {
-        ...data.user,
-        profileImageUrl: data.user.profileImageUrl,
-        firstName: data.user.firstName,
-        lastName: data.user.lastName,
-        email: data.user.email,
-        id: data.user.id || data.user._id
-      };
-
-      console.log("Profile update success - setting cache data:", updatedUserData);
-
-      // Update all user data caches immediately for instant header update
-      queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
-      queryClient.setQueryData(["/api/profile"], updatedUserData);
-      
-      // Force invalidation and refetch to ensure all components get fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/verify"] });
-      
-      // Refetch queries to ensure components re-render with new data
-      queryClient.refetchQueries({ 
-        queryKey: ["/api/profile"],
-        type: 'active'
-      });
-      queryClient.refetchQueries({ 
-        queryKey: ["/api/auth/verify"],
-        type: 'active'  
-      });
       setLocation("/dashboard");
     },
     onError: (error) => {
@@ -220,7 +188,7 @@ export default function EditProfile() {
     }
 
     // Clean up previous preview URL to prevent memory leaks
-    if (imagePreview && imagePreview.startsWith('blob:')) {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
       URL.revokeObjectURL(imagePreview);
     }
 
@@ -228,16 +196,16 @@ export default function EditProfile() {
     // Create immediate preview using object URL for better performance
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
-    
+
     console.log("Image selected for preview:", previewUrl);
   };
 
   const handleRemoveImage = () => {
     // Clean up preview URL to prevent memory leaks
-    if (imagePreview && imagePreview.startsWith('blob:')) {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
       URL.revokeObjectURL(imagePreview);
     }
-    
+
     setSelectedFile(null);
     setImagePreview(null);
     if (fileInputRef.current) {
@@ -249,7 +217,7 @@ export default function EditProfile() {
   useEffect(() => {
     return () => {
       // Clean up any remaining object URLs when component unmounts
-      if (imagePreview && imagePreview.startsWith('blob:')) {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
         URL.revokeObjectURL(imagePreview);
       }
     };
@@ -276,19 +244,19 @@ export default function EditProfile() {
     if (currentUser?.firstName && currentUser?.lastName) {
       return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase();
     }
-    
+
     // Priority 2: Use first name + email prefix if only first name exists
     if (currentUser?.firstName && currentUser?.email) {
-      const emailPrefix = currentUser.email.split('@')[0];
+      const emailPrefix = currentUser.email.split("@")[0];
       return `${currentUser.firstName.charAt(0)}${emailPrefix.charAt(0)}`.toUpperCase();
     }
-    
+
     // Priority 3: Use first two characters of email prefix as fallback
     if (currentUser?.email) {
-      const emailPrefix = currentUser.email.split('@')[0];
+      const emailPrefix = currentUser.email.split("@")[0];
       return emailPrefix.substring(0, 2).toUpperCase();
     }
-    
+
     return "U";
   };
 
@@ -319,138 +287,140 @@ export default function EditProfile() {
         </p>
       </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profile Information
-            </CardTitle>
-            <CardDescription>
-              Update your profile details. Email cannot be changed here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-2">
-              {/* Profile Image Section */}
-              <div className="flex flex-col items-center space-y-4">
-                <div className="relative">
-                  {/* Show preview first, then current profile image, then initials fallback */}
-                  <UserAvatar 
-                    user={{
-                      ...currentUser,
-                      profileImageUrl: imagePreview || currentUser?.profileImageUrl
-                    }}
-                    size="xl" 
-                    className="h-24 w-24"
-                  />
-                  {imagePreview && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-center space-y-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2"
-                  >
-                    <Camera className="h-4 w-4" />
-                    {getCurrentProfileImage() ? "Change Photo" : "Upload Photo"}
-                  </Button>
-                  <p className="text-xs text-gray-500 text-center">
-                    Accepted formats: .jpg, .jpeg, .png, .webp
-                    <br />
-                    Maximum size: 2MB
-                  </p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.webp"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-
-              {/* Form Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your first name"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your last name"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  value={currentUser?.email || ""}
-                  disabled
-                  className="bg-gray-100 cursor-not-allowed"
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Profile Information
+          </CardTitle>
+          <CardDescription>
+            Update your profile details. Email cannot be changed here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-2">
+            {/* Profile Image Section */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                {/* Show preview first, then current profile image, then initials fallback */}
+                <UserAvatar
+                  user={{
+                    ...currentUser,
+                    profileImageUrl:
+                      imagePreview || currentUser?.profileImageUrl,
+                  }}
+                  size="xl"
+                  className="h-24 w-24"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Email cannot be changed
-                </p>
+
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end space-x-2 pt-2">
+              <div className="flex flex-col items-center space-y-2">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/dashboard")}
-                  className="cursor-pointer text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2"
                 >
-                  Cancel
+                  <Camera className="h-4 w-4" />
+                  {getCurrentProfileImage() ? "Change Photo" : "Upload Photo"}
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={updateProfile.isPending || !hasChanges}
-                  className="bg-blue-800 hover:bg-blue-700 text-white cursor-pointer text-xs"
-                >
-                  {updateProfile.isPending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-3 w-3 mr-1" />
-                      Save Changes 
-                    </>
-                  )}
-                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                  Accepted formats: .jpg, .jpeg, .png, .webp
+                  <br />
+                  Maximum size: 2MB
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your first name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your last name"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                value={currentUser?.email || ""}
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Email cannot be changed
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/dashboard")}
+                className="cursor-pointer text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={updateProfile.isPending || !hasChanges}
+                className="bg-blue-800 hover:bg-blue-700 text-white cursor-pointer text-xs"
+              >
+                {updateProfile.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3 w-3 mr-1" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -69,33 +69,70 @@ export default function Header({ user }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const queryClient = useQueryClient();
 
-  // Fetch fresh user data for the header - use stable caching to prevent flickering
-  const { data: profileUser } = useQuery({
-    queryKey: ["/api/profile"],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-
+  // Get auth user first
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
     initialData: user,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Merge profile data with auth data to ensure all fields are available
-  const currentUser = {
-    ...user,
-    ...authUser,
-    ...profileUser, // Profile data takes highest priority and includes profileImageUrl
-  };
-  
+  // Fetch user data using the same endpoint that works in EditProfile
+  const { data: profileUser } = useQuery({
+    queryKey: ["/api/users", authUser?.id],
+    queryFn: async () => {
+      if (authUser?.id) {
+        const response = await fetch(`/api/users/${authUser.id}`);
+        if (response.ok) {
+          const userData = await response.json();
+          console.log("Header fetched user data:", userData);
+          return userData;
+        }
+      }
+      return null;
+    },
+    enabled: !!authUser?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  // Use profile data primarily (which has the correct profileImageUrl), fallback to auth data
+  const currentUser = profileUser || authUser || user;
+
   // Debug avatar data flow in development
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log("Header Avatar Debug:", {
-      user: user ? { email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl } : null,
-      authUser: authUser ? { email: authUser.email, firstName: authUser.firstName, lastName: authUser.lastName, profileImageUrl: authUser.profileImageUrl } : null,
-      profileUser: profileUser ? { email: profileUser.email, firstName: profileUser.firstName, lastName: profileUser.lastName, profileImageUrl: profileUser.profileImageUrl } : null,
-      currentUser: currentUser ? { email: currentUser.email, firstName: currentUser.firstName, lastName: currentUser.lastName, profileImageUrl: currentUser.profileImageUrl } : null
+      user: user
+        ? {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImageUrl: user.profileImageUrl,
+          }
+        : null,
+      authUser: authUser
+        ? {
+            email: authUser.email,
+            firstName: authUser.firstName,
+            lastName: authUser.lastName,
+            profileImageUrl: authUser.profileImageUrl,
+          }
+        : null,
+      profileUser: profileUser
+        ? {
+            email: profileUser.email,
+            firstName: profileUser.firstName,
+            lastName: profileUser.lastName,
+            profileImageUrl: profileUser.profileImageUrl,
+          }
+        : null,
+      currentUser: currentUser
+        ? {
+            email: currentUser.email,
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName,
+            profileImageUrl: currentUser.profileImageUrl,
+          }
+        : null,
     });
   }
   const handleLogout = async () => {
@@ -120,29 +157,6 @@ export default function Header({ user }) {
     return currentUser?.email?.split("@")[0] || "User";
   };
 
-  const getInitials = () => {
-    // Always prioritize first name + last name initials
-    if (currentUser?.firstName && currentUser?.lastName) {
-      return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(
-        0,
-      )}`.toUpperCase();
-    }
-
-    // If only first name exists, use first character twice
-    if (currentUser?.firstName) {
-      return `${currentUser.firstName.charAt(0)}${currentUser.firstName.charAt(
-        0,
-      )}`.toUpperCase();
-    }
-
-    // Fallback to email prefix only if no name is available
-    if (currentUser?.email) {
-      const emailPrefix = currentUser.email.split("@")[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-
-    return "U";
-  };
   const getPriorityColor = (priority) => {
     const colors = {
       critical: "#ff4444",
