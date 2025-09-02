@@ -896,111 +896,122 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
             </div>
           </div>
         </div>
-        {/* Advanced Options */}
+        {/* Advanced Fields */}
         <div className="card">
           <div className="card-header">
             <button
               type="button"
               onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-              className="flex items-center justify-between w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+              className="flex items-center justify-between w-full text-left"
               data-testid="button-toggle-advanced"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">⚙️</span>
-                <h3 className="text-lg font-medium text-gray-700">Advanced Options</h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Advanced Fields</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure additional task settings (optional)</p>
               </div>
-              <svg 
-                className={`w-5 h-5 transition-transform text-gray-500 ${showAdvancedOptions ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">
+                  {showAdvancedOptions ? "Hide More Options" : "Show More Options"}
+                </span>
+                <svg 
+                  className={`w-4 h-4 transition-transform text-blue-600 ${showAdvancedOptions ? 'rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </button>
           </div>
           
           {showAdvancedOptions && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Reference Process */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reference Process (Optional)
-                  </label>
-                  <select
-                    value={advancedOptions.referenceProcess}
-                    onChange={(e) => setAdvancedOptions(prev => ({ ...prev, referenceProcess: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    data-testid="select-reference-process"
-                  >
-                    <option value="">Select process...</option>
-                    <option value="onboarding">Employee Onboarding</option>
-                    <option value="review">Performance Review</option>
-                    <option value="project-setup">Project Setup</option>
-                    <option value="quality-check">Quality Check</option>
-                  </select>
-                </div>
+            <div className="space-y-6 pt-4 border-t border-gray-200 mt-4">
+              {/* Reference Process */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reference Process
+                </label>
+                <SearchableSelect
+                  options={[
+                    { value: "customer-onboarding-sop", label: "Customer Onboarding SOP" },
+                    { value: "employee-onboarding", label: "Employee Onboarding" },
+                    { value: "project-setup", label: "Project Setup Process" },
+                    { value: "quality-assurance", label: "Quality Assurance" },
+                    { value: "client-review", label: "Client Review Process" },
+                  ]}
+                  value={advancedOptions.referenceProcess}
+                  onChange={(option) => setAdvancedOptions(prev => ({ ...prev, referenceProcess: option.value }))}
+                  placeholder="Customer Onboarding SOP"
+                  dataTestId="searchable-select-reference-process"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Links this task to a predefined process (e.g., "Onboarding SOP"). Useful for standard workflows.
+                </p>
+              </div>
 
-                {/* Custom Form */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Custom Form (Optional)
-                  </label>
-                  <select
-                    value={advancedOptions.customForm}
-                    onChange={(e) => setAdvancedOptions(prev => ({ ...prev, customForm: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    data-testid="select-custom-form"
-                  >
-                    <option value="">Select form...</option>
-                    <option value="feedback">Feedback Form</option>
-                    <option value="checklist">Task Checklist</option>
-                    <option value="approval">Approval Form</option>
-                    <option value="report">Status Report</option>
-                  </select>
-                </div>
+              {/* Custom Form */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Form
+                </label>
+                <SearchableSelect
+                  options={[
+                    { value: "customer-feedback-form", label: "Customer Feedback Form" },
+                    { value: "project-checklist", label: "Project Checklist" },
+                    { value: "approval-form", label: "Approval Form" },
+                    { value: "status-report", label: "Status Report" },
+                    { value: "quality-review", label: "Quality Review Form" },
+                  ]}
+                  value={advancedOptions.customForm}
+                  onChange={(option) => setAdvancedOptions(prev => ({ ...prev, customForm: option.value }))}
+                  placeholder="Customer Feedback Form"
+                  dataTestId="searchable-select-custom-form"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Attaches an existing form template. Users cannot create new forms here (only pick from existing).
+                </p>
               </div>
 
               {/* Dependencies */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dependencies (Optional)
-                  <span className="text-xs text-gray-500 ml-2">
-                    - tasks that must be completed first
-                  </span>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dependencies
                 </label>
                 <MultiSelect
                   options={[
-                    { value: "task-1", label: "Setup Project Environment" },
-                    { value: "task-2", label: "Create Database Schema" },
-                    { value: "task-3", label: "Design UI Mockups" },
-                    { value: "task-4", label: "Install Dependencies" },
+                    { value: "design-database-schema", label: "Design Database Schema" },
+                    { value: "write-unit-tests", label: "Write Unit Tests" },
                   ]}
                   value={advancedOptions.dependencies}
                   onChange={(selectedValues) => setAdvancedOptions(prev => ({ ...prev, dependencies: selectedValues }))}
-                  placeholder="Select dependencies..."
+                  placeholder="Design Database Schema, Write Unit Tests"
                   dataTestId="multi-select-dependencies"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Select other tasks that must be completed before this task starts. Supports multiple dependencies.
+                </p>
               </div>
 
-              {/* Task Type Classification */}
+              {/* Task Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Task Classification
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Task Type *
                 </label>
                 <select
                   value={advancedOptions.taskTypeAdvanced}
                   onChange={(e) => setAdvancedOptions(prev => ({ ...prev, taskTypeAdvanced: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="select-task-classification"
+                  data-testid="select-task-type"
+                  required
                 >
-                  <option value="simple">Simple Task</option>
-                  <option value="complex">Complex Task</option>
-                  <option value="research">Research Task</option>
-                  <option value="development">Development Task</option>
-                  <option value="review">Review Task</option>
+                  <option value="simple">Simple</option>
+                  <option value="recurring">Recurring</option>
+                  <option value="approval">Approval</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Default = Simple. Defines the task kind. Future extensibility: Milestone, Quick.
+                </p>
               </div>
             </div>
           )}
