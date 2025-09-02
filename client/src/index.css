@@ -122,6 +122,20 @@
     color: #9ca3af;
   }
 
+  /* Assignment & People Section Dropdown Fix */
+  .card.relative {
+    overflow: visible;
+  }
+
+  .card .relative {
+    z-index: 1000;
+  }
+
+  /* Ensure dropdowns appear above other elements */
+  .card:focus-within {
+    z-index: 1001;
+  }
+
   /* Navigation */
   .nav-section {
     @apply mb-8;
