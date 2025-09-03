@@ -7,8 +7,26 @@ import MilestoneManager from "../newComponents/MilestoneManager";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { ApprovalTaskForm } from "../../forms/ApprovalTaskForm";
 import { TaskForm } from "../../forms/TaskForm";
+import { TaskCreationModal } from "../../components/TaskCreationModal";
+import CreateTaskModal from "./CreateTaskModal";
 
 export default function CreateTask({
+  onClose,
+  onSubmit,
+  initialTaskType = "regular",
+  preFilledDate = null,
+}) {
+  // Use the new modal interface matching the screenshot
+  return (
+    <CreateTaskModal
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
+  );
+}
+
+// Legacy implementation
+function LegacyCreateTask({
   onClose,
   initialTaskType = "regular",
   preFilledDate = null,
