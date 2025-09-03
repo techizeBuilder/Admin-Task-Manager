@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
+import { RegularTaskContent } from '../../components/forms/RegularTaskContent';
+import { MilestoneTaskContent } from '../../components/forms/MilestoneTaskContent';
 
-export default function CreateTaskModal({ onClose, onSubmit }) {
-  const [selectedTaskType, setSelectedTaskType] = useState('regular');
+export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = 'regular' }) {
+  const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState('Normal');
+  
+  // Milestone specific fields
+  const [milestoneType, setMilestoneType] = useState('project');
+  const [linkedTasks, setLinkedTasks] = useState([]);
+  const [dueDate, setDueDate] = useState('');
 
   const taskTypes = [
     {
@@ -66,39 +73,8 @@ export default function CreateTaskModal({ onClose, onSubmit }) {
   const characterCount = taskName.length;
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      <div className="bg-white">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <span className="text-blue-600">📋</span>
-              Create New Task
-            </h2>
-            <p className="text-gray-600 mt-1">Create and manage your tasks efficiently</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors"
-            data-testid="close-modal"
-          >
-            <svg
-              className="w-6 h-6 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 space-y-6">
           {/* Task Type Selection */}
           <div className="bg-gray-50 p-6 rounded-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Type</h3>
@@ -138,140 +114,90 @@ export default function CreateTaskModal({ onClose, onSubmit }) {
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Details</h3>
             <p className="text-gray-600 mb-4">Fill in the basic information for your task</p>
 
-            <div className="space-y-4">
-              {/* Task Name */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Task Name *
-                  </label>
-                  <span className="text-xs text-gray-500">{characterCount}/20</span>
-                </div>
-                <input
-                  type="text"
-                  value={taskName}
-                  onChange={(e) => setTaskName(e.target.value)}
-                  placeholder="Short, clear title..."
-                  maxLength={20}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  data-testid="input-task-name"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">Guideline: Short, clear title</p>
-              </div>
+            {/* Dynamic Task Content Based on Type */}
+            {selectedTaskType === 'regular' && (
+              <RegularTaskContent
+                taskName={taskName}
+                setTaskName={setTaskName}
+                description={description}
+                setDescription={setDescription}
+                assignedTo={assignedTo}
+                setAssignedTo={setAssignedTo}
+                priority={priority}
+                setPriority={setPriority}
+                characterCount={characterCount}
+              />
+            )}
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <div className="border border-gray-300 rounded-lg">
-                  {/* Rich Text Toolbar */}
-                  <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                    <select className="text-sm border-none bg-transparent focus:outline-none">
-                      <option>Normal</option>
-                      <option>Heading 1</option>
-                      <option>Heading 2</option>
-                    </select>
-                    <div className="flex items-center gap-1 ml-2">
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded text-sm font-bold">
-                        B
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded text-sm italic">
-                        I
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded text-sm underline">
-                        U
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded text-sm line-through">
-                        S
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded">
-                        🔗
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded">
-                        📋
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded">
-                        📝
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded text-sm">
-                        Aa
-                      </button>
-                    </div>
-                  </div>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full p-3 border-none resize-none focus:outline-none rounded-b-lg"
-                    rows={4}
-                    placeholder="Describe the task details..."
-                    data-testid="textarea-description"
-                  />
-                </div>
-              </div>
+            {selectedTaskType === 'milestone' && (
+              <MilestoneTaskContent
+                taskName={taskName}
+                setTaskName={setTaskName}
+                description={description}
+                setDescription={setDescription}
+                assignedTo={assignedTo}
+                setAssignedTo={setAssignedTo}
+                priority={priority}
+                setPriority={setPriority}
+                characterCount={characterCount}
+                milestoneType={milestoneType}
+                setMilestoneType={setMilestoneType}
+                linkedTasks={linkedTasks}
+                setLinkedTasks={setLinkedTasks}
+                dueDate={dueDate}
+                setDueDate={setDueDate}
+              />
+            )}
 
-              {/* Assigned To and Priority */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assigned To *
-                  </label>
-                  <select
-                    value={assignedTo}
-                    onChange={(e) => setAssignedTo(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    data-testid="select-assigned-to"
-                    required
-                  >
-                    <option value="">Select assignee...</option>
-                    <option value="current">Current User</option>
-                    <option value="john">John Smith</option>
-                    <option value="sarah">Sarah Wilson</option>
-                    <option value="mike">Mike Johnson</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Priority *
-                  </label>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    data-testid="select-priority"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Normal">Normal</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            {selectedTaskType === 'recurring' && (
+              <RegularTaskContent
+                taskName={taskName}
+                setTaskName={setTaskName}
+                description={description}
+                setDescription={setDescription}
+                assignedTo={assignedTo}
+                setAssignedTo={setAssignedTo}
+                priority={priority}
+                setPriority={setPriority}
+                characterCount={characterCount}
+              />
+            )}
+
+            {selectedTaskType === 'approval' && (
+              <RegularTaskContent
+                taskName={taskName}
+                setTaskName={setTaskName}
+                description={description}
+                setDescription={setDescription}
+                assignedTo={assignedTo}
+                setAssignedTo={setAssignedTo}
+                priority={priority}
+                setPriority={setPriority}
+                characterCount={characterCount}
+              />
+            )}
           </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              data-testid="button-cancel"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!taskName || !assignedTo}
-              className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
-              data-testid="button-create-task"
-            >
-              Create Task
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Actions */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            data-testid="button-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!taskName || !assignedTo}
+            className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+            data-testid="button-create-task"
+          >
+            Create Task
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -21,6 +21,7 @@ export default function CreateTask({
     <CreateTaskModal
       onClose={onClose}
       onSubmit={onSubmit}
+      initialTaskType={initialTaskType}
     />
   );
 }
