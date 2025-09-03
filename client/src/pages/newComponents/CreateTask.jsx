@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
+import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -196,24 +197,48 @@ export default function CreateTask({
           />
         )}
         
-        {selectedTaskType !== 'regular' && selectedTaskType !== 'recurring' && (
+        {selectedTaskType === 'milestone' && (
+          <MilestoneTaskForm
+            onSubmit={(data) => {
+              console.log('Milestone task created:', data);
+              onSubmit({
+                ...data,
+                taskType: selectedTaskType
+              });
+            }}
+            onCancel={onClose}
+            isOrgUser={true}
+            assignmentOptions={[
+              { value: 'self', label: 'Self' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' },
+              { value: 'user3', label: 'Mike Johnson' }
+            ]}
+            existingTasks={[
+              { id: 'task-1', name: 'Setup Project Environment', taskType: 'regular', dueDate: '2025-09-15' },
+              { id: 'task-2', name: 'Create Database Schema', taskType: 'regular', dueDate: '2025-09-20' },
+              { id: 'task-3', name: 'Design UI Mockups', taskType: 'regular', dueDate: '2025-09-18' },
+              { id: 'task-4', name: 'Implement Authentication', taskType: 'regular', dueDate: '2025-09-25' }
+            ]}
+          />
+        )}
+        
+        {selectedTaskType === 'approval' && (
           <div className="p-8 text-center">
             <div className="bg-gray-100 rounded-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {selectedTaskType === "milestone" ? "Milestone" :
-                 selectedTaskType === "approval" ? "Approval Task" : 
-                 selectedTaskType.charAt(0).toUpperCase() + selectedTaskType.slice(1) + " Task"}
+                Approval Task
               </h2>
               <p className="text-gray-600">
-                This form will be customized for {selectedTaskType} task creation
+                This form will be customized for approval task creation
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Action Buttons - Only for milestone/approval tasks since Regular/Recurring forms have their own buttons */}
-      {selectedTaskType !== 'regular' && selectedTaskType !== 'recurring' && (
+      {/* Action Buttons - Only for approval tasks since other forms have their own buttons */}
+      {selectedTaskType === 'approval' && (
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
           <button
             type="button"

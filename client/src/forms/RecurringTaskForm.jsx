@@ -253,7 +253,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             <div className="flex space-x-4">
               <label className="flex items-center">
                 <input
-                  {...register('recurrence.monthlyMode')}
+                  {...register("recurrence.monthlyMode")}
                   type="radio"
                   value="by_date"
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -263,7 +263,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               </label>
               <label className="flex items-center">
                 <input
-                  {...register('recurrence.monthlyMode')}
+                  {...register("recurrence.monthlyMode")}
                   type="radio"
                   value="by_position"
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -273,19 +273,21 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               </label>
               <label className="flex items-center">
                 <input
-                  {...register('recurrence.monthlyMode')}
+                  {...register("recurrence.monthlyMode")}
                   type="radio"
                   value="specific_date"
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                   data-testid="radio-monthly-specific-date"
                 />
-                <span className="ml-2 text-sm text-gray-900">Specific Date</span>
+                <span className="ml-2 text-sm text-gray-900">
+                  Specific Date
+                </span>
               </label>
             </div>
           </div>
 
           {/* By Date(s) mode */}
-          {watch('recurrence.monthlyMode') === 'by_date' && (
+          {watch("recurrence.monthlyMode") === "by_date" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Day(s) of Month
@@ -312,7 +314,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
 
           {/* By Position mode */}
-          {watch('recurrence.monthlyMode') === 'by_position' && (
+          {watch("recurrence.monthlyMode") === "by_position" && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -325,11 +327,11 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
                     <Select
                       {...field}
                       options={[
-                        { value: 'first', label: 'First' },
-                        { value: 'second', label: 'Second' },
-                        { value: 'third', label: 'Third' },
-                        { value: 'fourth', label: 'Fourth' },
-                        { value: 'last', label: 'Last' }
+                        { value: "first", label: "First" },
+                        { value: "second", label: "Second" },
+                        { value: "third", label: "Third" },
+                        { value: "fourth", label: "Fourth" },
+                        { value: "last", label: "Last" },
                       ]}
                       className="react-select-container"
                       classNamePrefix="react-select"
@@ -365,16 +367,16 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
 
           {/* Specific Date mode */}
-          {watch('recurrence.monthlyMode') === 'specific_date' && (
+          {watch("recurrence.monthlyMode") === "specific_date" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Specific Date (Day of Month)
               </label>
               <input
-                {...register('recurrence.specificDate', { 
-                  min: { value: 1, message: 'Must be between 1-31' },
-                  max: { value: 31, message: 'Must be between 1-31' },
-                  valueAsNumber: true
+                {...register("recurrence.specificDate", {
+                  min: { value: 1, message: "Must be between 1-31" },
+                  max: { value: 31, message: "Must be between 1-31" },
+                  valueAsNumber: true,
                 })}
                 type="number"
                 min="1"
@@ -421,16 +423,16 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               </p>
             )}
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Day of Month
             </label>
             <input
-              {...register('recurrence.yearDay', { 
-                min: { value: 1, message: 'Must be between 1-31' },
-                max: { value: 31, message: 'Must be between 1-31' },
-                valueAsNumber: true
+              {...register("recurrence.yearDay", {
+                min: { value: 1, message: "Must be between 1-31" },
+                max: { value: 31, message: "Must be between 1-31" },
+                valueAsNumber: true,
               })}
               type="number"
               min="1"
@@ -454,13 +456,14 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </label>
           <div className="space-y-2">
             <input
-              {...register('recurrence.customDates')}
+              {...register("recurrence.customDates")}
               type="date"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               data-testid="input-custom-dates"
             />
             <p className="text-xs text-gray-500">
-              Select explicit upcoming dates. This mode is mutually exclusive with other patterns.
+              Select explicit upcoming dates. This mode is mutually exclusive
+              with other patterns.
             </p>
           </div>
         </div>
@@ -932,7 +935,7 @@ export const RecurringTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter(opt => opt.value !== 'self')}
+              options={assignmentOptions.filter((opt) => opt.value !== "self")}
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select contributors for visibility & notifications..."
@@ -941,7 +944,8 @@ export const RecurringTaskForm = ({
           )}
         />
         <p className="text-xs text-gray-500 mt-1">
-          Contributors will receive notifications and can view/comment on the task
+          Contributors will receive notifications and can view/comment on the
+          task
         </p>
       </div>
 
@@ -959,7 +963,7 @@ export const RecurringTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor"
+              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Add any special notes or instructions for this recurring task..."
             />
           )}

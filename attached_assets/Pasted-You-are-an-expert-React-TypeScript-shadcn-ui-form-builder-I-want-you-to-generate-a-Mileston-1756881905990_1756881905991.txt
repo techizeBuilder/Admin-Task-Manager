@@ -1,0 +1,44 @@
+You are an expert React + TypeScript + shadcn/ui form builder. 
+I want you to generate a **Milestone Task Form** for my task management app. 
+This form should follow **clean code, modularity, and maintainability**. 
+Each task type (Regular, Recurring, Approval, Milestone) will have its **own component**. 
+This prompt is for the **Milestone Task Form** only.  
+
+### Functional Requirements:
+- **Toggle**: "Is Milestone?" → when ON, show milestone-specific fields.
+- **Milestone Type (required)**: Dropdown with options → `Standalone`, `Linked`.
+- **Task Name (required)**: Input, max length = 80 chars, live counter.
+- **Description (optional)**: Rich text editor (support bold, bullets, links).
+- **Due Date (required)**: Date picker. Must be ≥ today.  
+  If Milestone Type = `Linked`, default to latest due date among dependencies.
+- **Assigned To (required)**: Single-select dropdown. Default = Self.  
+- **Milestone Type Specifics**:
+  - If `Standalone`: No dependency field.
+  - If `Linked`: Show **multi-select search dropdown** for tasks/sub-tasks.  
+    Validation: Cannot select milestone itself.  
+- **Priority (optional)**: Dropdown → Low, Medium, High, Critical (default Medium).
+- **Visibility (required)**: Toggle → Private/Public (inherits from parent project if exists).
+- **Collaborators (optional)**: Multi-select chips for notifications on achievement.
+- **Status Handling**:
+  - Default Status = Not Started.  
+  - Cannot mark achieved until status = Ready to Mark.  
+- **Restrictions**:
+  - No subtasks allowed under milestone.  
+  - Cannot link milestone to another milestone (avoid recursion).  
+  - Milestone cannot be recurring.  
+
+### UI / UX Requirements:
+- Use **⭐ icon** in header to indicate milestone mode.  
+- Show **inline validation** for missing/invalid fields:
+  - Empty Task Name → "Milestone name is required."
+  - Due Date < Today → "Due date must be today or later."
+  - Self-linking → "Circular dependency not allowed."
+- Show tooltip on hover: milestone rules & dependency summary.  
+- Buttons: **[Save] [Cancel]** bottom right.  
+
+### Output Requirements:
+- Generate a clean, reusable React component named `MilestoneTaskForm.tsx`.  
+- Use **shadcn/ui** form primitives (Form, Input, Select, Toggle, DatePicker, etc).  
+- Use **lucide-react icons** where needed (⭐, calendar, users).  
+- Validation with **react-hook-form + zod** schema.  
+- Component should be future-extensible.  
