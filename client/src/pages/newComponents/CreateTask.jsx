@@ -9,6 +9,7 @@ import { ApprovalTaskForm } from "../../forms/ApprovalTaskForm";
 import { TaskForm } from "../../forms/TaskForm";
 import { TaskCreationModal } from "../../components/TaskCreationModal";
 import CreateTaskModal from "./CreateTaskModal";
+import CreateTaskDrawer from "./CreateTaskDrawer";
 
 export default function CreateTask({
   onClose,
@@ -16,12 +17,11 @@ export default function CreateTask({
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
-  // Use the new modal interface matching the screenshot
+  // Use the new drawer interface matching the screenshot
   return (
-    <CreateTaskModal
+    <CreateTaskDrawer
       onClose={onClose}
       onSubmit={onSubmit}
-      initialTaskType={initialTaskType}
     />
   );
 }

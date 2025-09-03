@@ -2,10 +2,20 @@ import React, { useState, useEffect } from 'react';
 
 // Simple Task Form Component
 const SimpleTaskForm = ({ taskType }) => {
+  const getTaskTypeDisplay = (type) => {
+    switch(type) {
+      case 'regular': return 'Regular Task';
+      case 'recurring': return 'Recurring Task'; 
+      case 'milestone': return 'Milestone';
+      case 'approval': return 'Approval Task';
+      default: return type.charAt(0).toUpperCase() + type.slice(1) + ' Task';
+    }
+  };
+
   return (
     <div className="p-8 text-center">
       <div className="bg-gray-100 rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{taskType.charAt(0).toUpperCase() + taskType.slice(1)} Task</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{getTaskTypeDisplay(taskType)}</h2>
         <p className="text-gray-600">This form will be customized for {taskType} task creation</p>
       </div>
     </div>
