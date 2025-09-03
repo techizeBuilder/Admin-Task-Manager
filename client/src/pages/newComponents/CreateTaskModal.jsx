@@ -66,25 +66,43 @@ export default function CreateTaskModal({ onClose, onSubmit }) {
   const characterCount = taskName.length;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <span className="text-blue-600">📋</span>
+              Create New Task
+            </h2>
+            <p className="text-gray-600 mt-1">Create and manage your tasks efficiently</p>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+            className="p-2 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors"
             data-testid="close-modal"
           >
-            ×
+            <svg
+              className="w-6 h-6 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Task Type Selection */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Task Type</h3>
-            <p className="text-sm text-gray-600 mb-4">Choose the type of task you want to create</p>
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Type</h3>
+            <p className="text-gray-600 mb-4">Choose the type of task you want to create</p>
             
             <div className="grid grid-cols-2 gap-3">
               {taskTypes.map((type) => (
@@ -116,9 +134,9 @@ export default function CreateTaskModal({ onClose, onSubmit }) {
           </div>
 
           {/* Task Details */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Task Details</h3>
-            <p className="text-sm text-gray-600 mb-4">Fill in the basic information for your task</p>
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Details</h3>
+            <p className="text-gray-600 mb-4">Fill in the basic information for your task</p>
 
             <div className="space-y-4">
               {/* Task Name */}
