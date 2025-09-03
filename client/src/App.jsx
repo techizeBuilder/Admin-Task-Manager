@@ -78,6 +78,7 @@ import ActivityFeed from "./pages/newComponents/ActivityFeed";
 import TaskAnalytics from "./pages/newComponents/TaskAnalytics";
 import DeadlinesFromNew from "./pages/newComponents/Deadlines";
 import Deadlines from "./pages/Deadlines";
+import NotificationCenter from "./pages/newComponents/NotificationCenter";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -538,6 +539,11 @@ function App() {
               component={AdminSettings}
               allowedRoles={["admin"]}
             />
+          </AdminLayout>
+        </Route>
+        <Route path="/notifications">
+          <AdminLayout>
+            <ProtectedRoute component={NotificationCenter} />
           </AdminLayout>
         </Route>
         <Route path="/notification">

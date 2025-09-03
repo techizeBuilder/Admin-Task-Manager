@@ -1,18 +1,39 @@
 import React, { useState, useEffect } from "react";
-import useTasksStore from "../../stores/tasksStore";
 
 export default function NotificationCenter() {
-  const {
-    notifications,
-    notificationSettings,
-    markNotificationRead,
-    markAllNotificationsRead,
-    deleteNotification,
-    updateNotificationSettings,
-    checkReminders,
-  } = useTasksStore();
+  // Local state for notifications since store doesn't exist yet
+  const [notifications, setNotifications] = useState([]);
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailNotifications: true,
+    pushNotifications: true,
+    desktopNotifications: false,
+    soundEnabled: true
+  });
 
-  const [staticNotifications] = useState([
+  // Mock functions - these will be replaced when proper store is implemented
+  const markNotificationRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+  
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+  
+  const deleteNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+  
+  const updateNotificationSettings = (settings) => {
+    setNotificationSettings(prev => ({ ...prev, ...settings }));
+  };
+  
+  const checkReminders = () => {
+    console.log("Checking reminders...");
+  };
+
+  // Initialize notifications on component mount
+  useEffect(() => {
+    setNotifications([
     {
       id: 1,
       type: "assignment",
@@ -74,13 +95,13 @@ export default function NotificationCenter() {
       priority: "critical",
     },
   ]);
+  }, []); // Close the useEffect properly
 
   const [filter, setFilter] = useState("all");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Combine dynamic notifications from store with static ones for demo
-  const allNotifications = [...notifications, ...staticNotifications];
-  const unreadCount = allNotifications.filter((n) => !n.read).length;
+  // Use only the notifications state (removed staticNotifications reference)
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Check for reminders periodically
   useEffect(() => {
@@ -89,7 +110,7 @@ export default function NotificationCenter() {
     return () => clearInterval(interval);
   }, [checkReminders]);
 
-  const filteredNotifications = allNotifications.filter((notification) => {
+  const filteredNotifications = notifications.filter((notification) => {
     if (filter === "all") return true;
     if (filter === "unread") return !notification.read;
     return notification.type === filter;
