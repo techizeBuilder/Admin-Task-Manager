@@ -1,0 +1,90 @@
+Build a Recurring Task creation form in React + Tailwind with modular components. 
+The form should extend the Regular Task form with a "Recurring Task" toggle. 
+When toggle = ON → disable Due Date field in base form and show Recurrence Panel.
+
+-------------------------------------
+PRIMARY BEHAVIOR:
+- A Recurring Task = Normal task + recurrence metadata
+- Only ONE assignee allowed
+- Contributors allowed freely (read/comment/notify)
+- Licensing limits must be enforced (e.g., Explore plan: 1 pattern, Plan: 10 patterns, Execute/Optimize: unlimited)
+
+-------------------------------------
+FIELDS & CONTROLS (Recurrence Panel):
+1. Pattern Type (radio, required)
+   Options: Daily, Weekly, Monthly, Yearly, Custom
+
+2. Repeat Every (number input, required)
+   Default = 1 (e.g., every 1 day/week/month/year)
+
+3. Pattern-specific selectors (conditional rendering):
+   - Daily:
+     → Every N days
+   - Weekly:
+     → Every N weeks
+     → Days of week multi-select (Mon..Sun) [required]
+   - Monthly:
+     → Every N months
+     → Mode: 
+         a) By date(s): multi-select day numbers 1–31
+         b) By position (optional MVP+): first/second/third/last + weekday
+         c) Specific date (e.g., every 5th month on 15th)
+   - Yearly:
+     → Every N years
+     → Month(s) multi-select + Day
+   - Custom:
+     → Calendar multi-select for ad-hoc dates
+
+4. Start Date/Time
+   - Default = Today, 09:00 local time of assignee
+   - Cannot be in the past (unless Admin override)
+
+5. End Condition (radio, required)
+   - Never ends
+   - Ends after N occurrences (number input, N ≥ 1)
+   - Ends by Date (date ≥ start date)
+
+6. Assignment & People
+   - Assignee: single select (enforce role rules)
+     • Individual user → fixed to self
+     • Manager/Admin → can assign to others
+   - Contributors: multi-select (optional)
+
+7. Visibility
+   - Inherit Task defaults (Private/Public)
+
+8. Notes / Instruction
+   - Free text field (optional)
+
+-------------------------------------
+UI / UX REQUIREMENTS:
+- When Recurring = ON → 
+  → Hide/disable Due Date in base form
+  → Show Recurrence Panel
+- Pattern Type switch should reset irrelevant controls
+- Show inline errors:
+  • Weekly pattern → require at least one weekday
+  • Monthly → cannot select By Date(s) + By Position together
+  • End date < Start date → block with error
+- Bottom of panel → “Preview next 5 dates” (live updates when user changes controls)
+- Show human-readable summary, e.g.:
+  “Every Monday & Wednesday at 10:00, starting 02 Jun 2025, ends after 12 occurrences.”
+- Add 🔁 badge next to Recurring Tasks
+
+-------------------------------------
+VALIDATION & ERROR HANDLING:
+- Required fields must block Save
+- Conflicting selections → block with red helper text
+- License enforcement → before save, check recurrence limit
+  • If exceeded → block save + show Upgrade CTA
+- Unauthorized assignment → block + role-specific message
+- Preview warning: if pattern yields 0 results in next 12 months → show warning
+
+-------------------------------------
+OUTPUT:
+- Production-ready React component with Tailwind
+- Code modular: 
+  • `RecurringTaskPanel` component handles recurrence fields
+  • Reuses base `TaskForm` fields
+- Validation inline with helper text
+- Save/Cancel buttons at bottom of unified drawer/modal

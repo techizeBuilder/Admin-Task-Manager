@@ -1,598 +1,794 @@
-import { useState, useCallback } from "react";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
-import { SearchableSelect } from "../components/ui/SearchableSelect";
-import { MultiSelect } from "../components/ui/MultiSelect";
+import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import '../styles/quill-custom.css';
+import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 
-// Error Boundary Component for better debugging
-const ErrorBoundary = ({ children, fallback }) => {
-  const [hasError, setHasError] = useState(false);
-  const [error, setError] = useState(null);
+// Recurrence Panel Component
+const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
+  const [previewDates, setPreviewDates] = useState([]);
+  const [summary, setSummary] = useState('');
 
-  if (hasError) {
-    return (
-      fallback || (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <h3 className="text-red-800 font-semibold">Something went wrong</h3>
-          <p className="text-red-600 text-sm mt-1">
-            {error?.message || "An unexpected error occurred in the form"}
-          </p>
-          <button
-            onClick={() => {
-              setHasError(false);
-              setError(null);
-            }}
-            className="mt-2 px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      )
-    );
-  }
+  const watchedPattern = watch('recurrence.patternType');
+  const watchedRepeatEvery = watch('recurrence.repeatEvery');
+  const watchedStartDate = watch('recurrence.startDate');
+  const watchedStartTime = watch('recurrence.startTime');
+  const watchedEndCondition = watch('recurrence.endCondition');
+  const watchedWeekdays = watch('recurrence.weekdays');
+  const watchedMonthDays = watch('recurrence.monthDays');
+  const watchedYearMonths = watch('recurrence.yearMonths');
 
-  return children;
-};
+  // Pattern type options
+  const patternOptions = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
+    { value: 'custom', label: 'Custom' }
+  ];
 
-export function RecurringTaskForm({ onSubmit, onClose, initialData = {} }) {
-  const [formData, setFormData] = useState(() => {
-    try {
-      return {
-        title: "",
-        description: "",
-        priority: "low",
-        frequency: "daily",
-        repeatEvery: 1,
-        time: "",
-        startDate: "",
-        repeatOnDays: [],
-        assignee: "",
-        contributors: [],
-        visibility: "private",
-        notes: "",
-        endConditionType: "never",
-        endDate: "",
-        maxOccurrences: "",
-        ...initialData,
-      };
-    } catch (error) {
-      console.error("Error initializing form data:", error);
-      return {
-        title: "",
-        description: "",
-        priority: "low",
-        frequency: "daily",
-        repeatEvery: 1,
-        time: "",
-        startDate: "",
-        repeatOnDays: [],
-        assignee: "",
-        contributors: [],
-        visibility: "private",
-        notes: "",
-        endConditionType: "never",
-        endDate: "",
-        maxOccurrences: "",
-      };
+  // Weekday options
+  const weekdayOptions = [
+    { value: 'monday', label: 'Monday' },
+    { value: 'tuesday', label: 'Tuesday' },
+    { value: 'wednesday', label: 'Wednesday' },
+    { value: 'thursday', label: 'Thursday' },
+    { value: 'friday', label: 'Friday' },
+    { value: 'saturday', label: 'Saturday' },
+    { value: 'sunday', label: 'Sunday' }
+  ];
+
+  // Month options
+  const monthOptions = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+  ];
+
+  // End condition options
+  const endConditionOptions = [
+    { value: 'never', label: 'Never ends' },
+    { value: 'after', label: 'Ends after N occurrences' },
+    { value: 'by_date', label: 'Ends by Date' }
+  ];
+
+  // Generate month day options (1-31)
+  const monthDayOptions = Array.from({ length: 31 }, (_, i) => ({
+    value: i + 1,
+    label: (i + 1).toString()
+  }));
+
+  // Update preview and summary when recurrence settings change
+  useEffect(() => {
+    generatePreviewAndSummary();
+  }, [
+    watchedPattern,
+    watchedRepeatEvery,
+    watchedStartDate,
+    watchedStartTime,
+    watchedEndCondition,
+    watchedWeekdays,
+    watchedMonthDays,
+    watchedYearMonths
+  ]);
+
+  const generatePreviewAndSummary = () => {
+    if (!watchedPattern || !watchedStartDate) {
+      setPreviewDates([]);
+      setSummary('');
+      return;
     }
-  });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState({});
+    // Generate preview dates (simplified logic)
+    const dates = [];
+    const startDate = new Date(watchedStartDate);
+    const repeatEvery = watchedRepeatEvery || 1;
 
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    handleInputChange(name, value);
-  };
-
-  const handleDayToggle = (day) => {
-    setFormData((prev) => ({
-      ...prev,
-      repeatOnDays: prev.repeatOnDays.includes(day)
-        ? prev.repeatOnDays.filter((d) => d !== day)
-        : [...prev.repeatOnDays, day],
-    }));
-  };
-
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-
-      try {
-        setIsSubmitting(true);
-        setValidationErrors({});
-
-        const taskData = {
-          ...formData,
-          type: "recurring",
-        };
-
-        console.log("Submitting recurring task data:", taskData);
-        await onSubmit(taskData);
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        setValidationErrors({
-          submit:
-            error.message ||
-            "Failed to create recurring task. Please try again.",
-        });
-      } finally {
-        setIsSubmitting(false);
+    // Generate next 5 dates based on pattern
+    for (let i = 0; i < 5; i++) {
+      const nextDate = new Date(startDate);
+      
+      switch (watchedPattern?.value) {
+        case 'daily':
+          nextDate.setDate(startDate.getDate() + (i * repeatEvery));
+          break;
+        case 'weekly':
+          nextDate.setDate(startDate.getDate() + (i * 7 * repeatEvery));
+          break;
+        case 'monthly':
+          nextDate.setMonth(startDate.getMonth() + (i * repeatEvery));
+          break;
+        case 'yearly':
+          nextDate.setFullYear(startDate.getFullYear() + (i * repeatEvery));
+          break;
+        default:
+          continue;
       }
-    },
-    [formData, onSubmit],
-  );
+      
+      dates.push(nextDate.toLocaleDateString());
+    }
+
+    setPreviewDates(dates);
+
+    // Generate summary
+    let summaryText = '';
+    if (watchedPattern?.value && watchedStartDate) {
+      const pattern = watchedPattern.label;
+      const every = repeatEvery > 1 ? `every ${repeatEvery} ` : 'every ';
+      const time = watchedStartTime || '09:00';
+      const startDateStr = new Date(watchedStartDate).toLocaleDateString();
+      
+      summaryText = `${pattern} - ${every}${pattern.toLowerCase()} at ${time}, starting ${startDateStr}`;
+      
+      if (watchedEndCondition?.value === 'after') {
+        summaryText += `, ends after ${watchedEndCondition.occurrences || 'N'} occurrences`;
+      } else if (watchedEndCondition?.value === 'by_date') {
+        summaryText += `, ends by ${watchedEndCondition.endDate || 'end date'}`;
+      } else {
+        summaryText += ', never ends';
+      }
+    }
+
+    setSummary(summaryText);
+  };
+
+  const getTodayDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
 
   return (
-    <ErrorBoundary>
-      {/* Validation Error Display */}
-      {validationErrors.submit && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-800 text-sm">{validationErrors.submit}</p>
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-6">
+      <div className="flex items-center space-x-2 mb-4">
+        <span className="text-2xl">🔁</span>
+        <h3 className="text-lg font-semibold text-gray-900">Recurrence Settings</h3>
+      </div>
+
+      {/* Pattern Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Pattern Type <span className="text-red-500">*</span>
+        </label>
+        <Controller
+          name="recurrence.patternType"
+          control={control}
+          rules={{ required: 'Pattern type is required' }}
+          render={({ field }) => (
+            <Select
+              {...field}
+              options={patternOptions}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select pattern..."
+              data-testid="select-pattern-type"
+            />
+          )}
+        />
+        {errors.recurrence?.patternType && (
+          <p className="text-red-500 text-xs mt-1">{errors.recurrence.patternType.message}</p>
+        )}
+      </div>
+
+      {/* Repeat Every */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Repeat Every <span className="text-red-500">*</span>
+        </label>
+        <div className="flex items-center space-x-2">
+          <input
+            {...register('recurrence.repeatEvery', { 
+              required: 'Repeat interval is required',
+              min: { value: 1, message: 'Must be at least 1' },
+              valueAsNumber: true
+            })}
+            type="number"
+            min="1"
+            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="1"
+            data-testid="input-repeat-every"
+          />
+          <span className="text-sm text-gray-600">
+            {watchedPattern?.value || 'period(s)'}
+          </span>
+        </div>
+        {errors.recurrence?.repeatEvery && (
+          <p className="text-red-500 text-xs mt-1">{errors.recurrence.repeatEvery.message}</p>
+        )}
+      </div>
+
+      {/* Pattern-specific controls */}
+      {watchedPattern?.value === 'weekly' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Days of Week <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="recurrence.weekdays"
+            control={control}
+            rules={{ required: 'At least one weekday is required for weekly pattern' }}
+            render={({ field }) => (
+              <Select
+                {...field}
+                isMulti
+                options={weekdayOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select days..."
+                data-testid="select-weekdays"
+              />
+            )}
+          />
+          {errors.recurrence?.weekdays && (
+            <p className="text-red-500 text-xs mt-1">{errors.recurrence.weekdays.message}</p>
+          )}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Task Information */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
-              Task Details
-            </h3>
-            <p className="text-gray-600 text-sm">
-              Fill in the basic information for your task
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {/* Title, Description, Priority Row */}
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Task Title *
-                  <span
-                    className={`ml-2 text-sm ${formData.title.length > 20 ? "text-red-500" : "text-gray-500"}`}
-                  >
-                    ({formData.title.length}/20)
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 20) {
-                      handleInputChange("title", e.target.value);
-                    }
-                  }}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-                    formData.title.length > 20
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 focus:ring-blue-500"
-                  }`}
-                  placeholder="Enter recurring task title..."
-                  maxLength="20"
-                  required
-                  data-testid="input-recurring-task-title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <div className="border border-gray-300 rounded-lg overflow-hidden">
-                  <ReactQuill
-                    value={formData.description}
-                    onChange={(value) =>
-                      handleInputChange("description", value)
-                    }
-                    theme="snow"
-                    placeholder="Enter task description..."
-                    className="custom-editor"
-                    modules={{
-                      toolbar: [
-                        ["bold", "italic", "underline"],
-                        [{ list: "ordered" }, { list: "bullet" }],
-                        ["link"],
-                        ["clean"],
-                      ],
-                    }}
-                    data-testid="quill-description"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Priority
-                </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) =>
-                    handleInputChange("priority", e.target.value)
-                  }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="select-priority"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-            </div>
-          </div>
+      {watchedPattern?.value === 'monthly' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Day(s) of Month
+          </label>
+          <Controller
+            name="recurrence.monthDays"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                isMulti
+                options={monthDayOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select days (1-31)..."
+                data-testid="select-month-days"
+              />
+            )}
+          />
         </div>
+      )}
 
-        {/* Recurrence Pattern */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Recurrence Pattern
-          </h3>
-
-          <div className="grid grid-cols-4 gap-3">
-            <div className="col-span-1 ">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Frequency *
-              </label>
-              <select
-                value={formData.frequency}
-                onChange={(e) => handleInputChange("frequency", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                data-testid="select-frequency"
-              >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Repeat Every
-              </label>
-              <input
-                type="number"
-                name="repeatEvery"
-                value={formData.repeatEvery}
-                onChange={(e) =>
-                  handleInputChange("repeatEvery", parseInt(e.target.value, 10))
-                }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="1"
-                max="365"
-                data-testid="input-repeat-every"
+      {watchedPattern?.value === 'yearly' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Month(s) <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="recurrence.yearMonths"
+            control={control}
+            rules={{ required: 'At least one month is required for yearly pattern' }}
+            render={({ field }) => (
+              <Select
+                {...field}
+                isMulti
+                options={monthOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select months..."
+                data-testid="select-year-months"
               />
-            </div>
+            )}
+          />
+          {errors.recurrence?.yearMonths && (
+            <p className="text-red-500 text-xs mt-1">{errors.recurrence.yearMonths.message}</p>
+          )}
+        </div>
+      )}
 
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time
-              </label>
-              <input
-                type="time"
-                name="time"
-                value={formData.time}
-                onChange={(e) => handleInputChange("time", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                data-testid="input-time"
-              />
-            </div>
-
-            <div className="col-span-1 ">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                data-testid="input-start-date"
-              />
-            </div>
-          </div>
-
-          {formData.frequency === "weekly" && (
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Repeat On Days
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-                  (day) => (
-                    <button
-                      key={day}
-                      type="button"
-                      className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                        formData.repeatOnDays.includes(day)
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-800 border-gray-300 hover:bg-gray-100"
-                      }`}
-                      onClick={() => handleDayToggle(day)}
-                      data-testid={`button-day-${day.toLowerCase()}`}
-                    >
-                      {day}
-                    </button>
-                  ),
-                )}
-              </div>
-            </div>
+      {/* Start Date & Time */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Start Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register('recurrence.startDate', { 
+              required: 'Start date is required',
+              validate: (value) => {
+                const today = getTodayDate();
+                return value >= today || 'Start date cannot be in the past';
+              }
+            })}
+            type="date"
+            min={getTodayDate()}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            data-testid="input-start-date"
+          />
+          {errors.recurrence?.startDate && (
+            <p className="text-red-500 text-xs mt-1">{errors.recurrence.startDate.message}</p>
           )}
         </div>
 
-        {/* Assignment & People */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Assignment & People
-          </h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Start Time
+          </label>
+          <input
+            {...register('recurrence.startTime')}
+            type="time"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            defaultValue="09:00"
+            data-testid="input-start-time"
+          />
+        </div>
+      </div>
 
-          <div className="space-y-3">
-            {/* Assignment & Contributors Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Assign to *
-                </label>
-                <SearchableSelect
-                  options={[
-                    { value: "john", label: "John Doe" },
-                    { value: "jane", label: "Jane Smith" },
-                    { value: "mike", label: "Mike Johnson" },
-                    { value: "sarah", label: "Sarah Wilson" },
-                  ]}
-                  value={formData.assignee}
-                  onChange={(option) => handleInputChange("assignee", option.value)}
-                  placeholder="Select assignee..."
-                  dataTestId="searchable-select-recurring-assignee"
-                />
-              </div>
+      {/* End Condition */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          End Condition <span className="text-red-500">*</span>
+        </label>
+        <Controller
+          name="recurrence.endCondition"
+          control={control}
+          rules={{ required: 'End condition is required' }}
+          render={({ field }) => (
+            <Select
+              {...field}
+              options={endConditionOptions}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select end condition..."
+              data-testid="select-end-condition"
+            />
+          )}
+        />
+        {errors.recurrence?.endCondition && (
+          <p className="text-red-500 text-xs mt-1">{errors.recurrence.endCondition.message}</p>
+        )}
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contributors (Optional)
-                  <span className="text-xs text-gray-500 ml-2">
-                    - visibility & notifications only
-                  </span>
-                </label>
-                <MultiSelect
-                  options={[
-                    { value: "john", label: "John Smith" },
-                    { value: "jane", label: "Jane Smith" },
-                    { value: "mike", label: "Mike Johnson" },
-                    { value: "sarah", label: "Sarah Wilson" },
-                  ]}
-                  value={formData.contributors}
-                  onChange={(selectedValues) => handleInputChange("contributors", selectedValues)}
-                  placeholder="Select contributors..."
-                  dataTestId="multi-select-recurring-contributors"
-                />
-              </div>
-            </div>
+        {/* Conditional end condition inputs */}
+        {watchedEndCondition?.value === 'after' && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Number of Occurrences
+            </label>
+            <input
+              {...register('recurrence.occurrences', { 
+                required: 'Number of occurrences is required',
+                min: { value: 1, message: 'Must be at least 1' },
+                valueAsNumber: true
+              })}
+              type="number"
+              min="1"
+              className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="12"
+              data-testid="input-occurrences"
+            />
+            {errors.recurrence?.occurrences && (
+              <p className="text-red-500 text-xs mt-1">{errors.recurrence.occurrences.message}</p>
+            )}
+          </div>
+        )}
 
-            {/* Visibility & Notes Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Visibility
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="private"
-                      checked={formData.visibility === "private"}
-                      onChange={handleChange}
-                      className="text-blue-600 focus:ring-blue-500 mr-2"
-                      data-testid="radio-visibility-private"
-                    />
-                    <div>
-                      <div className="font-medium text-sm">Private</div>
-                      <div className="text-xs text-gray-500">
-                        Creator + contributors
-                      </div>
-                    </div>
-                  </label>
+        {watchedEndCondition?.value === 'by_date' && (
+          <div className="mt-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              {...register('recurrence.endDate', { 
+                required: 'End date is required',
+                validate: (value) => {
+                  const startDate = watchedStartDate;
+                  return !startDate || value >= startDate || 'End date must be after start date';
+                }
+              })}
+              type="date"
+              min={watchedStartDate}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              data-testid="input-end-date"
+            />
+            {errors.recurrence?.endDate && (
+              <p className="text-red-500 text-xs mt-1">{errors.recurrence.endDate.message}</p>
+            )}
+          </div>
+        )}
+      </div>
 
-                  <label className="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="visibility"
-                      value="public"
-                      checked={formData.visibility === "public"}
-                      onChange={handleChange}
-                      className="text-blue-600 focus:ring-blue-500 mr-2"
-                      data-testid="radio-visibility-public"
-                    />
-                    <div>
-                      <div className="font-medium text-sm">Public</div>
-                      <div className="text-xs text-gray-500">
-                        Company visible
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
+      {/* Summary */}
+      {summary && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Summary</h4>
+          <p className="text-sm text-gray-700">{summary}</p>
+        </div>
+      )}
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes / Instructions (Optional)
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  placeholder="Add notes or instructions..."
-                  rows={4}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  data-testid="textarea-notes"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Included with each task instance
-                </p>
-              </div>
-            </div>
+      {/* Preview */}
+      {previewDates.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Next 5 Dates</h4>
+          <div className="flex flex-wrap gap-2">
+            {previewDates.map((date, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+              >
+                {date}
+              </span>
+            ))}
           </div>
         </div>
-
-        {/* End Condition */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            End Condition
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <input
-                type="radio"
-                id="never"
-                name="endConditionType"
-                value="never"
-                checked={formData.endConditionType === "never"}
-                onChange={handleChange}
-                className="text-blue-600 focus:ring-blue-500"
-                data-testid="radio-end-never"
-              />
-              <div className="flex-1">
-                <label
-                  htmlFor="never"
-                  className="text-sm font-medium text-gray-700 cursor-pointer block"
-                >
-                  Never End
-                </label>
-                <span className="text-xs text-gray-500">
-                  Continue indefinitely
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-2 mb-2">
-                <input
-                  type="radio"
-                  id="endDate"
-                  name="endConditionType"
-                  value="endDate"
-                  checked={formData.endConditionType === "endDate"}
-                  onChange={handleChange}
-                  className="text-blue-600 focus:ring-blue-500"
-                  data-testid="radio-end-date"
-                />
-                <label
-                  htmlFor="endDate"
-                  className="text-sm font-medium text-gray-700 cursor-pointer"
-                >
-                  End on Date
-                </label>
-              </div>
-              {formData.endConditionType === "endDate" && (
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  data-testid="input-end-date"
-                />
-              )}
-            </div>
-
-            <div className="p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-2 mb-2">
-                <input
-                  type="radio"
-                  id="maxOccurrences"
-                  name="endConditionType"
-                  value="maxOccurrences"
-                  checked={formData.endConditionType === "maxOccurrences"}
-                  onChange={handleChange}
-                  className="text-blue-600 focus:ring-blue-500"
-                  data-testid="radio-end-occurrences"
-                />
-                <label
-                  htmlFor="maxOccurrences"
-                  className="text-sm font-medium text-gray-700 cursor-pointer"
-                >
-                  After Occurrences
-                </label>
-              </div>
-              {formData.endConditionType === "maxOccurrences" && (
-                <input
-                  type="number"
-                  name="maxOccurrences"
-                  value={formData.maxOccurrences}
-                  onChange={handleChange}
-                  placeholder="Number of times"
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="1"
-                  data-testid="input-max-occurrences"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Form Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onClose}
-            data-testid="button-cancel"
-          >
-            Cancel
-          </button>
-          <div>
-            <button
-              type="button"
-              className="btn btn-secondary mr-1"
-              data-testid="button-save-draft"
-            >
-              Save as Draft
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting}
-              data-testid="button-create-recurring-task"
-            >
-              {isSubmitting ? "Creating..." : "Create Recurring Task"}
-            </button>
-          </div>
-        </div>
-      </form>
-    </ErrorBoundary>
+      )}
+    </div>
   );
-}
+};
 
-// Validation function
-function validateForm(formData) {
-  const errors = {};
+// Main Recurring Task Form Component
+export const RecurringTaskForm = ({ 
+  onSubmit, 
+  onCancel, 
+  isOrgUser = false,
+  defaultValues = {}
+}) => {
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm({
+    defaultValues: {
+      taskName: '',
+      description: '',
+      assignedTo: isOrgUser ? null : { value: 'self', label: 'Self' },
+      priority: { value: 'Low', label: 'Low' },
+      visibility: 'private',
+      tags: [],
+      attachments: [],
+      recurrence: {
+        patternType: null,
+        repeatEvery: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        startTime: '09:00',
+        endCondition: { value: 'never', label: 'Never ends' },
+        weekdays: [],
+        monthDays: [],
+        yearMonths: [],
+        occurrences: null,
+        endDate: ''
+      },
+      ...defaultValues
+    }
+  });
 
-  if (!formData.title?.trim()) {
-    errors.title = "Task title is required";
-  }
+  const [taskNameLength, setTaskNameLength] = useState(0);
+  const [attachmentSize, setAttachmentSize] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  if (!formData.assignee) {
-    errors.assignee = "Assignee is required";
-  }
+  const watchedTaskName = watch('taskName');
 
-  if (!formData.startDate) {
-    errors.startDate = "Start date is required";
-  }
+  // Character counter for task name
+  useEffect(() => {
+    setTaskNameLength(watchedTaskName?.length || 0);
+  }, [watchedTaskName]);
 
-  return errors;
-}
+  // Priority options
+  const priorityOptions = [
+    { value: 'Low', label: 'Low' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'High', label: 'High' },
+    { value: 'Critical', label: 'Critical' }
+  ];
+
+  // Assignment options (for org users)
+  const assignmentOptions = isOrgUser ? [
+    { value: 'self', label: 'Self' },
+    { value: 'john_doe', label: 'John Doe' },
+    { value: 'jane_smith', label: 'Jane Smith' },
+  ] : [{ value: 'self', label: 'Self' }];
+
+  // File upload handler
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    const currentSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+    
+    if (currentSize + totalSize > 5 * 1024 * 1024) { // 5MB limit
+      alert('Total file size cannot exceed 5MB');
+      return;
+    }
+
+    const newFiles = files.map(file => ({
+      file,
+      name: file.name,
+      size: file.size,
+      id: Math.random().toString(36).substr(2, 9)
+    }));
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setAttachmentSize(currentSize + totalSize);
+  };
+
+  // Remove file
+  const removeFile = (fileId) => {
+    setUploadedFiles(prev => {
+      const updated = prev.filter(f => f.id !== fileId);
+      const newSize = updated.reduce((sum, file) => sum + file.file.size, 0);
+      setAttachmentSize(newSize);
+      return updated;
+    });
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Quill editor configuration
+  const quillModules = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link'],
+      ['clean']
+    ]
+  };
+
+  const onFormSubmit = (data) => {
+    // Combine task and recurrence data
+    const formData = {
+      ...data,
+      attachments: uploadedFiles,
+      taskType: 'recurring'
+    };
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      {/* Task Name */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Task Name <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <input
+            {...register('taskName', { 
+              required: 'Task name is required',
+              maxLength: { value: 20, message: 'Task name cannot exceed 20 characters' }
+            })}
+            type="text"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            placeholder="Enter task name..."
+            data-testid="input-task-name"
+          />
+          <div className="absolute right-3 top-2 text-xs text-gray-500">
+            {taskNameLength}/20
+          </div>
+        </div>
+        {errors.taskName && (
+          <p className="text-red-500 text-xs mt-1">{errors.taskName.message}</p>
+        )}
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Description
+        </label>
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <ReactQuill
+              theme="snow"
+              value={field.value}
+              onChange={field.onChange}
+              modules={quillModules}
+              className="custom-editor"
+              placeholder="Describe your recurring task..."
+            />
+          )}
+        />
+      </div>
+
+      {/* Assigned To - Single assignee only for recurring tasks */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Assigned To <span className="text-red-500">*</span>
+        </label>
+        <Controller
+          name="assignedTo"
+          control={control}
+          rules={{ required: 'Assignment is required' }}
+          render={({ field }) => (
+            <Select
+              {...field}
+              options={assignmentOptions}
+              isSearchable={isOrgUser}
+              isDisabled={!isOrgUser}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select assignee..."
+              data-testid="select-assigned-to"
+            />
+          )}
+        />
+        {errors.assignedTo && (
+          <p className="text-red-500 text-xs mt-1">{errors.assignedTo.message}</p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Recurring tasks can only have one assignee
+        </p>
+      </div>
+
+      {/* Priority */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Priority <span className="text-red-500">*</span>
+        </label>
+        <Controller
+          name="priority"
+          control={control}
+          rules={{ required: 'Priority is required' }}
+          render={({ field }) => (
+            <Select
+              {...field}
+              options={priorityOptions}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select priority..."
+              data-testid="select-priority"
+            />
+          )}
+        />
+        {errors.priority && (
+          <p className="text-red-500 text-xs mt-1">{errors.priority.message}</p>
+        )}
+      </div>
+
+      {/* Visibility */}
+      {isOrgUser && (
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Visibility <span className="text-red-500">*</span>
+          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                {...register('visibility')}
+                type="radio"
+                value="private"
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                data-testid="radio-private"
+              />
+              <span className="ml-2 text-sm text-gray-900">Private</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                {...register('visibility')}
+                type="radio"
+                value="public"
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                data-testid="radio-public"
+              />
+              <span className="ml-2 text-sm text-gray-900">Public</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Labels / Tags
+        </label>
+        <Controller
+          name="tags"
+          control={control}
+          render={({ field }) => (
+            <CreatableSelect
+              {...field}
+              isMulti
+              options={[
+                { value: 'urgent', label: 'Urgent' },
+                { value: 'review', label: 'Review' },
+                { value: 'meeting', label: 'Meeting' },
+                { value: 'development', label: 'Development' }
+              ]}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Type and press Enter or comma to add tags..."
+              noOptionsMessage={() => "Type to create new tag"}
+              formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+              createOptionPosition="first"
+              data-testid="select-tags"
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Type tag name and press Enter or comma to create new tags
+        </p>
+      </div>
+
+      {/* Attachments */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Attachments
+          <span className="text-xs text-gray-500 ml-2">(Max 5MB total)</span>
+        </label>
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <input
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="file-upload"
+            data-testid="input-attachments"
+          />
+          <label 
+            htmlFor="file-upload" 
+            className="cursor-pointer flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors"
+          >
+            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span className="text-sm">Click to upload files</span>
+            <span className="text-xs text-gray-500">PDF, DOC, Images supported</span>
+          </label>
+        </div>
+
+        {/* File List */}
+        {uploadedFiles.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {uploadedFiles.map((file) => (
+              <div key={file.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-700">{file.name}</span>
+                  <span className="text-xs text-gray-500">({formatFileSize(file.size)})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFile(file.id)}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  data-testid={`remove-file-${file.id}`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <div className="text-xs text-gray-500">
+              Total size: {formatFileSize(attachmentSize)} / 5MB
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recurrence Panel */}
+      <RecurrencePanel
+        control={control}
+        register={register}
+        watch={watch}
+        setValue={setValue}
+        errors={errors}
+      />
+
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-6">
+        <button
+          type="submit"
+          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+          data-testid="button-save"
+        >
+          Save Recurring Task
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default RecurringTaskForm;

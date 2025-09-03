@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
+import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -181,12 +182,25 @@ export default function CreateTask({
           />
         )}
         
-        {selectedTaskType !== 'regular' && (
+        {selectedTaskType === 'recurring' && (
+          <RecurringTaskForm
+            onSubmit={(data) => {
+              console.log('Recurring task created:', data);
+              onSubmit({
+                ...data,
+                taskType: selectedTaskType
+              });
+            }}
+            onCancel={onClose}
+            isOrgUser={true}
+          />
+        )}
+        
+        {selectedTaskType !== 'regular' && selectedTaskType !== 'recurring' && (
           <div className="p-8 text-center">
             <div className="bg-gray-100 rounded-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {selectedTaskType === "recurring" ? "Recurring Task" :
-                 selectedTaskType === "milestone" ? "Milestone" :
+                {selectedTaskType === "milestone" ? "Milestone" :
                  selectedTaskType === "approval" ? "Approval Task" : 
                  selectedTaskType.charAt(0).toUpperCase() + selectedTaskType.slice(1) + " Task"}
               </h2>
@@ -198,8 +212,8 @@ export default function CreateTask({
         )}
       </div>
 
-      {/* Action Buttons - Only for non-regular tasks since RegularTaskForm has its own buttons */}
-      {selectedTaskType !== 'regular' && (
+      {/* Action Buttons - Only for milestone/approval tasks since Regular/Recurring forms have their own buttons */}
+      {selectedTaskType !== 'regular' && selectedTaskType !== 'recurring' && (
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
           <button
             type="button"
