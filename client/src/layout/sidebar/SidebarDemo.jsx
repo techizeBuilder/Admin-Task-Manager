@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './index';
 
 const SidebarDemo = () => {
-  const [currentRole, setCurrentRole] = useState('individual');
+  const [currentRole, setCurrentRole] = useState('member');
   
   const handleLogout = () => {
     console.log('Logout clicked for role:', currentRole);
@@ -18,17 +18,28 @@ const SidebarDemo = () => {
       {/* Role Switcher */}
       <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg p-3 border">
         <h3 className="text-sm font-semibold mb-2">Switch Role:</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
-            onClick={() => handleRoleChange('individual')}
+            onClick={() => handleRoleChange('member')}
             className={`px-3 py-1 text-xs rounded ${
-              currentRole === 'individual'
+              currentRole === 'member'
                 ? 'bg-green-500 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
-            data-testid="role-individual"
+            data-testid="role-member"
           >
-            Individual
+            Member
+          </button>
+          <button
+            onClick={() => handleRoleChange('orgMember')}
+            className={`px-3 py-1 text-xs rounded ${
+              currentRole === 'orgMember'
+                ? 'bg-teal-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            data-testid="role-org-member"
+          >
+            Org Member
           </button>
           <button
             onClick={() => handleRoleChange('organization')}
@@ -39,7 +50,7 @@ const SidebarDemo = () => {
             }`}
             data-testid="role-organization"
           >
-            Organization
+            Org Admin
           </button>
           <button
             onClick={() => handleRoleChange('superadmin')}
@@ -81,9 +92,9 @@ const SidebarDemo = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-green-800 mb-2">Individual User</h3>
+                  <h3 className="font-semibold text-green-800 mb-2">Member</h3>
                   <ul className="text-sm text-green-700 space-y-1">
                     <li>• Personal dashboard</li>
                     <li>• My tasks & productivity</li>
@@ -92,8 +103,18 @@ const SidebarDemo = () => {
                   </ul>
                 </div>
 
+                <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                  <h3 className="font-semibold text-teal-800 mb-2">Org Member</h3>
+                  <ul className="text-sm text-teal-700 space-y-1">
+                    <li>• Company dashboard</li>
+                    <li>• My tasks & productivity</li>
+                    <li>• Organization calendar</li>
+                    <li>• Company approvals</li>
+                  </ul>
+                </div>
+
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h3 className="font-semibold text-blue-800 mb-2">Organization User</h3>
+                  <h3 className="font-semibold text-blue-800 mb-2">Org Admin</h3>
                   <ul className="text-sm text-blue-700 space-y-1">
                     <li>• Team & org dashboards</li>
                     <li>• User management</li>

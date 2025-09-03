@@ -42,17 +42,29 @@ const Sidebar = ({
   const getRoleBranding = () => {
     switch (role) {
       case 'superadmin':
+      case 'super_admin':
         return {
           title: 'TaskSetu Admin',
           subtitle: 'Super Admin Panel',
           bgGradient: 'from-purple-600 to-indigo-600'
         };
       case 'organization':
+      case 'admin':
+      case 'org_admin':
         return {
           title: 'TaskSetu',
           subtitle: 'Organization Dashboard',
           bgGradient: 'from-blue-600 to-cyan-600'
         };
+      case 'orgMember':
+      case 'org_member':
+        return {
+          title: 'TaskSetu',
+          subtitle: 'Organization Member',
+          bgGradient: 'from-teal-600 to-cyan-600'
+        };
+      case 'member':
+      case 'individual':
       default:
         return {
           title: 'TaskSetu',

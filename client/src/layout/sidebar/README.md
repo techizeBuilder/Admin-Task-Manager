@@ -14,13 +14,30 @@ A comprehensive, role-based sidebar component system for TaskSetu that dynamical
 
 ## Supported Roles
 
-### Individual User
-- My Dashboard, My Tasks, Create Task, Quick Tasks, Calendar, Milestones, Approvals, My Productivity, Profile, Notifications, Help, Logout
+### Member (Individual Member)
+**Role ID**: `member` (without organization)
+**Menu Structure**: Dashboard → Tasks → Reports → Settings
+- Dashboard: My Dashboard
+- Tasks: My Tasks, Create Task, Quick Tasks, Calendar, Milestones, Approvals  
+- Reports: My Productivity, My Overdue Tasks
+- Settings: Profile, Notifications
+- Universal: Help & Support, Logout
 
-### Organization User (Manager/Admin)
+### Organization Member  
+**Role ID**: `member` (with organization) or `orgMember`
+**Menu Structure**: Dashboard → Tasks → Reports → Settings
+- Dashboard: My Dashboard
+- Tasks: My Tasks, Create Task, Quick Tasks, Calendar, Milestones, Approvals
+- Reports: My Productivity, My Overdue Tasks  
+- Settings: Profile, Notifications
+- Universal: Help & Support, Logout
+
+### Organization Admin
+**Role ID**: `admin`, `org_admin`, or `organization`
 - Team/Org Dashboard, My Tasks, Team Tasks, All Company Tasks, Create Task, Calendar, Quick Tasks, Milestones, Approvals, Manage Users, Roles & Permissions, Form Library, Reports, Company Settings, Help, Logout
 
 ### Super Admin (TaskSetu Owner)
+**Role ID**: `superadmin` or `super_admin`
 - Platform Overview, License Mapping, System Configurations, Global Notification Rules, All Platform Users, Global Form Library, Analytics (Adoption Metrics, Module Usage, System Performance), Audit Logs, Overrides, My Profile, Help, Logout
 
 ## Usage
