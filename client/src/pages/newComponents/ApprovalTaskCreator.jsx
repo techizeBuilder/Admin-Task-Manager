@@ -1,447 +1,779 @@
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import axios from 'axios'
+import React, { useState, useEffect } from "react";
+import ReactQuill from "react-quill";
+import SearchableSelect from "../SearchableSelect";
+import FileUploadComponent from "./FileUploadComponent";
+import useTasksStore from "../../stores/tasksStore";
 
-export default function ApprovalTaskCreator({ onClose, onSubmit, preFilledDate, selectedDate }) {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm({
-    defaultValues: {
-      title: '',
-      description: '',
-      approvalMode: 'any',
-      dueDate: preFilledDate || '',
-      autoApproveAfter: '',
-      autoApproveEnabled: false,
-      visibility: 'private',
-      priority: 'medium'
-    }
+export default function ApprovalTaskCreator({
+  onClose,
+  onSubmit,
+  preFilledDate,
+  selectedDate,
+  initialData,
+}) {
+  const { tasks, addTask, addNotification } = useTasksStore();
+  const [notifications, setNotifications] = useState([]);
+
+  const [formData, setFormData] = useState({
+    taskName: initialData?.taskName || "",
+    isApprovalTask:
+      initialData?.isApprovalTask !== undefined
+        ? initialData.isApprovalTask
+        : false,
+    approvers: initialData?.approvers || [],
+    approvalMode: initialData?.approvalMode || "any_one",
+    dueDate: initialData?.dueDate || preFilledDate || selectedDate || "",
+    autoApproveAfter: initialData?.autoApproveAfter || "",
+    description: initialData?.description || "",
+    attachments: initialData?.attachments || [],
+    collaborators: initialData?.collaborators || [],
+    visibility: initialData?.visibility || "private",
+    priority: initialData?.priority || "medium",
+    assignedTo: initialData?.assignedTo || "Current User",
+    assigneeId: initialData?.assigneeId || 1,
+    status: initialData?.status || "not_started",
+    id: initialData?.id || null,
   });
 
-  const [approverIds, setApproverIds] = useState([]);
-  const [attachments, setAttachments] = useState([]);
-  const [collaborators, setCollaborators] = useState([]);
-  const [dragActive, setDragActive] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [sequentialOrder, setSequentialOrder] = useState(
+    initialData?.sequentialOrder || [],
+  );
 
-  // Sample approvers data - in real app this would come from API
-  const availableApprovers = [
-    { id: 1, name: 'John Smith', role: 'manager', avatar: '👨‍💼' },
-    { id: 2, name: 'Sarah Johnson', role: 'supervisor', avatar: '👩‍💼' },
-    { id: 3, name: 'Mike Chen', role: 'director', avatar: '👨‍💻' },
-    { id: 4, name: 'Lisa Brown', role: 'lead', avatar: '👩‍🏫' },
-    { id: 5, name: 'Emily Davis', role: 'admin', avatar: '👩‍💻' },
-    { id: 6, name: 'Alex Turner', role: 'legal', avatar: '⚖️' }
+  const teamMembers = [
+    { id: 1, name: "Current User" },
+    { id: 2, name: "John Smith" },
+    { id: 3, name: "Jane Smith" },
+    { id: 4, name: "Mike Johnson" },
+    { id: 5, name: "Sarah Wilson" },
+    { id: 6, name: "Emily Davis" },
   ];
 
-  const handleApproverToggle = (approverId) => {
-    const newApproverIds = approverIds.includes(approverId)
-      ? approverIds.filter(id => id !== approverId)
-      : [...approverIds, approverId]
-    
-    setApproverIds(newApproverIds);
-  }
+  const approvalModes = [
+    { value: "any_one", label: "⚡ Any One - First approver decides" },
+    {
+      value: "all_must_approve",
+      label: "👥 All Must Approve - Unanimous decision",
+    },
+    { value: "sequential", label: "🔄 Sequential - Approvers act in order" },
+  ];
 
-  const handleFileUpload = (files) => {
-    const newAttachments = Array.from(files).map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      file: file
-    }))
-    
-    setAttachments([...attachments, ...newAttachments]);
-  }
+  // Set default approver to creator when approval task is enabled
+  useEffect(() => {
+    if (formData.isApprovalTask && formData.approvers.length === 0) {
+      setFormData((prev) => ({
+        ...prev,
+        approvers: [1], // Default to current user
+      }));
+    }
+  }, [formData.isApprovalTask]);
 
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    setDragActive(true)
-  }
+  // Handle sequential order when mode changes
+  useEffect(() => {
+    if (
+      formData.approvalMode === "sequential" &&
+      formData.approvers.length > 0
+    ) {
+      setSequentialOrder(formData.approvers);
+    }
+  }, [formData.approvalMode, formData.approvers]);
 
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    setDragActive(false)
-  }
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
 
-  const handleDrop = (e) => {
-    e.preventDefault()
-    setDragActive(false)
-    const files = e.dataTransfer.files
-    handleFileUpload(files)
-  }
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
 
-  const removeAttachment = (attachmentId) => {
-    setAttachments(attachments.filter(att => att.id !== attachmentId));
-  }
+  const handleApproverToggle = (memberId) => {
+    setFormData((prev) => ({
+      ...prev,
+      approvers: prev.approvers.includes(memberId)
+        ? prev.approvers.filter((id) => id !== memberId)
+        : [...prev.approvers, memberId],
+    }));
+  };
 
-  const onSubmitForm = async (formData) => {
-    if (!formData.title.trim()) {
-      alert('Task name is required')
-      return
+  const handleCollaboratorToggle = (memberId) => {
+    setFormData((prev) => ({
+      ...prev,
+      collaborators: prev.collaborators.includes(member.id)
+        ? prev.collaborators.filter((id) => id !== member.id)
+        : [...prev.collaborators, member.id],
+    }));
+  };
+
+  const handleSequentialOrderChange = (approvers) => {
+    setSequentialOrder(approvers);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Task name validation - Prompt 7
+    if (!formData.taskName.trim()) {
+      newErrors.taskName = "Task name is required.";
+    } else if (formData.taskName.length > 80) {
+      newErrors.taskName = "Task name must be 80 characters or less";
     }
 
-    if (approverIds.length === 0) {
-      alert('Please select at least one approver')
-      return
-    }
-
+    // Due date validation - Prompt 7
     if (!formData.dueDate) {
-      alert('Due date is required')
-      return
+      newErrors.dueDate = "Due date is required";
+    } else {
+      const selectedDate = new Date(formData.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.dueDate = "Approval due date must be today or later.";
+      }
     }
 
-    try {
-      const formDataToSend = new FormData();
-      
-      // Add basic task data
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description || '');
-      formDataToSend.append('taskType', 'approval');
-      formDataToSend.append('dueDate', formData.dueDate);
-      formDataToSend.append('priority', formData.priority);
-      formDataToSend.append('visibility', formData.visibility);
-      formDataToSend.append('approvalMode', formData.approvalMode);
-      formDataToSend.append('autoApproveEnabled', formData.autoApproveEnabled);
-      if (formData.autoApproveAfter) {
-        formDataToSend.append('autoApproveAfter', formData.autoApproveAfter);
-      }
-      
-      // Add approver IDs as JSON
-      formDataToSend.append('approverIds', JSON.stringify(approverIds));
-      
-      // Add collaborators if any
-      if (collaborators.length > 0) {
-        formDataToSend.append('collaboratorIds', JSON.stringify(collaborators));
+    // Approval task specific validations
+    if (formData.isApprovalTask) {
+      // Approver validation - Prompt 7
+      if (formData.approvers.length === 0) {
+        newErrors.approvers = "At least one approver must be assigned.";
       }
 
-      // Handle file attachments
-      if (attachments && attachments.length > 0) {
-        for (let i = 0; i < attachments.length; i++) {
-          formDataToSend.append("attachments", attachments[i].file);
-        }
+      // Auto-approve validation - Prompt 7
+      if (formData.autoApproveAfter && formData.autoApproveAfter < 0) {
+        newErrors.autoApproveAfter = "Auto-approve days must be 0 or greater.";
       }
 
-      // Get auth token from localStorage
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.post("/api/create-task", formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          "Authorization": token ? `Bearer ${token}` : ""
-        },
-      });
-
-      console.log("Approval task created successfully:", response.data);
-      
-      // Call the onSubmit callback if provided
-      if (onSubmit) {
-        onSubmit(response.data.task);
+      // Sequential mode validation - Prompt 7
+      if (
+        formData.approvalMode === "sequential" &&
+        formData.approvers.length > 1 &&
+        sequentialOrder.length === 0
+      ) {
+        newErrors.approvalMode =
+          "Sequential mode requires defining approver order.";
       }
-      
-      // Close the form
-      if (onClose) {
-        onClose();
-      }
-      
-    } catch (error) {
-      console.error("Error creating approval task:", error);
-      alert("Failed to create approval task: " + (error.response?.data?.message || error.message));
     }
-  }
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'low': return 'bg-green-100 text-green-800 border-green-200'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-  const getApprovalModeDescription = (mode) => {
-    switch (mode) {
-      case 'any': return 'Any single approver can approve/reject'
-      case 'all': return 'All approvers must approve'
-      case 'sequential': return 'Approvers act in order'
-      default: return ''
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (validateForm()) {
+      const approvalTaskData = {
+        ...formData,
+        type: "approval",
+        taskType: "approval",
+        sequentialOrder:
+          formData.approvalMode === "sequential" ? sequentialOrder : [],
+        approvalHistory: [],
+        currentApproverIndex: formData.approvalMode === "sequential" ? 0 : -1,
+      };
+      onSubmit(approvalTaskData);
+      // Notification would be handled by the parent component or store
+      console.log(
+        `Approval task "${approvalTaskData.taskName}" created successfully!`,
+      );
     }
-  }
+  };
 
   return (
-    <div className="create-task-container">
-      <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-3">
+    <div className="h-full flex flex-col bg-white p-4">
+      {/* Header Section */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0">
+          <span className="text-lg">✅</span>
+        </div>
+        <div className="flex-1">
+          <h4 className="text-base font-bold text-gray-900 mb-1">
+            {initialData ? "Update Approval Task" : "Create Approval Task"}
+          </h4>
+          <p className="text-xs text-gray-600">
+            An approval task requires designated approvers to make decisions
+            (Approve/Reject)
+          </p>
+        </div>
+      </div>
+
+      {/* Form Content */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex-1 overflow-y-auto space-y-4"
+      >
+        {/* Basic Information */}
+        <div className="space-y-3">
           {/* Task Name */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
+          <div className="form-group">
+            <label
+              htmlFor="taskName"
+              className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1"
+            >
+              <svg
+                className="w-3 h-3 text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
               Task Name *
             </label>
             <input
               type="text"
-              {...register('title', { required: 'Task name is required' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              placeholder="e.g., Budget Approval Q1 2024"
-              maxLength={100}
+              id="taskName"
+              value={formData.taskName}
+              onChange={(e) => handleInputChange("taskName", e.target.value)}
+              placeholder="Enter approval task name (max 80 characters)"
+              className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.taskName ? "border-red-500" : ""}`}
+              maxLength={80}
+              required
             />
-            {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-gray-500">
+                {formData.taskName.length}/80 characters
+              </span>
+              {errors.taskName && (
+                <span className="text-red-500 text-xs">{errors.taskName}</span>
+              )}
+            </div>
           </div>
 
           {/* Approval Task Toggle */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
+          <div className="form-group">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <div className="relative">
                   <input
                     type="checkbox"
-                    checked={true}
-                    disabled
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    checked={formData.isApprovalTask}
+                    onChange={(e) =>
+                      handleInputChange("isApprovalTask", e.target.checked)
+                    }
+                    className="w-4 h-4 rounded border-2 border-green-300 text-green-600 focus:ring-green-500"
                   />
-                  <span className="font-semibold text-gray-900">This is an Approval Task</span>
                 </div>
-                <span className="text-sm text-blue-600">✓ Enable approval workflow</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Approvers Selection */}
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-gray-700">
-              Approvers * <span className="text-xs text-gray-500 font-normal">({approverIds.length} selected)</span>
-            </label>
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {availableApprovers.map(approver => (
-                  <div
-                    key={approver.id}
-                    className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
-                      approverIds.includes(approver.id)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                    onClick={() => handleApproverToggle(approver.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-lg">{approver.avatar}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{approver.name}</p>
-                        <p className="text-xs text-gray-500">{approver.role}</p>
-                      </div>
-                      {approverIds.includes(approver.id) && (
-                        <div className="flex-shrink-0">
-                          <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Approval Mode */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Approval Mode
-            </label>
-            <select
-              {...register('approvalMode')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="any">Any One Approver</option>
-              <option value="all">All Approvers Required</option>
-              <option value="sequential">Sequential Approval</option>
-            </select>
-            <p className="text-xs text-gray-600">{getApprovalModeDescription(watch('approvalMode'))}</p>
-          </div>
-
-          {/* Auto Approve Settings */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                {...register('autoApproveEnabled')}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label className="text-sm font-medium text-gray-900">
-                Auto-approve after specified time
+                <div className="flex-1">
+                  <span className="text-sm font-semibold text-green-800">
+                    Approval Task
+                  </span>
+                  <p className="text-xs text-green-700 mt-0.5">
+                    Enable this to create an approval decision task
+                  </p>
+                </div>
               </label>
             </div>
-            {watch('autoApproveEnabled') && (
-              <div className="ml-7">
-                <select
-                  {...register('autoApproveAfter')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="">Select timeframe</option>
-                  <option value="1h">1 hour</option>
-                  <option value="24h">24 hours</option>
-                  <option value="48h">48 hours</option>
-                  <option value="1w">1 week</option>
-                </select>
+          </div>
+
+          {/* Approval Task Specific Fields */}
+          {formData.isApprovalTask && (
+            <>
+              {/* Approvers */}
+              <div className="form-group">
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  Approvers *
+                </label>
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                  <div className="space-y-2">
+                    {teamMembers.map((member) => (
+                      <label
+                        key={member.id}
+                        className="flex items-center space-x-3 p-2 bg-white rounded border hover:border-green-300 transition-colors cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.approvers.includes(member.id)}
+                          onChange={() => handleApproverToggle(member.id)}
+                          className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        />
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
+                            {member.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {member.name}
+                          </span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {errors.approvers && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {errors.approvers}
+                  </span>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Description
-            </label>
-            <textarea
-              {...register('description')}
-              rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder="Describe what needs approval and any specific requirements..."
-            />
-          </div>
+              {/* Approval Mode */}
+              <div className="form-group">
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 4h6m-6 4h6"
+                    />
+                  </svg>
+                  Approval Mode
+                </label>
+                <SearchableSelect
+                  options={approvalModes}
+                  value={approvalModes.find(
+                    (mode) => mode.value === formData.approvalMode,
+                  )}
+                  onChange={(selectedOption) =>
+                    handleInputChange("approvalMode", selectedOption.value)
+                  }
+                />
+                {errors.approvalMode && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {errors.approvalMode}
+                  </span>
+                )}
+              </div>
 
+              {/* Sequential Order - Only show for sequential mode */}
+              {formData.approvalMode === "sequential" &&
+                formData.approvers.length > 1 && (
+                  <div className="form-group">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                      <svg
+                        className="w-3 h-3 text-purple-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6h16M4 10h16M4 14h16M4 18h16"
+                        />
+                      </svg>
+                      Sequential Order
+                    </label>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <p className="text-xs text-purple-700 mb-2">
+                        Drag to reorder approvers. First person will approve
+                        first, then next, and so on.
+                      </p>
+                      <div className="space-y-1">
+                        {sequentialOrder.map((approverId, index) => {
+                          const approver = teamMembers.find(
+                            (m) => m.id === approverId,
+                          );
+                          return (
+                            <div
+                              key={approverId}
+                              className="flex items-center gap-2 p-2 bg-white rounded border"
+                            >
+                              <span className="text-xs font-bold text-purple-600 w-6">
+                                #{index + 1}
+                              </span>
+                              <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                                {approver?.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </div>
+                              <span className="text-sm text-gray-900">
+                                {approver?.name}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              {/* Auto-Approve After */}
+              <div className="form-group">
+                <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                  <svg
+                    className="w-3 h-3 text-orange-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Auto-Approve After (Optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={formData.autoApproveAfter}
+                    onChange={(e) =>
+                      handleInputChange("autoApproveAfter", e.target.value)
+                    }
+                    placeholder="0"
+                    min="0"
+                    className={`w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${errors.autoApproveAfter ? "border-red-500" : ""}`}
+                  />
+                  <span className="text-sm text-gray-600">
+                    days after due date
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  If no response by this time, system will auto-approve the task
+                </p>
+                {errors.autoApproveAfter && (
+                  <span className="text-red-500 text-xs mt-1 block">
+                    {errors.autoApproveAfter}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Configuration Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {/* Due Date */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
+          <div className="form-group">
+            <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+              <svg
+                className="w-3 h-3 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
               Due Date *
             </label>
             <input
               type="date"
-              {...register('dueDate', { required: 'Due date is required' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={formData.dueDate}
+              onChange={(e) => handleInputChange("dueDate", e.target.value)}
+              className={`form-input ${errors.dueDate ? "border-red-500" : ""}`}
+              min={new Date().toISOString().split("T")[0]}
+              required
             />
-            {errors.dueDate && <p className="text-red-500 text-sm">{errors.dueDate.message}</p>}
-          </div>
-
-          {/* Priority */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Priority
-            </label>
-            <select
-              {...register('priority')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-
-          {/* Visibility */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Visibility
-            </label>
-            <select
-              {...register('visibility')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="private">Private</option>
-              <option value="public">Public</option>
-              <option value="team">Team</option>
-            </select>
-          </div>
-
-          {/* File Attachments */}
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Attachments
-            </label>
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                dragActive 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="space-y-3">
-                <div className="mx-auto w-12 h-12 text-gray-400">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium text-blue-600 hover:text-blue-500 cursor-pointer">
-                      Click to upload
-                    </span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
-                </div>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => handleFileUpload(e.target.files)}
-                  className="hidden"
-                  accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
-                />
-              </div>
-            </div>
-
-            {attachments.length > 0 && (
-              <div className="space-y-2">
-                {attachments.map(attachment => (
-                  <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{attachment.name}</p>
-                        <p className="text-xs text-gray-500">{(attachment.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(attachment.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
+            {errors.dueDate && (
+              <span className="text-red-500 text-xs mt-1 block">
+                {errors.dueDate}
+              </span>
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Creating...' : 'Create Approval Task'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 sm:flex-none bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-            >
-              Cancel
-            </button>
+          {/* Priority */}
+          <div className="form-group">
+            <label className="form-label flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-orange-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Priority
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "low", label: "🟢 Low" },
+                { value: "medium", label: "🟡 Medium" },
+                { value: "high", label: "🟠 High" },
+                { value: "critical", label: "🔴 Critical" },
+              ]}
+              value={{
+                value: formData.priority,
+                label:
+                  formData.priority === "low"
+                    ? "🟢 Low"
+                    : formData.priority === "medium"
+                      ? "🟡 Medium"
+                      : formData.priority === "high"
+                        ? "🟠 High"
+                        : "🔴 Critical",
+              }}
+              onChange={(selectedOption) =>
+                handleInputChange("priority", selectedOption.value)
+              }
+            />
           </div>
-        </form>
+
+          {/* Visibility */}
+          <div className="form-group md:col-span-2">
+            <label className="form-label flex items-center gap-2">
+              <svg
+                className="w-4 h-4 text-yellow-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+              </svg>
+              Visibility
+            </label>
+            <SearchableSelect
+              options={[
+                { value: "private", label: "🔒 Private (Default)" },
+                { value: "public", label: "👥 Public" },
+              ]}
+              value={{
+                value: formData.visibility,
+                label:
+                  formData.visibility === "private"
+                    ? "🔒 Private (Default)"
+                    : "👥 Public",
+              }}
+              onChange={(selectedOption) =>
+                handleInputChange("visibility", selectedOption.value)
+              }
+            />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="form-group">
+          <label className="form-label flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h7"
+              />
+            </svg>
+            Description (Optional)
+          </label>
+          <ReactQuill
+            className="custom-editor"
+            value={formData.description}
+            onChange={(value) => handleInputChange("description", value)}
+            placeholder="Describe what needs approval..."
+          />
+        </div>
+
+        {/* Attachments */}
+        <div className="form-group">
+          <label className="form-label flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-indigo-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+              />
+            </svg>
+            Attachments (Optional)
+          </label>
+          <FileUploadComponent
+            onFileUpload={(files) => handleInputChange("attachments", files)}
+            maxFiles={5}
+            acceptedTypes={[".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"]}
+          />
+        </div>
+
+        {/* Collaborators */}
+        <div className="form-group">
+          <label className="form-label flex items-center gap-2">
+            <svg
+              className="w-4 h-4 text-teal-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+            Collaborators (Optional)
+          </label>
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <p className="text-xs text-gray-600 mb-3">
+              Collaborators will be notified but cannot approve. They can only
+              comment.
+            </p>
+            <div className="space-y-2">
+              {teamMembers
+                .filter((member) => !formData.approvers.includes(member.id))
+                .map((member) => (
+                  <label
+                    key={member.id}
+                    className="flex items-center space-x-3 p-2 bg-white rounded border hover:border-gray-300 transition-colors cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.collaborators.includes(member.id)}
+                      onChange={() => handleCollaboratorToggle(member.id)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                        {member.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {member.name}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Approval Restrictions Info */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div>
+              <h4 className="font-semibold text-amber-800 mb-2">
+                Approval Task Rules
+              </h4>
+              <ul className="text-xs text-amber-700 space-y-1">
+                <li>
+                  • Creator cannot approve their own task unless explicitly
+                  added as approver
+                </li>
+                <li>
+                  • Approvers cannot be edited once first decision is taken
+                </li>
+                <li>
+                  • Approval task toggle is irreversible (cannot convert back to
+                  normal task)
+                </li>
+                <li>• Auto-approval happens after due date + specified days</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between gap-4 pt-6 border-t-2 border-gray-100 sticky bottom-0 bg-white">
+          <button
+            type="button"
+            className="btn btn-secondary px-8 py-3 text-sm font-semibold"
+            onClick={onClose}
+          >
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="btn btn-primary px-8 py-3 text-sm font-semibold flex items-center gap-2"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            {initialData ? "Update Approval Task" : "Create Approval Task"}
+          </button>
+        </div>
+      </form>
     </div>
-  )
+  );
 }
