@@ -82,6 +82,7 @@ import NotificationCenter from "./pages/newComponents/NotificationCenter";
 import SidebarDemo from "./layout/sidebar/SidebarDemo";
 import MemberDashboard from "./layout/sidebar/MemberDashboard";
 import CurrentUserSidebar from "./pages/CurrentUserSidebar";
+import DynamicDashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -353,7 +354,7 @@ function App() {
         <Route path="/dashboard">
           <AdminLayout>
             <ProtectedRoute
-              component={Dashboard}
+              component={DynamicDashboard}
               allowedRoles={["admin", "employee", "member", "individual"]}
             />
           </AdminLayout>

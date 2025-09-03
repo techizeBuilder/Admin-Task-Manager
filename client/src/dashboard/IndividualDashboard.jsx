@@ -1,0 +1,453 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  CheckSquare,
+  Clock,
+  AlertTriangle,
+  Star,
+  Users,
+  Target,
+  Bell,
+  ChevronDown,
+  MoreHorizontal,
+  Edit,
+  Trash2
+} from 'lucide-react';
+
+/**
+ * Individual User Dashboard - Personal workspace for individual users
+ * Displays personal tasks, KPIs, calendar, and quick actions
+ */
+const IndividualDashboard = ({ 
+  tasks = [], 
+  quickTasks = [], 
+  pinnedTasks = [], 
+  userStats = {} 
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [quickTaskInput, setQuickTaskInput] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Get current user data
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/verify"],
+    enabled: !!localStorage.getItem("token"),
+  });
+
+  // Sample data for demonstration
+  const sampleTasks = tasks.length > 0 ? tasks : [
+    {
+      id: 1,
+      title: "Complete quarterly report",
+      dueDate: "2025-09-05",
+      priority: "high",
+      status: "in_progress",
+      tags: ["work", "quarterly"],
+      isPastDue: false,
+      isDueToday: true,
+      hasSubtasks: true
+    },
+    {
+      id: 2,
+      title: "Review project documentation",
+      dueDate: "2025-09-03",
+      priority: "medium",
+      status: "pending",
+      tags: ["review", "documentation"],
+      isPastDue: true,
+      isDueToday: false,
+      hasSubtasks: false
+    },
+    {
+      id: 3,
+      title: "Team meeting preparation",
+      dueDate: "2025-09-04",
+      priority: "high",
+      status: "completed",
+      tags: ["meeting", "prep"],
+      isPastDue: false,
+      isDueToday: false,
+      hasSubtasks: false
+    }
+  ];
+
+  const sampleStats = {
+    completedToday: userStats.completedToday || 5,
+    completedBeforeDue: userStats.completedBeforeDue || 12,
+    milestonesAchieved: userStats.milestonesAchieved || 3,
+    collaboratorTasks: userStats.collaboratorTasks || 8,
+    tasksPastDue: userStats.tasksPastDue || 2,
+    approvalsAwaiting: userStats.approvalsAwaiting || 1
+  };
+
+  const samplePinnedTasks = pinnedTasks.length > 0 ? pinnedTasks : [
+    { id: 1, title: "Weekly planning session", priority: "high" },
+    { id: 2, title: "Client feedback review", priority: "medium" },
+    { id: 3, title: "Sprint retrospective", priority: "low" }
+  ];
+
+  const handleQuickTaskSubmit = () => {
+    if (quickTaskInput.trim()) {
+      console.log('Creating quick task:', quickTaskInput);
+      setQuickTaskInput('');
+    }
+  };
+
+  const handleCreateTask = () => {
+    // Navigate to create task page
+    window.location.href = '/tasks/create';
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'text-red-600 bg-red-50 border-red-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'low': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed': return 'text-green-700 bg-green-100';
+      case 'in_progress': return 'text-blue-700 bg-blue-100';
+      case 'pending': return 'text-gray-700 bg-gray-100';
+      case 'blocked': return 'text-red-700 bg-red-100';
+      default: return 'text-gray-700 bg-gray-100';
+    }
+  };
+
+  const filteredTasks = sampleTasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = selectedFilter === 'all' || task.status === selectedFilter;
+    return matchesSearch && matchesFilter;
+  });
+
+  return (
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Welcome back, {user?.firstName || 'User'}!
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Here's your personal workspace and task overview
+          </p>
+        </div>
+        <button
+          onClick={handleCreateTask}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          data-testid="button-create-task"
+        >
+          <Plus size={18} />
+          Create Task
+        </button>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-completed-today">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <CheckSquare className="text-green-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Completed Today</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.completedToday}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-completed-before-due">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Clock className="text-blue-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Before Due Date</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.completedBeforeDue}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-milestones">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <Target className="text-purple-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Milestones</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.milestonesAchieved}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-collaborator-tasks">
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-100 p-2 rounded-lg">
+              <Users className="text-orange-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Collaborator</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.collaboratorTasks}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-past-due">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-2 rounded-lg">
+              <AlertTriangle className="text-red-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Past Due</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.tasksPastDue}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-approvals">
+          <div className="flex items-center gap-3">
+            <div className="bg-yellow-100 p-2 rounded-lg">
+              <Bell className="text-yellow-600" size={20} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Approvals</p>
+              <p className="text-xl font-bold text-gray-900">{sampleStats.approvalsAwaiting}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Quick Task & Pinned Tasks */}
+        <div className="space-y-6">
+          {/* Frozen Quick Task Tile */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border sticky top-6" data-testid="card-quick-task">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Add Task</h2>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="What needs to be done?"
+                value={quickTaskInput}
+                onChange={(e) => setQuickTaskInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                data-testid="input-quick-task"
+                onKeyPress={(e) => e.key === 'Enter' && handleQuickTaskSubmit()}
+              />
+              <button
+                onClick={handleQuickTaskSubmit}
+                disabled={!quickTaskInput.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                data-testid="button-add-quick-task"
+              >
+                <Plus size={16} className="inline mr-2" />
+                Add Quick Task
+              </button>
+            </div>
+          </div>
+
+          {/* Pinned Tasks */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border" data-testid="card-pinned-tasks">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="text-yellow-500" size={20} />
+              <h2 className="text-lg font-semibold text-gray-900">Pinned Tasks</h2>
+            </div>
+            <div className="space-y-3">
+              {samplePinnedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                  data-testid={`pinned-task-${task.id}`}
+                >
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    {task.title}
+                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                    {task.priority}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Column - Tasks Grid */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-sm border" data-testid="card-tasks-grid">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">My Tasks</h2>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100"
+                  data-testid="button-toggle-filters"
+                >
+                  <Filter size={18} />
+                </button>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    data-testid="input-search-tasks"
+                  />
+                </div>
+
+                {showFilters && (
+                  <div className="flex gap-2 flex-wrap">
+                    {['all', 'pending', 'in_progress', 'completed'].map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedFilter(filter)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedFilter === filter
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                        data-testid={`filter-${filter}`}
+                      >
+                        {filter.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tasks Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Task
+                    </th>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Priority
+                    </th>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredTasks.map((task) => (
+                    <tr key={task.id} className="hover:bg-gray-50" data-testid={`task-row-${task.id}`}>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">{task.title}</span>
+                              <div className="flex gap-1">
+                                {task.isPastDue && (
+                                  <Clock className="text-red-500" size={14} title="Past Due" />
+                                )}
+                                {task.isDueToday && (
+                                  <Calendar className="text-orange-500" size={14} title="Due Today" />
+                                )}
+                                {task.hasSubtasks && (
+                                  <CheckSquare className="text-blue-500" size={14} title="Has Subtasks" />
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-1 mt-1">
+                              {task.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-900">
+                        {new Date(task.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="text-gray-600 hover:text-blue-600 p-1 rounded"
+                            data-testid={`button-edit-${task.id}`}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            className="text-gray-600 hover:text-red-600 p-1 rounded"
+                            data-testid={`button-delete-${task.id}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          <button
+                            className="text-gray-600 hover:text-gray-900 p-1 rounded"
+                            data-testid={`button-more-${task.id}`}
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredTasks.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <CheckSquare className="mx-auto mb-2" size={48} />
+                <p>No tasks found matching your search criteria</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow-sm border p-6" data-testid="card-calendar">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Task Calendar</h2>
+        <div className="bg-gray-50 rounded-lg p-8 text-center">
+          <Calendar className="mx-auto mb-2 text-gray-400" size={48} />
+          <p className="text-gray-600">Calendar view coming soon</p>
+          <p className="text-sm text-gray-500 mt-1">
+            View and manage your tasks by date with drag-and-drop functionality
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default IndividualDashboard;
