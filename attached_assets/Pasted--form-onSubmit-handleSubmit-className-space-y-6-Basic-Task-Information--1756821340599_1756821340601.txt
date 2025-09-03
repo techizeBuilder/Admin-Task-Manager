@@ -192,7 +192,7 @@
               </label>
               <SearchableSelect
                 options={[
-                  { value: "", label: "Select assignee..." },
+                  { value: "", label: "Select assignee" },
                   { value: "john", label: "John Doe" },
                   { value: "jane", label: "Jane Smith" },
                   { value: "mike", label: "Mike Johnson" },
@@ -211,7 +211,7 @@
                                 ? "Mike Johnson"
                                 : formData.assignee === "sarah"
                                   ? "Sarah Wilson"
-                                  : "Select assignee...",
+                                  : "Select assignee",
                       }
                     : null
                 }

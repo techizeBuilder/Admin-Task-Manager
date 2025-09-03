@@ -123,7 +123,7 @@ export function MilestoneTaskContent({
             data-testid="select-milestone-assigned-to"
             required
           >
-            <option value="">Select assignee...</option>
+            <option value="">Select assignee</option>
             <option value="current">Current User</option>
             <option value="john">John Smith</option>
             <option value="sarah">Sarah Wilson</option>

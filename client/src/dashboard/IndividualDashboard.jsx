@@ -449,10 +449,10 @@ const IndividualDashboard = ({
 
       {/* Create Task Drawer */}
       {showCreateTaskDrawer && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
+        <div className="fixed inset-0 z-[100] overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCloseCreateTask} />
-          <div className="absolute right-0 top-0 h-screen w-full max-w-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600">
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-2xl bg-white shadow-xl flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600 flex-shrink-0">
               <h2 className="text-lg font-medium text-white">Create New Task</h2>
               <button
                 onClick={handleCloseCreateTask}
@@ -462,7 +462,7 @@ const IndividualDashboard = ({
                 <X size={20} />
               </button>
             </div>
-            <div className="h-[calc(100vh-73px)] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               <CreateTask
                 onSubmit={handleCreateTaskSubmit}
                 onClose={handleCloseCreateTask}

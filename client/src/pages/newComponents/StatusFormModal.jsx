@@ -441,7 +441,7 @@ function StatusFormModal({
                     : null
                 }
                 onChange={handleAssigneeChange}
-                placeholder="Select assignee..."
+                placeholder="Select assignee"
                 isClearable
               />
               <small className="form-hint">

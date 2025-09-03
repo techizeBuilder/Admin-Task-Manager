@@ -114,7 +114,7 @@ export function MilestoneForm({
           ]}
           value={formData.milestone?.assignedTo || 'self'}
           onChange={(option) => handleMilestoneChange('assignedTo', option ? option.value : 'self')}
-          placeholder="Select assignee..."
+          placeholder="Select assignee"
           dataTestId="searchable-select-milestone-assignee"
         />
         <p className="text-xs text-gray-500 mt-1">

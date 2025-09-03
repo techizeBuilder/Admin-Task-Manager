@@ -94,7 +94,7 @@
                     onChange={(selectedOption) =>
                       handleInputChange("assignee", selectedOption?.value || "self")
                     }
-                    placeholder="Select assignee..."
+                    placeholder="Select assignee"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">

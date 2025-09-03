@@ -573,7 +573,7 @@ function RecurringTaskForm({ onClose }) {
               onChange={handleChange}
               className="form-select"
             >
-              <option value="">Select assignee...</option>
+              <option value="">Select assignee</option>
               <option value="john">John Doe</option>
               <option value="jane">Jane Smith</option>
               <option value="mike">Mike Johnson</option>

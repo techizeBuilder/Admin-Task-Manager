@@ -439,7 +439,7 @@ export const RegularTaskForm = ({
                   isDisabled={!isOrgUser}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select assignee..."
+                  placeholder="Select assignee"
                   data-testid="select-assigned-to"
                 />
               )}
