@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ReactQuill from "react-quill";
 import SearchableSelect from "./SearchableSelect";
-import { calculateDueDateFromPriority } from "./PriorityManager";
+import { calculateDueDateFromPriority } from "./newComponents/PriorityManager";
 import useTasksStore from "../stores/tasksStore";
 
 export default function MilestoneCreator({
