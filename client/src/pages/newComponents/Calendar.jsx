@@ -292,32 +292,30 @@ export default function Calendar({ onClose }) {
       {showCreateTask && (
         <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
           <div className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateTask(false)}></div>
-          <div className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right" style={{width: 'min(90vw, 900px)', boxShadow: '-10px 0 50px rgba(0,0,0,0.2)', borderLeft: '1px solid rgba(255,255,255,0.2)'}}>
-            <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">Create Task for {selectedDate}</h2>
+          <div className="absolute right-0 top-0 h-full bg-white flex flex-col modal-animate-slide-right" style={{width: 'min(90vw, 900px)', boxShadow: '-10px 0 50px rgba(0,0,0,0.2)'}}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+                <p className="text-sm text-gray-600">for {selectedDate}</p>
+              </div>
               <button
                 onClick={() => setShowCreateTask(false)}
-                className="close-btn"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                data-testid="close-modal"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="drawer-body">
+            <div className="flex-1 overflow-y-auto p-6">
               <CreateTask 
                 onClose={() => setShowCreateTask(false)} 
                 preFilledDate={selectedDate}
+                onSubmit={(taskData) => {
+                  console.log('Task created:', taskData);
+                  setShowCreateTask(false);
+                }}
               />
             </div>
           </div>
