@@ -79,6 +79,7 @@ import TaskAnalytics from "./pages/newComponents/TaskAnalytics";
 import DeadlinesFromNew from "./pages/newComponents/Deadlines";
 import Deadlines from "./pages/Deadlines";
 import NotificationCenter from "./pages/newComponents/NotificationCenter";
+import SidebarDemo from "./layout/sidebar/SidebarDemo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -550,6 +551,9 @@ function App() {
           <AdminLayout>
             <ProtectedRoute component={AdminNotification} />
           </AdminLayout>
+        </Route>
+        <Route path="/sidebar-demo">
+          <SidebarDemo />
         </Route>
         {/* Settings Routes */}
         <Route path="/settings">
