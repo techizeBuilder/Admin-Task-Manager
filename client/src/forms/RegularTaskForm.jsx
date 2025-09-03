@@ -4,13 +4,393 @@ import Select from 'react-select';
 import 'react-quill/dist/quill.snow.css';
 import '../styles/quill-custom.css';
 
+// Special Task Features Component
+const SpecialTaskFeatures = ({ taskType, formData, updateField }) => {
+  const [showRecurringOptions, setShowRecurringOptions] = useState(false);
+  const [showMilestoneOptions, setShowMilestoneOptions] = useState(false);
+  const [showApprovalOptions, setShowApprovalOptions] = useState(false);
+
+  const frequencyOptions = [
+    { value: 'daily', label: '📅 Daily' },
+    { value: 'weekly', label: '🗓️ Weekly' },
+    { value: 'monthly', label: '🗓️ Monthly' },
+    { value: 'yearly', label: '📆 Yearly' }
+  ];
+
+  const approvalTypeOptions = [
+    { value: 'any', label: '👤 Any Approver' },
+    { value: 'all', label: '👥 All Approvers' },
+    { value: 'majority', label: '🗳️ Majority Vote' }
+  ];
+
+  const taskOptions = [
+    { value: 'task-1', label: 'Database Setup' },
+    { value: 'task-2', label: 'UI Design' },
+    { value: 'task-3', label: 'API Development' },
+    { value: 'task-4', label: 'Testing Phase' }
+  ];
+
+  const approverOptions = [
+    { value: 'john', label: 'John Smith' },
+    { value: 'sarah', label: 'Sarah Wilson' },
+    { value: 'mike', label: 'Mike Johnson' },
+    { value: 'emma', label: 'Emma Davis' }
+  ];
+
+  if (taskType === 'regular') {
+    return (
+      <div className="pt-6 border-t border-gray-200">
+        <h4 className="text-sm font-medium text-gray-700 mb-4">Special Task Options</h4>
+        
+        <div className="space-y-3">
+          {/* Recurring Toggle */}
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🔄</span>
+              <div>
+                <span className="text-sm font-medium text-gray-900">Make Recurring</span>
+                <p className="text-xs text-gray-600">Repeat this task automatically</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowRecurringOptions(!showRecurringOptions)}
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                showRecurringOptions 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-white text-blue-600 border border-blue-600'
+              }`}
+            >
+              {showRecurringOptions ? 'Hide Options' : 'Show Options'}
+            </button>
+          </div>
+
+          {/* Milestone Toggle */}
+          <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🎯</span>
+              <div>
+                <span className="text-sm font-medium text-gray-900">Mark as Milestone</span>
+                <p className="text-xs text-gray-600">Important project checkpoint</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowMilestoneOptions(!showMilestoneOptions)}
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                showMilestoneOptions 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-white text-red-600 border border-red-600'
+              }`}
+            >
+              {showMilestoneOptions ? 'Hide Options' : 'Show Options'}
+            </button>
+          </div>
+
+          {/* Approval Toggle */}
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">✅</span>
+              <div>
+                <span className="text-sm font-medium text-gray-900">Requires Approval</span>
+                <p className="text-xs text-gray-600">Need approval before completion</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowApprovalOptions(!showApprovalOptions)}
+              className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
+                showApprovalOptions 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-white text-green-600 border border-green-600'
+              }`}
+            >
+              {showApprovalOptions ? 'Hide Options' : 'Show Options'}
+            </button>
+          </div>
+        </div>
+
+        {/* Recurring Options */}
+        {showRecurringOptions && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h5 className="text-sm font-medium text-gray-900 mb-3">Recurring Settings</h5>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                <Select
+                  value={frequencyOptions.find(opt => opt.value === formData.recurringOptions.frequency)}
+                  onChange={(option) => updateField('recurringOptions', { 
+                    ...formData.recurringOptions, 
+                    frequency: option.value 
+                  })}
+                  options={frequencyOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={formData.recurringOptions.endDate}
+                  onChange={(e) => updateField('recurringOptions', { 
+                    ...formData.recurringOptions, 
+                    endDate: e.target.value 
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Milestone Options */}
+        {showMilestoneOptions && (
+          <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
+            <h5 className="text-sm font-medium text-gray-900 mb-3">Milestone Settings</h5>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Linked Tasks</label>
+                <Select
+                  value={taskOptions.filter(opt => formData.milestoneOptions.linkedTasks.includes(opt.value))}
+                  onChange={(selectedOptions) => updateField('milestoneOptions', { 
+                    ...formData.milestoneOptions, 
+                    linkedTasks: selectedOptions ? selectedOptions.map(opt => opt.value) : [] 
+                  })}
+                  options={taskOptions}
+                  isMulti
+                  isSearchable
+                  placeholder="Select linked tasks..."
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Success Criteria</label>
+                <textarea
+                  value={formData.milestoneOptions.successCriteria}
+                  onChange={(e) => updateField('milestoneOptions', { 
+                    ...formData.milestoneOptions, 
+                    successCriteria: e.target.value 
+                  })}
+                  placeholder="Define what success looks like..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Approval Options */}
+        {showApprovalOptions && (
+          <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <h5 className="text-sm font-medium text-gray-900 mb-3">Approval Settings</h5>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Approval Type</label>
+                  <Select
+                    value={approvalTypeOptions.find(opt => opt.value === formData.approvalOptions.approvalType)}
+                    onChange={(option) => updateField('approvalOptions', { 
+                      ...formData.approvalOptions, 
+                      approvalType: option.value 
+                    })}
+                    options={approvalTypeOptions}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Approval Deadline</label>
+                  <input
+                    type="date"
+                    value={formData.approvalOptions.deadline}
+                    onChange={(e) => updateField('approvalOptions', { 
+                      ...formData.approvalOptions, 
+                      deadline: e.target.value 
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Approvers</label>
+                <Select
+                  value={approverOptions.filter(opt => formData.approvalOptions.approvers.includes(opt.value))}
+                  onChange={(selectedOptions) => updateField('approvalOptions', { 
+                    ...formData.approvalOptions, 
+                    approvers: selectedOptions ? selectedOptions.map(opt => opt.value) : [] 
+                  })}
+                  options={approverOptions}
+                  isMulti
+                  isSearchable
+                  placeholder="Select approvers..."
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // For specific task types, show their respective options directly
+  if (taskType === 'recurring') {
+    return (
+      <div className="pt-6 border-t border-gray-200">
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <span>🔄</span>
+            Recurring Task Settings
+          </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+              <Select
+                value={frequencyOptions.find(opt => opt.value === formData.recurringOptions.frequency)}
+                onChange={(option) => updateField('recurringOptions', { 
+                  ...formData.recurringOptions, 
+                  frequency: option.value 
+                })}
+                options={frequencyOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={formData.recurringOptions.endDate}
+                onChange={(e) => updateField('recurringOptions', { 
+                  ...formData.recurringOptions, 
+                  endDate: e.target.value 
+                })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (taskType === 'milestone') {
+    return (
+      <div className="pt-6 border-t border-gray-200">
+        <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+          <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <span>🎯</span>
+            Milestone Settings
+          </h4>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Linked Tasks</label>
+              <Select
+                value={taskOptions.filter(opt => formData.milestoneOptions.linkedTasks.includes(opt.value))}
+                onChange={(selectedOptions) => updateField('milestoneOptions', { 
+                  ...formData.milestoneOptions, 
+                  linkedTasks: selectedOptions ? selectedOptions.map(opt => opt.value) : [] 
+                })}
+                options={taskOptions}
+                isMulti
+                isSearchable
+                placeholder="Select linked tasks..."
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Success Criteria</label>
+              <textarea
+                value={formData.milestoneOptions.successCriteria}
+                onChange={(e) => updateField('milestoneOptions', { 
+                  ...formData.milestoneOptions, 
+                  successCriteria: e.target.value 
+                })}
+                placeholder="Define what success looks like..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (taskType === 'approval') {
+    return (
+      <div className="pt-6 border-t border-gray-200">
+        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+          <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <span>✅</span>
+            Approval Settings
+          </h4>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Approval Type</label>
+                <Select
+                  value={approvalTypeOptions.find(opt => opt.value === formData.approvalOptions.approvalType)}
+                  onChange={(option) => updateField('approvalOptions', { 
+                    ...formData.approvalOptions, 
+                    approvalType: option.value 
+                  })}
+                  options={approvalTypeOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Approval Deadline</label>
+                <input
+                  type="date"
+                  value={formData.approvalOptions.deadline}
+                  onChange={(e) => updateField('approvalOptions', { 
+                    ...formData.approvalOptions, 
+                    deadline: e.target.value 
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Approvers</label>
+              <Select
+                value={approverOptions.filter(opt => formData.approvalOptions.approvers.includes(opt.value))}
+                onChange={(selectedOptions) => updateField('approvalOptions', { 
+                  ...formData.approvalOptions, 
+                  approvers: selectedOptions ? selectedOptions.map(opt => opt.value) : [] 
+                })}
+                options={approverOptions}
+                isMulti
+                isSearchable
+                placeholder="Select approvers..."
+                className="react-select-container"
+                classNamePrefix="react-select"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 // Primary Fields Component
 const PrimaryFields = ({ 
   formData, 
   updateField, 
   errors, 
   isOrgUser = false,
-  isSoloUser = false 
+  isSoloUser = false,
+  taskType = 'regular'
 }) => {
   const [attachments, setAttachments] = useState([]);
   const [totalSize, setTotalSize] = useState(0);
@@ -31,6 +411,31 @@ const PrimaryFields = ({
     { value: 'Medium', label: '🟡 Medium', color: '#f59e0b' },
     { value: 'High', label: '🟠 High', color: '#f97316' },
     { value: 'Critical', label: '🔴 Critical', color: '#ef4444' }
+  ];
+
+  const categoryOptions = [
+    { value: 'development', label: '💻 Development' },
+    { value: 'design', label: '🎨 Design' },
+    { value: 'marketing', label: '📢 Marketing' },
+    { value: 'research', label: '🔍 Research' },
+    { value: 'testing', label: '🧪 Testing' },
+    { value: 'documentation', label: '📚 Documentation' },
+    { value: 'meeting', label: '🤝 Meeting' },
+    { value: 'review', label: '👀 Review' }
+  ];
+
+  const tagOptions = [
+    { value: 'urgent', label: '🚨 Urgent' },
+    { value: 'bug', label: '🐛 Bug' },
+    { value: 'feature', label: '✨ Feature' },
+    { value: 'improvement', label: '📈 Improvement' },
+    { value: 'security', label: '🔒 Security' },
+    { value: 'performance', label: '⚡ Performance' },
+    { value: 'ui', label: '🖼️ UI' },
+    { value: 'api', label: '🔌 API' },
+    { value: 'database', label: '🗄️ Database' },
+    { value: 'frontend', label: '🎨 Frontend' },
+    { value: 'backend', label: '⚙️ Backend' }
   ];
 
   const handleFileUpload = (e) => {
@@ -263,20 +668,39 @@ const PrimaryFields = ({
         </div>
       </div>
 
-      {/* Labels/Tags */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Labels / Tags
-        </label>
-        <input
-          type="text"
-          value={formData.tags}
-          onChange={(e) => updateField('tags', e.target.value)}
-          placeholder="Add tags separated by commas..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          data-testid="input-tags"
-        />
-        <p className="text-xs text-gray-500 mt-1">Separate tags with commas</p>
+      {/* Category and Tags */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Category
+          </label>
+          <Select
+            value={categoryOptions.find(option => option.value === formData.category)}
+            onChange={(option) => updateField('category', option?.value || '')}
+            options={categoryOptions}
+            isClearable
+            isSearchable
+            placeholder="Select category..."
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tags
+          </label>
+          <Select
+            value={formData.tags.split(',').filter(tag => tag.trim()).map(tag => ({ value: tag.trim(), label: tag.trim() }))}
+            onChange={(selectedTags) => updateField('tags', selectedTags ? selectedTags.map(tag => tag.value).join(', ') : '')}
+            options={tagOptions}
+            isMulti
+            isSearchable
+            isClearable
+            placeholder="Add tags..."
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        </div>
       </div>
 
       {/* Attachments */}
@@ -340,6 +764,13 @@ const PrimaryFields = ({
           <p className="text-red-500 text-xs mt-1">{errors.attachments}</p>
         )}
       </div>
+
+      {/* Special Task Features */}
+      <SpecialTaskFeatures
+        taskType={taskType}
+        formData={formData}
+        updateField={updateField}
+      />
     </div>
   );
 };
@@ -457,7 +888,8 @@ export const RegularTaskForm = ({
   onCancel, 
   initialData = {},
   isOrgUser = false,
-  isSoloUser = false 
+  isSoloUser = false,
+  taskType = 'regular'
 }) => {
   const [formData, setFormData] = useState({
     taskName: '',
@@ -472,6 +904,25 @@ export const RegularTaskForm = ({
     customForm: '',
     dependencies: [],
     taskType: 'Simple',
+    category: '',
+    collaborators: [],
+    // Special task options
+    recurringOptions: {
+      frequency: 'daily',
+      interval: 1,
+      endDate: '',
+      maxOccurrences: ''
+    },
+    milestoneOptions: {
+      linkedTasks: [],
+      targetDate: '',
+      successCriteria: ''
+    },
+    approvalOptions: {
+      approvers: [],
+      approvalType: 'any',
+      deadline: ''
+    },
     ...initialData
   });
 
@@ -530,62 +981,51 @@ export const RegularTaskForm = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Form Card */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <span className="text-blue-600">📝</span>
-              Task Details
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">Fill in the basic information for your task</p>
-          </div>
-          
-          <div className="p-6">
-            <PrimaryFields
-              formData={formData}
-              updateField={updateField}
-              errors={errors}
-              isOrgUser={isOrgUser}
-              isSoloUser={isSoloUser}
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Main Form */}
+      <div className="p-6 space-y-6">
+        <PrimaryFields
+          formData={formData}
+          updateField={updateField}
+          errors={errors}
+          isOrgUser={isOrgUser}
+          isSoloUser={isSoloUser}
+          taskType={taskType}
+        />
+      </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(true)}
-              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
-              data-testid="button-more-options"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-              </svg>
-              More Options
-            </button>
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(true)}
+          className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          data-testid="button-more-options"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+          </svg>
+          More Options
+        </button>
 
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
-                data-testid="button-cancel"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-                data-testid="button-save"
-              >
-                Save Task
-              </button>
-            </div>
-          </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+            data-testid="button-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            data-testid="button-save"
+          >
+            Save Task
+          </button>
         </div>
-      </form>
+      </div>
 
       {/* Advanced Options Modal */}
       {showAdvanced && (
@@ -640,7 +1080,7 @@ export const RegularTaskForm = ({
           </div>
         </div>
       )}
-    </div>
+    </form>
   );
 };
 

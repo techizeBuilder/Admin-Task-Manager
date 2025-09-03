@@ -172,58 +172,77 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
             )}
 
             {selectedTaskType === 'recurring' && (
-              <EnhancedRegularTaskContent
-                taskName={taskName}
-                setTaskName={setTaskName}
-                description={description}
-                setDescription={setDescription}
-                assignedTo={assignedTo}
-                setAssignedTo={setAssignedTo}
-                priority={priority}
-                setPriority={setPriority}
-                characterCount={characterCount}
-                category={category}
-                setCategory={setCategory}
-                dueDate={dueDate}
-                setDueDate={setDueDate}
-                tags={tags}
-                setTags={setTags}
-                collaborators={collaborators}
-                setCollaborators={setCollaborators}
-                showRecurring={true}
-                setShowRecurring={setShowRecurring}
-                showMilestone={showMilestone}
-                setShowMilestone={setShowMilestone}
-                showApproval={showApproval}
-                setShowApproval={setShowApproval}
+              <RegularTaskForm
+                onSubmit={(data) => {
+                  onSubmit({
+                    title: data.taskName,
+                    description: data.description,
+                    assignedTo: data.assignedTo,
+                    priority: data.priority,
+                    taskType: selectedTaskType,
+                    category: "general",
+                    visibility: data.visibility,
+                    dueDate: data.dueDate,
+                    tags: data.tags.split(',').filter(tag => tag.trim()),
+                    collaborators: [],
+                    attachments: data.attachments || [],
+                    recurringOptions: data.recurringOptions
+                  });
+                }}
+                onCancel={onClose}
+                isOrgUser={true}
+                isSoloUser={false}
+                taskType="recurring"
+              />
+            )}
+
+            {selectedTaskType === 'milestone' && (
+              <RegularTaskForm
+                onSubmit={(data) => {
+                  onSubmit({
+                    title: data.taskName,
+                    description: data.description,
+                    assignedTo: data.assignedTo,
+                    priority: data.priority,
+                    taskType: selectedTaskType,
+                    category: "general",
+                    visibility: data.visibility,
+                    dueDate: data.dueDate,
+                    tags: data.tags.split(',').filter(tag => tag.trim()),
+                    collaborators: [],
+                    attachments: data.attachments || [],
+                    milestoneOptions: data.milestoneOptions
+                  });
+                }}
+                onCancel={onClose}
+                isOrgUser={true}
+                isSoloUser={false}
+                taskType="milestone"
               />
             )}
 
             {selectedTaskType === 'approval' && (
-              <EnhancedRegularTaskContent
-                taskName={taskName}
-                setTaskName={setTaskName}
-                description={description}
-                setDescription={setDescription}
-                assignedTo={assignedTo}
-                setAssignedTo={setAssignedTo}
-                priority={priority}
-                setPriority={setPriority}
-                characterCount={characterCount}
-                category={category}
-                setCategory={setCategory}
-                dueDate={dueDate}
-                setDueDate={setDueDate}
-                tags={tags}
-                setTags={setTags}
-                collaborators={collaborators}
-                setCollaborators={setCollaborators}
-                showRecurring={showRecurring}
-                setShowRecurring={setShowRecurring}
-                showMilestone={showMilestone}
-                setShowMilestone={setShowMilestone}
-                showApproval={true}
-                setShowApproval={setShowApproval}
+              <RegularTaskForm
+                onSubmit={(data) => {
+                  onSubmit({
+                    title: data.taskName,
+                    description: data.description,
+                    assignedTo: data.assignedTo,
+                    priority: data.priority,
+                    taskType: selectedTaskType,
+                    category: "general",
+                    visibility: data.visibility,
+                    dueDate: data.dueDate,
+                    tags: data.tags.split(',').filter(tag => tag.trim()),
+                    collaborators: [],
+                    attachments: data.attachments || [],
+                    approvalOptions: data.approvalOptions
+                  });
+                }}
+                onCancel={onClose}
+                isOrgUser={true}
+                isSoloUser={false}
+                taskType="approval"
               />
             )}
           </div>
