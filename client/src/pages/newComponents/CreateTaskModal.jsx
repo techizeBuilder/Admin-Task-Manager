@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RegularTaskContent } from '../../components/forms/RegularTaskContent';
 import { MilestoneTaskContent } from '../../components/forms/MilestoneTaskContent';
+import { EnhancedRegularTaskContent } from '../../components/forms/EnhancedRegularTaskContent';
 
 export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = 'regular' }) {
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
@@ -9,10 +10,20 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
   const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState('Normal');
   
+  // Additional fields
+  const [category, setCategory] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [tags, setTags] = useState('');
+  const [collaborators, setCollaborators] = useState([]);
+  
   // Milestone specific fields
   const [milestoneType, setMilestoneType] = useState('project');
   const [linkedTasks, setLinkedTasks] = useState([]);
-  const [dueDate, setDueDate] = useState('');
+  
+  // Special task type toggles
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [showMilestone, setShowMilestone] = useState(false);
+  const [showApproval, setShowApproval] = useState(false);
 
   const taskTypes = [
     {
@@ -76,7 +87,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 space-y-6">
           {/* Task Type Selection */}
-          <div className="bg-gray-50 p-6 rounded-lg">
+          <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Type</h3>
             <p className="text-gray-600 mb-4">Choose the type of task you want to create</p>
             
@@ -110,13 +121,13 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
           </div>
 
           {/* Task Details */}
-          <div className="bg-gray-50 p-6 rounded-lg">
+          <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Task Details</h3>
             <p className="text-gray-600 mb-4">Fill in the basic information for your task</p>
 
             {/* Dynamic Task Content Based on Type */}
             {selectedTaskType === 'regular' && (
-              <RegularTaskContent
+              <EnhancedRegularTaskContent
                 taskName={taskName}
                 setTaskName={setTaskName}
                 description={description}
@@ -126,6 +137,20 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
                 priority={priority}
                 setPriority={setPriority}
                 characterCount={characterCount}
+                category={category}
+                setCategory={setCategory}
+                dueDate={dueDate}
+                setDueDate={setDueDate}
+                tags={tags}
+                setTags={setTags}
+                collaborators={collaborators}
+                setCollaborators={setCollaborators}
+                showRecurring={showRecurring}
+                setShowRecurring={setShowRecurring}
+                showMilestone={showMilestone}
+                setShowMilestone={setShowMilestone}
+                showApproval={showApproval}
+                setShowApproval={setShowApproval}
               />
             )}
 
@@ -150,7 +175,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
             )}
 
             {selectedTaskType === 'recurring' && (
-              <RegularTaskContent
+              <EnhancedRegularTaskContent
                 taskName={taskName}
                 setTaskName={setTaskName}
                 description={description}
@@ -160,11 +185,25 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
                 priority={priority}
                 setPriority={setPriority}
                 characterCount={characterCount}
+                category={category}
+                setCategory={setCategory}
+                dueDate={dueDate}
+                setDueDate={setDueDate}
+                tags={tags}
+                setTags={setTags}
+                collaborators={collaborators}
+                setCollaborators={setCollaborators}
+                showRecurring={true}
+                setShowRecurring={setShowRecurring}
+                showMilestone={showMilestone}
+                setShowMilestone={setShowMilestone}
+                showApproval={showApproval}
+                setShowApproval={setShowApproval}
               />
             )}
 
             {selectedTaskType === 'approval' && (
-              <RegularTaskContent
+              <EnhancedRegularTaskContent
                 taskName={taskName}
                 setTaskName={setTaskName}
                 description={description}
@@ -174,6 +213,20 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
                 priority={priority}
                 setPriority={setPriority}
                 characterCount={characterCount}
+                category={category}
+                setCategory={setCategory}
+                dueDate={dueDate}
+                setDueDate={setDueDate}
+                tags={tags}
+                setTags={setTags}
+                collaborators={collaborators}
+                setCollaborators={setCollaborators}
+                showRecurring={showRecurring}
+                setShowRecurring={setShowRecurring}
+                showMilestone={showMilestone}
+                setShowMilestone={setShowMilestone}
+                showApproval={true}
+                setShowApproval={setShowApproval}
               />
             )}
           </div>
