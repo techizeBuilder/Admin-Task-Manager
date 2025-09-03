@@ -104,7 +104,7 @@ export default function CreateTaskDrawer({ onClose, onSubmit }) {
               </div>
             </div>
           ) : (
-            <div>
+            <div className="flex-1 flex flex-col">
               <div className="flex items-center gap-3 p-6 border-b border-gray-200">
                 <button
                   onClick={() => setSelectedTaskType(null)}
@@ -121,28 +121,55 @@ export default function CreateTaskDrawer({ onClose, onSubmit }) {
                 </div>
               </div>
 
-              {/* Dynamic Task Content Based on Type */}
-              <RegularTaskForm
-                onSubmit={(data) => {
-                  onSubmit({
-                    title: data.taskName,
-                    description: data.description,
-                    assignedTo: data.assignedTo,
-                    priority: data.priority,
-                    taskType: selectedTaskType,
-                    category: "general",
-                    visibility: data.visibility,
-                    dueDate: data.dueDate,
-                    tags: data.tags ? data.tags.split(',').filter(tag => tag.trim()) : [],
-                    collaborators: [],
-                    attachments: data.attachments || []
-                  });
-                }}
-                onCancel={onClose}
-                isOrgUser={true}
-                isSoloUser={false}
-                taskType={selectedTaskType}
-              />
+              {/* Task Form Content - Direct Integration */}
+              <div className="flex-1 p-6">
+                <div className="p-8 text-center">
+                  <div className="bg-gray-100 rounded-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      {selectedTaskType === 'regular' ? 'Regular Task' :
+                       selectedTaskType === 'recurring' ? 'Recurring Task' :
+                       selectedTaskType === 'milestone' ? 'Milestone' :
+                       selectedTaskType === 'approval' ? 'Approval Task' : 
+                       selectedTaskType.charAt(0).toUpperCase() + selectedTaskType.slice(1) + ' Task'}
+                    </h2>
+                    <p className="text-gray-600">This form will be customized for {selectedTaskType} task creation</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                  data-testid="button-cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSubmit({
+                      title: `New ${selectedTaskType} task`,
+                      description: '',
+                      assignedTo: 'self',
+                      priority: 'Medium',
+                      taskType: selectedTaskType,
+                      category: "general",
+                      visibility: 'private',
+                      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                      tags: [],
+                      collaborators: [],
+                      attachments: []
+                    });
+                  }}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  data-testid="button-save"
+                >
+                  Save Task
+                </button>
+              </div>
             </div>
           )}
         </div>
