@@ -210,14 +210,18 @@ export function RegularTaskForm({ onClose, onSubmit }) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Assign To
           </label>
-          <SearchableSelect
-            options={teamMembers}
+          <select
             value={formData.assignee}
-            onChange={(value) => handleInputChange("assignee", value)}
-            placeholder="Select assignee..."
-            className="w-full"
+            onChange={(e) => handleInputChange("assignee", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="select-regular-assignee"
-          />
+          >
+            {teamMembers.map(member => (
+              <option key={member.id} value={member.value}>
+                {member.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Estimated Hours */}

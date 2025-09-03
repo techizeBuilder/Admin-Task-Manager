@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react'
-import ApprovalTaskCreator from './ApprovalTaskCreator'
 
 export default function ApprovalManager() {
   const [currentUser] = useState({ id: 1, name: 'Current User', role: 'manager' })
@@ -194,10 +193,7 @@ export default function ApprovalManager() {
               </button>
             </div>
             <div className="drawer-body">
-              <ApprovalTaskCreator
-                onClose={() => setShowCreateModal(false)}
-                onSubmit={handleCreateApprovalTask}
-              />
+              <p>Use the main Approvals page to create approval tasks.</p>
             </div>
           </div>
         </div>
