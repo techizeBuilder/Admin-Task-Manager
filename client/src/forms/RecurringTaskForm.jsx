@@ -26,7 +26,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
     { value: "yearly", label: "Yearly" },
-    { value: "custom", label: "Custom" },
+    { value: "custom", label: "Custom (Ad-hoc Dates)" },
   ];
 
   // Weekday options
@@ -245,56 +245,224 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       )}
 
       {watchedPattern?.value === "monthly" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Day(s) of Month
-          </label>
-          <Controller
-            name="recurrence.monthDays"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                isMulti
-                options={monthDayOptions}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select days (1-31)..."
-                data-testid="select-month-days"
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Monthly Mode <span className="text-red-500">*</span>
+            </label>
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  {...register('recurrence.monthlyMode')}
+                  type="radio"
+                  value="by_date"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-monthly-by-date"
+                />
+                <span className="ml-2 text-sm text-gray-900">By Date(s)</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  {...register('recurrence.monthlyMode')}
+                  type="radio"
+                  value="by_position"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-monthly-by-position"
+                />
+                <span className="ml-2 text-sm text-gray-900">By Position</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  {...register('recurrence.monthlyMode')}
+                  type="radio"
+                  value="specific_date"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-monthly-specific-date"
+                />
+                <span className="ml-2 text-sm text-gray-900">Specific Date</span>
+              </label>
+            </div>
+          </div>
+
+          {/* By Date(s) mode */}
+          {watch('recurrence.monthlyMode') === 'by_date' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Day(s) of Month
+              </label>
+              <Controller
+                name="recurrence.monthDays"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    isMulti
+                    options={monthDayOptions}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    placeholder="Select days (1-31)..."
+                    data-testid="select-month-days"
+                  />
+                )}
               />
-            )}
-          />
+              <p className="text-xs text-gray-500 mt-1">
+                e.g., 2nd and 9th day of month
+              </p>
+            </div>
+          )}
+
+          {/* By Position mode */}
+          {watch('recurrence.monthlyMode') === 'by_position' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Position
+                </label>
+                <Controller
+                  name="recurrence.monthPosition"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={[
+                        { value: 'first', label: 'First' },
+                        { value: 'second', label: 'Second' },
+                        { value: 'third', label: 'Third' },
+                        { value: 'fourth', label: 'Fourth' },
+                        { value: 'last', label: 'Last' }
+                      ]}
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      placeholder="Select position..."
+                      data-testid="select-month-position"
+                    />
+                  )}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Weekday
+                </label>
+                <Controller
+                  name="recurrence.monthWeekday"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={weekdayOptions}
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      placeholder="Select weekday..."
+                      data-testid="select-month-weekday"
+                    />
+                  )}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1 col-span-2">
+                e.g., 2nd Monday of each month
+              </p>
+            </div>
+          )}
+
+          {/* Specific Date mode */}
+          {watch('recurrence.monthlyMode') === 'specific_date' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Specific Date (Day of Month)
+              </label>
+              <input
+                {...register('recurrence.specificDate', { 
+                  min: { value: 1, message: 'Must be between 1-31' },
+                  max: { value: 31, message: 'Must be between 1-31' },
+                  valueAsNumber: true
+                })}
+                type="number"
+                min="1"
+                max="31"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="15"
+                data-testid="input-specific-date"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                e.g., every 5th month on the 15th
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       {watchedPattern?.value === "yearly" && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Month(s) <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="recurrence.yearMonths"
+              control={control}
+              rules={{
+                required: "At least one month is required for yearly pattern",
+              }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  isMulti
+                  options={monthOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select months..."
+                  data-testid="select-year-months"
+                />
+              )}
+            />
+            {errors.recurrence?.yearMonths && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.recurrence.yearMonths.message}
+              </p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Day of Month
+            </label>
+            <input
+              {...register('recurrence.yearDay', { 
+                min: { value: 1, message: 'Must be between 1-31' },
+                max: { value: 31, message: 'Must be between 1-31' },
+                valueAsNumber: true
+              })}
+              type="number"
+              min="1"
+              max="31"
+              className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="1"
+              data-testid="input-year-day"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Day of the selected month(s). Supports bi-yearly patterns.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Pattern (Ad-hoc Dates) */}
+      {watchedPattern?.value === "custom" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
-            Month(s) <span className="text-red-500">*</span>
+            Custom Dates <span className="text-red-500">*</span>
           </label>
-          <Controller
-            name="recurrence.yearMonths"
-            control={control}
-            rules={{
-              required: "At least one month is required for yearly pattern",
-            }}
-            render={({ field }) => (
-              <Select
-                {...field}
-                isMulti
-                options={monthOptions}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Select months..."
-                data-testid="select-year-months"
-              />
-            )}
-          />
-          {errors.recurrence?.yearMonths && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.recurrence.yearMonths.message}
+          <div className="space-y-2">
+            <input
+              {...register('recurrence.customDates')}
+              type="date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              data-testid="input-custom-dates"
+            />
+            <p className="text-xs text-gray-500">
+              Select explicit upcoming dates. This mode is mutually exclusive with other patterns.
             </p>
-          )}
+          </div>
         </div>
       )}
 
@@ -749,6 +917,55 @@ export const RecurringTaskForm = ({
         />
         <p className="text-xs text-gray-500 mt-1">
           Type tag name and press Enter or comma to create new tags
+        </p>
+      </div>
+
+      {/* Contributors */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Contributors
+        </label>
+        <Controller
+          name="contributors"
+          control={control}
+          render={({ field }) => (
+            <Select
+              {...field}
+              isMulti
+              options={assignmentOptions.filter(opt => opt.value !== 'self')}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select contributors for visibility & notifications..."
+              data-testid="select-contributors"
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Contributors will receive notifications and can view/comment on the task
+        </p>
+      </div>
+
+      {/* Notes / Instructions */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Notes / Instructions
+        </label>
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field }) => (
+            <ReactQuill
+              theme="snow"
+              value={field.value}
+              onChange={field.onChange}
+              modules={quillModules}
+              className="custom-editor"
+              placeholder="Add any special notes or instructions for this recurring task..."
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Optional additional instructions or context for assignees
         </p>
       </div>
 
