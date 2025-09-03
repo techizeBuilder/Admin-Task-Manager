@@ -6,13 +6,14 @@ const getSystemPriorityLabel = (systemCode, systemPriorities) => {
   return systemPriority ? systemPriority.label : systemCode;
 };
 
+// Calculate due date based on priority
 export const calculateDueDateFromPriority = (
   priority,
-  creationDate = new Date()
+  creationDate = new Date(),
 ) => {
   const date = new Date(creationDate);
   const prioritySettings = JSON.parse(
-    localStorage.getItem("prioritySettings") || "{}"
+    localStorage.getItem("prioritySettings") || "{}",
   );
 
   // Default days mapping
@@ -30,7 +31,7 @@ export const calculateDueDateFromPriority = (
     7;
   date.setDate(date.getDate() + daysToAdd);
 
-  return date.toISOString().split("T")[0];
+  return date.toISOString().split("T")[0]; // Return YYYY-MM-DD format
 };
 
 function CompanyPriorityRow({
@@ -65,11 +66,13 @@ function CompanyPriorityRow({
       <td className="px-6 py-4">
         <div className="system-mapping-display">
           <span className="system-priority-label text-sm text-gray-600">
-            {getSystemPriorityLabel(priority.systemMapping, systemPriorities)}
+            {getSystemPriorityLabel(
+              priority.systemMapping,
+              systemPriorities,
+            )}{" "}
           </span>
         </div>
       </td>
-
       <td className="px-6 py-4">
         <div className="flex items-center space-x-2">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -193,7 +196,7 @@ export default function PriorityManager() {
 
   const handleSetDefault = (priority) => {
     setPriorities(
-      priorities.map((p) => ({ ...p, isDefault: p.id === priority.id }))
+      priorities.map((p) => ({ ...p, isDefault: p.id === priority.id })),
     );
   };
 
@@ -209,8 +212,8 @@ export default function PriorityManager() {
                 systemMapping: formData.systemMapping,
                 daysToDue: parseInt(formData.daysToDue),
               }
-            : p
-        )
+            : p,
+        ),
       );
     } else {
       const newPriority = {
@@ -228,7 +231,7 @@ export default function PriorityManager() {
   };
 
   return (
-    <div className="space-y-6 p-5 h-auto ">
+    <div className="space-y-6 p-5 h-auto overflow-scroll">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Priority Manager</h1>
@@ -263,7 +266,7 @@ export default function PriorityManager() {
             {editingPriority ? "Edit Priority" : "Add New Priority"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3  gap-4">
               <div>
                 <label className="form-label">Priority Name</label>
                 <input
@@ -312,7 +315,7 @@ export default function PriorityManager() {
                 </p>
               </div>
             </div>
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-between space-x-3">
               <button
                 type="button"
                 onClick={() => {
@@ -332,7 +335,7 @@ export default function PriorityManager() {
         </div>
       )}
 
-      <div className="card p-0 overflow-auto">
+      <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">

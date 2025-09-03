@@ -14,6 +14,7 @@ import {
   X,
   Clock,
   List,
+  Bell,
 } from "lucide-react";
 
 function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
@@ -42,6 +43,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
   // Settings navigation items
   const settingsNavigation = [
     { name: "Reports", href: "/reports", icon: BarChart3 },
+    { name: "Notifications", href: "/notifications", icon: Bell },
     { name: "Integrations", href: "/integrations", icon: Settings },
     { name: "Settings", href: "/settings/user-management", icon: UserCog },
   ];
