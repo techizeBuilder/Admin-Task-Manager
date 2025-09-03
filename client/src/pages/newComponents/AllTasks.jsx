@@ -20,6 +20,7 @@ export default function AllTasks({
   onCreateTask,
   onNavigateToTask,
   initialDueDateFilter,
+  filterByType,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -888,6 +889,14 @@ export default function AllTasks({
 
   // Apply filters to tasks
   const filteredTasks = storeTasks.filter((task) => {
+    // Apply type filter first (if specified)
+    if (filterByType) {
+      const taskType = task.type || (task.isApprovalTask ? "approval" : (task.type === "milestone" ? "milestone" : (task.isRecurring ? "recurring" : "regular")));
+      if (taskType !== filterByType) {
+        return false;
+      }
+    }
+
     // Apply search filter
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
