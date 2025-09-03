@@ -48,14 +48,7 @@ export const sidebarMenus = {
       id: 'dashboard',
       label: 'Dashboard',
       icon: Home,
-      children: [
-        {
-          id: 'my-dashboard',
-          label: 'My Dashboard',
-          icon: Home,
-          path: '/dashboard'
-        }
-      ]
+      path: '/dashboard'
     },
     {
       id: 'tasks',
@@ -158,14 +151,7 @@ export const sidebarMenus = {
       id: 'dashboard',
       label: 'Dashboard',
       icon: Home,
-      children: [
-        {
-          id: 'my-dashboard',
-          label: 'My Dashboard',
-          icon: Home,
-          path: '/dashboard'
-        }
-      ]
+      path: '/dashboard'
     },
     {
       id: 'tasks',
