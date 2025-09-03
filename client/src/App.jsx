@@ -533,10 +533,10 @@ function App() {
             <ProtectedRoute component={Reports} />
           </AdminLayout>
         </Route>
-        <Route path="/admin-settings">
+        <Route path="/notification-center">
           <AdminLayout>
             <ProtectedRoute
-              component={AdminSettings}
+              component={NotificationCenter}
               allowedRoles={["admin"]}
             />
           </AdminLayout>
