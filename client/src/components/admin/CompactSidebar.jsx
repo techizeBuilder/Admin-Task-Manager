@@ -12,6 +12,8 @@ import {
   BarChart3,
   UserCog,
   X,
+  Clock,
+  List,
 } from "lucide-react";
 
 function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
@@ -22,19 +24,30 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
     retry: false,
   });
 
-  const baseNavigation = [
+  // Main navigation items
+  const mainNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Tasks", href: "/tasks", icon: CheckSquare },
+    { name: "All Tasks", href: "/tasks", icon: List },
+    { name: "Deadlines", href: "/deadlines", icon: Clock },
+  ];
+
+  // Management navigation items
+  const managementNavigation = [
     { name: "Projects", href: "/projects", icon: FolderOpen },
     { name: "Forms", href: "/forms", icon: FileText },
     { name: "Users", href: "/users", icon: Users },
     { name: "Roles", href: "/roles", icon: Shield },
+  ];
+
+  // Settings navigation items
+  const settingsNavigation = [
     { name: "Reports", href: "/reports", icon: BarChart3 },
     { name: "Integrations", href: "/integrations", icon: Settings },
     { name: "Settings", href: "/settings/user-management", icon: UserCog },
   ];
 
-  const navigation = baseNavigation;
+  // Combine all navigation items for backward compatibility
+  const navigation = [...mainNavigation, ...managementNavigation, ...settingsNavigation];
 
   const isActive = (href) => {
     return location === href || (href === "/dashboard" && location === "/");
@@ -69,18 +82,18 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
-            {/* Core Features */}
+            {/* Main Section */}
             <div className="space-y-0.5">
               <div className="px-2 py-1">
                 <p className="text-xs font-medium text-gray-300 uppercase tracking-wider">
-                  Core Features
+                  Main
                 </p>
               </div>
 
-              {navigation.slice(0, 3).map((item, index) => {
+              {mainNavigation.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.name} className={index < 2 ? 'border-b border-gray-600/30 pb-2 mb-2' : ''}>
+                  <div key={item.name} className={index < mainNavigation.length - 1 ? 'border-b border-gray-600/30 pb-2 mb-2' : ''}>
                     <Link 
                       href={item.href} 
                       className={`group flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out relative ${
@@ -88,6 +101,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
                           ? 'bg-sidebarActive text-white shadow-lg'
                           : 'text-gray-300 hover:bg-sidebarHover hover:text-white'
                       }`}
+                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
                     >
                       <Icon className={`flex-shrink-0 h-4 w-4 transition-colors duration-200 ${
                         isActive(item.href)
@@ -114,10 +128,10 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
                 </p>
               </div>
 
-              {navigation.slice(3, 7).map((item, index) => {
+              {managementNavigation.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.name} className={index < 3 ? 'border-b border-gray-600/30 pb-2 mb-2' : ''}>
+                  <div key={item.name} className={index < managementNavigation.length - 1 ? 'border-b border-gray-600/30 pb-2 mb-2' : ''}>
                     <Link 
                       href={item.href} 
                       className={`group flex items-center px-2 py-1.5 text-sm font-medium rounded-md transition-all duration-200 ease-in-out relative ${
@@ -125,6 +139,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
                           ? 'bg-sidebarActive text-white shadow-lg'
                           : 'text-gray-300 hover:bg-sidebarHover hover:text-white'
                       }`}
+                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
                     >
                       <Icon className={`flex-shrink-0 h-4 w-4 transition-colors duration-200 ${
                         isActive(item.href)
@@ -151,7 +166,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
                 </p>
               </div>
 
-              {navigation.slice(7).map((item, index) => {
+              {settingsNavigation.map((item, index) => {
                 const Icon = item.icon;
                 return (
                   <div key={item.name}>
@@ -162,6 +177,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
                           ? 'bg-sidebarActive text-white shadow-lg'
                           : 'text-gray-300 hover:bg-sidebarHover hover:text-white'
                       }`}
+                      data-testid={`nav-${item.name.toLowerCase().replace(' ', '-')}`}
                     >
                       <Icon className={`flex-shrink-0 h-4 w-4 transition-colors duration-200 ${
                         isActive(item.href)

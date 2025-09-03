@@ -76,7 +76,8 @@ import StatusManager from "./pages/newComponents/StatusManager";
 import PriorityManager from "./pages/newComponents/PriorityManager";
 import ActivityFeed from "./pages/newComponents/ActivityFeed";
 import TaskAnalytics from "./pages/newComponents/TaskAnalytics";
-import Deadlines from "./pages/newComponents/Deadlines";
+import DeadlinesFromNew from "./pages/newComponents/Deadlines";
+import Deadlines from "./pages/Deadlines";
 
 const queryClient = new QueryClient({
   defaultOptions: {

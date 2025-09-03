@@ -1,21 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import '../styles/quill-custom.css';
-import Select from 'react-select';
-import { CheckCircle, XCircle, Info, AlertCircle, GripVertical, Users } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import "../styles/quill-custom.css";
+import Select from "react-select";
+import {
+  CheckCircle,
+  XCircle,
+  Info,
+  AlertCircle,
+  GripVertical,
+  Users,
+} from "lucide-react";
 
-const ApprovalTaskForm = ({ 
-  user, 
-  onSubmit, 
-  isOrgUser, 
+const ApprovalTaskForm = ({
+  user,
+  onSubmit,
+  isOrgUser,
   assignmentOptions = [],
-  approverOptions = [] // Available approvers
+  approverOptions = [], // Available approvers
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
   const [approverOrder, setApproverOrder] = useState([]);
-  
+
   const {
     register,
     handleSubmit,
@@ -25,24 +32,26 @@ const ApprovalTaskForm = ({
     formState: { errors },
   } = useForm({
     defaultValues: {
-      taskName: '',
-      description: '',
-      dueDate: new Date().toISOString().split('T')[0],
+      taskName: "",
+      description: "",
+      dueDate: new Date().toISOString().split("T")[0],
       approvers: [],
-      approvalMode: 'any_one',
+      approvalMode: "any_one",
       autoApproval: false,
       autoApprovalDays: 3,
-      priority: { value: 'medium', label: 'Medium' },
-      assignedTo: isOrgUser ? null : { value: 'self', label: user?.name || 'Self' },
+      priority: { value: "medium", label: "Medium" },
+      assignedTo: isOrgUser
+        ? null
+        : { value: "self", label: user?.name || "Self" },
       collaborators: [],
-      visibility: 'private'
+      visibility: "private",
     },
   });
 
-  const watchedTaskName = watch('taskName');
-  const watchedApprovers = watch('approvers');
-  const watchedApprovalMode = watch('approvalMode');
-  const watchedAutoApproval = watch('autoApproval');
+  const watchedTaskName = watch("taskName");
+  const watchedApprovers = watch("approvers");
+  const watchedApprovalMode = watch("approvalMode");
+  const watchedAutoApproval = watch("autoApproval");
 
   useEffect(() => {
     setTaskNameLength(watchedTaskName?.length || 0);
@@ -53,7 +62,7 @@ const ApprovalTaskForm = ({
     if (watchedApprovers && watchedApprovers.length > 0) {
       const newOrder = watchedApprovers.map((approver, index) => ({
         ...approver,
-        order: index + 1
+        order: index + 1,
       }));
       setApproverOrder(newOrder);
     } else {
@@ -63,31 +72,34 @@ const ApprovalTaskForm = ({
 
   // Get today's date for validation
   const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   };
 
   // Priority options
   const priorityOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'critical', label: 'Critical' }
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" },
   ];
 
   // Approval mode options
   const approvalModeOptions = [
-    { value: 'any_one', label: 'Any One' },
-    { value: 'all_must_approve', label: 'All Must Approve' },
-    { value: 'sequential', label: 'Sequential' }
+    { value: "any_one", label: "Any One" },
+    { value: "all_must_approve", label: "All Must Approve" },
+    { value: "sequential", label: "Sequential" },
   ];
 
   // Move approver up in order
   const moveApproverUp = (index) => {
     if (index > 0) {
       const newOrder = [...approverOrder];
-      [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+      [newOrder[index], newOrder[index - 1]] = [
+        newOrder[index - 1],
+        newOrder[index],
+      ];
       setApproverOrder(newOrder);
-      setValue('approvers', newOrder);
+      setValue("approvers", newOrder);
     }
   };
 
@@ -95,27 +107,31 @@ const ApprovalTaskForm = ({
   const moveApproverDown = (index) => {
     if (index < approverOrder.length - 1) {
       const newOrder = [...approverOrder];
-      [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+      [newOrder[index], newOrder[index + 1]] = [
+        newOrder[index + 1],
+        newOrder[index],
+      ];
       setApproverOrder(newOrder);
-      setValue('approvers', newOrder);
+      setValue("approvers", newOrder);
     }
   };
 
   // Quill editor configuration
   const quillModules = {
     toolbar: [
-      ['bold', 'italic', 'underline'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link'],
-      ['clean'],
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
     ],
   };
 
   const onFormSubmit = (data) => {
     const formData = {
       ...data,
-      taskType: 'approval',
-      approverOrder: watchedApprovalMode === 'sequential' ? approverOrder : null
+      taskType: "approval",
+      approverOrder:
+        watchedApprovalMode === "sequential" ? approverOrder : null,
     };
     onSubmit(formData);
   };
@@ -132,7 +148,8 @@ const ApprovalTaskForm = ({
         <div className="relative group">
           <Info className="w-4 h-4 text-gray-400 cursor-help" />
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-64 z-10">
-            Approval tasks require designated approvers to review and approve before completion
+            Approval tasks require designated approvers to review and approve
+            before completion
           </div>
         </div>
       </div>
@@ -144,11 +161,11 @@ const ApprovalTaskForm = ({
         </label>
         <div className="relative">
           <input
-            {...register('taskName', {
-              required: 'Task name is required',
+            {...register("taskName", {
+              required: "Task name is required",
               maxLength: {
                 value: 80,
-                message: 'Task name cannot exceed 80 characters',
+                message: "Task name cannot exceed 80 characters",
               },
             })}
             type="text"
@@ -182,7 +199,7 @@ const ApprovalTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor"
+              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Describe what needs approval..."
             />
           )}
@@ -195,11 +212,13 @@ const ApprovalTaskForm = ({
           Approval Due Date <span className="text-red-500">*</span>
         </label>
         <input
-          {...register('dueDate', {
-            required: 'Approval due date is required',
+          {...register("dueDate", {
+            required: "Approval due date is required",
             validate: (value) => {
               const today = getTodayDate();
-              return value >= today || 'Approval due date must be today or later';
+              return (
+                value >= today || "Approval due date must be today or later"
+              );
             },
           })}
           type="date"
@@ -224,19 +243,19 @@ const ApprovalTaskForm = ({
           name="approvers"
           control={control}
           rules={{
-            required: 'At least one approver must be assigned',
+            required: "At least one approver must be assigned",
             validate: (value) => {
               if (!value || value.length === 0) {
-                return 'At least one approver must be assigned';
+                return "At least one approver must be assigned";
               }
               return true;
-            }
+            },
           }}
           render={({ field }) => (
             <Select
               {...field}
               isMulti
-              options={approverOptions.filter(opt => opt.value !== user?.id)}
+              options={approverOptions.filter((opt) => opt.value !== user?.id)}
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Search and select approvers..."
@@ -263,9 +282,15 @@ const ApprovalTaskForm = ({
             <Info className="w-4 h-4 text-gray-400 cursor-help" />
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-72 z-10">
               <div className="space-y-1">
-                <div><strong>Any One:</strong> First approver's decision is final</div>
-                <div><strong>All Must Approve:</strong> Every approver must approve</div>
-                <div><strong>Sequential:</strong> Approvers review in order</div>
+                <div>
+                  <strong>Any One:</strong> First approver's decision is final
+                </div>
+                <div>
+                  <strong>All Must Approve:</strong> Every approver must approve
+                </div>
+                <div>
+                  <strong>Sequential:</strong> Approvers review in order
+                </div>
               </div>
             </div>
           </div>
@@ -274,7 +299,7 @@ const ApprovalTaskForm = ({
           {approvalModeOptions.map((option) => (
             <label key={option.value} className="flex items-center">
               <input
-                {...register('approvalMode')}
+                {...register("approvalMode")}
                 type="radio"
                 value={option.value}
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -287,14 +312,17 @@ const ApprovalTaskForm = ({
       </div>
 
       {/* Sequential Order - Only show if Sequential mode */}
-      {watchedApprovalMode === 'sequential' && approverOrder.length > 0 && (
+      {watchedApprovalMode === "sequential" && approverOrder.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Approval Order
           </label>
           <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
             {approverOrder.map((approver, index) => (
-              <div key={approver.value} className="flex items-center justify-between bg-white p-3 rounded border">
+              <div
+                key={approver.value}
+                className="flex items-center justify-between bg-white p-3 rounded border"
+              >
                 <div className="flex items-center space-x-3">
                   <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-medium">
                     {index + 1}
@@ -334,7 +362,7 @@ const ApprovalTaskForm = ({
       <div>
         <div className="flex items-center space-x-3 mb-3">
           <input
-            {...register('autoApproval')}
+            {...register("autoApproval")}
             type="checkbox"
             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
             data-testid="checkbox-auto-approval"
@@ -343,16 +371,16 @@ const ApprovalTaskForm = ({
             Enable Auto-Approval
           </label>
         </div>
-        
+
         {watchedAutoApproval && (
           <div className="ml-7">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Auto-approve after how many days past due date?
             </label>
             <input
-              {...register('autoApprovalDays', {
-                min: { value: 0, message: 'Days must be 0 or greater' },
-                valueAsNumber: true
+              {...register("autoApprovalDays", {
+                min: { value: 0, message: "Days must be 0 or greater" },
+                valueAsNumber: true,
               })}
               type="number"
               min="0"
@@ -362,7 +390,8 @@ const ApprovalTaskForm = ({
             />
             <span className="ml-2 text-sm text-gray-500">days</span>
             <p className="text-xs text-gray-500 mt-1">
-              Task will be auto-approved if no action is taken within this timeframe
+              Task will be auto-approved if no action is taken within this
+              timeframe
             </p>
           </div>
         )}
@@ -397,7 +426,7 @@ const ApprovalTaskForm = ({
         <Controller
           name="assignedTo"
           control={control}
-          rules={{ required: 'Assignment is required' }}
+          rules={{ required: "Assignment is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -435,9 +464,12 @@ const ApprovalTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter(opt => 
-                opt.value !== 'self' && 
-                !watchedApprovers?.some(approver => approver.value === opt.value)
+              options={assignmentOptions.filter(
+                (opt) =>
+                  opt.value !== "self" &&
+                  !watchedApprovers?.some(
+                    (approver) => approver.value === opt.value,
+                  ),
               )}
               className="react-select-container"
               classNamePrefix="react-select"
@@ -459,7 +491,7 @@ const ApprovalTaskForm = ({
         <div className="flex space-x-4">
           <label className="flex items-center">
             <input
-              {...register('visibility')}
+              {...register("visibility")}
               type="radio"
               value="private"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -469,7 +501,7 @@ const ApprovalTaskForm = ({
           </label>
           <label className="flex items-center">
             <input
-              {...register('visibility')}
+              {...register("visibility")}
               type="radio"
               value="public"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -485,10 +517,14 @@ const ApprovalTaskForm = ({
         <div className="flex items-start space-x-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-amber-900">Approval Task Restrictions</h4>
+            <h4 className="text-sm font-medium text-amber-900">
+              Approval Task Restrictions
+            </h4>
             <ul className="text-xs text-amber-700 mt-1 space-y-1">
               <li>• Approvers cannot be changed after first approval action</li>
-              <li>• Cannot revert approval task back to normal task once created</li>
+              <li>
+                • Cannot revert approval task back to normal task once created
+              </li>
               <li>• Task creator must explicitly choose to be an approver</li>
             </ul>
           </div>
