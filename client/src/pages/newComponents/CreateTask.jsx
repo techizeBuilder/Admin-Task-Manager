@@ -198,41 +198,43 @@ export default function CreateTask({
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
-          data-testid="button-cancel"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            onSubmit({
-              title: `New ${selectedTaskType} task`,
-              description: "",
-              assignedTo: "self",
-              priority: "Medium",
-              taskType: selectedTaskType,
-              category: "general",
-              visibility: "private",
-              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0],
-              tags: [],
-              collaborators: [],
-              attachments: [],
-            });
-          }}
-          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-          data-testid="button-save"
-        >
-          Save Task
-        </button>
-      </div>
+      {/* Action Buttons - Only for non-regular tasks since RegularTaskForm has its own buttons */}
+      {selectedTaskType !== 'regular' && (
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+            data-testid="button-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSubmit({
+                title: `New ${selectedTaskType} task`,
+                description: "",
+                assignedTo: "self",
+                priority: "Medium",
+                taskType: selectedTaskType,
+                category: "general",
+                visibility: "private",
+                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                  .toISOString()
+                  .split("T")[0],
+                tags: [],
+                collaborators: [],
+                attachments: [],
+              });
+            }}
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            data-testid="button-save"
+          >
+            Save Task
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import '../styles/quill-custom.css';
 import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 
 // Advanced Fields Modal Component
 const AdvancedFieldsModal = ({ isOpen, onClose, onSubmit, defaultValues = {} }) => {
@@ -495,7 +497,7 @@ export const RegularTaskForm = ({
             name="tags"
             control={control}
             render={({ field }) => (
-              <Select
+              <CreatableSelect
                 {...field}
                 isMulti
                 options={[
@@ -506,11 +508,17 @@ export const RegularTaskForm = ({
                 ]}
                 className="react-select-container"
                 classNamePrefix="react-select"
-                placeholder="Add tags..."
+                placeholder="Type and press Enter or comma to add tags..."
+                noOptionsMessage={() => "Type to create new tag"}
+                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+                createOptionPosition="first"
                 data-testid="select-tags"
               />
             )}
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Type tag name and press Enter or comma to create new tags
+          </p>
         </div>
 
         {/* Attachments */}
@@ -573,15 +581,7 @@ export const RegularTaskForm = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
-            data-testid="button-cancel"
-          >
-            Cancel
-          </button>
+        <div className="flex justify-end space-x-3 pt-6">
           <button
             type="button"
             onClick={() => setShowAdvancedModal(true)}
