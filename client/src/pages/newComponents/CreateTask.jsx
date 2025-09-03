@@ -167,26 +167,35 @@ export default function CreateTask({
         </div>
 
         {/* Task Form Content */}
-        <div className="p-8 text-center">
-          <div className="bg-gray-100 rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {selectedTaskType === "regular"
-                ? "Regular Task"
-                : selectedTaskType === "recurring"
-                  ? "Recurring Task"
-                  : selectedTaskType === "milestone"
-                    ? "Milestone"
-                    : selectedTaskType === "approval"
-                      ? "Approval Task"
-                      : selectedTaskType.charAt(0).toUpperCase() +
-                        selectedTaskType.slice(1) +
-                        " Task"}
-            </h2>
-            <p className="text-gray-600">
-              This form will be customized for {selectedTaskType} task creation
-            </p>
+        {selectedTaskType === 'regular' && (
+          <RegularTaskForm
+            onSubmit={(data) => {
+              console.log('Regular task created:', data);
+              onSubmit({
+                ...data,
+                taskType: selectedTaskType
+              });
+            }}
+            onCancel={onClose}
+            isOrgUser={true}
+          />
+        )}
+        
+        {selectedTaskType !== 'regular' && (
+          <div className="p-8 text-center">
+            <div className="bg-gray-100 rounded-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {selectedTaskType === "recurring" ? "Recurring Task" :
+                 selectedTaskType === "milestone" ? "Milestone" :
+                 selectedTaskType === "approval" ? "Approval Task" : 
+                 selectedTaskType.charAt(0).toUpperCase() + selectedTaskType.slice(1) + " Task"}
+              </h2>
+              <p className="text-gray-600">
+                This form will be customized for {selectedTaskType} task creation
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Action Buttons */}
