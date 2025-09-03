@@ -356,21 +356,25 @@ function StatusFormModal({
                   </svg>
                   Status Properties
                 </label>
-                <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    name="isFinal"
-                    checked={formData.isFinal}
-                    onChange={handleChange}
-                    className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="font-medium text-gray-900">
-                    Final Status
-                  </span>
-                  <p className="text-sm text-gray-600">
-                    No further transitions allowed from this status
-                  </p>
-                </label>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isFinal"
+                      checked={formData.isFinal}
+                      onChange={handleChange}
+                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 mb-1">
+                        Final Status
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        No further transitions allowed from this status
+                      </p>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
             <div className="form-group">
