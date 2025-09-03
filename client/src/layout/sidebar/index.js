@@ -2,6 +2,7 @@
 export { default as Sidebar } from './Sidebar';
 export { default as SidebarItem } from './SidebarItem';
 export { default as MemberSidebar } from './MemberSidebar';
+export { default as UserContextSidebar } from './UserContextSidebar';
 export { sidebarMenus, getMenuByRole, findActiveItem } from './config';
 
 // Usage examples:

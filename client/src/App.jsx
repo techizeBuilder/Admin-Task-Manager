@@ -81,6 +81,7 @@ import Deadlines from "./pages/Deadlines";
 import NotificationCenter from "./pages/newComponents/NotificationCenter";
 import SidebarDemo from "./layout/sidebar/SidebarDemo";
 import MemberDashboard from "./layout/sidebar/MemberDashboard";
+import CurrentUserSidebar from "./pages/CurrentUserSidebar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -558,6 +559,9 @@ function App() {
         </Route>
         <Route path="/member-dashboard">
           <MemberDashboard />
+        </Route>
+        <Route path="/current-user-sidebar">
+          <CurrentUserSidebar />
         </Route>
         {/* Settings Routes */}
         <Route path="/settings">

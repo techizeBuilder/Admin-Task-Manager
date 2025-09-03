@@ -537,13 +537,14 @@ export const getMenuByRole = (role) => {
   // Map API roles to sidebar menu configs
   const roleMapping = {
     'member': 'individual', // Individual member without organization
+    'employee': 'individual', // Employee role (similar to member)
     'org_member': 'orgMember', // Organization member without admin rights
     'admin': 'organization', // Organization admin
     'org_admin': 'organization', // Organization admin (alternative)
     'superadmin': 'superadmin', // Super admin
     'super_admin': 'superadmin', // Super admin (alternative)
-    'individual': 'individual', // Direct mapping
-    'organization': 'organization', // Direct mapping
+    'individual': 'individual', // Individual user
+    'organization': 'organization', // Organization admin (direct mapping)
   };
   
   const mappedRole = roleMapping[role] || 'individual';
