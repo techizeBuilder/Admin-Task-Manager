@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
-import RegularTaskDrawer from "./newComponents/RegularTaskDrawer";
+import TaskDrawer from "../components/common/TaskDrawer";
+import { RegularTaskForm } from "../forms/RegularTaskForm";
 
 export default function TaskCreate() {
   const [showDrawer, setShowDrawer] = useState(false);
@@ -55,10 +56,16 @@ export default function TaskCreate() {
       </div>
 
       {/* Regular Task Creation Drawer */}
-      <RegularTaskDrawer 
+      <TaskDrawer 
         isOpen={showDrawer} 
-        onClose={() => setShowDrawer(false)} 
-      />
+        onClose={() => setShowDrawer(false)}
+        title="Create Task"
+      >
+        <RegularTaskForm 
+          onClose={() => setShowDrawer(false)}
+          onSubmit={(task) => console.log('Regular task created:', task)}
+        />
+      </TaskDrawer>
     </div>
   );
 }

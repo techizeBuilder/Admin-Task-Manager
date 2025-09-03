@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Target, Plus } from "lucide-react";
 import useTasksStore from "../stores/tasksStore";
-import MilestoneTaskDrawer from "./newComponents/MilestoneTaskDrawer";
+import TaskDrawer from "../components/common/TaskDrawer";
+import MilestoneTaskForm from "../forms/MilestoneTaskForm";
 import AllTasks from "./newComponents/AllTasks";
 
 export default function Milestones() {
@@ -98,10 +99,16 @@ export default function Milestones() {
       </div>
 
       {/* Milestone Creation Drawer */}
-      <MilestoneTaskDrawer 
+      <TaskDrawer 
         isOpen={showDrawer} 
-        onClose={() => setShowDrawer(false)} 
-      />
+        onClose={() => setShowDrawer(false)}
+        title="Create Milestone"
+      >
+        <MilestoneTaskForm 
+          onClose={() => setShowDrawer(false)}
+          onSubmit={(task) => console.log('Milestone created:', task)}
+        />
+      </TaskDrawer>
     </div>
   );
 }

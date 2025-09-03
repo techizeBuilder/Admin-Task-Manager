@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { ClipboardCheck, Plus } from "lucide-react";
 import useTasksStore from "../stores/tasksStore";
-import ApprovalTaskDrawer from "./newComponents/ApprovalTaskDrawer";
+import TaskDrawer from "../components/common/TaskDrawer";
+import ApprovalTaskForm from "../forms/ApprovalTaskForm";
 import AllTasks from "./newComponents/AllTasks";
 
 export default function Approvals() {
@@ -112,10 +113,16 @@ export default function Approvals() {
       </div>
 
       {/* Approval Task Creation Drawer */}
-      <ApprovalTaskDrawer 
+      <TaskDrawer 
         isOpen={showDrawer} 
-        onClose={() => setShowDrawer(false)} 
-      />
+        onClose={() => setShowDrawer(false)}
+        title="Create Approval Task"
+      >
+        <ApprovalTaskForm 
+          onClose={() => setShowDrawer(false)}
+          onSubmit={(task) => console.log('Approval task created:', task)}
+        />
+      </TaskDrawer>
     </div>
   );
 }

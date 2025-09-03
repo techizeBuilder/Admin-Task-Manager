@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Zap, Plus } from "lucide-react";
 import useTasksStore from "../stores/tasksStore";
-import QuickTaskCreator from "./newComponents/QuickTaskCreator";
+import TaskDrawer from "../components/common/TaskDrawer";
+import QuickTaskForm from "../forms/QuickTaskForm";
 import AllTasks from "./newComponents/AllTasks";
 
 export default function QuickTasks() {
@@ -84,10 +85,16 @@ export default function QuickTasks() {
       </div>
 
       {/* Quick Task Creation Drawer */}
-      <QuickTaskCreator 
+      <TaskDrawer 
         isOpen={showDrawer} 
-        onClose={() => setShowDrawer(false)} 
-      />
+        onClose={() => setShowDrawer(false)}
+        title="Create Quick Task"
+      >
+        <QuickTaskForm 
+          onClose={() => setShowDrawer(false)}
+          onSubmit={(task) => console.log('Quick task created:', task)}
+        />
+      </TaskDrawer>
     </div>
   );
 }
