@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Target, Plus } from "lucide-react";
 import useTasksStore from "../stores/tasksStore";
 import TaskDrawer from "../components/common/TaskDrawer";
-import MilestoneTaskForm from "../forms/MilestoneTaskForm";
+import { TaskForm } from "../forms/TaskForm";
 import AllTasks from "./newComponents/AllTasks";
 
 export default function Milestones() {
@@ -104,9 +104,13 @@ export default function Milestones() {
         onClose={() => setShowDrawer(false)}
         title="Create Milestone"
       >
-        <MilestoneTaskForm 
+        <TaskForm 
           onClose={() => setShowDrawer(false)}
           onSubmit={(task) => console.log('Milestone created:', task)}
+          initialData={{
+            isMilestone: true,
+            priority: "high"
+          }}
         />
       </TaskDrawer>
     </div>
