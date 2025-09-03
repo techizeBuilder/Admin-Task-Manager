@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
-import { TaskForm } from "../../forms/TaskForm";
+import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
+import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -198,7 +199,7 @@ export default function CreateTask({
         )}
         
         {selectedTaskType === 'milestone' && (
-          <TaskForm
+          <MilestoneTaskForm
             onSubmit={(data) => {
               console.log('Milestone task created:', data);
               onSubmit({
@@ -206,16 +207,25 @@ export default function CreateTask({
                 taskType: selectedTaskType
               });
             }}
-            onClose={onClose}
-            initialData={{
-              isMilestone: true,
-              priority: "high"
-            }}
+            onCancel={onClose}
+            isOrgUser={true}
+            assignmentOptions={[
+              { value: 'self', label: 'Self' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' },
+              { value: 'user3', label: 'Mike Johnson' }
+            ]}
+            existingTasks={[
+              { id: 'task-1', name: 'Setup Project Environment', taskType: 'regular', dueDate: '2025-09-15' },
+              { id: 'task-2', name: 'Create Database Schema', taskType: 'regular', dueDate: '2025-09-20' },
+              { id: 'task-3', name: 'Design UI Mockups', taskType: 'regular', dueDate: '2025-09-18' },
+              { id: 'task-4', name: 'Implement Authentication', taskType: 'regular', dueDate: '2025-09-25' }
+            ]}
           />
         )}
         
         {selectedTaskType === 'approval' && (
-          <TaskForm
+          <ApprovalTaskForm
             onSubmit={(data) => {
               console.log('Approval task created:', data);
               onSubmit({
@@ -223,11 +233,21 @@ export default function CreateTask({
                 taskType: selectedTaskType
               });
             }}
-            onClose={onClose}
-            initialData={{
-              isApproval: true,
-              priority: "medium"
-            }}
+            onCancel={onClose}
+            isOrgUser={true}
+            assignmentOptions={[
+              { value: 'self', label: 'Self' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' },
+              { value: 'user3', label: 'Mike Johnson' }
+            ]}
+            approverOptions={[
+              { value: 'manager1', label: 'Sarah Wilson (Manager)' },
+              { value: 'lead1', label: 'David Chen (Team Lead)' },
+              { value: 'director1', label: 'Lisa Rodriguez (Director)' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' }
+            ]}
           />
         )}
       </div>
