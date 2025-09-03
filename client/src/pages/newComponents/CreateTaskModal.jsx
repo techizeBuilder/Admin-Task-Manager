@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RegularTaskContent } from '../../components/forms/RegularTaskContent';
 import { MilestoneTaskContent } from '../../components/forms/MilestoneTaskContent';
 import { EnhancedRegularTaskContent } from '../../components/forms/EnhancedRegularTaskContent';
+import { RegularTaskForm } from '../../forms/RegularTaskForm';
 
 export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = 'regular' }) {
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
@@ -127,31 +128,29 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
 
             {/* Dynamic Task Content Based on Type */}
             {selectedTaskType === 'regular' && (
-              <EnhancedRegularTaskContent
-                taskName={taskName}
-                setTaskName={setTaskName}
-                description={description}
-                setDescription={setDescription}
-                assignedTo={assignedTo}
-                setAssignedTo={setAssignedTo}
-                priority={priority}
-                setPriority={setPriority}
-                characterCount={characterCount}
-                category={category}
-                setCategory={setCategory}
-                dueDate={dueDate}
-                setDueDate={setDueDate}
-                tags={tags}
-                setTags={setTags}
-                collaborators={collaborators}
-                setCollaborators={setCollaborators}
-                showRecurring={showRecurring}
-                setShowRecurring={setShowRecurring}
-                showMilestone={showMilestone}
-                setShowMilestone={setShowMilestone}
-                showApproval={showApproval}
-                setShowApproval={setShowApproval}
-              />
+              <div className="mt-4">
+                <RegularTaskForm
+                  onSubmit={(data) => {
+                    // Transform data to match expected format
+                    onSubmit({
+                      title: data.taskName,
+                      description: data.description,
+                      assignedTo: data.assignedTo,
+                      priority: data.priority,
+                      taskType: selectedTaskType,
+                      category: "general",
+                      visibility: data.visibility,
+                      dueDate: data.dueDate,
+                      tags: data.tags.split(',').filter(tag => tag.trim()),
+                      collaborators: [],
+                      attachments: data.attachments || []
+                    });
+                  }}
+                  onCancel={onClose}
+                  isOrgUser={true}
+                  isSoloUser={false}
+                />
+              </div>
             )}
 
             {selectedTaskType === 'milestone' && (
@@ -231,25 +230,27 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
             )}
           </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            data-testid="button-cancel"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!taskName || !assignedTo}
-            className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
-            data-testid="button-create-task"
-          >
-            Create Task
-          </button>
-        </div>
+        {/* Actions - Only show for non-regular tasks */}
+        {selectedTaskType !== 'regular' && (
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              data-testid="button-cancel"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!taskName || !assignedTo}
+              className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+              data-testid="button-create-task"
+            >
+              Create Task
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );
