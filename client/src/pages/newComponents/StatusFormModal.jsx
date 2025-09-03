@@ -364,15 +364,15 @@ function StatusFormModal({
                     onChange={handleChange}
                     className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                   />
-                  <div className="flex-1 !border-none !shadow-none !rounded-none">
-                    <span className="font-medium text-gray-900">
-                      Final Status
-                    </span>
-                    <p className="text-sm text-gray-600">
-                      No further transitions allowed from this status
-                    </p>
-                  </div>
                 </label>
+                <div className="flex-1 !border-none !shadow-none !rounded-none">
+                  <span className="font-medium text-gray-900">
+                    Final Status
+                  </span>
+                  <p className="text-sm text-gray-600">
+                    No further transitions allowed from this status
+                  </p>
+                </div>
               </div>
             </div>
             <div className="form-group">
