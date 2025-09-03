@@ -7,31 +7,45 @@ export default function CreateTask({
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
-  const [selectedTaskType, setSelectedTaskType] = useState('regular');
+  const [selectedTaskType, setSelectedTaskType] = useState("regular");
 
   return (
     <div className="flex flex-col h-full">
       {/* Task Type Selection Section */}
-      <div className="bg-gray-50 rounded-lg p-6 mb-6">
+      <div className="bg-white rounded-lg p-6 mb-6">
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Task Type</h3>
-          <p className="text-gray-600 text-sm">Choose the type of task you want to create</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Task Type
+          </h3>
+          <p className="text-gray-600 text-sm">
+            Choose the type of task you want to create
+          </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Regular Task */}
           <button
-            onClick={() => setSelectedTaskType('regular')}
+            onClick={() => setSelectedTaskType("regular")}
             className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === 'regular' 
-                ? 'bg-blue-100 border-2 border-blue-500' 
-                : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+              selectedTaskType === "regular"
+                ? "bg-blue-100 border-2 border-blue-500"
+                : "bg-white border-2 border-gray-200 hover:border-blue-300"
             }`}
             data-testid="task-type-regular"
           >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 text-white mr-3 flex-shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
             <div>
@@ -42,17 +56,27 @@ export default function CreateTask({
 
           {/* Recurring Task */}
           <button
-            onClick={() => setSelectedTaskType('recurring')}
+            onClick={() => setSelectedTaskType("recurring")}
             className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === 'recurring' 
-                ? 'bg-blue-100 border-2 border-blue-500' 
-                : 'bg-white border-2 border-gray-200 hover:border-blue-300'
+              selectedTaskType === "recurring"
+                ? "bg-blue-100 border-2 border-blue-500"
+                : "bg-white border-2 border-gray-200 hover:border-blue-300"
             }`}
             data-testid="task-type-recurring"
           >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 text-white mr-3 flex-shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </div>
             <div>
@@ -63,18 +87,33 @@ export default function CreateTask({
 
           {/* Milestone */}
           <button
-            onClick={() => setSelectedTaskType('milestone')}
+            onClick={() => setSelectedTaskType("milestone")}
             className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === 'milestone' 
-                ? 'bg-red-100 border-2 border-red-500' 
-                : 'bg-white border-2 border-gray-200 hover:border-red-300'
+              selectedTaskType === "milestone"
+                ? "bg-red-100 border-2 border-red-500"
+                : "bg-white border-2 border-gray-200 hover:border-red-300"
             }`}
             data-testid="task-type-milestone"
           >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500 text-white mr-3 flex-shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
             </div>
             <div>
@@ -85,17 +124,27 @@ export default function CreateTask({
 
           {/* Approval Task */}
           <button
-            onClick={() => setSelectedTaskType('approval')}
+            onClick={() => setSelectedTaskType("approval")}
             className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === 'approval' 
-                ? 'bg-green-100 border-2 border-green-500' 
-                : 'bg-white border-2 border-gray-200 hover:border-green-300'
+              selectedTaskType === "approval"
+                ? "bg-green-100 border-2 border-green-500"
+                : "bg-white border-2 border-gray-200 hover:border-green-300"
             }`}
             data-testid="task-type-approval"
           >
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500 text-white mr-3 flex-shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <div>
@@ -109,21 +158,33 @@ export default function CreateTask({
       {/* Task Details Section */}
       <div className="bg-white rounded-lg p-6 flex-1">
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Task Details</h3>
-          <p className="text-gray-600 text-sm">Fill in the basic information for your task</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Task Details
+          </h3>
+          <p className="text-gray-600 text-sm">
+            Fill in the basic information for your task
+          </p>
         </div>
 
         {/* Task Form Content */}
         <div className="p-8 text-center">
           <div className="bg-gray-100 rounded-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {selectedTaskType === 'regular' ? 'Regular Task' :
-               selectedTaskType === 'recurring' ? 'Recurring Task' :
-               selectedTaskType === 'milestone' ? 'Milestone' :
-               selectedTaskType === 'approval' ? 'Approval Task' : 
-               selectedTaskType.charAt(0).toUpperCase() + selectedTaskType.slice(1) + ' Task'}
+              {selectedTaskType === "regular"
+                ? "Regular Task"
+                : selectedTaskType === "recurring"
+                  ? "Recurring Task"
+                  : selectedTaskType === "milestone"
+                    ? "Milestone"
+                    : selectedTaskType === "approval"
+                      ? "Approval Task"
+                      : selectedTaskType.charAt(0).toUpperCase() +
+                        selectedTaskType.slice(1) +
+                        " Task"}
             </h2>
-            <p className="text-gray-600">This form will be customized for {selectedTaskType} task creation</p>
+            <p className="text-gray-600">
+              This form will be customized for {selectedTaskType} task creation
+            </p>
           </div>
         </div>
       </div>
@@ -143,16 +204,18 @@ export default function CreateTask({
           onClick={() => {
             onSubmit({
               title: `New ${selectedTaskType} task`,
-              description: '',
-              assignedTo: 'self',
-              priority: 'Medium',
+              description: "",
+              assignedTo: "self",
+              priority: "Medium",
               taskType: selectedTaskType,
               category: "general",
-              visibility: 'private',
-              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              visibility: "private",
+              dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0],
               tags: [],
               collaborators: [],
-              attachments: []
+              attachments: [],
             });
           }}
           className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
@@ -369,7 +432,8 @@ function LegacyCreateTask({
                   Create Task
                 </h4>
                 <p className="text-sm text-gray-500 group-hover:text-gray-600">
-                  Modular task creation with milestone, approval, and recurring options
+                  Modular task creation with milestone, approval, and recurring
+                  options
                 </p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span className="flex items-center gap-1">
@@ -445,7 +509,7 @@ function LegacyCreateTask({
               </div>
             </div>
           </button>
-          
+
           <button
             onClick={() => setTaskType("approval")}
             className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
@@ -497,7 +561,7 @@ function LegacyCreateTask({
               recurring: formData.recurring,
               advanced: formData.advanced,
               collaborators: formData.collaborators || [],
-              attachments: formData.attachments || []
+              attachments: formData.attachments || [],
             });
           }}
           onSaveDraft={(formData) => {
@@ -1077,11 +1141,11 @@ function LegacyCreateTask({
             collaborators: [],
             approval: {
               approvers: [],
-              approvalMode: 'any_one',
+              approvalMode: "any_one",
               approverOrder: [],
               autoApproval: false,
-              autoApprovalDays: 0
-            }
+              autoApprovalDays: 0,
+            },
           }}
           setFormData={(formData) => {
             // Handle form data updates if needed
@@ -1097,7 +1161,7 @@ function LegacyCreateTask({
               approval: formData.approval,
               priority: "medium",
               visibility: "private",
-              category: "approval"
+              category: "approval",
             });
           }}
           onSaveDraft={(formData) => {
