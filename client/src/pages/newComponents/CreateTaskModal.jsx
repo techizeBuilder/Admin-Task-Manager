@@ -128,29 +128,27 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
 
             {/* Dynamic Task Content Based on Type */}
             {selectedTaskType === 'regular' && (
-              <div className="mt-4">
-                <RegularTaskForm
-                  onSubmit={(data) => {
-                    // Transform data to match expected format
-                    onSubmit({
-                      title: data.taskName,
-                      description: data.description,
-                      assignedTo: data.assignedTo,
-                      priority: data.priority,
-                      taskType: selectedTaskType,
-                      category: "general",
-                      visibility: data.visibility,
-                      dueDate: data.dueDate,
-                      tags: data.tags.split(',').filter(tag => tag.trim()),
-                      collaborators: [],
-                      attachments: data.attachments || []
-                    });
-                  }}
-                  onCancel={onClose}
-                  isOrgUser={true}
-                  isSoloUser={false}
-                />
-              </div>
+              <RegularTaskForm
+                onSubmit={(data) => {
+                  // Transform data to match expected format
+                  onSubmit({
+                    title: data.taskName,
+                    description: data.description,
+                    assignedTo: data.assignedTo,
+                    priority: data.priority,
+                    taskType: selectedTaskType,
+                    category: "general",
+                    visibility: data.visibility,
+                    dueDate: data.dueDate,
+                    tags: data.tags.split(',').filter(tag => tag.trim()),
+                    collaborators: [],
+                    attachments: data.attachments || []
+                  });
+                }}
+                onCancel={onClose}
+                isOrgUser={true}
+                isSoloUser={false}
+              />
             )}
 
             {selectedTaskType === 'milestone' && (

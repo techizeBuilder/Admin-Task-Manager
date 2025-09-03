@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import ReactQuill from 'react-quill';
+import Select from 'react-select';
+import 'react-quill/dist/quill.snow.css';
+import '../styles/quill-custom.css';
 
 // Primary Fields Component
 const PrimaryFields = ({ 
@@ -10,6 +14,24 @@ const PrimaryFields = ({
 }) => {
   const [attachments, setAttachments] = useState([]);
   const [totalSize, setTotalSize] = useState(0);
+
+  const assigneeOptions = [
+    { value: 'self', label: 'Self' },
+    ...(isOrgUser ? [
+      { value: 'john', label: 'John Smith' },
+      { value: 'sarah', label: 'Sarah Wilson' },
+      { value: 'mike', label: 'Mike Johnson' },
+      { value: 'emma', label: 'Emma Davis' },
+      { value: 'alex', label: 'Alex Brown' }
+    ] : [])
+  ];
+
+  const priorityOptions = [
+    { value: 'Low', label: '🟢 Low', color: '#10b981' },
+    { value: 'Medium', label: '🟡 Medium', color: '#f59e0b' },
+    { value: 'High', label: '🟠 High', color: '#f97316' },
+    { value: 'Critical', label: '🔴 Critical', color: '#ef4444' }
+  ];
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -107,45 +129,27 @@ const PrimaryFields = ({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Description
         </label>
-        <div className="border border-gray-300 rounded-lg overflow-hidden">
-          {/* Rich Text Toolbar */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200">
-            <button
-              type="button"
-              className="p-1 hover:bg-gray-200 rounded text-sm font-bold"
-              title="Bold"
-            >
-              B
-            </button>
-            <button
-              type="button"
-              className="p-1 hover:bg-gray-200 rounded text-sm italic"
-              title="Italic"
-            >
-              I
-            </button>
-            <button
-              type="button"
-              className="p-1 hover:bg-gray-200 rounded text-sm"
-              title="Bullet List"
-            >
-              •
-            </button>
-            <button
-              type="button"
-              className="p-1 hover:bg-gray-200 rounded text-sm"
-              title="Link"
-            >
-              🔗
-            </button>
-          </div>
-          <textarea
+        <div className="custom-editor">
+          <ReactQuill
             value={formData.description}
-            onChange={(e) => updateField('description', e.target.value)}
+            onChange={(value) => updateField('description', value)}
             placeholder="Describe the task details..."
-            rows={4}
-            className="w-full px-3 py-2 border-none resize-none focus:outline-none"
-            data-testid="textarea-description"
+            modules={{
+              toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['link', 'blockquote', 'code-block'],
+                [{ 'color': [] }, { 'background': [] }],
+                ['clean']
+              ],
+            }}
+            formats={[
+              'header', 'bold', 'italic', 'underline', 'strike',
+              'list', 'bullet', 'link', 'blockquote', 'code-block',
+              'color', 'background'
+            ]}
+            className="bg-white border border-gray-300 rounded-lg"
           />
         </div>
       </div>
@@ -156,24 +160,26 @@ const PrimaryFields = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Assigned To *
           </label>
-          <select
-            value={formData.assignedTo}
-            onChange={(e) => updateField('assignedTo', e.target.value)}
-            disabled={isSoloUser}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              isSoloUser ? 'bg-gray-100 cursor-not-allowed' : 'border-gray-300'
-            } ${errors.assignedTo ? 'border-red-500' : ''}`}
-            data-testid="select-assigned-to"
-          >
-            <option value="self">Self</option>
-            {isOrgUser && (
-              <>
-                <option value="john">John Smith</option>
-                <option value="sarah">Sarah Wilson</option>
-                <option value="mike">Mike Johnson</option>
-              </>
-            )}
-          </select>
+          <Select
+            value={assigneeOptions.find(option => option.value === formData.assignedTo)}
+            onChange={(option) => updateField('assignedTo', option.value)}
+            options={assigneeOptions}
+            isDisabled={isSoloUser}
+            isSearchable
+            placeholder="Search and select assignee..."
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              control: (base, state) => ({
+                ...base,
+                borderColor: errors.assignedTo ? '#ef4444' : state.isFocused ? '#3b82f6' : '#d1d5db',
+                boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.1)' : 'none',
+                '&:hover': {
+                  borderColor: errors.assignedTo ? '#ef4444' : '#3b82f6'
+                }
+              })
+            }}
+          />
           {errors.assignedTo && (
             <p className="text-red-500 text-xs mt-1">{errors.assignedTo}</p>
           )}
@@ -183,17 +189,22 @@ const PrimaryFields = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Priority *
           </label>
-          <select
-            value={formData.priority}
-            onChange={(e) => handlePriorityChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            data-testid="select-priority"
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
+          <Select
+            value={priorityOptions.find(option => option.value === formData.priority)}
+            onChange={(option) => handlePriorityChange(option.value)}
+            options={priorityOptions}
+            isSearchable
+            placeholder="Select priority..."
+            className="react-select-container"
+            classNamePrefix="react-select"
+            styles={{
+              option: (base, state) => ({
+                ...base,
+                color: state.data.color,
+                fontWeight: '500'
+              })
+            }}
+          />
         </div>
       </div>
 
@@ -335,6 +346,38 @@ const PrimaryFields = ({
 
 // Advanced Fields Component
 const AdvancedFields = ({ formData, updateField }) => {
+  const processOptions = [
+    { value: 'development', label: '💻 Development Process' },
+    { value: 'review', label: '📋 Review Process' },
+    { value: 'testing', label: '🧪 Testing Process' },
+    { value: 'deployment', label: '🚀 Deployment Process' },
+    { value: 'design', label: '🎨 Design Process' }
+  ];
+
+  const formOptions = [
+    { value: 'bug-report', label: '🐛 Bug Report Form' },
+    { value: 'feature-request', label: '✨ Feature Request Form' },
+    { value: 'user-feedback', label: '💬 User Feedback Form' },
+    { value: 'task-review', label: '📝 Task Review Form' },
+    { value: 'security-audit', label: '🔒 Security Audit Form' }
+  ];
+
+  const dependencyOptions = [
+    { value: 'task-1', label: 'Complete Database Setup' },
+    { value: 'task-2', label: 'Finish UI Design' },
+    { value: 'task-3', label: 'API Development' },
+    { value: 'task-4', label: 'User Testing Phase' },
+    { value: 'task-5', label: 'Security Review' },
+    { value: 'task-6', label: 'Performance Optimization' },
+    { value: 'task-7', label: 'Documentation Update' }
+  ];
+
+  const taskTypeOptions = [
+    { value: 'Simple', label: '⚡ Simple' },
+    { value: 'Recurring', label: '🔄 Recurring' },
+    { value: 'Approval', label: '✅ Approval' }
+  ];
+
   return (
     <div className="space-y-6">
       {/* Reference Process */}
@@ -342,18 +385,16 @@ const AdvancedFields = ({ formData, updateField }) => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Reference Process
         </label>
-        <select
-          value={formData.referenceProcess}
-          onChange={(e) => updateField('referenceProcess', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          data-testid="select-reference-process"
-        >
-          <option value="">Select process...</option>
-          <option value="development">Development Process</option>
-          <option value="review">Review Process</option>
-          <option value="testing">Testing Process</option>
-          <option value="deployment">Deployment Process</option>
-        </select>
+        <Select
+          value={processOptions.find(option => option.value === formData.referenceProcess)}
+          onChange={(option) => updateField('referenceProcess', option?.value || '')}
+          options={processOptions}
+          isClearable
+          isSearchable
+          placeholder="Search and select process..."
+          className="react-select-container"
+          classNamePrefix="react-select"
+        />
       </div>
 
       {/* Custom Form */}
@@ -361,18 +402,16 @@ const AdvancedFields = ({ formData, updateField }) => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Custom Form
         </label>
-        <select
-          value={formData.customForm}
-          onChange={(e) => updateField('customForm', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          data-testid="select-custom-form"
-        >
-          <option value="">Select form template...</option>
-          <option value="bug-report">Bug Report Form</option>
-          <option value="feature-request">Feature Request Form</option>
-          <option value="user-feedback">User Feedback Form</option>
-          <option value="task-review">Task Review Form</option>
-        </select>
+        <Select
+          value={formOptions.find(option => option.value === formData.customForm)}
+          onChange={(option) => updateField('customForm', option?.value || '')}
+          options={formOptions}
+          isClearable
+          isSearchable
+          placeholder="Search and select form template..."
+          className="react-select-container"
+          classNamePrefix="react-select"
+        />
       </div>
 
       {/* Dependencies */}
@@ -380,20 +419,17 @@ const AdvancedFields = ({ formData, updateField }) => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Dependencies
         </label>
-        <select
-          multiple
-          value={formData.dependencies}
-          onChange={(e) => updateField('dependencies', Array.from(e.target.selectedOptions, option => option.value))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32"
-          data-testid="select-dependencies"
-        >
-          <option value="task-1">Complete Database Setup</option>
-          <option value="task-2">Finish UI Design</option>
-          <option value="task-3">API Development</option>
-          <option value="task-4">User Testing Phase</option>
-          <option value="task-5">Security Review</option>
-        </select>
-        <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple tasks</p>
+        <Select
+          value={dependencyOptions.filter(option => formData.dependencies.includes(option.value))}
+          onChange={(selectedOptions) => updateField('dependencies', selectedOptions ? selectedOptions.map(opt => opt.value) : [])}
+          options={dependencyOptions}
+          isMulti
+          isSearchable
+          placeholder="Search and select dependencies..."
+          className="react-select-container"
+          classNamePrefix="react-select"
+        />
+        <p className="text-xs text-gray-500 mt-1">Select tasks that must be completed first</p>
       </div>
 
       {/* Task Type */}
@@ -401,16 +437,15 @@ const AdvancedFields = ({ formData, updateField }) => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Task Type *
         </label>
-        <select
-          value={formData.taskType}
-          onChange={(e) => updateField('taskType', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          data-testid="select-task-type"
-        >
-          <option value="Simple">Simple</option>
-          <option value="Recurring">Recurring</option>
-          <option value="Approval">Approval</option>
-        </select>
+        <Select
+          value={taskTypeOptions.find(option => option.value === formData.taskType)}
+          onChange={(option) => updateField('taskType', option.value)}
+          options={taskTypeOptions}
+          isSearchable
+          placeholder="Select task type..."
+          className="react-select-container"
+          classNamePrefix="react-select"
+        />
       </div>
     </div>
   );
@@ -495,48 +530,59 @@ export const RegularTaskForm = ({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      <form onSubmit={handleSubmit}>
-        <div className="p-6">
-          <PrimaryFields
-            formData={formData}
-            updateField={updateField}
-            errors={errors}
-            isOrgUser={isOrgUser}
-            isSoloUser={isSoloUser}
-          />
-        </div>
+    <div className="max-w-4xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Main Form Card */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <span className="text-blue-600">📝</span>
+              Task Details
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">Fill in the basic information for your task</p>
+          </div>
+          
+          <div className="p-6">
+            <PrimaryFields
+              formData={formData}
+              updateField={updateField}
+              errors={errors}
+              isOrgUser={isOrgUser}
+              isSoloUser={isSoloUser}
+            />
+          </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(true)}
-            className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
-            data-testid="button-more-options"
-          >
-            More Options
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          <div className="flex gap-3">
+          {/* Action Buttons */}
+          <div className="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
             <button
               type="button"
-              onClick={onCancel}
-              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
-              data-testid="button-cancel"
+              onClick={() => setShowAdvanced(true)}
+              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              data-testid="button-more-options"
             >
-              Cancel
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+              </svg>
+              More Options
             </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
-              data-testid="button-save"
-            >
-              Save Task
-            </button>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+                data-testid="button-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                data-testid="button-save"
+              >
+                Save Task
+              </button>
+            </div>
           </div>
         </div>
       </form>
@@ -544,16 +590,26 @@ export const RegularTaskForm = ({
       {/* Advanced Options Modal */}
       {showAdvanced && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Advanced Options</h3>
-              <button
-                onClick={() => setShowAdvanced(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-                data-testid="close-advanced-modal"
-              >
-                ×
-              </button>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span className="text-purple-600">⚙️</span>
+                    Advanced Options
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">Configure additional task settings</p>
+                </div>
+                <button
+                  onClick={() => setShowAdvanced(false)}
+                  className="p-2 hover:bg-white hover:bg-opacity-50 rounded-lg transition-colors"
+                  data-testid="close-advanced-modal"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="p-6">
@@ -567,7 +623,7 @@ export const RegularTaskForm = ({
               <button
                 type="button"
                 onClick={() => setShowAdvanced(false)}
-                className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
                 data-testid="button-advanced-cancel"
               >
                 Cancel
@@ -575,7 +631,7 @@ export const RegularTaskForm = ({
               <button
                 type="button"
                 onClick={() => setShowAdvanced(false)}
-                className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                 data-testid="button-advanced-save"
               >
                 Save Options
