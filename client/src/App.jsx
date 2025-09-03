@@ -71,6 +71,9 @@ import AdminSettings from "./pages/admin/Admin-settings";
 import AdminNotification from "./pages/admin/AdminNotification";
 import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
 import RecurringTasks from "./features/tasks/pages/RecurringTasks";
+import CreateTask from "./pages/newComponents/CreateTask";
+// import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
+import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
 import StatusManager from "./pages/newComponents/StatusManager";
@@ -361,11 +364,56 @@ function App() {
           </AdminLayout>
         </Route>
 
-        {/* Individual User Recurring Tasks */}
+        {/* Individual User Task Pages */}
         <Route path="/recurring">
           <AdminLayout>
             <ProtectedRoute
               component={RecurringTasks}
+              allowedRoles={["individual", "member", "employee", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/create">
+          <AdminLayout>
+            <ProtectedRoute
+              component={CreateTask}
+              allowedRoles={["individual", "member", "employee", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/quick-tasks">
+          <AdminLayout>
+            <ProtectedRoute
+              component={() => <div className="p-6"><h1 className="text-2xl font-bold">Quick Tasks - Coming Soon</h1><p className="text-gray-600 mt-2">This feature will be available in the next update.</p></div>}
+              allowedRoles={["individual", "member", "employee", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/milestones">
+          <AdminLayout>
+            <ProtectedRoute
+              component={MilestoneManager}
+              allowedRoles={["individual", "member", "employee", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/approvals">
+          <AdminLayout>
+            <ProtectedRoute
+              component={ApprovalManager}
+              allowedRoles={["individual", "member", "employee", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/calendar">
+          <AdminLayout>
+            <ProtectedRoute
+              component={CalendarView}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>

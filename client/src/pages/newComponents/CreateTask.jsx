@@ -10,7 +10,7 @@ export default function CreateTask({
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
-  const [selectedTaskType, setSelectedTaskType] = useState("regular");
+  const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
 
   return (
     <div className="flex flex-col h-full">

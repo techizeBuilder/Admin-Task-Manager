@@ -15,8 +15,10 @@ import {
   ChevronDown,
   MoreHorizontal,
   Edit,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
+import CreateTask from '../pages/newComponents/CreateTask';
 
 /**
  * Individual User Dashboard - Personal workspace for individual users
@@ -32,6 +34,7 @@ const IndividualDashboard = ({
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
 
   // Get current user data
   const { data: user } = useQuery({
@@ -83,8 +86,19 @@ const IndividualDashboard = ({
   };
 
   const handleCreateTask = () => {
-    // Navigate to create task page
-    window.location.href = '/tasks/create';
+    // Open Create Task drawer with regular task as default
+    setShowCreateTaskDrawer(true);
+  };
+
+  const handleCreateTaskSubmit = (taskData) => {
+    console.log('Task created from dashboard:', taskData);
+    // Here you would typically call API to create the task
+    setShowCreateTaskDrawer(false);
+    // Optionally refresh tasks list or show success message
+  };
+
+  const handleCloseCreateTask = () => {
+    setShowCreateTaskDrawer(false);
   };
 
   const getPriorityColor = (priority) => {
@@ -432,6 +446,32 @@ const IndividualDashboard = ({
           </p>
         </div>
       </div>
+
+      {/* Create Task Drawer */}
+      {showCreateTaskDrawer && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCloseCreateTask} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+              <button
+                onClick={handleCloseCreateTask}
+                className="text-gray-400 hover:text-gray-600 p-2"
+                data-testid="button-close-create-task"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="h-[calc(100vh-88px)] overflow-y-auto">
+              <CreateTask
+                onSubmit={handleCreateTaskSubmit}
+                onClose={handleCloseCreateTask}
+                initialTaskType="regular"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
