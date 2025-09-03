@@ -73,10 +73,6 @@ import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
 import RecurringTasks from "./features/tasks/pages/RecurringTasks";
 import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
-import QuickTasks from "./pages/QuickTasks";
-import Milestones from "./pages/Milestones";
-import Approvals from "./pages/Approvals";
-import TaskCreate from "./pages/TaskCreate";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
@@ -382,7 +378,7 @@ function App() {
         <Route path="/tasks/create">
           <AdminLayout>
             <ProtectedRoute
-              component={TaskCreate}
+              component={CreateTask}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>
@@ -391,7 +387,7 @@ function App() {
         <Route path="/quick-tasks">
           <AdminLayout>
             <ProtectedRoute
-              component={QuickTasks}
+              component={() => <div className="p-6"><h1 className="text-2xl font-bold">Quick Tasks - Coming Soon</h1><p className="text-gray-600 mt-2">This feature will be available in the next update.</p></div>}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>
@@ -400,7 +396,7 @@ function App() {
         <Route path="/milestones">
           <AdminLayout>
             <ProtectedRoute
-              component={Milestones}
+              component={MilestoneManager}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>
@@ -409,7 +405,7 @@ function App() {
         <Route path="/approvals">
           <AdminLayout>
             <ProtectedRoute
-              component={Approvals}
+              component={ApprovalManager}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>

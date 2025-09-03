@@ -1,365 +1,696 @@
 import React, { useState, useEffect } from "react";
-import { Upload, FileText, Trash2 } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
 import ReactQuill from "react-quill";
-import SearchableSelect from "../pages/SearchableSelect";
-import { calculateDueDateFromPriority } from "../pages/newComponents/PriorityManager";
-import { handleFileUpload, formatFileSize } from "../utils/fileUpload";
-import useTasksStore from "../stores/tasksStore";
+import "react-quill/dist/quill.snow.css";
+import "../styles/quill-custom.css";
+import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 
-export function RegularTaskForm({ onClose, onSubmit }) {
-  const { addTask } = useTasksStore();
-  
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    dueDate: "",
-    priority: "medium",
-    assignee: "self",
-    assigneeId: 1,
-    visibility: "private",
-    tags: [],
-    attachments: [],
-    estimatedHours: "",
-    dependencies: [],
-    notes: ""
+// Advanced Fields Modal Component
+const AdvancedFieldsModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  defaultValues = {},
+}) => {
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      referenceProcess: null,
+      customForm: null,
+      dependencies: [],
+      taskType: { value: "Simple", label: "Simple" },
+      ...defaultValues,
+    },
   });
 
-  const [errors, setErrors] = useState({});
-  const [dragActive, setDragActive] = useState(false);
-  const [isManualDueDate, setIsManualDueDate] = useState(false);
+  if (!isOpen) return null;
 
-  // Team members for assignment
-  const teamMembers = [
-    { id: 1, name: "Current User (Self)", value: "self" },
-    { id: 2, name: "John Smith", value: "john" },
-    { id: 3, name: "Sarah Wilson", value: "sarah" },
-    { id: 4, name: "Mike Johnson", value: "mike" },
-    { id: 5, name: "Emily Davis", value: "emily" }
+  const processOptions = [
+    { value: "onboarding", label: "Employee Onboarding SOP" },
+    { value: "review", label: "Code Review Process" },
+    { value: "deployment", label: "Deployment Checklist" },
   ];
 
-  // Auto-calculate due date when priority changes
-  useEffect(() => {
-    if (!isManualDueDate && formData.priority) {
-      const calculatedDueDate = calculateDueDateFromPriority(formData.priority);
-      setFormData(prev => ({ ...prev, dueDate: calculatedDueDate }));
-    }
-  }, [formData.priority, isManualDueDate]);
+  const formOptions = [
+    { value: "feedback", label: "Feedback Form Template" },
+    { value: "evaluation", label: "Performance Evaluation" },
+    { value: "survey", label: "Customer Survey" },
+  ];
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Validation
-    const newErrors = {};
-    if (!formData.name.trim()) {
-      newErrors.name = "Task name is required";
-    }
-    if (!formData.dueDate) {
-      newErrors.dueDate = "Due date is required";
-    }
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+  const dependencyOptions = [
+    { value: "task1", label: "Setup Development Environment" },
+    { value: "task2", label: "Complete Code Review" },
+    { value: "task3", label: "Database Migration" },
+  ];
 
-    // Create regular task
-    const newTask = {
-      id: Date.now(),
-      name: formData.name,
-      type: "regular",
-      description: formData.description,
-      dueDate: formData.dueDate,
-      priority: formData.priority,
-      assignee: formData.assignee,
-      assigneeId: formData.assigneeId,
-      visibility: formData.visibility,
-      tags: formData.tags,
-      attachments: formData.attachments,
-      estimatedHours: formData.estimatedHours,
-      dependencies: formData.dependencies,
-      notes: formData.notes,
-      status: "To Do",
-      createdAt: new Date().toISOString()
-    };
+  const taskTypeOptions = [
+    { value: "Simple", label: "Simple" },
+    { value: "Recurring", label: "Recurring" },
+    { value: "Approval", label: "Approval" },
+  ];
 
-    addTask(newTask);
-    
-    if (onSubmit) {
-      onSubmit(newTask);
-    }
-    
-    // Reset form
-    setFormData({
-      name: "",
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Advanced Options
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            data-testid="close-advanced-modal"
+          >
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+          {/* Reference Process */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Reference Process
+            </label>
+            <Controller
+              name="referenceProcess"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={processOptions}
+                  isSearchable
+                  isClearable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Link to a predefined process..."
+                  data-testid="select-reference-process"
+                />
+              )}
+            />
+          </div>
+
+          {/* Custom Form */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Custom Form
+            </label>
+            <Controller
+              name="customForm"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={formOptions}
+                  isSearchable
+                  isClearable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Attach existing form template..."
+                  data-testid="select-custom-form"
+                />
+              )}
+            />
+          </div>
+
+          {/* Dependencies */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Dependencies
+            </label>
+            <Controller
+              name="dependencies"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  isMulti
+                  options={dependencyOptions}
+                  isSearchable
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select prerequisite tasks..."
+                  data-testid="select-dependencies"
+                />
+              )}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Tasks that must be completed before this one starts
+            </p>
+          </div>
+
+          {/* Task Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Task Type <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="taskType"
+              control={control}
+              rules={{ required: "Task type is required" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={taskTypeOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select task type..."
+                  data-testid="select-task-type"
+                />
+              )}
+            />
+            {errors.taskType && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.taskType.message}
+              </p>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+              data-testid="button-advanced-cancel"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+              data-testid="button-advanced-save"
+            >
+              Apply Advanced Options
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Main Regular Task Form Component
+export const RegularTaskForm = ({
+  onSubmit,
+  onCancel,
+  isOrgUser = false,
+  defaultValues = {},
+}) => {
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      taskName: "",
       description: "",
+      assignedTo: isOrgUser ? null : { value: "self", label: "Self" },
+      priority: { value: "Low", label: "Low" },
       dueDate: "",
-      priority: "medium",
-      assignee: "self",
-      assigneeId: 1,
       visibility: "private",
       tags: [],
       attachments: [],
-      estimatedHours: "",
-      dependencies: [],
-      notes: ""
-    });
-    
-    setErrors({});
-    setIsManualDueDate(false);
-    onClose();
-  };
+      ...defaultValues,
+    },
+  });
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+  const [taskNameLength, setTaskNameLength] = useState(0);
+  const [attachmentSize, setAttachmentSize] = useState(0);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [showAdvancedModal, setShowAdvancedModal] = useState(false);
+  const [advancedData, setAdvancedData] = useState({});
+
+  const watchedTaskName = watch("taskName");
+  const watchedPriority = watch("priority");
+
+  // Character counter for task name
+  useEffect(() => {
+    setTaskNameLength(watchedTaskName?.length || 0);
+  }, [watchedTaskName]);
+
+  // Auto-set due date based on priority
+  useEffect(() => {
+    if (watchedPriority?.value) {
+      const today = new Date();
+      let daysToAdd = 7; // Default for Low priority
+
+      switch (watchedPriority.value) {
+        case "Critical":
+          daysToAdd = 1;
+          break;
+        case "High":
+          daysToAdd = 3;
+          break;
+        case "Medium":
+          daysToAdd = 5;
+          break;
+        case "Low":
+        default:
+          daysToAdd = 7;
+          break;
+      }
+
+      const dueDate = new Date(today);
+      dueDate.setDate(today.getDate() + daysToAdd);
+      setValue("dueDate", dueDate.toISOString().split("T")[0]);
     }
-  };
+  }, [watchedPriority, setValue]);
 
-  const handleDueDateChange = (value) => {
-    setIsManualDueDate(true);
-    handleInputChange("dueDate", value);
-  };
+  // Priority options
+  const priorityOptions = [
+    { value: "Low", label: "Low" },
+    { value: "Medium", label: "Medium" },
+    { value: "High", label: "High" },
+    { value: "Critical", label: "Critical" },
+  ];
 
-  const handleFileUploadEvent = async (files) => {
-    const uploadPromises = Array.from(files).map(file => handleFileUpload(file));
-    try {
-      const uploadedFiles = await Promise.all(uploadPromises);
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, ...uploadedFiles]
-      }));
-    } catch (error) {
-      console.error('File upload error:', error);
+  // Assignment options (for org users)
+  const assignmentOptions = isOrgUser
+    ? [
+        { value: "self", label: "Self" },
+        { value: "john_doe", label: "John Doe" },
+        { value: "jane_smith", label: "Jane Smith" },
+        // Add more team members from API
+      ]
+    : [{ value: "self", label: "Self" }];
+
+  // File upload handler
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files);
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    const currentSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+
+    if (currentSize + totalSize > 5 * 1024 * 1024) {
+      // 5MB limit
+      alert("Total file size cannot exceed 5MB");
+      return;
     }
-  };
 
-  const removeAttachment = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
+    const newFiles = files.map((file) => ({
+      file,
+      name: file.name,
+      size: file.size,
+      id: Math.random().toString(36).substr(2, 9),
     }));
+
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    setAttachmentSize(currentSize + totalSize);
+  };
+
+  // Remove file
+  const removeFile = (fileId) => {
+    setUploadedFiles((prev) => {
+      const updated = prev.filter((f) => f.id !== fileId);
+      const newSize = updated.reduce((sum, file) => sum + file.file.size, 0);
+      setAttachmentSize(newSize);
+      return updated;
+    });
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // Quill editor configuration
+  const quillModules = {
+    toolbar: [
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
+    ],
+  };
+
+  const handleAdvancedSubmit = (data) => {
+    setAdvancedData(data);
+    setShowAdvancedModal(false);
+  };
+
+  const onFormSubmit = (data) => {
+    // Combine primary and advanced data
+    const formData = {
+      ...data,
+      ...advancedData,
+      attachments: uploadedFiles,
+    };
+    onSubmit(formData);
+  };
+
+  const getTodayDate = () => {
+    return new Date().toISOString().split("T")[0];
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Task Info Card */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Task Details</h3>
-        
+    <>
+      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         {/* Task Name */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Task Name *
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Task Name <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            value={formData.name}
-            onChange={(e) => handleInputChange("name", e.target.value)}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.name ? "border-red-500" : "border-gray-300"
-            }`}
-            placeholder="Enter task name..."
-            data-testid="input-regular-task-name"
-          />
-          {errors.name && (
-            <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+          <div className="relative">
+            <input
+              {...register("taskName", {
+                required: "Task name is required",
+                maxLength: {
+                  value: 20,
+                  message: "Task name cannot exceed 20 characters",
+                },
+              })}
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              placeholder="Enter task name..."
+              data-testid="input-task-name"
+            />
+            <div className="absolute right-3 top-2 text-xs text-gray-500">
+              {taskNameLength}/20
+            </div>
+          </div>
+          {errors.taskName && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.taskName.message}
+            </p>
           )}
         </div>
 
-        {/* Priority & Due Date Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Description
+          </label>
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <ReactQuill
+                theme="snow"
+                value={field.value}
+                onChange={field.onChange}
+                modules={quillModules}
+                className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Describe your task..."
+              />
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          {/* Priority */}
+
+          {/* Assigned To */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
+            <label className=" block text-sm font-medium text-gray-900 mb-2">
+              Assigned To <span className="text-red-500">*</span>
             </label>
-            <select
-              value={formData.priority}
-              onChange={(e) => handleInputChange("priority", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              data-testid="select-regular-priority"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+            <Controller
+              name="assignedTo"
+              control={control}
+              rules={{ required: "Assignment is required" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={assignmentOptions}
+                  isSearchable={isOrgUser}
+                  isDisabled={!isOrgUser}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select assignee"
+                  data-testid="select-assigned-to"
+                />
+              )}
+            />
+            {errors.assignedTo && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.assignedTo.message}
+              </p>
+            )}
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date *
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Priority <span className="text-red-500">*</span>
+            </label>
+            <Controller
+              name="priority"
+              control={control}
+              rules={{ required: "Priority is required" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={priorityOptions}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select priority..."
+                  data-testid="select-priority"
+                />
+              )}
+            />
+            {errors.priority && (
+              <p className="text-red-500 text-xs mt-1">
+                {errors.priority.message}
+              </p>
+            )}
+          </div>
+
+          {/* Due Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Due Date <span className="text-red-500">*</span>
             </label>
             <input
+              {...register("dueDate", {
+                required: "Due date is required",
+                validate: (value) => {
+                  const today = getTodayDate();
+                  return value >= today || "Due date must be today or later";
+                },
+              })}
               type="date"
-              value={formData.dueDate}
-              onChange={(e) => handleDueDateChange(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.dueDate ? "border-red-500" : "border-gray-300"
-              }`}
-              data-testid="input-regular-due-date"
+              min={getTodayDate()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              data-testid="input-due-date"
             />
             {errors.dueDate && (
-              <p className="text-red-500 text-sm mt-1">{errors.dueDate}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.dueDate.message}
+              </p>
             )}
           </div>
         </div>
 
-        {/* Assignee */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Assign To
-          </label>
-          <select
-            value={formData.assignee}
-            onChange={(e) => handleInputChange("assignee", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            data-testid="select-regular-assignee"
-          >
-            {teamMembers.map(member => (
-              <option key={member.id} value={member.value}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Estimated Hours */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Estimated Hours
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.5"
-            value={formData.estimatedHours}
-            onChange={(e) => handleInputChange("estimatedHours", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., 4.5"
-            data-testid="input-estimated-hours"
-          />
-        </div>
-      </div>
-
-      {/* Description Card */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Description</h3>
-        <div className="custom-editor">
-          <ReactQuill
-            value={formData.description}
-            onChange={(value) => handleInputChange("description", value)}
-            placeholder="Describe this task..."
-            modules={{
-              toolbar: [
-                [{ 'header': [1, 2, false] }],
-                ['bold', 'italic', 'underline'],
-                ['link', 'blockquote'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }]
-              ]
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Attachments Card */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Attachments</h3>
-        
-        {/* File Upload Area */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-          }`}
-          onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
-          onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragActive(false);
-            handleFileUploadEvent(e.dataTransfer.files);
-          }}
-        >
-          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-gray-600 mb-2">
-            Drag and drop files here or{' '}
-            <label className="text-blue-600 cursor-pointer hover:underline">
-              browse files
-              <input
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFileUploadEvent(e.target.files)}
-                data-testid="input-file-upload"
-              />
+        {/* Visibility */}
+        {isOrgUser && (
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Visibility <span className="text-red-500">*</span>
             </label>
-          </p>
-          <p className="text-xs text-gray-500">Maximum file size: 10MB</p>
-        </div>
-
-        {/* Attached Files List */}
-        {formData.attachments.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Attached Files</h4>
-            <div className="space-y-2">
-              {formData.attachments.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-white rounded border border-gray-200"
-                >
-                  <div className="flex items-center">
-                    <FileText className="w-4 h-4 text-gray-500 mr-2" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                      <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(index)}
-                    className="text-red-600 hover:text-red-800"
-                    data-testid={`button-remove-attachment-${index}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  {...register("visibility")}
+                  type="radio"
+                  value="private"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-private"
+                />
+                <span className="ml-2 text-sm text-gray-900">Private</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  {...register("visibility")}
+                  type="radio"
+                  value="public"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-public"
+                />
+                <span className="ml-2 text-sm text-gray-900">Public</span>
+              </label>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Additional Notes Card */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">Additional Notes</h3>
-        <textarea
-          value={formData.notes}
-          onChange={(e) => handleInputChange("notes", e.target.value)}
-          rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Add any additional notes..."
-          data-testid="textarea-notes"
-        />
-      </div>
+        {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Labels / Tags
+          </label>
+          <Controller
+            name="tags"
+            control={control}
+            render={({ field }) => (
+              <CreatableSelect
+                {...field}
+                isMulti
+                options={[
+                  { value: "urgent", label: "Urgent" },
+                  { value: "review", label: "Review" },
+                  { value: "meeting", label: "Meeting" },
+                  { value: "development", label: "Development" },
+                ]}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Type and press Enter or comma to add tags..."
+                noOptionsMessage={() => "Type to create new tag"}
+                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+                createOptionPosition="first"
+                data-testid="select-tags"
+              />
+            )}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Type tag name and press Enter or comma to create new tags
+          </p>
+        </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-6 border-t">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          data-testid="button-cancel-regular"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          data-testid="button-create-regular-task"
-        >
-          Create Task
-        </button>
-      </div>
-    </form>
+        {/* Attachments */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Attachments
+            <span className="text-xs text-gray-500 ml-2">(Max 5MB total)</span>
+          </label>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="file-upload"
+              data-testid="input-attachments"
+            />
+            <label
+              htmlFor="file-upload"
+              className="cursor-pointer flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <svg
+                className="w-8 h-8 mb-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              <span className="text-sm">Click to upload files</span>
+              <span className="text-xs text-gray-500">
+                PDF, DOC, Images supported
+              </span>
+            </label>
+          </div>
+
+          {/* File List */}
+          {uploadedFiles.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {uploadedFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between bg-gray-50 p-2 rounded"
+                >
+                  <div className="flex items-center space-x-2">
+                    <svg
+                      className="w-4 h-4 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-700">{file.name}</span>
+                    <span className="text-xs text-gray-500">
+                      ({formatFileSize(file.size)})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(file.id)}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                    data-testid={`remove-file-${file.id}`}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              <div className="text-xs text-gray-500">
+                Total size: {formatFileSize(attachmentSize)} / 5MB
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-6">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedModal(true)}
+            className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors shadow-sm"
+            data-testid="button-more-options"
+          >
+            More Options ▸
+          </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            data-testid="button-save"
+          >
+            Save
+          </button>
+        </div>
+      </form>
+
+      {/* Advanced Fields Modal */}
+      <AdvancedFieldsModal
+        isOpen={showAdvancedModal}
+        onClose={() => setShowAdvancedModal(false)}
+        onSubmit={handleAdvancedSubmit}
+        defaultValues={advancedData}
+      />
+    </>
   );
-}
+};
+
+export default RegularTaskForm;

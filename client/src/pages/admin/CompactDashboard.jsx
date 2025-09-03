@@ -26,7 +26,7 @@ import TeamMembersWidget from "@/components/admin/TeamMembersWidget";
 import AnnualSelfAppraisal from "../newComponents/AnnualSelfAppraisal";
 import TaskCreationTile from "../newComponents/TaskCreationTitle";
 import CreateTask from "../newComponents/CreateTask";
-
+import ApprovalTaskCreator from "../newComponents/ApprovalTaskCreator";
 const sampleEmployeeData = {
   employeeId: "EMP001",
   fullName: "John Smith",
@@ -657,7 +657,10 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="drawer-body">
-              <p>Use the main Approvals page to create approval tasks.</p>
+              <ApprovalTaskCreator
+                onClose={() => setShowApprovalTaskModal(false)}
+                onSubmit={handleCreateApprovalTask}
+              />
             </div>
           </div>
         </div>

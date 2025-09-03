@@ -52,13 +52,11 @@ client/src/features/
 - **Organization Management**: Multi-tenant support, organization-specific user management, configurable settings, license/subscription management.
 - **User Management**: Comprehensive user profiles, invitation workflows, status tracking.
 - **Task Management**: Project-based organization, assignment, status tracking, comments, audit logging, priority levels, due dates. Supports regular, recurring, milestone, and approval task types with extensive fields (dependencies, reference processes, custom forms).
-- **Task-Specific Creation Drawers**: Reusable TaskDrawer component with task-type-specific forms (QuickTaskForm, RegularTaskForm, MilestoneTaskForm, ApprovalTaskForm) for maintainable code. Auto-opening when navigating from submenu routes with green gradient headers and card-based separation styling.
-- **AllTasks Professional Interface**: Complete task management table with filtering by task type, search, status filters, bulk actions, and export capabilities. Supports type-specific filtering for specialized views (quick tasks only, milestones only, etc.).
 - **Recurring Tasks System**: Full recurring task management with frequency scheduling (daily, weekly, monthly), template management, active/paused status control, and Individual user focus.
 - **Form Builder & Process Flow**: Dynamic form creation, workflow management, response collection, integration with task management.
 - **Dashboard System**: Comprehensive, role-based dashboards (Individual, Organization, SuperAdmin) with dynamic navigation and real API integration.
 - **Mock API Backend**: Complete json-server setup with Zod validation, realistic sample data, and authentic API endpoints for development.
-- **Sidebar System**: Unified, dynamic, role-based sidebar with submenu navigation for task types (Create Task, Quick Tasks, Milestones, Approvals), role mapping for backend integration and mobile responsiveness.
+- **Sidebar System**: Unified, dynamic, role-based sidebar with "Recurring" menu item for Individual users, role mapping for backend integration and mobile responsiveness.
 - **Feature-Based Architecture**: Scalable folder structure organized by business features (dashboard, tasks, calendar, auth) with shared components and role-based permissions.
 - **Avatar System**: Consistent avatar display across the application with priority-based image loading and real-time updates.
 - **Email Templates**: Differentiated designs for organization vs. individual registration.
