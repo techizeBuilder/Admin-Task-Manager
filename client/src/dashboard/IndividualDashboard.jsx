@@ -36,53 +36,37 @@ const IndividualDashboard = ({
   // Get current user data
   const { data: user } = useQuery({
     queryKey: ["/api/auth/verify"],
-    enabled: !!localStorage.getItem("token"),
+    retry: false,
   });
 
-  // Sample data for demonstration
-  const sampleTasks = tasks.length > 0 ? tasks : [
-    {
-      id: 1,
-      title: "Complete quarterly report",
-      dueDate: "2025-09-05",
-      priority: "high",
-      status: "in_progress",
-      tags: ["work", "quarterly"],
-      isPastDue: false,
-      isDueToday: true,
-      hasSubtasks: true
-    },
-    {
-      id: 2,
-      title: "Review project documentation",
-      dueDate: "2025-09-03",
-      priority: "medium",
-      status: "pending",
-      tags: ["review", "documentation"],
-      isPastDue: true,
-      isDueToday: false,
-      hasSubtasks: false
-    },
-    {
-      id: 3,
-      title: "Team meeting preparation",
-      dueDate: "2025-09-04",
-      priority: "high",
-      status: "completed",
-      tags: ["meeting", "prep"],
-      isPastDue: false,
-      isDueToday: false,
-      hasSubtasks: false
-    }
-  ];
+  // Fetch dashboard stats from API
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+    retry: false,
+  });
 
-  const sampleStats = {
-    completedToday: userStats.completedToday || 5,
-    completedBeforeDue: userStats.completedBeforeDue || 12,
-    milestonesAchieved: userStats.milestonesAchieved || 3,
-    collaboratorTasks: userStats.collaboratorTasks || 8,
-    tasksPastDue: userStats.tasksPastDue || 2,
-    approvalsAwaiting: userStats.approvalsAwaiting || 1
+  // Fetch tasks from API
+  const { data: apiTasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ["/api/tasks"],
+    retry: false,
+  });
+
+  // Use API data or fallback to passed tasks
+  const currentTasks = apiTasks.length > 0 ? apiTasks : (tasks.length > 0 ? tasks : []);
+
+  // Use API dashboard stats or fallback to userStats
+  const currentStats = dashboardStats || {
+    totalTasks: userStats.totalTasks || 20,
+    completedTasks: userStats.completedToday || 5,
+    inProgressTasks: userStats.inProgressTasks || 8,
+    overdueTasks: userStats.tasksPastDue || 2,
+    upcomingDeadlines: userStats.upcomingDeadlines || 4,
+    tasksByPriority: userStats.tasksByPriority || {
+      low: 3,
+      medium: 8,
+      high: 6,
+      urgent: 3
+    }
   };
 
   const samplePinnedTasks = pinnedTasks.length > 0 ? pinnedTasks : [
@@ -122,8 +106,10 @@ const IndividualDashboard = ({
     }
   };
 
-  const filteredTasks = sampleTasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredTasks = currentTasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (task.tags && task.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
     const matchesFilter = selectedFilter === 'all' || task.status === selectedFilter;
     return matchesSearch && matchesFilter;
   });
@@ -159,7 +145,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Completed Today</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.completedToday}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.completedTasks}</p>
             </div>
           </div>
         </div>
@@ -171,7 +157,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Before Due Date</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.completedBeforeDue}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.totalTasks}</p>
             </div>
           </div>
         </div>
@@ -183,7 +169,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Milestones</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.milestonesAchieved}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.inProgressTasks}</p>
             </div>
           </div>
         </div>
@@ -195,7 +181,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Collaborator</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.collaboratorTasks}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.upcomingDeadlines}</p>
             </div>
           </div>
         </div>
@@ -207,7 +193,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Past Due</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.tasksPastDue}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.overdueTasks}</p>
             </div>
           </div>
         </div>
@@ -219,7 +205,7 @@ const IndividualDashboard = ({
             </div>
             <div>
               <p className="text-sm text-gray-600">Approvals</p>
-              <p className="text-xl font-bold text-gray-900">{sampleStats.approvalsAwaiting}</p>
+              <p className="text-xl font-bold text-gray-900">{currentStats.tasksByPriority?.urgent || 0}</p>
             </div>
           </div>
         </div>
@@ -372,14 +358,14 @@ const IndividualDashboard = ({
                               </div>
                             </div>
                             <div className="flex gap-1 mt-1">
-                              {task.tags.map((tag) => (
+                              {task.tags?.map((tag) => (
                                 <span
                                   key={tag}
                                   className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
                                 >
                                   {tag}
                                 </span>
-                              ))}
+                              )) || null}
                             </div>
                           </div>
                         </div>

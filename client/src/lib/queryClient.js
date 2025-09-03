@@ -7,22 +7,30 @@ async function throwIfResNotOk(res) {
   }
 }
 
+// Mock API configuration
+const MOCK_API_BASE_URL = "http://localhost:3001";
+const USE_MOCK_API = true; // Set to false to use real backend
+
 export async function apiRequest(method, url, data) {
   const token = localStorage.getItem("token");
   const headers = {
     ...(data ? { "Content-Type": "application/json" } : {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token && !USE_MOCK_API ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(url, {
+  // Use mock API if enabled, otherwise use original backend
+  const baseUrl = USE_MOCK_API ? MOCK_API_BASE_URL : "";
+  const fullUrl = `${baseUrl}${url}`;
+
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: USE_MOCK_API ? "omit" : "include",
   });
 
   await throwIfResNotOk(res);
-  return await res.json();
+  return res;
 }
 
 export const getQueryFn =
@@ -32,25 +40,32 @@ export const getQueryFn =
 
     console.log("=== API REQUEST DEBUG ===");
     console.log("URL:", queryKey[0]);
+    console.log("Using Mock API:", USE_MOCK_API);
     console.log("Token exists:", !!token);
-    console.log("Token value:", token?.substring(0, 50) + "...");
 
-    if (!token) {
+    // For mock API, skip token requirement for auth verify endpoint
+    if (USE_MOCK_API && !token && queryKey[0] === "/api/auth/verify") {
+      console.log("Mock API: Allowing auth/verify without token");
+    } else if (!USE_MOCK_API && !token) {
       console.log("ERROR: No token found in localStorage");
       throw new Error("No authentication token found");
     }
 
     const headers = {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      ...(token && !USE_MOCK_API ? { Authorization: `Bearer ${token}` } : {}),
     };
 
     console.log("Headers being sent:", headers);
 
-    const res = await fetch(queryKey[0], {
+    // Use mock API if enabled, otherwise use original backend
+    const baseUrl = USE_MOCK_API ? MOCK_API_BASE_URL : "";
+    const fullUrl = `${baseUrl}${queryKey[0]}`;
+
+    const res = await fetch(fullUrl, {
       method: "GET",
       headers,
-      credentials: "include",
+      credentials: USE_MOCK_API ? "omit" : "include",
     });
 
     console.log("Response status:", res.status);
@@ -68,7 +83,7 @@ export const getQueryFn =
     }
 
     const data = await res.json();
-    console.log("user data in quesry client : ", data);
+    console.log("user data in query client : ", data);
     console.log(
       "Success response:",
       Array.isArray(data) ? `Array[${data.length}]` : typeof data,
