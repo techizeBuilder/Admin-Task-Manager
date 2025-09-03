@@ -13,9 +13,9 @@ export default function CreateTask({
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full p-6 bg-gray-50">
       {/* Task Type Selection Section */}
-      <div className="bg-white rounded-lg p-6 mb-6">
+      <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Task Type
@@ -159,7 +159,7 @@ export default function CreateTask({
       </div>
 
       {/* Task Details Section */}
-      <div className="bg-white rounded-lg p-6 flex-1">
+      <div className="bg-white rounded-lg p-6 flex-1 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Task Details
