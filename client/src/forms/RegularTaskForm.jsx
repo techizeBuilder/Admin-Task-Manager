@@ -4,6 +4,7 @@ import "react-quill/dist/quill.snow.css";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
 import { MultiSelect } from "../components/ui/MultiSelect";
 import MilestoneForm from "./MilestoneForm";
+import ApprovalTaskForm from "./ApprovalTaskForm";
 // Error Boundary Component for better debugging
 const ErrorBoundary = ({ children, fallback }) => {
   const [hasError, setHasError] = useState(false);
@@ -49,6 +50,7 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     attachments: [],
     isRecurring: false,
     isMilestone: false,
+    isApproval: false,
     dueDate: "",
     assignee: "",
     contributors: [],

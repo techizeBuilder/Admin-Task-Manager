@@ -5,6 +5,7 @@ import { calculateDueDateFromPriority } from "../newComponents/PriorityManager";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneManager from "../newComponents/MilestoneManager";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
+import { ApprovalTaskForm } from "../../forms/ApprovalTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -267,6 +268,35 @@ export default function CreateTask({
                 </h4>
                 <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
                   Project checkpoint
+                </p>
+              </div>
+            </div>
+          </button>
+          
+          <button
+            onClick={() => setTaskType("approval")}
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
+              taskType === "approval"
+                ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
+                : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  taskType === "approval"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
+                }`}
+              >
+                <span className="text-sm">✅</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-gray-900 group-hover:text-emerald-700">
+                  Approval Task
+                </h4>
+                <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
+                  Requires approval
                 </p>
               </div>
             </div>
@@ -829,6 +859,47 @@ export default function CreateTask({
             />
           </div>
         </div>
+      )}
+
+      {/* Approval Task Form */}
+      {taskType === "approval" && (
+        <ApprovalTaskForm
+          formData={{
+            title: "",
+            description: "",
+            dueDate: preFilledDate || "",
+            collaborators: [],
+            approval: {
+              approvers: [],
+              approvalMode: 'any_one',
+              approverOrder: [],
+              autoApproval: false,
+              autoApprovalDays: 0
+            }
+          }}
+          setFormData={(formData) => {
+            // Handle form data updates if needed
+          }}
+          onSubmit={(formData) => {
+            // Convert ApprovalTaskForm data format to match existing API
+            onSubmit({
+              title: formData.title,
+              description: formData.description,
+              dueDate: formData.dueDate,
+              collaborators: formData.collaborators,
+              taskType: "approval",
+              approval: formData.approval,
+              priority: "medium",
+              visibility: "private",
+              category: "approval"
+            });
+          }}
+          onSaveDraft={(formData) => {
+            // Handle draft saving if needed
+            console.log("Saving approval task draft:", formData);
+          }}
+          onCancel={onClose}
+        />
       )}
     </div>
   );
