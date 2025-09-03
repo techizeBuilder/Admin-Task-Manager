@@ -26,7 +26,18 @@ import {
   Activity,
   Server,
   FileSearch,
-  UserCheck
+  UserCheck,
+  // Additional icons for submenus
+  Building2,
+  Clock,
+  List,
+  UserCircle,
+  Briefcase,
+  PieChart,
+  AlertTriangle,
+  BookOpen,
+  Globe,
+  Layers
 } from 'lucide-react';
 
 // Menu configuration for different user roles
@@ -41,6 +52,7 @@ export const sidebarMenus = {
         {
           id: 'my-dashboard',
           label: 'My Dashboard',
+          icon: Home,
           path: '/dashboard'
         }
       ]
@@ -53,31 +65,37 @@ export const sidebarMenus = {
         {
           id: 'my-tasks',
           label: 'My Tasks',
+          icon: List,
           path: '/tasks'
         },
         {
           id: 'create-task',
           label: 'Create Task',
+          icon: Plus,
           path: '/tasks/create'
         },
         {
           id: 'quick-tasks',
           label: 'Quick Tasks',
+          icon: Zap,
           path: '/quick-tasks'
         },
         {
           id: 'calendar',
           label: 'Calendar',
+          icon: Calendar,
           path: '/calendar'
         },
         {
           id: 'milestones',
           label: 'Milestones',
+          icon: Target,
           path: '/milestones'
         },
         {
           id: 'approvals',
           label: 'Approvals',
+          icon: ClipboardCheck,
           path: '/approvals'
         }
       ]
@@ -90,11 +108,13 @@ export const sidebarMenus = {
         {
           id: 'my-productivity',
           label: 'My Productivity',
+          icon: TrendingUp,
           path: '/reports/productivity'
         },
         {
           id: 'my-overdue-tasks',
           label: 'My Overdue Tasks',
+          icon: AlertTriangle,
           path: '/reports/overdue'
         }
       ]
@@ -107,11 +127,13 @@ export const sidebarMenus = {
         {
           id: 'profile',
           label: 'Profile',
+          icon: User,
           path: '/profile'
         },
         {
           id: 'notifications',
           label: 'Notifications',
+          icon: Bell,
           path: '/notifications'
         }
       ]
@@ -140,6 +162,7 @@ export const sidebarMenus = {
         {
           id: 'my-dashboard',
           label: 'My Dashboard',
+          icon: Home,
           path: '/dashboard'
         }
       ]
@@ -152,31 +175,37 @@ export const sidebarMenus = {
         {
           id: 'my-tasks',
           label: 'My Tasks',
+          icon: List,
           path: '/tasks'
         },
         {
           id: 'create-task',
           label: 'Create Task',
+          icon: Plus,
           path: '/tasks/create'
         },
         {
           id: 'quick-tasks',
           label: 'Quick Tasks',
+          icon: Zap,
           path: '/quick-tasks'
         },
         {
           id: 'calendar',
           label: 'Calendar',
+          icon: Calendar,
           path: '/calendar'
         },
         {
           id: 'milestones',
           label: 'Milestones',
+          icon: Target,
           path: '/milestones'
         },
         {
           id: 'approvals',
           label: 'Approvals',
+          icon: ClipboardCheck,
           path: '/approvals'
         }
       ]
@@ -189,11 +218,13 @@ export const sidebarMenus = {
         {
           id: 'my-productivity',
           label: 'My Productivity',
+          icon: TrendingUp,
           path: '/reports/productivity'
         },
         {
           id: 'my-overdue-tasks',
           label: 'My Overdue Tasks',
+          icon: AlertTriangle,
           path: '/reports/overdue'
         }
       ]
@@ -206,11 +237,13 @@ export const sidebarMenus = {
         {
           id: 'profile',
           label: 'Profile',
+          icon: User,
           path: '/profile'
         },
         {
           id: 'notifications',
           label: 'Notifications',
+          icon: Bell,
           path: '/notifications'
         }
       ]
@@ -329,11 +362,13 @@ export const sidebarMenus = {
         {
           id: 'team-dashboard',
           label: 'Team Dashboard',
+          icon: Users,
           path: '/dashboard/team'
         },
         {
           id: 'org-dashboard',
           label: 'Organization Dashboard',
+          icon: Building2,
           path: '/dashboard/organization'
         }
       ]
@@ -346,16 +381,19 @@ export const sidebarMenus = {
         {
           id: 'my-tasks',
           label: 'My Tasks',
+          icon: UserCircle,
           path: '/tasks/my'
         },
         {
           id: 'team-tasks',
           label: 'Team Tasks',
+          icon: Users,
           path: '/tasks/team'
         },
         {
           id: 'all-company-tasks',
           label: 'All Company Tasks',
+          icon: Briefcase,
           path: '/tasks/company'
         }
       ]
@@ -398,11 +436,13 @@ export const sidebarMenus = {
         {
           id: 'manage-users',
           label: 'Manage Users',
+          icon: Users,
           path: '/management/users'
         },
         {
           id: 'roles-permissions',
           label: 'Roles & Permissions',
+          icon: Shield,
           path: '/management/roles'
         }
       ]
@@ -485,16 +525,19 @@ export const sidebarMenus = {
         {
           id: 'adoption-metrics',
           label: 'Adoption Metrics',
+          icon: TrendingUp,
           path: '/superadmin/analytics/adoption'
         },
         {
           id: 'module-usage',
           label: 'Module Usage',
+          icon: Layers,
           path: '/superadmin/analytics/modules'
         },
         {
           id: 'system-performance',
           label: 'System Performance',
+          icon: Server,
           path: '/superadmin/analytics/performance'
         }
       ]

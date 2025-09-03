@@ -37,12 +37,17 @@ const SidebarItem = ({
   const IconComponent = item.icon;
   
   const itemClasses = `
-    group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer
+    group relative flex items-center rounded-lg transition-all duration-200 cursor-pointer
     ${isActive || hasActiveChild 
       ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500' 
       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
     }
-    ${depth > 0 ? 'ml-4 pl-6' : ''}
+    ${isCollapsed 
+      ? 'px-2 py-2.5 justify-center' 
+      : depth > 0 
+        ? 'ml-4 px-3 py-2.5 gap-3' 
+        : 'px-3 py-2.5 gap-3'
+    }
   `;
 
   const content = (
@@ -73,6 +78,13 @@ const SidebarItem = ({
             </div>
           )}
         </>
+      )}
+
+      {/* Tooltip for collapsed state */}
+      {isCollapsed && (
+        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+          {item.label}
+        </div>
       )}
     </>
   );
