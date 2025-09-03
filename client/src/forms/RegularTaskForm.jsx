@@ -41,9 +41,19 @@ const ErrorBoundary = ({ children, fallback }) => {
   }
   return children;
 };
-export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
-  // Basic task form data
-  const [formData, setFormData] = useState({
+export function RegularTaskForm({ 
+  onSubmit, 
+  onClose, 
+  initialData = {},
+  formData,
+  setFormData,
+  validationErrors = {},
+  onInputChange,
+  showTogglePanels = false,
+  onToggleChange
+}) {
+  // Use external formData if provided, otherwise use internal state
+  const [internalFormData, setInternalFormData] = useState({
     title: "",
     description: "",
     labels: [],
@@ -70,6 +80,9 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     },
     ...initialData,
   });
+
+  const activeFormData = formData || internalFormData;
+  const activeSetFormData = setFormData || setInternalFormData;
   // Recurrence data
   const [recurrenceData, setRecurrenceData] = useState({
     patternType: "daily", // daily, weekly, monthly, yearly, custom
@@ -87,7 +100,9 @@ export function RegularTaskForm({ onSubmit, onClose, initialData = {} }) {
     endOccurrences: 10,
     endDate: "",
   });
-  const [validationErrors, setValidationErrors] = useState({});
+  // State management and validation (only if not provided externally)
+  const [internalValidationErrors, setInternalValidationErrors] = useState({});
+  const activeValidationErrors = validationErrors || internalValidationErrors;
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [advancedOptions, setAdvancedOptions] = useState({
     referenceProcess: "",

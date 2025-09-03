@@ -6,6 +6,7 @@ import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneManager from "../newComponents/MilestoneManager";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { ApprovalTaskForm } from "../../forms/ApprovalTaskForm";
+import { TaskForm } from "../../forms/TaskForm";
 
 export default function CreateTask({
   onClose,
@@ -34,7 +35,7 @@ export default function CreateTask({
     },
   });
 
-  const [taskType, setTaskType] = useState(initialTaskType);
+  const [taskType, setTaskType] = useState("modular");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
   const [attachments, setAttachments] = useState([]);
@@ -186,32 +187,46 @@ export default function CreateTask({
             Choose the type of task you want to create
           </p>
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <button
-            onClick={() => setTaskType("regular")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "regular"
+            onClick={() => setTaskType("modular")}
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${
+              taskType === "modular"
                 ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
                 : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
             }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "regular"
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  taskType === "modular"
                     ? "bg-blue-500 text-white"
                     : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
                 }`}
               >
-                <span className="text-sm">📋</span>
+                <span className="text-lg">📋</span>
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700">
-                  Regular Task
+                <h4 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700">
+                  Create Task
                 </h4>
-                <p className="text-xs text-gray-500 group-hover:text-gray-600 truncate">
-                  Standard one-time task
+                <p className="text-sm text-gray-500 group-hover:text-gray-600">
+                  Modular task creation with milestone, approval, and recurring options
                 </p>
+                <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <span>⭐</span>
+                    Milestone
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span>✅</span>
+                    Approval
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span>🔄</span>
+                    Recurring
+                  </span>
+                </div>
               </div>
             </div>
           </button>
@@ -304,7 +319,40 @@ export default function CreateTask({
         </div>
       </div>
 
-      {/* Conditional Task Forms */}
+      {/* Modular Task Form */}
+      {taskType === "modular" && (
+        <TaskForm
+          onSubmit={(formData) => {
+            // Convert TaskForm data format to match existing API
+            onSubmit({
+              title: formData.title,
+              description: formData.description,
+              assignedTo: formData.assignee,
+              priority: formData.priority,
+              visibility: formData.visibility,
+              dueDate: formData.dueDate,
+              category: formData.category || "general",
+              tags: formData.tags || [],
+              taskType: formData.taskType,
+              milestone: formData.milestone,
+              approval: formData.approval,
+              recurring: formData.recurring,
+              advanced: formData.advanced,
+              collaborators: formData.collaborators || [],
+              attachments: formData.attachments || []
+            });
+          }}
+          onSaveDraft={(formData) => {
+            console.log("Saving draft:", formData);
+          }}
+          onClose={onClose}
+          initialData={{
+            dueDate: preFilledDate || "",
+          }}
+        />
+      )}
+
+      {/* Legacy Regular Task Form */}
       {taskType === "regular" && (
         <RegularTaskForm
           onSubmit={(formData) => {
