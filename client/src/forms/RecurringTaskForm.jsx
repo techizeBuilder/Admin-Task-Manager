@@ -1,72 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import '../styles/quill-custom.css';
-import Select from 'react-select';
-import CreatableSelect from 'react-select/creatable';
+import React, { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import "../styles/quill-custom.css";
+import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 
 // Recurrence Panel Component
 const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
   const [previewDates, setPreviewDates] = useState([]);
-  const [summary, setSummary] = useState('');
+  const [summary, setSummary] = useState("");
 
-  const watchedPattern = watch('recurrence.patternType');
-  const watchedRepeatEvery = watch('recurrence.repeatEvery');
-  const watchedStartDate = watch('recurrence.startDate');
-  const watchedStartTime = watch('recurrence.startTime');
-  const watchedEndCondition = watch('recurrence.endCondition');
-  const watchedWeekdays = watch('recurrence.weekdays');
-  const watchedMonthDays = watch('recurrence.monthDays');
-  const watchedYearMonths = watch('recurrence.yearMonths');
+  const watchedPattern = watch("recurrence.patternType");
+  const watchedRepeatEvery = watch("recurrence.repeatEvery");
+  const watchedStartDate = watch("recurrence.startDate");
+  const watchedStartTime = watch("recurrence.startTime");
+  const watchedEndCondition = watch("recurrence.endCondition");
+  const watchedWeekdays = watch("recurrence.weekdays");
+  const watchedMonthDays = watch("recurrence.monthDays");
+  const watchedYearMonths = watch("recurrence.yearMonths");
 
   // Pattern type options
   const patternOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'yearly', label: 'Yearly' },
-    { value: 'custom', label: 'Custom' }
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
+    { value: "custom", label: "Custom" },
   ];
 
   // Weekday options
   const weekdayOptions = [
-    { value: 'monday', label: 'Monday' },
-    { value: 'tuesday', label: 'Tuesday' },
-    { value: 'wednesday', label: 'Wednesday' },
-    { value: 'thursday', label: 'Thursday' },
-    { value: 'friday', label: 'Friday' },
-    { value: 'saturday', label: 'Saturday' },
-    { value: 'sunday', label: 'Sunday' }
+    { value: "monday", label: "Monday" },
+    { value: "tuesday", label: "Tuesday" },
+    { value: "wednesday", label: "Wednesday" },
+    { value: "thursday", label: "Thursday" },
+    { value: "friday", label: "Friday" },
+    { value: "saturday", label: "Saturday" },
+    { value: "sunday", label: "Sunday" },
   ];
 
   // Month options
   const monthOptions = [
-    { value: 1, label: 'January' },
-    { value: 2, label: 'February' },
-    { value: 3, label: 'March' },
-    { value: 4, label: 'April' },
-    { value: 5, label: 'May' },
-    { value: 6, label: 'June' },
-    { value: 7, label: 'July' },
-    { value: 8, label: 'August' },
-    { value: 9, label: 'September' },
-    { value: 10, label: 'October' },
-    { value: 11, label: 'November' },
-    { value: 12, label: 'December' }
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
   ];
 
   // End condition options
   const endConditionOptions = [
-    { value: 'never', label: 'Never ends' },
-    { value: 'after', label: 'Ends after N occurrences' },
-    { value: 'by_date', label: 'Ends by Date' }
+    { value: "never", label: "Never ends" },
+    { value: "after", label: "Ends after N occurrences" },
+    { value: "by_date", label: "Ends by Date" },
   ];
 
   // Generate month day options (1-31)
   const monthDayOptions = Array.from({ length: 31 }, (_, i) => ({
     value: i + 1,
-    label: (i + 1).toString()
+    label: (i + 1).toString(),
   }));
 
   // Update preview and summary when recurrence settings change
@@ -80,13 +80,13 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
     watchedEndCondition,
     watchedWeekdays,
     watchedMonthDays,
-    watchedYearMonths
+    watchedYearMonths,
   ]);
 
   const generatePreviewAndSummary = () => {
     if (!watchedPattern || !watchedStartDate) {
       setPreviewDates([]);
-      setSummary('');
+      setSummary("");
       return;
     }
 
@@ -98,45 +98,45 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
     // Generate next 5 dates based on pattern
     for (let i = 0; i < 5; i++) {
       const nextDate = new Date(startDate);
-      
+
       switch (watchedPattern?.value) {
-        case 'daily':
-          nextDate.setDate(startDate.getDate() + (i * repeatEvery));
+        case "daily":
+          nextDate.setDate(startDate.getDate() + i * repeatEvery);
           break;
-        case 'weekly':
-          nextDate.setDate(startDate.getDate() + (i * 7 * repeatEvery));
+        case "weekly":
+          nextDate.setDate(startDate.getDate() + i * 7 * repeatEvery);
           break;
-        case 'monthly':
-          nextDate.setMonth(startDate.getMonth() + (i * repeatEvery));
+        case "monthly":
+          nextDate.setMonth(startDate.getMonth() + i * repeatEvery);
           break;
-        case 'yearly':
-          nextDate.setFullYear(startDate.getFullYear() + (i * repeatEvery));
+        case "yearly":
+          nextDate.setFullYear(startDate.getFullYear() + i * repeatEvery);
           break;
         default:
           continue;
       }
-      
+
       dates.push(nextDate.toLocaleDateString());
     }
 
     setPreviewDates(dates);
 
     // Generate summary
-    let summaryText = '';
+    let summaryText = "";
     if (watchedPattern?.value && watchedStartDate) {
       const pattern = watchedPattern.label;
-      const every = repeatEvery > 1 ? `every ${repeatEvery} ` : 'every ';
-      const time = watchedStartTime || '09:00';
+      const every = repeatEvery > 1 ? `every ${repeatEvery} ` : "every ";
+      const time = watchedStartTime || "09:00";
       const startDateStr = new Date(watchedStartDate).toLocaleDateString();
-      
+
       summaryText = `${pattern} - ${every}${pattern.toLowerCase()} at ${time}, starting ${startDateStr}`;
-      
-      if (watchedEndCondition?.value === 'after') {
-        summaryText += `, ends after ${watchedEndCondition.occurrences || 'N'} occurrences`;
-      } else if (watchedEndCondition?.value === 'by_date') {
-        summaryText += `, ends by ${watchedEndCondition.endDate || 'end date'}`;
+
+      if (watchedEndCondition?.value === "after") {
+        summaryText += `, ends after ${watchedEndCondition.occurrences || "N"} occurrences`;
+      } else if (watchedEndCondition?.value === "by_date") {
+        summaryText += `, ends by ${watchedEndCondition.endDate || "end date"}`;
       } else {
-        summaryText += ', never ends';
+        summaryText += ", never ends";
       }
     }
 
@@ -144,14 +144,16 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
   };
 
   const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   };
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-6">
       <div className="flex items-center space-x-2 mb-4">
         <span className="text-2xl">🔁</span>
-        <h3 className="text-lg font-semibold text-gray-900">Recurrence Settings</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Recurrence Settings
+        </h3>
       </div>
 
       {/* Pattern Type */}
@@ -162,7 +164,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         <Controller
           name="recurrence.patternType"
           control={control}
-          rules={{ required: 'Pattern type is required' }}
+          rules={{ required: "Pattern type is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -175,7 +177,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
         />
         {errors.recurrence?.patternType && (
-          <p className="text-red-500 text-xs mt-1">{errors.recurrence.patternType.message}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {errors.recurrence.patternType.message}
+          </p>
         )}
       </div>
 
@@ -186,10 +190,10 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         </label>
         <div className="flex items-center space-x-2">
           <input
-            {...register('recurrence.repeatEvery', { 
-              required: 'Repeat interval is required',
-              min: { value: 1, message: 'Must be at least 1' },
-              valueAsNumber: true
+            {...register("recurrence.repeatEvery", {
+              required: "Repeat interval is required",
+              min: { value: 1, message: "Must be at least 1" },
+              valueAsNumber: true,
             })}
             type="number"
             min="1"
@@ -198,16 +202,18 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             data-testid="input-repeat-every"
           />
           <span className="text-sm text-gray-600">
-            {watchedPattern?.value || 'period(s)'}
+            {watchedPattern?.value || "period(s)"}
           </span>
         </div>
         {errors.recurrence?.repeatEvery && (
-          <p className="text-red-500 text-xs mt-1">{errors.recurrence.repeatEvery.message}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {errors.recurrence.repeatEvery.message}
+          </p>
         )}
       </div>
 
       {/* Pattern-specific controls */}
-      {watchedPattern?.value === 'weekly' && (
+      {watchedPattern?.value === "weekly" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Days of Week <span className="text-red-500">*</span>
@@ -215,7 +221,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           <Controller
             name="recurrence.weekdays"
             control={control}
-            rules={{ required: 'At least one weekday is required for weekly pattern' }}
+            rules={{
+              required: "At least one weekday is required for weekly pattern",
+            }}
             render={({ field }) => (
               <Select
                 {...field}
@@ -229,12 +237,14 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             )}
           />
           {errors.recurrence?.weekdays && (
-            <p className="text-red-500 text-xs mt-1">{errors.recurrence.weekdays.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.recurrence.weekdays.message}
+            </p>
           )}
         </div>
       )}
 
-      {watchedPattern?.value === 'monthly' && (
+      {watchedPattern?.value === "monthly" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Day(s) of Month
@@ -257,7 +267,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         </div>
       )}
 
-      {watchedPattern?.value === 'yearly' && (
+      {watchedPattern?.value === "yearly" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Month(s) <span className="text-red-500">*</span>
@@ -265,7 +275,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           <Controller
             name="recurrence.yearMonths"
             control={control}
-            rules={{ required: 'At least one month is required for yearly pattern' }}
+            rules={{
+              required: "At least one month is required for yearly pattern",
+            }}
             render={({ field }) => (
               <Select
                 {...field}
@@ -279,7 +291,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             )}
           />
           {errors.recurrence?.yearMonths && (
-            <p className="text-red-500 text-xs mt-1">{errors.recurrence.yearMonths.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.recurrence.yearMonths.message}
+            </p>
           )}
         </div>
       )}
@@ -291,12 +305,12 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             Start Date <span className="text-red-500">*</span>
           </label>
           <input
-            {...register('recurrence.startDate', { 
-              required: 'Start date is required',
+            {...register("recurrence.startDate", {
+              required: "Start date is required",
               validate: (value) => {
                 const today = getTodayDate();
-                return value >= today || 'Start date cannot be in the past';
-              }
+                return value >= today || "Start date cannot be in the past";
+              },
             })}
             type="date"
             min={getTodayDate()}
@@ -304,7 +318,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             data-testid="input-start-date"
           />
           {errors.recurrence?.startDate && (
-            <p className="text-red-500 text-xs mt-1">{errors.recurrence.startDate.message}</p>
+            <p className="text-red-500 text-xs mt-1">
+              {errors.recurrence.startDate.message}
+            </p>
           )}
         </div>
 
@@ -313,7 +329,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             Start Time
           </label>
           <input
-            {...register('recurrence.startTime')}
+            {...register("recurrence.startTime")}
             type="time"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             defaultValue="09:00"
@@ -330,7 +346,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         <Controller
           name="recurrence.endCondition"
           control={control}
-          rules={{ required: 'End condition is required' }}
+          rules={{ required: "End condition is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -343,20 +359,22 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
         />
         {errors.recurrence?.endCondition && (
-          <p className="text-red-500 text-xs mt-1">{errors.recurrence.endCondition.message}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {errors.recurrence.endCondition.message}
+          </p>
         )}
 
         {/* Conditional end condition inputs */}
-        {watchedEndCondition?.value === 'after' && (
+        {watchedEndCondition?.value === "after" && (
           <div className="mt-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Number of Occurrences
             </label>
             <input
-              {...register('recurrence.occurrences', { 
-                required: 'Number of occurrences is required',
-                min: { value: 1, message: 'Must be at least 1' },
-                valueAsNumber: true
+              {...register("recurrence.occurrences", {
+                required: "Number of occurrences is required",
+                min: { value: 1, message: "Must be at least 1" },
+                valueAsNumber: true,
               })}
               type="number"
               min="1"
@@ -365,23 +383,29 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               data-testid="input-occurrences"
             />
             {errors.recurrence?.occurrences && (
-              <p className="text-red-500 text-xs mt-1">{errors.recurrence.occurrences.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.recurrence.occurrences.message}
+              </p>
             )}
           </div>
         )}
 
-        {watchedEndCondition?.value === 'by_date' && (
+        {watchedEndCondition?.value === "by_date" && (
           <div className="mt-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               End Date
             </label>
             <input
-              {...register('recurrence.endDate', { 
-                required: 'End date is required',
+              {...register("recurrence.endDate", {
+                required: "End date is required",
                 validate: (value) => {
                   const startDate = watchedStartDate;
-                  return !startDate || value >= startDate || 'End date must be after start date';
-                }
+                  return (
+                    !startDate ||
+                    value >= startDate ||
+                    "End date must be after start date"
+                  );
+                },
               })}
               type="date"
               min={watchedStartDate}
@@ -389,7 +413,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               data-testid="input-end-date"
             />
             {errors.recurrence?.endDate && (
-              <p className="text-red-500 text-xs mt-1">{errors.recurrence.endDate.message}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.recurrence.endDate.message}
+              </p>
             )}
           </div>
         )}
@@ -406,7 +432,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       {/* Preview */}
       {previewDates.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Next 5 Dates</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-2">
+            Next 5 Dates
+          </h4>
           <div className="flex flex-wrap gap-2">
             {previewDates.map((date, index) => (
               <span
@@ -424,42 +452,49 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
 };
 
 // Main Recurring Task Form Component
-export const RecurringTaskForm = ({ 
-  onSubmit, 
-  onCancel, 
+export const RecurringTaskForm = ({
+  onSubmit,
+  onCancel,
   isOrgUser = false,
-  defaultValues = {}
+  defaultValues = {},
 }) => {
-  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
-      taskName: '',
-      description: '',
-      assignedTo: isOrgUser ? null : { value: 'self', label: 'Self' },
-      priority: { value: 'Low', label: 'Low' },
-      visibility: 'private',
+      taskName: "",
+      description: "",
+      assignedTo: isOrgUser ? null : { value: "self", label: "Self" },
+      priority: { value: "Low", label: "Low" },
+      visibility: "private",
       tags: [],
       attachments: [],
       recurrence: {
         patternType: null,
         repeatEvery: 1,
-        startDate: new Date().toISOString().split('T')[0],
-        startTime: '09:00',
-        endCondition: { value: 'never', label: 'Never ends' },
+        startDate: new Date().toISOString().split("T")[0],
+        startTime: "09:00",
+        endCondition: { value: "never", label: "Never ends" },
         weekdays: [],
         monthDays: [],
         yearMonths: [],
         occurrences: null,
-        endDate: ''
+        endDate: "",
       },
-      ...defaultValues
-    }
+      ...defaultValues,
+    },
   });
 
   const [taskNameLength, setTaskNameLength] = useState(0);
   const [attachmentSize, setAttachmentSize] = useState(0);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  const watchedTaskName = watch('taskName');
+  const watchedTaskName = watch("taskName");
 
   // Character counter for task name
   useEffect(() => {
@@ -468,45 +503,48 @@ export const RecurringTaskForm = ({
 
   // Priority options
   const priorityOptions = [
-    { value: 'Low', label: 'Low' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'High', label: 'High' },
-    { value: 'Critical', label: 'Critical' }
+    { value: "Low", label: "Low" },
+    { value: "Medium", label: "Medium" },
+    { value: "High", label: "High" },
+    { value: "Critical", label: "Critical" },
   ];
 
   // Assignment options (for org users)
-  const assignmentOptions = isOrgUser ? [
-    { value: 'self', label: 'Self' },
-    { value: 'john_doe', label: 'John Doe' },
-    { value: 'jane_smith', label: 'Jane Smith' },
-  ] : [{ value: 'self', label: 'Self' }];
+  const assignmentOptions = isOrgUser
+    ? [
+        { value: "self", label: "Self" },
+        { value: "john_doe", label: "John Doe" },
+        { value: "jane_smith", label: "Jane Smith" },
+      ]
+    : [{ value: "self", label: "Self" }];
 
   // File upload handler
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
     const currentSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
-    
-    if (currentSize + totalSize > 5 * 1024 * 1024) { // 5MB limit
-      alert('Total file size cannot exceed 5MB');
+
+    if (currentSize + totalSize > 5 * 1024 * 1024) {
+      // 5MB limit
+      alert("Total file size cannot exceed 5MB");
       return;
     }
 
-    const newFiles = files.map(file => ({
+    const newFiles = files.map((file) => ({
       file,
       name: file.name,
       size: file.size,
-      id: Math.random().toString(36).substr(2, 9)
+      id: Math.random().toString(36).substr(2, 9),
     }));
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
     setAttachmentSize(currentSize + totalSize);
   };
 
   // Remove file
   const removeFile = (fileId) => {
-    setUploadedFiles(prev => {
-      const updated = prev.filter(f => f.id !== fileId);
+    setUploadedFiles((prev) => {
+      const updated = prev.filter((f) => f.id !== fileId);
       const newSize = updated.reduce((sum, file) => sum + file.file.size, 0);
       setAttachmentSize(newSize);
       return updated;
@@ -515,21 +553,21 @@ export const RecurringTaskForm = ({
 
   // Format file size
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
+    const sizes = ["Bytes", "KB", "MB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   // Quill editor configuration
   const quillModules = {
     toolbar: [
-      ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link'],
-      ['clean']
-    ]
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
+    ],
   };
 
   const onFormSubmit = (data) => {
@@ -537,7 +575,7 @@ export const RecurringTaskForm = ({
     const formData = {
       ...data,
       attachments: uploadedFiles,
-      taskType: 'recurring'
+      taskType: "recurring",
     };
     onSubmit(formData);
   };
@@ -551,9 +589,12 @@ export const RecurringTaskForm = ({
         </label>
         <div className="relative">
           <input
-            {...register('taskName', { 
-              required: 'Task name is required',
-              maxLength: { value: 20, message: 'Task name cannot exceed 20 characters' }
+            {...register("taskName", {
+              required: "Task name is required",
+              maxLength: {
+                value: 20,
+                message: "Task name cannot exceed 20 characters",
+              },
             })}
             type="text"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -583,7 +624,7 @@ export const RecurringTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor"
+              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Describe your recurring task..."
             />
           )}
@@ -598,7 +639,7 @@ export const RecurringTaskForm = ({
         <Controller
           name="assignedTo"
           control={control}
-          rules={{ required: 'Assignment is required' }}
+          rules={{ required: "Assignment is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -613,7 +654,9 @@ export const RecurringTaskForm = ({
           )}
         />
         {errors.assignedTo && (
-          <p className="text-red-500 text-xs mt-1">{errors.assignedTo.message}</p>
+          <p className="text-red-500 text-xs mt-1">
+            {errors.assignedTo.message}
+          </p>
         )}
         <p className="text-xs text-gray-500 mt-1">
           Recurring tasks can only have one assignee
@@ -628,7 +671,7 @@ export const RecurringTaskForm = ({
         <Controller
           name="priority"
           control={control}
-          rules={{ required: 'Priority is required' }}
+          rules={{ required: "Priority is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -654,7 +697,7 @@ export const RecurringTaskForm = ({
           <div className="flex space-x-4">
             <label className="flex items-center">
               <input
-                {...register('visibility')}
+                {...register("visibility")}
                 type="radio"
                 value="private"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -664,7 +707,7 @@ export const RecurringTaskForm = ({
             </label>
             <label className="flex items-center">
               <input
-                {...register('visibility')}
+                {...register("visibility")}
                 type="radio"
                 value="public"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -689,10 +732,10 @@ export const RecurringTaskForm = ({
               {...field}
               isMulti
               options={[
-                { value: 'urgent', label: 'Urgent' },
-                { value: 'review', label: 'Review' },
-                { value: 'meeting', label: 'Meeting' },
-                { value: 'development', label: 'Development' }
+                { value: "urgent", label: "Urgent" },
+                { value: "review", label: "Review" },
+                { value: "meeting", label: "Meeting" },
+                { value: "development", label: "Development" },
               ]}
               className="react-select-container"
               classNamePrefix="react-select"
@@ -725,15 +768,27 @@ export const RecurringTaskForm = ({
             id="file-upload"
             data-testid="input-attachments"
           />
-          <label 
-            htmlFor="file-upload" 
+          <label
+            htmlFor="file-upload"
             className="cursor-pointer flex flex-col items-center justify-center text-gray-600 hover:text-blue-600 transition-colors"
           >
-            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg
+              className="w-8 h-8 mb-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             <span className="text-sm">Click to upload files</span>
-            <span className="text-xs text-gray-500">PDF, DOC, Images supported</span>
+            <span className="text-xs text-gray-500">
+              PDF, DOC, Images supported
+            </span>
           </label>
         </div>
 
@@ -741,13 +796,28 @@ export const RecurringTaskForm = ({
         {uploadedFiles.length > 0 && (
           <div className="mt-3 space-y-2">
             {uploadedFiles.map((file) => (
-              <div key={file.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+              <div
+                key={file.id}
+                className="flex items-center justify-between bg-gray-50 p-2 rounded"
+              >
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-4 h-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   <span className="text-sm text-gray-700">{file.name}</span>
-                  <span className="text-xs text-gray-500">({formatFileSize(file.size)})</span>
+                  <span className="text-xs text-gray-500">
+                    ({formatFileSize(file.size)})
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -755,8 +825,18 @@ export const RecurringTaskForm = ({
                   className="text-red-500 hover:text-red-700 transition-colors"
                   data-testid={`remove-file-${file.id}`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
