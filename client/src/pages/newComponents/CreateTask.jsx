@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
+import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 
 export default function CreateTask({
   onClose,
@@ -224,21 +225,35 @@ export default function CreateTask({
         )}
         
         {selectedTaskType === 'approval' && (
-          <div className="p-8 text-center">
-            <div className="bg-gray-100 rounded-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Approval Task
-              </h2>
-              <p className="text-gray-600">
-                This form will be customized for approval task creation
-              </p>
-            </div>
-          </div>
+          <ApprovalTaskForm
+            onSubmit={(data) => {
+              console.log('Approval task created:', data);
+              onSubmit({
+                ...data,
+                taskType: selectedTaskType
+              });
+            }}
+            onCancel={onClose}
+            isOrgUser={true}
+            assignmentOptions={[
+              { value: 'self', label: 'Self' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' },
+              { value: 'user3', label: 'Mike Johnson' }
+            ]}
+            approverOptions={[
+              { value: 'manager1', label: 'Sarah Wilson (Manager)' },
+              { value: 'lead1', label: 'David Chen (Team Lead)' },
+              { value: 'director1', label: 'Lisa Rodriguez (Director)' },
+              { value: 'user1', label: 'John Doe' },
+              { value: 'user2', label: 'Jane Smith' }
+            ]}
+          />
         )}
       </div>
 
-      {/* Action Buttons - Only for approval tasks since other forms have their own buttons */}
-      {selectedTaskType === 'approval' && (
+      {/* Action Buttons - No longer needed since all forms have their own buttons */}
+      {false && (
         <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
           <button
             type="button"

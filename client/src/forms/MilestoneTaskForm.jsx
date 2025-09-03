@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import '../styles/quill-custom.css';
-import Select from 'react-select';
-import { Star, Calendar, Users, Info, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import "../styles/quill-custom.css";
+import Select from "react-select";
+import { Star, Calendar, Users, Info, AlertCircle } from "lucide-react";
 
-const MilestoneTaskForm = ({ 
-  user, 
-  onSubmit, 
-  isOrgUser, 
+const MilestoneTaskForm = ({
+  user,
+  onSubmit,
+  isOrgUser,
   assignmentOptions = [],
-  existingTasks = [] // Tasks available for linking
+  existingTasks = [], // Tasks available for linking
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
-  
+
   const {
     register,
     handleSubmit,
@@ -24,23 +24,25 @@ const MilestoneTaskForm = ({
     formState: { errors },
   } = useForm({
     defaultValues: {
-      taskName: '',
-      description: '',
+      taskName: "",
+      description: "",
       isMilestone: true,
-      milestoneType: 'standalone',
+      milestoneType: "standalone",
       linkedTasks: [],
-      dueDate: new Date().toISOString().split('T')[0],
-      assignedTo: isOrgUser ? null : { value: 'self', label: user?.name || 'Self' },
-      priority: { value: 'medium', label: 'Medium' },
-      visibility: 'private',
+      dueDate: new Date().toISOString().split("T")[0],
+      assignedTo: isOrgUser
+        ? null
+        : { value: "self", label: user?.name || "Self" },
+      priority: { value: "medium", label: "Medium" },
+      visibility: "private",
       collaborators: [],
-      status: 'not_started'
+      status: "not_started",
     },
   });
 
-  const watchedTaskName = watch('taskName');
-  const watchedMilestoneType = watch('milestoneType');
-  const watchedLinkedTasks = watch('linkedTasks');
+  const watchedTaskName = watch("taskName");
+  const watchedMilestoneType = watch("milestoneType");
+  const watchedLinkedTasks = watch("linkedTasks");
 
   useEffect(() => {
     setTaskNameLength(watchedTaskName?.length || 0);
@@ -48,56 +50,56 @@ const MilestoneTaskForm = ({
 
   // Get today's date for validation
   const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   };
 
   // Priority options
   const priorityOptions = [
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
-    { value: 'critical', label: 'Critical' }
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" },
   ];
 
   // Filter tasks to exclude milestones for linking
-  const availableTasksForLinking = existingTasks.filter(task => 
-    task.taskType !== 'milestone' && task.id !== 'current' // Prevent self-linking
+  const availableTasksForLinking = existingTasks.filter(
+    (task) => task.taskType !== "milestone" && task.id !== "current", // Prevent self-linking
   );
 
   // Calculate latest due date from linked tasks
   const getLatestDueDate = (linkedTasks) => {
     if (!linkedTasks || linkedTasks.length === 0) return getTodayDate();
-    
+
     const dueDates = linkedTasks
-      .map(task => task.dueDate)
-      .filter(date => date)
+      .map((task) => task.dueDate)
+      .filter((date) => date)
       .sort((a, b) => new Date(b) - new Date(a));
-    
+
     return dueDates[0] || getTodayDate();
   };
 
   // Update due date when linked tasks change
   useEffect(() => {
-    if (watchedMilestoneType === 'linked' && watchedLinkedTasks?.length > 0) {
+    if (watchedMilestoneType === "linked" && watchedLinkedTasks?.length > 0) {
       const latestDate = getLatestDueDate(watchedLinkedTasks);
-      setValue('dueDate', latestDate);
+      setValue("dueDate", latestDate);
     }
   }, [watchedLinkedTasks, watchedMilestoneType, setValue]);
 
   // Quill editor configuration
   const quillModules = {
     toolbar: [
-      ['bold', 'italic', 'underline'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link'],
-      ['clean'],
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link"],
+      ["clean"],
     ],
   };
 
   const onFormSubmit = (data) => {
     const formData = {
       ...data,
-      taskType: 'milestone',
+      taskType: "milestone",
       isMilestone: true,
     };
     onSubmit(formData);
@@ -112,7 +114,8 @@ const MilestoneTaskForm = ({
         <div className="relative group">
           <Info className="w-4 h-4 text-gray-400 cursor-help" />
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-64 z-10">
-            Milestones cannot have subtasks, cannot be recurring, and cannot link to other milestones
+            Milestones cannot have subtasks, cannot be recurring, and cannot
+            link to other milestones
           </div>
         </div>
       </div>
@@ -125,7 +128,7 @@ const MilestoneTaskForm = ({
         <div className="flex space-x-4">
           <label className="flex items-center">
             <input
-              {...register('milestoneType')}
+              {...register("milestoneType")}
               type="radio"
               value="standalone"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -135,7 +138,7 @@ const MilestoneTaskForm = ({
           </label>
           <label className="flex items-center">
             <input
-              {...register('milestoneType')}
+              {...register("milestoneType")}
               type="radio"
               value="linked"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -145,7 +148,8 @@ const MilestoneTaskForm = ({
           </label>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Standalone milestones are independent. Linked milestones depend on other tasks.
+          Standalone milestones are independent. Linked milestones depend on
+          other tasks.
         </p>
       </div>
 
@@ -156,11 +160,11 @@ const MilestoneTaskForm = ({
         </label>
         <div className="relative">
           <input
-            {...register('taskName', {
-              required: 'Milestone name is required',
+            {...register("taskName", {
+              required: "Milestone name is required",
               maxLength: {
                 value: 80,
-                message: 'Milestone name cannot exceed 80 characters',
+                message: "Milestone name cannot exceed 80 characters",
               },
             })}
             type="text"
@@ -194,7 +198,7 @@ const MilestoneTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor"
+              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Describe your milestone..."
             />
           )}
@@ -202,7 +206,7 @@ const MilestoneTaskForm = ({
       </div>
 
       {/* Linked Tasks - Only show if milestone type is 'linked' */}
-      {watchedMilestoneType === 'linked' && (
+      {watchedMilestoneType === "linked" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Link to Tasks/Sub-tasks <span className="text-red-500">*</span>
@@ -212,20 +216,23 @@ const MilestoneTaskForm = ({
             control={control}
             rules={{
               validate: (value) => {
-                if (watchedMilestoneType === 'linked' && (!value || value.length === 0)) {
-                  return 'Please select at least one task to link';
+                if (
+                  watchedMilestoneType === "linked" &&
+                  (!value || value.length === 0)
+                ) {
+                  return "Please select at least one task to link";
                 }
                 return true;
-              }
+              },
             }}
             render={({ field }) => (
               <Select
                 {...field}
                 isMulti
-                options={availableTasksForLinking.map(task => ({
+                options={availableTasksForLinking.map((task) => ({
                   value: task.id,
                   label: task.name,
-                  dueDate: task.dueDate
+                  dueDate: task.dueDate,
                 }))}
                 className="react-select-container"
                 classNamePrefix="react-select"
@@ -235,7 +242,8 @@ const MilestoneTaskForm = ({
             )}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Cannot link to other milestones. Due date will default to latest linked task date.
+            Cannot link to other milestones. Due date will default to latest
+            linked task date.
           </p>
           {errors.linkedTasks && (
             <p className="text-red-500 text-xs mt-1 flex items-center">
@@ -253,11 +261,11 @@ const MilestoneTaskForm = ({
           Due Date <span className="text-red-500">*</span>
         </label>
         <input
-          {...register('dueDate', {
-            required: 'Due date is required',
+          {...register("dueDate", {
+            required: "Due date is required",
             validate: (value) => {
               const today = getTodayDate();
-              return value >= today || 'Due date must be today or later';
+              return value >= today || "Due date must be today or later";
             },
           })}
           type="date"
@@ -265,7 +273,7 @@ const MilestoneTaskForm = ({
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           data-testid="input-due-date"
         />
-        {watchedMilestoneType === 'linked' && (
+        {watchedMilestoneType === "linked" && (
           <p className="text-xs text-gray-500 mt-1">
             Automatically set to latest due date among linked tasks
           </p>
@@ -286,7 +294,7 @@ const MilestoneTaskForm = ({
         <Controller
           name="assignedTo"
           control={control}
-          rules={{ required: 'Assignment is required' }}
+          rules={{ required: "Assignment is required" }}
           render={({ field }) => (
             <Select
               {...field}
@@ -337,7 +345,7 @@ const MilestoneTaskForm = ({
         <div className="flex space-x-4">
           <label className="flex items-center">
             <input
-              {...register('visibility')}
+              {...register("visibility")}
               type="radio"
               value="private"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -347,7 +355,7 @@ const MilestoneTaskForm = ({
           </label>
           <label className="flex items-center">
             <input
-              {...register('visibility')}
+              {...register("visibility")}
               type="radio"
               value="public"
               className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
@@ -371,7 +379,7 @@ const MilestoneTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter(opt => opt.value !== 'self')}
+              options={assignmentOptions.filter((opt) => opt.value !== "self")}
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select collaborators for notifications..."
@@ -389,9 +397,12 @@ const MilestoneTaskForm = ({
         <div className="flex items-start space-x-2">
           <Info className="w-4 h-4 text-blue-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-blue-900">Status Handling</h4>
+            <h4 className="text-sm font-medium text-blue-900">
+              Status Handling
+            </h4>
             <p className="text-xs text-blue-700 mt-1">
-              Default status is "Not Started". Milestone cannot be marked as achieved until status is "Ready to Mark".
+              Default status is "Not Started". Milestone cannot be marked as
+              achieved until status is "Ready to Mark".
             </p>
           </div>
         </div>
@@ -402,7 +413,9 @@ const MilestoneTaskForm = ({
         <div className="flex items-start space-x-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-amber-900">Milestone Restrictions</h4>
+            <h4 className="text-sm font-medium text-amber-900">
+              Milestone Restrictions
+            </h4>
             <ul className="text-xs text-amber-700 mt-1 space-y-1">
               <li>• No subtasks allowed under milestone</li>
               <li>• Cannot link milestone to another milestone</li>
