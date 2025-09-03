@@ -152,22 +152,27 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
             )}
 
             {selectedTaskType === 'milestone' && (
-              <MilestoneTaskContent
-                taskName={taskName}
-                setTaskName={setTaskName}
-                description={description}
-                setDescription={setDescription}
-                assignedTo={assignedTo}
-                setAssignedTo={setAssignedTo}
-                priority={priority}
-                setPriority={setPriority}
-                characterCount={characterCount}
-                milestoneType={milestoneType}
-                setMilestoneType={setMilestoneType}
-                linkedTasks={linkedTasks}
-                setLinkedTasks={setLinkedTasks}
-                dueDate={dueDate}
-                setDueDate={setDueDate}
+              <RegularTaskForm
+                onSubmit={(data) => {
+                  onSubmit({
+                    title: data.taskName,
+                    description: data.description,
+                    assignedTo: data.assignedTo,
+                    priority: data.priority,
+                    taskType: selectedTaskType,
+                    category: "general",
+                    visibility: data.visibility,
+                    dueDate: data.dueDate,
+                    tags: data.tags ? data.tags.split(',').filter(tag => tag.trim()) : [],
+                    collaborators: [],
+                    attachments: data.attachments || [],
+                    milestoneOptions: data.milestoneOptions
+                  });
+                }}
+                onCancel={onClose}
+                isOrgUser={true}
+                isSoloUser={false}
+                taskType="milestone"
               />
             )}
 
@@ -196,30 +201,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
               />
             )}
 
-            {selectedTaskType === 'milestone' && (
-              <RegularTaskForm
-                onSubmit={(data) => {
-                  onSubmit({
-                    title: data.taskName,
-                    description: data.description,
-                    assignedTo: data.assignedTo,
-                    priority: data.priority,
-                    taskType: selectedTaskType,
-                    category: "general",
-                    visibility: data.visibility,
-                    dueDate: data.dueDate,
-                    tags: data.tags.split(',').filter(tag => tag.trim()),
-                    collaborators: [],
-                    attachments: data.attachments || [],
-                    milestoneOptions: data.milestoneOptions
-                  });
-                }}
-                onCancel={onClose}
-                isOrgUser={true}
-                isSoloUser={false}
-                taskType="milestone"
-              />
-            )}
+
 
             {selectedTaskType === 'approval' && (
               <RegularTaskForm
