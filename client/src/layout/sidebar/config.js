@@ -74,6 +74,12 @@ export const sidebarMenus = {
           path: '/quick-tasks'
         },
         {
+          id: 'recurring',
+          label: 'Recurring',
+          icon: Clock,
+          path: '/recurring'
+        },
+        {
           id: 'calendar',
           label: 'Calendar',
           icon: Calendar,

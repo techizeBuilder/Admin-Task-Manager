@@ -10,19 +10,35 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
+### Frontend Architecture (Updated September 2025)
 - **Framework**: React with Vite
 - **Routing**: Wouter
 - **State Management**: React Query (@tanstack/react-query)
 - **UI Components**: Radix UI primitives with custom styling
 - **Styling**: Tailwind CSS with a custom design system
 - **Forms**: React Hook Form with validation
+- **Architecture Pattern**: Feature-based organization for scalability
+
+### New Feature-Based Structure
+```
+client/src/features/
+├── shared/              # Shared components, hooks, and utilities
+│   ├── components/      # Reusable UI components  
+│   ├── hooks/          # Custom React hooks (useAuth, useRole, useFeaturePermissions)
+│   ├── services/       # API service functions
+│   └── utils/          # Utility functions
+├── dashboard/          # Dashboard feature with role-specific pages
+├── tasks/              # Task management with recurring tasks support  
+├── calendar/           # Calendar integration (prepared for future)
+└── auth/               # Authentication feature
+```
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT-based authentication with bcrypt hashing
 - **Email Service**: Nodemailer
+- **Mock API**: json-server with Zod validation for development
 - **File Structure**: Modular architecture (services, models, routes)
 
 ### Data Storage Solutions
@@ -36,9 +52,12 @@ Preferred communication style: Simple, everyday language.
 - **Organization Management**: Multi-tenant support, organization-specific user management, configurable settings, license/subscription management.
 - **User Management**: Comprehensive user profiles, invitation workflows, status tracking.
 - **Task Management**: Project-based organization, assignment, status tracking, comments, audit logging, priority levels, due dates. Supports regular, recurring, milestone, and approval task types with extensive fields (dependencies, reference processes, custom forms).
+- **Recurring Tasks System**: Full recurring task management with frequency scheduling (daily, weekly, monthly), template management, active/paused status control, and Individual user focus.
 - **Form Builder & Process Flow**: Dynamic form creation, workflow management, response collection, integration with task management.
-- **Dashboard System**: Comprehensive, role-based dashboards (Individual, Organization, SuperAdmin) with dynamic navigation.
-- **Sidebar System**: Unified, dynamic, role-based sidebar replacing previous components, with role mapping for backend integration and mobile responsiveness.
+- **Dashboard System**: Comprehensive, role-based dashboards (Individual, Organization, SuperAdmin) with dynamic navigation and real API integration.
+- **Mock API Backend**: Complete json-server setup with Zod validation, realistic sample data, and authentic API endpoints for development.
+- **Sidebar System**: Unified, dynamic, role-based sidebar with "Recurring" menu item for Individual users, role mapping for backend integration and mobile responsiveness.
+- **Feature-Based Architecture**: Scalable folder structure organized by business features (dashboard, tasks, calendar, auth) with shared components and role-based permissions.
 - **Avatar System**: Consistent avatar display across the application with priority-based image loading and real-time updates.
 - **Email Templates**: Differentiated designs for organization vs. individual registration.
 - **Form Validations**: Comprehensive inline validation, rate limiting, and improved error handling for user-facing forms (e.g., login, registration, password reset).

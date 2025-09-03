@@ -27,6 +27,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./client/src"),
       "@assets": path.resolve(__dirname, "./attached_assets"),
       "@shared": path.resolve(__dirname, "./shared"),
+      // Feature-based aliases for improved architecture
+      "@features": path.resolve(__dirname, "./client/src/features"),
+      "@features-shared": path.resolve(__dirname, "./client/src/features/shared"),
+      "@features-dashboard": path.resolve(__dirname, "./client/src/features/dashboard"),
+      "@features-tasks": path.resolve(__dirname, "./client/src/features/tasks"),
+      "@features-calendar": path.resolve(__dirname, "./client/src/features/calendar"),
+      "@features-auth": path.resolve(__dirname, "./client/src/features/auth"),
     },
   },
 });

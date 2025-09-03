@@ -70,6 +70,7 @@ import TaskDetail from "./pages/newComponents/TaskDetail";
 import AdminSettings from "./pages/admin/Admin-settings";
 import AdminNotification from "./pages/admin/AdminNotification";
 import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
+import RecurringTasks from "./features/tasks/pages/RecurringTasks";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
 import StatusManager from "./pages/newComponents/StatusManager";
@@ -356,6 +357,16 @@ function App() {
             <ProtectedRoute
               component={DynamicDashboard}
               allowedRoles={["admin", "employee", "member", "individual"]}
+            />
+          </AdminLayout>
+        </Route>
+
+        {/* Individual User Recurring Tasks */}
+        <Route path="/recurring">
+          <AdminLayout>
+            <ProtectedRoute
+              component={RecurringTasks}
+              allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>
         </Route>
