@@ -1214,76 +1214,86 @@ export default function AllTasks({
           )}
 
           <div className="w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-              <SearchableSelect
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.value)}
-                options={[
-                  { value: "all", label: "All Status" },
-                  { value: "todo", label: "To Do" },
-                  { value: "progress", label: "In Progress" },
-                  { value: "review", label: "In Review" },
-                  { value: "completed", label: "Completed" },
-                ]}
-                placeholder="Filter by Status"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 auto-cols-fr">
+              <div className="w-full min-w-0">
+                <SearchableSelect
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.value)}
+                  options={[
+                    { value: "all", label: "All Status" },
+                    { value: "todo", label: "To Do" },
+                    { value: "progress", label: "In Progress" },
+                    { value: "review", label: "In Review" },
+                    { value: "completed", label: "Completed" },
+                  ]}
+                  placeholder="Filter by Status"
+                />
+              </div>
 
-              <SearchableSelect
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.value)}
-                options={[
-                  { value: "all", label: "All Priority" },
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "urgent", label: "Urgent" },
-                ]}
-                placeholder="Filter by Priority"
-              />
+              <div className="w-full min-w-0">
+                <SearchableSelect
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.value)}
+                  options={[
+                    { value: "all", label: "All Priority" },
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                    { value: "urgent", label: "Urgent" },
+                  ]}
+                  placeholder="Filter by Priority"
+                />
+              </div>
 
-              <SearchableSelect
-                value={taskTypeFilter}
-                onChange={(e) => setTaskTypeFilter(e.value)}
-                options={[
-                  { value: "all", label: "All Task Types" },
-                  { value: "Simple Task", label: "Simple Task" },
-                  { value: "Recurring Task", label: "Recurring Task" },
-                  { value: "Milestone", label: "Milestone" },
-                  { value: "Approval Task", label: "Approval Task" },
-                ]}
-                placeholder="Filter by Task Type"
-              />
+              <div className="w-full min-w-0">
+                <SearchableSelect
+                  value={taskTypeFilter}
+                  onChange={(e) => setTaskTypeFilter(e.value)}
+                  options={[
+                    { value: "all", label: "All Task Types" },
+                    { value: "Simple Task", label: "Simple Task" },
+                    { value: "Recurring Task", label: "Recurring Task" },
+                    { value: "Milestone", label: "Milestone" },
+                    { value: "Approval Task", label: "Approval Task" },
+                  ]}
+                  placeholder="Filter by Task Type"
+                />
+              </div>
 
-              <SearchableSelect
-                value={dueDateFilter}
-                onChange={(e) => {
-                  setDueDateFilter(e.value);
-                  if (e.value !== "specific_date") {
-                    window.calendarSpecificDate = null;
-                  }
-                }}
-                options={[
-                  { value: "all", label: "All Due Dates" },
-                  { value: "overdue", label: "Overdue" },
-                  { value: "due_today", label: "Due Today" },
-                  { value: "due_tomorrow", label: "Due Tomorrow" },
-                  { value: "due_this_week", label: "Due This Week" },
-                  { value: "due_next_week", label: "Due Next Week" },
-                  { value: "due_this_month", label: "Due This Month" },
-                  { value: "no_due_date", label: "No Due Date" },
-                  ...(window.calendarSpecificDate
-                    ? [
-                        {
-                          value: "specific_date",
-                          label: `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`,
-                        },
-                      ]
-                    : []),
-                ]}
-                placeholder="Filter by Due Date"
-              />
+              <div className="w-full min-w-0">
+                <SearchableSelect
+                  value={dueDateFilter}
+                  onChange={(e) => {
+                    setDueDateFilter(e.value);
+                    if (e.value !== "specific_date") {
+                      window.calendarSpecificDate = null;
+                    }
+                  }}
+                  options={[
+                    { value: "all", label: "All Due Dates" },
+                    { value: "overdue", label: "Overdue" },
+                    { value: "due_today", label: "Due Today" },
+                    { value: "due_tomorrow", label: "Due Tomorrow" },
+                    { value: "due_this_week", label: "Due This Week" },
+                    { value: "due_next_week", label: "Due Next Week" },
+                    { value: "due_this_month", label: "Due This Month" },
+                    { value: "no_due_date", label: "No Due Date" },
+                    ...(window.calendarSpecificDate
+                      ? [
+                          {
+                            value: "specific_date",
+                            label: `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  placeholder="Filter by Due Date"
+                />
+              </div>
 
-              <SearchableSelect placeholder="All Categories" />
+              <div className="w-full min-w-0">
+                <SearchableSelect placeholder="All Categories" />
+              </div>
             </div>
           </div>
         </div>
