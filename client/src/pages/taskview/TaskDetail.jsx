@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
+import { useRoute, useLocation } from 'wouter';
+import CoreInfoPanel from './CoreInfoPanel';
+import SubtasksPanel from './SubtasksPanel';
+import SubtaskModal from './SubtaskModal';
+import StatusDropdown from './StatusDropdown';
+import PriorityDropdown from './PriorityDropdown';
+import AssigneeSelector from './AssigneeSelector';
+import { EditableTitle, EditableTextArea } from './EditableComponents';
+import './TaskView.css';
 
 export default function TaskDetail({ taskId, onClose }) {
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("core-info");
+  const [, setLocation] = useLocation();
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [showRiskModal, setShowRiskModal] = useState(false);
@@ -15,17 +25,15 @@ export default function TaskDetail({ taskId, onClose }) {
     role: "assignee",
   });
 
-  // Mock task data - in real app this would come from props or API
+  // Mock task data - matches wireframe requirements
   const [task, setTask] = useState({
-    id: taskId,
-    title: "Database Migration",
-    description:
-      "Migrate the existing database from MySQL to PostgreSQL while ensuring data integrity and minimal downtime.",
+    id: taskId || 1,
+    title: "Migrate the existing database from MySQL to PostgreSQL",
+    description: "Migrate the existing database from MySQL to PostgreSQL while ensuring data integrity and minimal downtime.",
     status: "in-progress",
     priority: "high",
     assignee: "John Smith",
     assigneeId: 1,
-
     dueDate: "2024-01-25",
     startDate: "2024-01-15",
     timeEstimate: "40 hours",
@@ -36,10 +44,12 @@ export default function TaskDetail({ taskId, onClose }) {
     updatedAt: "2024-01-20 14:30",
     snoozedUntil: null,
     snoozeNote: null,
-    taskType: "normal", // normal, milestone, approval
+    taskType: "Regular Task",
     isRisky: false,
     riskNote: "",
     parentTaskId: null,
+    visibility: "Private",
+    colorCode: "#007bff",
     subtasks: [
       {
         id: 101,
@@ -47,6 +57,7 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "completed",
         assignee: "John Smith",
         dueDate: "2024-01-20",
+        priority: "high"
       },
       {
         id: 102,
@@ -54,6 +65,7 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "completed",
         assignee: "Mike Johnson",
         dueDate: "2024-01-22",
+        priority: "medium"
       },
       {
         id: 103,
@@ -61,6 +73,7 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "in-progress",
         assignee: "Sarah Wilson",
         dueDate: "2024-01-24",
+        priority: "high"
       },
       {
         id: 104,
@@ -68,6 +81,7 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "pending",
         assignee: "Emily Davis",
         dueDate: "2024-01-26",
+        priority: "medium"
       },
       {
         id: 105,
@@ -75,43 +89,15 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "pending",
         assignee: "John Smith",
         dueDate: "2024-01-27",
+        priority: "low"
       },
     ],
     linkedItems: [
       { id: 1, type: "task", title: "Update Documentation", status: "pending" },
       { id: 2, type: "document", title: "Migration Plan", status: "completed" },
-      {
-        id: 3,
-        type: "form",
-        title: "Migration Checklist",
-        status: "in-progress",
-      },
+      { id: 3, type: "form", title: "Migration Checklist", status: "in-progress" },
     ],
-    milestones: [
-      {
-        id: 1,
-        title: "Database Backup Complete",
-        status: "completed",
-        date: "2024-01-20",
-      },
-      {
-        id: 2,
-        title: "Migration Scripts Ready",
-        status: "in-progress",
-        date: "2024-01-24",
-      },
-      {
-        id: 3,
-        title: "Full Migration Complete",
-        status: "pending",
-        date: "2024-01-28",
-      },
-    ],
-    isApprovalTask: false,
-    approvalStatus: null,
-    reminders: [
-      { id: 1, type: "due_date", message: "Due in 3 days", date: "2024-01-25" },
-    ],
+    collaborators: ["Mike Johnson", "Emily Davis"],
     forms: [
       {
         id: 1,
@@ -120,64 +106,42 @@ export default function TaskDetail({ taskId, onClose }) {
         status: "in-progress",
       },
     ],
-    collaborators: ["Mike Johnson", "Emily Davis"],
-    colorCode: "#007bff", // Example color code
   });
 
   const tabs = [
-    { id: "details", label: "Core Info", icon: "📋" },
+    { id: "core-info", label: "Core Info", icon: "📋", hasIcon: true },
     {
       id: "subtasks",
       label: "Subtasks",
       icon: "📝",
       count: task.subtasks?.length || 0,
+      hasIcon: true
     },
-    { id: "comments", label: "Comments", icon: "💬" },
-    { id: "activity", label: "Activity Feed", icon: "📊" },
-    { id: "attachments", label: "Files & Links", icon: "📎" },
+    { id: "comments", label: "Comments", icon: "💬", count: 3, hasIcon: true },
+    { id: "activity", label: "Activity Feed", icon: "📊", hasIcon: true },
+    { id: "files", label: "Files & Links", icon: "📎", hasIcon: true },
     {
       id: "linked",
       label: "Linked Items",
       icon: "🔗",
       count: task.linkedItems?.length || 0,
-    },
-    // { id: "forms", label: "Forms", icon: "📄", count: task.forms?.length || 0 },
+      hasIcon: true
+    }
   ];
 
   const now = new Date();
   const snoozedUntil = task.snoozedUntil ? new Date(task.snoozedUntil) : null;
   const isSnoozed = snoozedUntil && snoozedUntil > now;
 
-  // Enhanced permission checks based on specification
+  // Enhanced permission checks
   const permissions = {
-    canView: true, // All roles can view
-    canEdit:
-      task.creatorId === currentUser.id ||
-      task.assigneeId === currentUser.id ||
-      currentUser.role === "admin" ||
-      true, // Allow editing for demo purposes
-    canReassign:
-      task.creatorId === currentUser.id || currentUser.role === "admin" || true, // Allow reassigning for demo purposes
-    canDelete: (() => {
-      // Company Admin can delete any task
-      if (currentUser.role === "admin") return true;
-
-      // Individual/Team users can delete:
-      // 1. Tasks they created
-      // 2. Tasks assigned to them
-      return (
-        task.creatorId === currentUser.id ||
-        task.assigneeId === currentUser.id ||
-        true // Allow deleting for demo purposes
-      );
-    })(),
-    canComment: true, // All roles can comment
-    canAddFiles: true, // All roles can add files
-    canChangeStatus:
-      task.assigneeId === currentUser.id ||
-      task.creatorId === currentUser.id ||
-      currentUser.role === "admin" ||
-      true, // Allow status changes for demo purposes
+    canView: true,
+    canEdit: true,
+    canReassign: true,
+    canDelete: true,
+    canComment: true,
+    canAddFiles: true,
+    canChangeStatus: true,
   };
 
   const handleStatusChange = (newStatus) => {
@@ -186,77 +150,6 @@ export default function TaskDetail({ taskId, onClose }) {
 
   const handlePriorityChange = (newPriority) => {
     setTask({ ...task, priority: newPriority });
-  };
-
-  const handleSnoozeSubmit = (snoozeData) => {
-    setTask({
-      ...task,
-      snoozedUntil: snoozeData.snoozeUntil,
-      snoozeNote: snoozeData.note,
-    });
-    setShowSnoozeModal(false);
-  };
-
-  const handleUnsnooze = () => {
-    setTask({
-      ...task,
-      snoozedUntil: null,
-      snoozeNote: null,
-    });
-  };
-
-  const handleReassign = (newAssignee) => {
-    setTask({
-      ...task,
-      assignee: newAssignee.name,
-      assigneeId: newAssignee.id,
-    });
-    setShowReassignModal(false);
-  };
-
-  const handleEditTask = () => {
-    setShowEditModal(true);
-  };
-
-  const handleSaveEditedTask = (updatedTask) => {
-    // Update the local task state
-    setTask(updatedTask);
-    setShowEditModal(false);
-
-    // Show success notification
-    console.log("✅ Task updated successfully:", updatedTask.title);
-
-    // Create and show toast notification
-    const showToast = (message, type = "success") => {
-      const toast = document.createElement("div");
-      toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white transition-all duration-300 ${
-        type === "success" ? "bg-green-600" : "bg-red-600"
-      }`;
-      toast.textContent = message;
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => document.body.removeChild(toast), 300);
-      }, 3000);
-    };
-
-    showToast(`Task "${updatedTask.title}" updated successfully`, "success");
-  };
-
-  const handleMarkRisk = (riskData) => {
-    setTask({
-      ...task,
-      isRisky: true,
-      riskNote: riskData.note,
-    });
-    setShowRiskModal(false);
-  };
-
-  const handleMarkDone = () => {
-    if (window.confirm("Mark this task as completed?")) {
-      setTask({ ...task, status: "DONE" });
-    }
   };
 
   const handleCreateSubtask = (subtaskData) => {
@@ -271,266 +164,390 @@ export default function TaskDetail({ taskId, onClose }) {
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
     setTask({ ...task, subtasks: updatedSubtasks });
     setShowCreateSubtaskDrawer(false);
-
-    // Simulate notification to assignee
-    console.log(
-      `Notification sent to ${subtaskData.assignee}: New sub-task "${subtaskData.title}" assigned to you`,
-    );
   };
 
-  const handleDeleteTask = (deleteOptions) => {
-    const taskType = task.parentTaskId ? "sub-task" : "task";
-
-    // Log the deletion with comprehensive details
-    console.log(
-      `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} "${
-        task.title
-      }" deleted by ${currentUser.name}`,
-      {
-        taskId: task.id,
-        deletedBy: currentUser.name,
-        deletedAt: new Date().toISOString(),
-        options: deleteOptions,
-        hadSubtasks: task.subtasks?.length || 0,
-        hadAttachments: task.attachments?.length || 0,
-        hadLinkedItems: task.linkedItems?.length || 0,
-        wasCreatedBy: task.createdBy,
-      },
-    );
-
-    // Show success toast notification
-    const toastMessage = `${
-      taskType.charAt(0).toUpperCase() + taskType.slice(1)
-    } "${task.title}" deleted successfully`;
-
-    // Create and show toast (you can customize this based on your toast implementation)
-    const showToast = (message, type = "success") => {
-      // Simple toast implementation - you can replace with your preferred toast library
-      const toast = document.createElement("div");
-      toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white transition-all duration-300 ${
-        type === "success" ? "bg-green-600" : "bg-red-600"
-      }`;
-      toast.textContent = message;
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        setTimeout(() => document.body.removeChild(toast), 300);
-      }, 3000);
-    };
-
-    showToast(toastMessage, "success");
-
-    // Close the modal and task detail
-    setShowDeleteModal(false);
-    onClose();
-
-    // In a real app, this would update the parent component's task list
-    // and send the deletion request to the backend
+  const handleMarkDone = () => {
+    if (window.confirm("Mark this task as completed?")) {
+      setTask({ ...task, status: "DONE" });
+    }
   };
 
   const handleExportTask = () => {
     console.log("Exporting task:", task);
   };
 
-  const getTaskTypeIcon = () => {
-    switch (task.taskType) {
-      case "milestone":
-        return "🎯";
-      case "approval":
-        return "✅";
-      default:
-        return "📋";
-    }
-  };
-
-  const getTaskTypeLabel = () => {
-    switch (task.taskType) {
-      case "milestone":
-        return "Milestone";
-      case "approval":
-        return "Approval";
-      default:
-        return "Normal";
-    }
-  };
-
   return (
-    <div className="task-detail-fullpage ">
-      {/* Enhanced Header Bar */}
-      <div className="task-header-bar">
-        <div className="header-main-content">
-          <div className="task-type-indicator">
-            <span className="task-type-icon">{getTaskTypeIcon()}</span>
-            <span className="task-type-label">{getTaskTypeLabel()}</span>
-          </div>
-
-          {/* Note: The following components would need to be imported or created:
-              EditableTitle, StatusDropdown, PriorityDropdown, AssigneeSelector */}
-          
-          <div className="task-title">
-            <h1>{task.title}</h1>
-          </div>
-
-          <div className="header-controls">
-            <div className="status-dropdown-detail">
-              Status: {task.status}
-            </div>
-
-            <div className="priority-display">
-              Priority: {task.priority}
-            </div>
-
-            <div className="assignee-display">
-              Assignee: {task.assignee}
-            </div>
-          </div>
-
-          <div className="header-badges">
-            {task.tags.map((tag) => (
-              <span key={tag} className="tag-badge">
-                #{tag}
-              </span>
-            ))}
-
-            {task.isRecurring && (
-              <span
-                className="status-indicator recurring"
-                title="This is a recurring task instance"
-              >
-                🔁 Recurring
-              </span>
-            )}
-
-            {isSnoozed && (
-              <span
-                className="status-indicator snoozed"
-                title={`Snoozed until ${snoozedUntil.toLocaleString()}`}
-              >
-                😴 Snoozed
-              </span>
-            )}
-
-            {task.isRisky && (
-              <span
-                className="status-indicator risky"
-                title={`At Risk: ${task.riskNote}`}
-              >
-                ⚠️ At Risk
-              </span>
-            )}
-
-            {task.taskType === "milestone" && (
-              <span className="status-indicator milestone">🎯 Milestone</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Add the rest of the component content here */}
-      <div className="task-content">
-        <p>Task detail content would go here...</p>
-        <p>Description: {task.description}</p>
-        
-        {/* Tab navigation */}
-        <div className="tab-navigation">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.icon} {tab.label}
-              {tab.count !== undefined && ` (${tab.count})`}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="tab-content">
-          {activeTab === "details" && (
-            <div>
-              <h3>Core Information</h3>
-              <p>Description: {task.description}</p>
-              <p>Due Date: {task.dueDate}</p>
-              <p>Created By: {task.createdBy}</p>
-            </div>
-          )}
-          
-          {activeTab === "subtasks" && (
-            <div>
-              <h3>Subtasks ({task.subtasks?.length || 0})</h3>
-              {task.subtasks?.map((subtask) => (
-                <div key={subtask.id} className="subtask-item">
-                  <strong>{subtask.title}</strong> - {subtask.status}
-                  <br />
-                  Assignee: {subtask.assignee} | Due: {subtask.dueDate}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {activeTab === "comments" && (
-            <div>
-              <h3>Comments</h3>
-              <p>Comments would be displayed here...</p>
-            </div>
-          )}
-          
-          {activeTab === "activity" && (
-            <div>
-              <h3>Activity Feed</h3>
-              <p>Activity history would be displayed here...</p>
-            </div>
-          )}
-          
-          {activeTab === "attachments" && (
-            <div>
-              <h3>Files & Links</h3>
-              <p>File attachments would be displayed here...</p>
-            </div>
-          )}
-          
-          {activeTab === "linked" && (
-            <div>
-              <h3>Linked Items ({task.linkedItems?.length || 0})</h3>
-              {task.linkedItems?.map((item) => (
-                <div key={item.id} className="linked-item">
-                  <strong>{item.title}</strong> ({item.type}) - {item.status}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        <div className="action-buttons">
-          <button onClick={() => setShowCreateSubtaskDrawer(true)}>
-            Add Subtask
+    <div className="task-view-container">
+      {/* Top Action Bar */}
+      <div className="task-action-bar">
+        <div className="action-buttons-left">
+          <button className="action-btn primary" onClick={() => setShowCreateSubtaskDrawer(true)}>
+            <span className="btn-icon">📝</span>
+            Add Sub-task
           </button>
-          <button onClick={() => setShowSnoozeModal(true)}>
-            Snooze
-          </button>
-          <button onClick={() => setShowReassignModal(true)}>
-            Reassign
-          </button>
-          <button onClick={() => setShowRiskModal(true)}>
-            Mark Risk
-          </button>
-          <button onClick={handleMarkDone}>
-            Mark Done
-          </button>
-          <button onClick={() => setShowDeleteModal(true)}>
+          <button className="action-btn secondary" onClick={() => setShowDeleteModal(true)}>
+            <span className="btn-icon">🗑️</span>
             Delete
           </button>
-          <button onClick={handleExportTask}>
-            Export
+          <button className="action-btn secondary" onClick={() => setShowReassignModal(true)}>
+            <span className="btn-icon">👤</span>
+            Reassign
           </button>
-          <button onClick={onClose}>
-            Close
+          <button className="action-btn secondary" onClick={() => setShowSnoozeModal(true)}>
+            <span className="btn-icon">⏰</span>
+            Snooze
+          </button>
+          <button className="action-btn warning" onClick={() => setShowRiskModal(true)}>
+            <span className="btn-icon">⚠️</span>
+            Mark Risk
+          </button>
+          <button className="action-btn success" onClick={handleMarkDone}>
+            <span className="btn-icon">✅</span>
+            Mark Done
+          </button>
+          <button className="action-btn secondary" onClick={handleExportTask}>
+            <span className="btn-icon">📊</span>
+            Export
           </button>
         </div>
       </div>
+
+      {/* Tab Navigation */}
+      <div className="task-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="tab-icon">📋</span>
+            <span className="tab-label">{tab.label}</span>
+            {tab.count !== undefined && (
+              <span className="tab-count">{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="task-content">
+        {activeTab === "core-info" && (
+          <div className="core-info-view">
+            {/* Task Overview Section */}
+            <div className="task-overview-card">
+              <div className="overview-header">
+                <div className="overview-icon">📋</div>
+                <div className="overview-content">
+                  <h2 className="overview-title">Task Overview</h2>
+                  <p className="overview-subtitle">Complete task information and details</p>
+                </div>
+                <button className="view-more-btn">View More</button>
+              </div>
+              
+              {/* Active Reminders */}
+              <div className="active-reminders">
+                <div className="reminder-icon">⏰</div>
+                <div className="reminder-content">
+                  <strong>Active Reminders:</strong>
+                  <div className="reminder-text">Due in 3 days - 2024-01-25</div>
+                </div>
+              </div>
+              
+              {/* Description */}
+              <div className="description-section">
+                <h3 className="section-title">Description</h3>
+                <div className="description-content">
+                  <EditableTextArea
+                    value={task.description}
+                    onSave={(newDescription) => setTask({...task, description: newDescription})}
+                    canEdit={permissions.canEdit}
+                    placeholder="Add task description..."
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Core Info Panel */}
+            <CoreInfoPanel 
+              task={task}
+              onTaskUpdate={setTask}
+              permissions={permissions}
+            />
+          </div>
+        )}
+        
+        {activeTab === "subtasks" && (
+          <SubtasksPanel
+            subtasks={task.subtasks}
+            onCreateSubtask={handleCreateSubtask}
+            parentTask={task}
+            currentUser={currentUser}
+          />
+        )}
+        
+        {activeTab === "comments" && (
+          <div className="comments-view">
+            <div className="comments-header">
+              <h3>Comments (3)</h3>
+            </div>
+            <div className="comments-list">
+              <div className="comment-item">
+                <div className="comment-avatar">JS</div>
+                <div className="comment-content">
+                  <div className="comment-header">
+                    <strong>John Smith</strong>
+                    <span className="comment-time">391 days ago</span>
+                  </div>
+                  <p>I've started working on the <strong>database schema migration</strong>. The initial analysis shows we need to handle about 2.5M records.</p>
+                  <div className="comment-actions">
+                    <button className="comment-action">👍 2</button>
+                    <button className="comment-action">💬 1</button>
+                    <button className="comment-action">Reply</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="comment-item">
+                <div className="comment-avatar">SW</div>
+                <div className="comment-content">
+                  <div className="comment-header">
+                    <strong>Sarah Wilson</strong>
+                    <span className="comment-time">391 days ago</span>
+                  </div>
+                  <p><strong>@John Smith</strong> - Great! Please make sure to backup the data before starting the migration process. Also, have you considered the downtime window?</p>
+                  <div className="comment-actions">
+                    <button className="comment-action">Reply</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="comment-item">
+                <div className="comment-avatar">MJ</div>
+                <div className="comment-content">
+                  <div className="comment-header">
+                    <strong>Mike Johnson</strong>
+                    <span className="comment-time">391 days ago</span>
+                  </div>
+                  <div className="comment-formatting">
+                    <strong>B</strong> <em>I</em> <u>U</u> 📎
+                  </div>
+                  <div className="comment-actions">
+                    <button className="comment-action">😊</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="comment-input">
+              <textarea 
+                placeholder="Leave a comment... Use @ to mention team members"
+                className="comment-textarea"
+              />
+              <div className="comment-input-actions">
+                <button className="send-btn">➤</button>
+                <button className="attach-btn">📎</button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === "activity" && (
+          <div className="activity-view">
+            <div className="activity-header">
+              <h3>Activity Feed</h3>
+              <p>Track all task activities and changes</p>
+              <select className="activity-filter">
+                <option>All Activities</option>
+                <option>Status Changes</option>
+                <option>Comments</option>
+                <option>Assignments</option>
+              </select>
+            </div>
+            
+            <div className="activity-list">
+              <div className="activity-date">MONDAY, JANUARY 15, 2024</div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar green">✓</div>
+                <div className="activity-content">
+                  <strong>John Smith created this task.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar purple">📝</div>
+                <div className="activity-content">
+                  <strong>Due Date changed from May 1, 2024 to May 7, 2024.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar red">📝</div>
+                <div className="activity-content">
+                  <strong>Title changed from "Database Setup" to "Database Migration".</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar yellow">📋</div>
+                <div className="activity-content">
+                  <strong>Subtask 'Design Mockup' added by Jane Smith.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar blue">📊</div>
+                <div className="activity-content">
+                  <strong>Status updated to 'In Progress'.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar purple">⚡</div>
+                <div className="activity-content">
+                  <strong>Priority changed to 'High'.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+              
+              <div className="activity-item">
+                <div className="activity-avatar gray">🔔</div>
+                <div className="activity-content">
+                  <strong>Task assigned to Sarah Wilson by Admin User.</strong>
+                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === "files" && (
+          <div className="files-view">
+            <div className="files-header">
+              <div className="files-title">
+                <span className="files-icon">📁</span>
+                <div>
+                  <h3>Files (3)</h3>
+                  <p>Attachments and documents</p>
+                </div>
+              </div>
+              <button className="add-file-btn">+ Add File</button>
+            </div>
+            
+            <div className="file-upload-area">
+              <div className="upload-icon">☁️</div>
+              <div className="upload-text">
+                <strong>Drag and drop files here or browse</strong>
+                <p>Maximum file size: 5MB per file</p>
+              </div>
+              <button className="choose-files-btn">📁 Choose Files</button>
+            </div>
+            
+            <div className="files-list">
+              <div className="file-item">
+                <div className="file-icon">📄</div>
+                <div className="file-details">
+                  <strong>database-schema.sql</strong>
+                  <div className="file-meta">
+                    <span>Size: 45KB</span>
+                    <span>Uploaded by: John Smith</span>
+                    <span>1/20/2024 at 02:30 PM</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="file-item">
+                <div className="file-icon">📊</div>
+                <div className="file-details">
+                  <strong>migration-plan.xlsx</strong>
+                  <div className="file-meta">
+                    <span>Size: 2.1MB</span>
+                    <span>Uploaded by: Sarah Wilson</span>
+                    <span>1/18/2024 at 10:15 AM</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {activeTab === "linked" && (
+          <div className="linked-view">
+            <div className="linked-header">
+              <div className="linked-title">
+                <span className="linked-icon">🔗</span>
+                <div>
+                  <h3>Linked Items (3)</h3>
+                  <p>Connected tasks, documents, and resources</p>
+                </div>
+              </div>
+              <div className="linked-controls">
+                <select className="type-filter">
+                  <option>All Types</option>
+                  <option>Tasks</option>
+                  <option>Documents</option>
+                  <option>Forms</option>
+                </select>
+                <button className="link-item-btn">+ Link Item</button>
+              </div>
+            </div>
+            
+            <div className="linked-items">
+              <div className="linked-item">
+                <div className="item-icon">📋</div>
+                <div className="item-details">
+                  <strong>Update Documentation</strong>
+                  <div className="item-meta">
+                    <span className="item-type">task</span>
+                    <span className="item-status pending">pending</span>
+                  </div>
+                </div>
+                <div className="item-type-label">Type: task</div>
+                <div className="connection-status">🔗 Connected</div>
+              </div>
+              
+              <div className="linked-item">
+                <div className="item-icon">📄</div>
+                <div className="item-details">
+                  <strong>Migration Plan</strong>
+                  <div className="item-meta">
+                    <span className="item-type">document</span>
+                    <span className="item-status completed">completed</span>
+                  </div>
+                </div>
+                <div className="item-type-label">Type: document</div>
+                <div className="connection-status">🔗 Connected</div>
+              </div>
+              
+              <div className="linked-item">
+                <div className="item-icon">📝</div>
+                <div className="item-details">
+                  <strong>Migration Checklist</strong>
+                  <div className="item-meta">
+                    <span className="item-type">form</span>
+                    <span className="item-status in-progress">in-progress</span>
+                  </div>
+                </div>
+                <div className="item-type-label">Type: form</div>
+                <div className="connection-status">🔗 Connected</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <SubtaskModal
+        isOpen={showCreateSubtaskDrawer}
+        onClose={() => setShowCreateSubtaskDrawer(false)}
+        onSubmit={handleCreateSubtask}
+        parentTask={task}
+      />
     </div>
   );
 }

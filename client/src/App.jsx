@@ -72,7 +72,7 @@ import {
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import SecureRoute from "./components/ProtectedRoute";
 import ForbiddenPage from "./pages/ForbiddenPage";
-import TaskDetail from "./pages/newComponents/TaskDetail";
+import TaskDetail from "./pages/taskview/TaskDetail";
 import AdminSettings from "./pages/admin/Admin-settings";
 import AdminNotification from "./pages/admin/AdminNotification";
 import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
@@ -80,8 +80,6 @@ import RecurringTasks from "./features/tasks/pages/RecurringTasks";
 import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
-import TaskDetailView from "./pages/TaskDetailView";
-import EnhancedTaskDetailPage from "./pages/EnhancedTaskDetailPage";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
@@ -453,7 +451,7 @@ function App() {
 
         <Route path="/tasks/:taskId">
           <AdminLayout>
-            <ProtectedRoute component={EnhancedTaskDetailPage} />
+            <ProtectedRoute component={TaskDetail} />
           </AdminLayout>
         </Route>
         <Route path="/setting">
@@ -462,7 +460,7 @@ function App() {
           </AdminLayout>
         </Route>
 
-        <Route path="/task/view">
+        <Route path="/task/view/:taskId?">
           <AdminLayout>
             <ProtectedRoute component={TaskDetail} />
           </AdminLayout>
