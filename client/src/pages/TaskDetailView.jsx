@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useRoute } from "wouter";
+import useTasksStore from "../stores/tasksStore";
 import { 
   Edit3, 
   Users, 
@@ -28,53 +29,31 @@ export default function TaskDetailView() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState("member");
   const [companyStatuses, setCompanyStatuses] = useState([]);
+  const { tasks, updateTask } = useTasksStore();
 
-  // Fetch task data and statuses
+  // Load task data from store
   useEffect(() => {
     if (params?.taskId) {
-      fetchTaskDetails(params.taskId);
-      fetchCompanyStatuses();
-    }
-  }, [params?.taskId]);
-
-  const fetchTaskDetails = async (taskId) => {
-    try {
       setLoading(true);
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const taskId = parseInt(params.taskId);
+      const foundTask = tasks.find(t => t.id === taskId);
       
-      if (response.ok) {
-        const taskData = await response.json();
-        setTask(taskData);
+      if (foundTask) {
+        setTask(foundTask);
+        setCompanyStatuses([
+          { value: 'TODO', label: 'To Do', color: '#64748B' },
+          { value: 'INPROGRESS', label: 'In Progress', color: '#F59E0B' },
+          { value: 'BLOCKED', label: 'Blocked', color: '#EF4444' },
+          { value: 'INREVIEW', label: 'In Review', color: '#8B5CF6' },
+          { value: 'DONE', label: 'Done', color: '#10B981' }
+        ]);
       } else {
-        console.error("Failed to fetch task details");
+        console.error('Task not found');
       }
-    } catch (error) {
-      console.error("Error fetching task:", error);
-    } finally {
+      
       setLoading(false);
     }
-  };
-
-  const fetchCompanyStatuses = async () => {
-    try {
-      const response = await fetch("/api/company-statuses", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      
-      if (response.ok) {
-        const statusData = await response.json();
-        setCompanyStatuses(statusData);
-      }
-    } catch (error) {
-      console.error("Error fetching statuses:", error);
-    }
-  };
+  }, [params?.taskId, tasks]);
 
   const getUserPermissions = () => {
     if (!task) return { canEdit: false, canDelete: false, canReassign: false };
@@ -95,22 +74,11 @@ export default function TaskDetailView() {
 
   const permissions = getUserPermissions();
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-      const response = await fetch(`/api/tasks/${task.id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        setTask(prev => ({ ...prev, status: newStatus }));
-      }
-    } catch (error) {
-      console.error("Error updating status:", error);
+  const handleStatusChange = (newStatus) => {
+    if (task) {
+      const updatedTask = { ...task, status: newStatus };
+      updateTask(task.id, updatedTask);
+      setTask(updatedTask);
     }
   };
 
