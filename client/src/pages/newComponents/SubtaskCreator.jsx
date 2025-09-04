@@ -380,7 +380,7 @@ export default function SubtaskCreator({
               onChange={(selectedOption) =>
                 handleInputChange("assignee", selectedOption?.value || "")
               }
-              placeholder="Select assignee..."
+              placeholder="Select assignee"
               isDisabled={userType === "individual"}
             />
             {errors.assignee && (

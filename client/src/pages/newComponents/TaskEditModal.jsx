@@ -350,7 +350,7 @@ export default function TaskEditModal({ task, onSave, onClose, permissions }) {
                     (member) => member.value === formData.assigneeId,
                   )}
                   onChange={handleAssigneeChange}
-                  placeholder="Select assignee..."
+                  placeholder="Select assignee"
                   className={errors.assigneeId ? "border-red-500" : ""}
                   isDisabled={!permissions?.canReassign}
                 />

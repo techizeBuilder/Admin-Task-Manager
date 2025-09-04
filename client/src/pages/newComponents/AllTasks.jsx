@@ -998,7 +998,7 @@ export default function AllTasks({
   };
 
   return (
-    <div className="space-y-6 px-4 py-6 h-auto overflow-scroll">
+    <div className="space-y-6 px-4 py-6 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -1007,10 +1007,10 @@ export default function AllTasks({
             Manage and track all your tasks
           </p>
         </div>
-        <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-3">
+        <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"}`}
+            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap`}
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -1030,7 +1030,7 @@ export default function AllTasks({
           <button
             className={`btn ${
               showCalendarView ? "btn-primary" : "btn-secondary"
-            }`}
+            } whitespace-nowrap`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
             <svg
@@ -1048,9 +1048,9 @@ export default function AllTasks({
             </svg>
             {showCalendarView ? "Hide Calendar" : "Calendar View"}
           </button>
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary whitespace-nowrap"
               onClick={() => handleTaskTypeSelect("regular")}
             >
               <svg
@@ -1069,7 +1069,7 @@ export default function AllTasks({
               Create Task
             </button>
             <button
-              className="btn btn-primary ml-1 px-2"
+              className="btn btn-primary ml-1 px-2 flex-shrink-0"
               onClick={() => setShowTaskTypeDropdown(!showTaskTypeDropdown)}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1154,7 +1154,7 @@ export default function AllTasks({
 
       {/* Filters and Bulk Actions */}
       <div className="card">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
           <div className="flex-1">
             <div className="relative">
               <svg
@@ -1181,7 +1181,7 @@ export default function AllTasks({
           </div>
 
           {selectedTasks.length > 0 && (
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-blue-50 rounded-lg">
               <span className="text-sm font-medium text-blue-800">
                 {selectedTasks.length} selected
               </span>
@@ -1198,14 +1198,14 @@ export default function AllTasks({
                 }}
               />
               <button
-                className="btn btn-danger btn-sm"
+                className="btn btn-danger btn-sm whitespace-nowrap"
                 onClick={handleBulkDeleteTasks}
                 title="Delete selected tasks"
               >
                 🗑️ Delete
               </button>
               <button
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary btn-sm whitespace-nowrap"
                 onClick={() => setSelectedTasks([])}
               >
                 Clear Selection
@@ -1213,76 +1213,78 @@ export default function AllTasks({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <SearchableSelect
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.value)}
-              options={[
-                { value: "all", label: "All Status" },
-                { value: "todo", label: "To Do" },
-                { value: "progress", label: "In Progress" },
-                { value: "review", label: "In Review" },
-                { value: "completed", label: "Completed" },
-              ]}
-              placeholder="Filter by Status"
-            />
+          <div className="w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              <SearchableSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.value)}
+                options={[
+                  { value: "all", label: "All Status" },
+                  { value: "todo", label: "To Do" },
+                  { value: "progress", label: "In Progress" },
+                  { value: "review", label: "In Review" },
+                  { value: "completed", label: "Completed" },
+                ]}
+                placeholder="Filter by Status"
+              />
 
-            <SearchableSelect
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.value)}
-              options={[
-                { value: "all", label: "All Priority" },
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
-                { value: "urgent", label: "Urgent" },
-              ]}
-              placeholder="Filter by Priority"
-            />
+              <SearchableSelect
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.value)}
+                options={[
+                  { value: "all", label: "All Priority" },
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+                placeholder="Filter by Priority"
+              />
 
-            <SearchableSelect
-              value={taskTypeFilter}
-              onChange={(e) => setTaskTypeFilter(e.value)}
-              options={[
-                { value: "all", label: "All Task Types" },
-                { value: "Simple Task", label: "Simple Task" },
-                { value: "Recurring Task", label: "Recurring Task" },
-                { value: "Milestone", label: "Milestone" },
-                { value: "Approval Task", label: "Approval Task" },
-              ]}
-              placeholder="Filter by Task Type"
-            />
+              <SearchableSelect
+                value={taskTypeFilter}
+                onChange={(e) => setTaskTypeFilter(e.value)}
+                options={[
+                  { value: "all", label: "All Task Types" },
+                  { value: "Simple Task", label: "Simple Task" },
+                  { value: "Recurring Task", label: "Recurring Task" },
+                  { value: "Milestone", label: "Milestone" },
+                  { value: "Approval Task", label: "Approval Task" },
+                ]}
+                placeholder="Filter by Task Type"
+              />
 
-            <SearchableSelect
-              value={dueDateFilter}
-              onChange={(e) => {
-                setDueDateFilter(e.value);
-                if (e.value !== "specific_date") {
-                  window.calendarSpecificDate = null;
-                }
-              }}
-              options={[
-                { value: "all", label: "All Due Dates" },
-                { value: "overdue", label: "Overdue" },
-                { value: "due_today", label: "Due Today" },
-                { value: "due_tomorrow", label: "Due Tomorrow" },
-                { value: "due_this_week", label: "Due This Week" },
-                { value: "due_next_week", label: "Due Next Week" },
-                { value: "due_this_month", label: "Due This Month" },
-                { value: "no_due_date", label: "No Due Date" },
-                ...(window.calendarSpecificDate
-                  ? [
-                      {
-                        value: "specific_date",
-                        label: `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`,
-                      },
-                    ]
-                  : []),
-              ]}
-              placeholder="Filter by Due Date"
-            />
+              <SearchableSelect
+                value={dueDateFilter}
+                onChange={(e) => {
+                  setDueDateFilter(e.value);
+                  if (e.value !== "specific_date") {
+                    window.calendarSpecificDate = null;
+                  }
+                }}
+                options={[
+                  { value: "all", label: "All Due Dates" },
+                  { value: "overdue", label: "Overdue" },
+                  { value: "due_today", label: "Due Today" },
+                  { value: "due_tomorrow", label: "Due Tomorrow" },
+                  { value: "due_this_week", label: "Due This Week" },
+                  { value: "due_next_week", label: "Due Next Week" },
+                  { value: "due_this_month", label: "Due This Month" },
+                  { value: "no_due_date", label: "No Due Date" },
+                  ...(window.calendarSpecificDate
+                    ? [
+                        {
+                          value: "specific_date",
+                          label: `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`,
+                        },
+                      ]
+                    : []),
+                ]}
+                placeholder="Filter by Due Date"
+              />
 
-            <SearchableSelect placeholder="All Categories" />
+              <SearchableSelect placeholder="All Categories" />
+            </div>
           </div>
         </div>
       </div>
