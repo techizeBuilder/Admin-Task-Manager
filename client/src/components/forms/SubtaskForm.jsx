@@ -125,7 +125,9 @@ function SubtaskForm({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="drawer-form">
+          <div className="drawer-form">
+            <div className="form-card">
+              <form onSubmit={handleSubmit}>
             {/* Task Title */}
             <div className="form-group">
               <label className="form-label">
@@ -297,7 +299,9 @@ function SubtaskForm({
                 {mode === 'edit' ? 'Update Sub-task' : 'Create Sub-task'}
               </button>
             </div>
-          </form>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
