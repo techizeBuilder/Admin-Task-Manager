@@ -41,140 +41,113 @@ export const EnhancedTaskDetailPage = () => {
 
   const taskId = params?.taskId;
 
-  // Fetch task data
-  const {
-    data: task,
-    isLoading: taskLoading,
-    error: taskError,
-    refetch: refetchTask
-  } = useQuery({
-    queryKey: ['/api/tasks', taskId],
-    queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Task not found');
-        }
-        if (response.status === 403) {
-          throw new Error('You don\'t have permission to view this task');
-        }
-        throw new Error('Failed to fetch task');
+  // Static task data for UI/UX (not using API calls)
+  const [task, setTask] = useState(null);
+  const [taskLoading, setTaskLoading] = useState(true);
+  const taskError = null;
+
+  // Load static task data on mount (similar to existing TaskDetailView pattern)
+  useEffect(() => {
+    if (taskId) {
+      setTaskLoading(true);
+      
+      // Static demo task data for UI/UX
+      const demoTask = {
+        id: parseInt(taskId),
+        title: 'Migrate the existing database from MySQL to PostgreSQL',
+        description: 'Migrate the existing database from MySQL to PostgreSQL while ensuring data integrity and minimal downtime.',
+        status: 'in-progress',
+        priority: 'high',
+        progress: 65,
+        startDate: '2024-01-10T00:00:00Z',
+        dueDate: '2024-01-25T00:00:00Z',
+        createdAt: '2024-01-10T09:00:00Z',
+        updatedAt: '2024-01-15T14:30:00Z',
+        estimatedHours: 40,
+        actualHours: 26,
+        assignee: {
+          id: 2,
+          name: 'John Doe',
+          email: 'john@example.com',
+          avatar: null
+        },
+        createdBy: {
+          id: 1,
+          name: 'Admin Singh',
+          email: 'admin@gmail.com'
+        },
+        project: {
+          name: 'Database Migration Project'
+        },
+        tags: ['database', 'migration', 'postgresql', 'backend'],
+        type: 'standard',
+        forms: [],
+        attachments: [
+          { id: 1, name: 'migration-plan.pdf', size: '2.5 MB', type: 'application/pdf', uploadedBy: 'Admin Singh', uploadedAt: '2024-01-10' },
+          { id: 2, name: 'backup-script.sql', size: '156 KB', type: 'text/sql', uploadedBy: 'John Doe', uploadedAt: '2024-01-12' }
+        ]
+      };
+      
+      setTask(demoTask);
+      setTaskLoading(false);
+    }
+  }, [taskId]);
+
+  // Static data for UI/UX demonstration
+  const [subtasks] = useState([
+    { id: 1, title: 'Review requirements', status: 'completed', assignee: { name: 'John Doe' }, dueDate: '2024-01-15' },
+    { id: 2, title: 'Create wireframes', status: 'in-progress', assignee: { name: 'Jane Smith' }, dueDate: '2024-01-18' },
+    { id: 3, title: 'Setup development environment', status: 'pending', assignee: { name: 'Mike Johnson' }, dueDate: '2024-01-20' }
+  ]);
+
+  const [comments] = useState([
+    { id: 1, content: 'Great progress on this task!', author: { name: 'Admin Singh', avatar: null }, createdAt: '2024-01-12T10:30:00Z', isUnread: false },
+    { id: 2, content: 'I need clarification on the requirements', author: { name: 'John Doe', avatar: null }, createdAt: '2024-01-13T14:15:00Z', isUnread: true }
+  ]);
+
+  const [auditLogs] = useState([
+    { id: 1, action: 'created', user: { firstName: 'Admin', lastName: 'Singh' }, timestamp: '2024-01-10T09:00:00Z', details: 'Task created' },
+    { id: 2, action: 'status_changed', user: { firstName: 'John', lastName: 'Doe' }, timestamp: '2024-01-11T11:30:00Z', oldValue: 'todo', newValue: 'in-progress' },
+    { id: 3, action: 'assigned', user: { firstName: 'Admin', lastName: 'Singh' }, timestamp: '2024-01-11T12:00:00Z', newValue: 'John Doe' }
+  ]);
+
+  const [linkedTasks] = useState([
+    { id: 2, title: 'Setup CI/CD Pipeline', status: 'pending', relationship: 'blocks' },
+    { id: 3, title: 'Create API Documentation', status: 'in-progress', relationship: 'related' }
+  ]);
+
+  const [users] = useState([
+    { id: 1, name: 'Admin Singh', email: 'admin@gmail.com', avatar: null },
+    { id: 2, name: 'John Doe', email: 'john@example.com', avatar: null },
+    { id: 3, name: 'Jane Smith', email: 'jane@example.com', avatar: null }
+  ]);
+
+  // Mock mutations for UI/UX demonstration
+  const updateTaskMutation = {
+    mutate: (updates) => {
+      // Simulate updating task locally for demo
+      if (task) {
+        setTask({ ...task, ...updates });
+        toast({ title: 'Task updated successfully' });
       }
-      return response.json();
     },
-    enabled: !!taskId,
-    retry: (failureCount, error) => {
-      // Don't retry on permission errors or not found
-      if (error?.message?.includes('permission') || error?.message?.includes('not found')) {
-        return false;
-      }
-      return failureCount < 3;
-    }
-  });
+    isPending: false
+  };
 
-  // Fetch related data
-  const { data: subtasks = [] } = useQuery({
-    queryKey: ['/api/tasks', taskId, 'subtasks'],
-    queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}/subtasks`);
-      return response.ok ? response.json() : [];
-    },
-    enabled: !!taskId && !!task
-  });
-
-  const { data: comments = [] } = useQuery({
-    queryKey: ['/api/tasks', taskId, 'comments'],
-    queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}/comments`);
-      return response.ok ? response.json() : [];
-    },
-    enabled: !!taskId && !!task
-  });
-
-  const { data: auditLogs = [] } = useQuery({
-    queryKey: ['/api/tasks', taskId, 'audit'],
-    queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}/audit`);
-      return response.ok ? response.json() : [];
-    },
-    enabled: !!taskId && !!task
-  });
-
-  const { data: linkedTasks = [] } = useQuery({
-    queryKey: ['/api/tasks', taskId, 'linked'],
-    queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}/linked`);
-      return response.ok ? response.json() : [];
-    },
-    enabled: !!taskId && !!task
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['/api/users'],
-    queryFn: async () => {
-      const response = await fetch('/api/users');
-      return response.ok ? response.json() : [];
-    }
-  });
-
-  // Mutations
-  const updateTaskMutation = useMutation({
-    mutationFn: async (updates) => {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      if (!response.ok) throw new Error('Failed to update task');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['/api/tasks', taskId]);
-      toast({ title: 'Task updated successfully' });
-      setOperationError(null);
-    },
-    onError: (error) => {
-      setOperationError({ operation: 'update', error });
-    }
-  });
-
-  const deleteTaskMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}`, {
-        method: 'DELETE'
-      });
-      if (!response.ok) throw new Error('Failed to delete task');
-      return response.json();
-    },
-    onSuccess: () => {
+  const deleteTaskMutation = {
+    mutate: () => {
       toast({ title: 'Task deleted successfully' });
       setLocation('/tasks');
     },
-    onError: (error) => {
-      setOperationError({ operation: 'delete', error });
-      setShowDeleteDialog(false);
-    }
-  });
+    isPending: false
+  };
 
-  const addCommentMutation = useMutation({
-    mutationFn: async (commentData) => {
-      const response = await fetch(`/api/tasks/${taskId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(commentData)
-      });
-      if (!response.ok) throw new Error('Failed to add comment');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['/api/tasks', taskId, 'comments']);
-      queryClient.invalidateQueries(['/api/tasks', taskId, 'audit']);
+  const addCommentMutation = {
+    mutate: (commentData) => {
       toast({ title: 'Comment added successfully' });
     },
-    onError: (error) => {
-      setOperationError({ operation: 'comment', error });
-    }
-  });
+    isPending: false
+  };
 
   // Event handlers
   const handleBack = () => {
