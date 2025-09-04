@@ -1,0 +1,97 @@
+Prompt: Sidebar & Task Creation (Role-Based Adjustments)
+
+Design and implement dynamic role-based behavior for the Sidebar (Main Navigation) and Task Creation process. Both must adapt to the user’s role to ensure focused, secure, and context-aware access.
+
+1. Sidebar / Main Navigation (Left-Hand Vertical Menu)
+
+The sidebar serves as the primary navigation hub and its contents vary by user role:
+
+🔹 Normal User (Employee)
+
+Sidebar focus = personal productivity.
+
+Sections:
+
+My Tasks (only tasks assigned to self).
+
+Quick access to task creation.
+
+Hidden: team management, reporting dashboards, admin/billing pages.
+
+🔹 Manager
+
+Sidebar expands for team oversight.
+
+Sections:
+
+My Tasks (own tasks).
+
+Team Tasks (tasks assigned to direct reports).
+
+Reporting & Analytics (team-level).
+
+Hidden: company-wide admin features (user mgmt, billing, etc.).
+
+🔹 Company Admin
+
+Sidebar = comprehensive, org-wide control.
+
+Sections:
+
+My Tasks
+
+Team Tasks
+
+Reporting & Analytics (org-wide).
+
+Admin module with:
+
+User Management (/admin/users)
+
+Company Profile (/admin/org-profile)
+
+License & Subscription Management
+
+Status Management (custom workflows).
+
+2. Task Creation Modal (Role-Sensitive)
+
+Task creation must adapt dynamically to user’s assignment authority & visibility permissions:
+
+🔹 Normal User (Employee)
+
+Simplified flow.
+
+Assigned To = auto-locked to self.
+
+Visibility = hidden or locked to "Private".
+
+Purpose = quick personal task entry.
+
+🔹 Manager
+
+Delegation within team.
+
+Assigned To dropdown includes self + direct subordinates only.
+
+Cannot assign tasks upward or outside team (Phase I).
+
+Visibility options scoped to team.
+
+🔹 Company Admin
+
+Full flexibility.
+
+Assigned To = searchable across entire organization.
+
+Visibility = full access ("Private" / "Public").
+
+Access to all advanced task creation fields.
+
+3. Summary Table
+Feature	Normal User	Manager	Company Admin
+Sidebar View	My Tasks only	My Tasks + Team Tasks	Full: My, Team, Admin, Billing, User Mgmt
+Task Assignment	Locked to Self	Self + Subordinates	Anyone in company
+Reporting Access	Own tasks only	Own + Team	Organization-wide
+
+⚡ Goal: Ensure the navigation menu and task creation flow are intuitively scoped by role, reducing clutter for employees, empowering managers with team oversight, and granting admins complete organizational control.

@@ -7,16 +7,17 @@ import { useAuth } from './useAuth';
 export const useRole = () => {
   const { user, role, hasOrganization } = useAuth();
 
-  // Role hierarchy and permissions
+  // Role hierarchy and permissions (updated for prompt requirements)
   const roleHierarchy = {
     'individual': 1,
     'member': 1,
-    'employee': 2,
+    'employee': 2,      // Normal User (Employee) - Personal productivity focus
     'org_member': 2,
-    'admin': 3,
-    'org_admin': 3,
-    'superadmin': 4,
-    'super_admin': 4,
+    'manager': 3,       // Manager - Team oversight capabilities
+    'admin': 4,         // Company Admin - Full organizational control
+    'org_admin': 4,
+    'superadmin': 5,
+    'super_admin': 5,
   };
 
   const getRoleLevel = (roleToCheck = role) => {
@@ -56,9 +57,24 @@ export const useRole = () => {
     hasPermission,
     canAccessFeature,
     uiContext: getUIContext(),
+    
+    // Legacy role checks (for backward compatibility)
     isIndividual: !hasOrganization && getRoleLevel() <= 2,
     isOrgMember: hasOrganization && getRoleLevel() <= 2,
-    isAdmin: getRoleLevel() >= 3,
-    isSuperAdmin: getRoleLevel() >= 4,
+    isAdmin: getRoleLevel() >= 4,
+    isSuperAdmin: getRoleLevel() >= 5,
+    
+    // New role-specific checks based on prompt requirements
+    isEmployee: role === 'employee' || getRoleLevel() === 2,
+    isManager: role === 'manager' || getRoleLevel() === 3,
+    isCompanyAdmin: role === 'admin' || role === 'org_admin' || getRoleLevel() === 4,
+    
+    // Permission helpers for task creation
+    canManageTeam: getRoleLevel() >= 3, // Manager and above
+    canManageOrganization: getRoleLevel() >= 4, // Admin and above
+    canAssignToOthers: getRoleLevel() >= 3, // Manager and above
+    canCreateMilestones: getRoleLevel() >= 3, // Manager and above
+    canCreateApprovals: getRoleLevel() >= 3, // Manager and above
+    canSetCriticalPriority: getRoleLevel() >= 3, // Manager and above
   };
 };

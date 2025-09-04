@@ -3,6 +3,8 @@ import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
+import { useRole } from "../../features/shared/hooks/useRole";
+import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
 
 export default function CreateTask({
   onClose,
@@ -10,7 +12,49 @@ export default function CreateTask({
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
+  const { canCreateMilestones, canCreateApprovals, role, isEmployee, isManager, isCompanyAdmin } = useRole();
+  const { availableTaskTypes, assignmentOptions, canAssignToOthers, restrictions } = useAssignmentOptions();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
+
+  // Filter available task types based on role permissions
+  const getAvailableTaskTypes = () => {
+    const taskTypes = [
+      {
+        id: 'regular',
+        label: 'Regular Task',
+        description: 'Standard one-time task',
+        available: true,
+        color: 'blue'
+      },
+      {
+        id: 'recurring',
+        label: 'Recurring Task',
+        description: 'Repeats on schedule',
+        available: true,
+        color: 'blue'
+      },
+      {
+        id: 'milestone',
+        label: 'Milestone',
+        description: 'Project checkpoint',
+        available: canCreateMilestones,
+        color: 'red',
+        restrictedMessage: 'Only Managers and Admins can create milestones'
+      },
+      {
+        id: 'approval',
+        label: 'Approval Task',
+        description: 'Requires approval workflow',
+        available: canCreateApprovals,
+        color: 'green',
+        restrictedMessage: 'Only Managers and Admins can create approval tasks'
+      }
+    ];
+
+    return taskTypes;
+  };
+
+  const taskTypes = getAvailableTaskTypes();
 
   return (
     <div className="flex flex-col h-full p-6 bg-gray-50">
@@ -26,135 +70,135 @@ export default function CreateTask({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Regular Task */}
-          <button
-            onClick={() => setSelectedTaskType("regular")}
-            className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === "regular"
-                ? "bg-blue-100 border-2 border-blue-500"
-                : "bg-white border-2 border-gray-200 hover:border-blue-300"
-            }`}
-            data-testid="task-type-regular"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 text-white mr-3 flex-shrink-0">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900">Regular Task</h4>
-              <p className="text-xs text-gray-600">Standard one-time task</p>
-            </div>
-          </button>
+          {taskTypes.map((taskType) => {
+            const isSelected = selectedTaskType === taskType.id;
+            const colorClass = taskType.color === 'blue' ? 'blue' : 
+                              taskType.color === 'red' ? 'red' :
+                              taskType.color === 'green' ? 'green' : 'blue';
+            
+            const getColorClasses = () => {
+              if (!taskType.available) {
+                return {
+                  button: 'bg-gray-100 border-2 border-gray-300 cursor-not-allowed opacity-60',
+                  icon: 'bg-gray-400',
+                  text: 'text-gray-500'
+                };
+              }
+              
+              const colors = {
+                blue: {
+                  button: isSelected ? 'bg-blue-100 border-2 border-blue-500' : 'bg-white border-2 border-gray-200 hover:border-blue-300',
+                  icon: 'bg-blue-500',
+                  text: 'text-gray-900'
+                },
+                red: {
+                  button: isSelected ? 'bg-red-100 border-2 border-red-500' : 'bg-white border-2 border-gray-200 hover:border-red-300',
+                  icon: 'bg-red-500',
+                  text: 'text-gray-900'
+                },
+                green: {
+                  button: isSelected ? 'bg-green-100 border-2 border-green-500' : 'bg-white border-2 border-gray-200 hover:border-green-300',
+                  icon: 'bg-green-500',
+                  text: 'text-gray-900'
+                }
+              };
+              return colors[colorClass];
+            };
 
-          {/* Recurring Task */}
-          <button
-            onClick={() => setSelectedTaskType("recurring")}
-            className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === "recurring"
-                ? "bg-blue-100 border-2 border-blue-500"
-                : "bg-white border-2 border-gray-200 hover:border-blue-300"
-            }`}
-            data-testid="task-type-recurring"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500 text-white mr-3 flex-shrink-0">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900">Recurring Task</h4>
-              <p className="text-xs text-gray-600">Repeats on schedule</p>
-            </div>
-          </button>
+            const colorClasses = getColorClasses();
 
-          {/* Milestone */}
-          <button
-            onClick={() => setSelectedTaskType("milestone")}
-            className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === "milestone"
-                ? "bg-red-100 border-2 border-red-500"
-                : "bg-white border-2 border-gray-200 hover:border-red-300"
-            }`}
-            data-testid="task-type-milestone"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500 text-white mr-3 flex-shrink-0">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900">Milestone</h4>
-              <p className="text-xs text-gray-600">Project checkpoint</p>
-            </div>
-          </button>
+            const getTaskIcon = () => {
+              switch (taskType.id) {
+                case 'regular':
+                  return (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  );
+                case 'recurring':
+                  return (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  );
+                case 'milestone':
+                  return (
+                    <>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </>
+                  );
+                case 'approval':
+                  return (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  );
+                default:
+                  return null;
+              }
+            };
 
-          {/* Approval Task */}
-          <button
-            onClick={() => setSelectedTaskType("approval")}
-            className={`flex items-center p-4 rounded-xl transition-all group text-left ${
-              selectedTaskType === "approval"
-                ? "bg-green-100 border-2 border-green-500"
-                : "bg-white border-2 border-gray-200 hover:border-green-300"
-            }`}
-            data-testid="task-type-approval"
-          >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500 text-white mr-3 flex-shrink-0">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900">Approval Task</h4>
-              <p className="text-xs text-gray-600">Requires approval</p>
-            </div>
-          </button>
+            return (
+              <div key={taskType.id} className="relative">
+                <button
+                  onClick={() => taskType.available && setSelectedTaskType(taskType.id)}
+                  className={`flex items-center p-4 rounded-xl transition-all group text-left w-full ${colorClasses.button}`}
+                  data-testid={`task-type-${taskType.id}`}
+                  disabled={!taskType.available}
+                  title={!taskType.available ? taskType.restrictedMessage : ''}
+                >
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${colorClasses.icon} text-white mr-3 flex-shrink-0`}>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {getTaskIcon()}
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className={`font-medium ${colorClasses.text}`}>{taskType.label}</h4>
+                    <p className={`text-xs ${taskType.available ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {taskType.description}
+                    </p>
+                    {!taskType.available && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {role === 'employee' ? 'Employee role restriction' : 'Insufficient permissions'}
+                      </p>
+                    )}
+                  </div>
+                </button>
+                {!taskType.available && (
+                  <div className="absolute top-2 right-2">
+                    <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -169,6 +213,20 @@ export default function CreateTask({
           </p>
         </div>
 
+        {/* Role-based info message */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-blue-800">
+              {isEmployee && 'You are creating a task as an Employee. You can assign tasks to yourself and create regular/recurring tasks.'}
+              {isManager && 'You are creating a task as a Manager. You can assign tasks to team members and create all task types including milestones and approvals.'}
+              {isCompanyAdmin && 'You are creating a task as an Admin. You have full access to create and assign any task type to any user in your organization.'}
+            </span>
+          </div>
+        </div>
+
         {/* Task Form Content */}
         {selectedTaskType === 'regular' && (
           <RegularTaskForm
@@ -180,7 +238,10 @@ export default function CreateTask({
               });
             }}
             onCancel={onClose}
-            isOrgUser={true}
+            isOrgUser={canAssignToOthers}
+            assignmentOptions={assignmentOptions}
+            userRole={role}
+            canAssignToOthers={canAssignToOthers}
           />
         )}
         
@@ -194,11 +255,14 @@ export default function CreateTask({
               });
             }}
             onCancel={onClose}
-            isOrgUser={true}
+            isOrgUser={canAssignToOthers}
+            assignmentOptions={assignmentOptions}
+            userRole={role}
+            canAssignToOthers={canAssignToOthers}
           />
         )}
         
-        {selectedTaskType === 'milestone' && (
+        {selectedTaskType === 'milestone' && canCreateMilestones && (
           <MilestoneTaskForm
             onSubmit={(data) => {
               console.log('Milestone task created:', data);
@@ -208,13 +272,10 @@ export default function CreateTask({
               });
             }}
             onCancel={onClose}
-            isOrgUser={true}
-            assignmentOptions={[
-              { value: 'self', label: 'Self' },
-              { value: 'user1', label: 'John Doe' },
-              { value: 'user2', label: 'Jane Smith' },
-              { value: 'user3', label: 'Mike Johnson' }
-            ]}
+            isOrgUser={canAssignToOthers}
+            assignmentOptions={assignmentOptions}
+            userRole={role}
+            canAssignToOthers={canAssignToOthers}
             existingTasks={[
               { id: 'task-1', name: 'Setup Project Environment', taskType: 'regular', dueDate: '2025-09-15' },
               { id: 'task-2', name: 'Create Database Schema', taskType: 'regular', dueDate: '2025-09-20' },
@@ -224,7 +285,7 @@ export default function CreateTask({
           />
         )}
         
-        {selectedTaskType === 'approval' && (
+        {selectedTaskType === 'approval' && canCreateApprovals && (
           <ApprovalTaskForm
             onSubmit={(data) => {
               console.log('Approval task created:', data);
@@ -234,13 +295,10 @@ export default function CreateTask({
               });
             }}
             onCancel={onClose}
-            isOrgUser={true}
-            assignmentOptions={[
-              { value: 'self', label: 'Self' },
-              { value: 'user1', label: 'John Doe' },
-              { value: 'user2', label: 'Jane Smith' },
-              { value: 'user3', label: 'Mike Johnson' }
-            ]}
+            isOrgUser={canAssignToOthers}
+            assignmentOptions={assignmentOptions}
+            userRole={role}
+            canAssignToOthers={canAssignToOthers}
             approverOptions={[
               { value: 'manager1', label: 'Sarah Wilson (Manager)' },
               { value: 'lead1', label: 'David Chen (Team Lead)' },
@@ -249,6 +307,43 @@ export default function CreateTask({
               { value: 'user2', label: 'Jane Smith' }
             ]}
           />
+        )}
+
+        {/* Fallback message for restricted task types */}
+        {(selectedTaskType === 'milestone' && !canCreateMilestones) && (
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+            <p className="text-gray-600 mb-4">Only Managers and Admins can create milestone tasks.</p>
+            <button
+              onClick={() => setSelectedTaskType('regular')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Regular Task Instead
+            </button>
+          </div>
+        )}
+
+        {(selectedTaskType === 'approval' && !canCreateApprovals) && (
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
+            <p className="text-gray-600 mb-4">Only Managers and Admins can create approval tasks.</p>
+            <button
+              onClick={() => setSelectedTaskType('regular')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Create Regular Task Instead
+            </button>
+          </div>
         )}
       </div>
 

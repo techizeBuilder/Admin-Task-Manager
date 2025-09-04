@@ -42,7 +42,319 @@ import {
 
 // Menu configuration for different user roles
 export const sidebarMenus = {
-  // Individual Member (personal user without organization)
+  // Normal User (Employee) - Personal productivity focus
+  employee: [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      path: '/dashboard'
+    },
+    {
+      id: 'my-tasks',
+      label: 'My Tasks',
+      icon: CheckSquare,
+      path: '/tasks'
+    },
+    {
+      id: 'create-task',
+      label: 'Create Task',
+      icon: Plus,
+      path: '/tasks/create'
+    },
+    {
+      id: 'quick-tasks',
+      label: 'Quick Tasks',
+      icon: Zap,
+      path: '/quick-tasks'
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      icon: Calendar,
+      path: '/calendar'
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        {
+          id: 'profile',
+          label: 'Profile',
+          icon: User,
+          path: '/profile'
+        },
+        {
+          id: 'notifications',
+          label: 'Notifications',
+          icon: Bell,
+          path: '/notifications'
+        }
+      ]
+    },
+    {
+      id: 'help',
+      label: 'Help & Support',
+      icon: HelpCircle,
+      path: '/help'
+    },
+    {
+      id: 'logout',
+      label: 'Logout',
+      icon: LogOut,
+      action: 'logout'
+    }
+  ],
+
+  // Manager - Team oversight capabilities
+  manager: [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      path: '/dashboard'
+    },
+    {
+      id: 'my-tasks',
+      label: 'My Tasks',
+      icon: CheckSquare,
+      path: '/tasks'
+    },
+    {
+      id: 'team-tasks',
+      label: 'Team Tasks',
+      icon: Users,
+      path: '/tasks/team'
+    },
+    {
+      id: 'create-task',
+      label: 'Create Task',
+      icon: Plus,
+      path: '/tasks/create'
+    },
+    {
+      id: 'quick-tasks',
+      label: 'Quick Tasks',
+      icon: Zap,
+      path: '/quick-tasks'
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      icon: Calendar,
+      path: '/calendar'
+    },
+    {
+      id: 'milestones',
+      label: 'Milestones',
+      icon: Target,
+      path: '/milestones'
+    },
+    {
+      id: 'approvals',
+      label: 'Approvals',
+      icon: ClipboardCheck,
+      path: '/approvals'
+    },
+    {
+      id: 'reports',
+      label: 'Reporting & Analytics',
+      icon: BarChart3,
+      children: [
+        {
+          id: 'my-productivity',
+          label: 'My Productivity',
+          icon: TrendingUp,
+          path: '/reports/productivity'
+        },
+        {
+          id: 'team-analytics',
+          label: 'Team Analytics',
+          icon: PieChart,
+          path: '/reports/team'
+        },
+        {
+          id: 'overdue-tasks',
+          label: 'Overdue Tasks',
+          icon: AlertTriangle,
+          path: '/reports/overdue'
+        }
+      ]
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        {
+          id: 'profile',
+          label: 'Profile',
+          icon: User,
+          path: '/profile'
+        },
+        {
+          id: 'notifications',
+          label: 'Notifications',
+          icon: Bell,
+          path: '/notifications'
+        }
+      ]
+    },
+    {
+      id: 'help',
+      label: 'Help & Support',
+      icon: HelpCircle,
+      path: '/help'
+    },
+    {
+      id: 'logout',
+      label: 'Logout',
+      icon: LogOut,
+      action: 'logout'
+    }
+  ],
+
+  // Company Admin - Full organizational control
+  admin: [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: Home,
+      path: '/dashboard'
+    },
+    {
+      id: 'my-tasks',
+      label: 'My Tasks',
+      icon: CheckSquare,
+      path: '/tasks'
+    },
+    {
+      id: 'team-tasks',
+      label: 'Team Tasks',
+      icon: Users,
+      path: '/tasks/team'
+    },
+    {
+      id: 'create-task',
+      label: 'Create Task',
+      icon: Plus,
+      path: '/tasks/create'
+    },
+    {
+      id: 'quick-tasks',
+      label: 'Quick Tasks',
+      icon: Zap,
+      path: '/quick-tasks'
+    },
+    {
+      id: 'calendar',
+      label: 'Calendar',
+      icon: Calendar,
+      path: '/calendar'
+    },
+    {
+      id: 'milestones',
+      label: 'Milestones',
+      icon: Target,
+      path: '/milestones'
+    },
+    {
+      id: 'approvals',
+      label: 'Approvals',
+      icon: ClipboardCheck,
+      path: '/approvals'
+    },
+    {
+      id: 'reports',
+      label: 'Reporting & Analytics',
+      icon: BarChart3,
+      children: [
+        {
+          id: 'organization-analytics',
+          label: 'Organization Analytics',
+          icon: Building2,
+          path: '/reports/organization'
+        },
+        {
+          id: 'team-analytics',
+          label: 'Team Analytics',
+          icon: PieChart,
+          path: '/reports/team'
+        },
+        {
+          id: 'my-productivity',
+          label: 'My Productivity',
+          icon: TrendingUp,
+          path: '/reports/productivity'
+        }
+      ]
+    },
+    {
+      id: 'admin',
+      label: 'Administration',
+      icon: Shield,
+      children: [
+        {
+          id: 'user-management',
+          label: 'User Management',
+          icon: Users,
+          path: '/admin/users'
+        },
+        {
+          id: 'company-profile',
+          label: 'Company Profile',
+          icon: Building2,
+          path: '/admin/org-profile'
+        },
+        {
+          id: 'license-subscription',
+          label: 'License & Subscription',
+          icon: Key,
+          path: '/admin/subscription'
+        },
+        {
+          id: 'status-management',
+          label: 'Status Management',
+          icon: Cog,
+          path: '/admin/status'
+        }
+      ]
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      children: [
+        {
+          id: 'profile',
+          label: 'Profile',
+          icon: User,
+          path: '/profile'
+        },
+        {
+          id: 'notifications',
+          label: 'Notifications',
+          icon: Bell,
+          path: '/notifications'
+        }
+      ]
+    },
+    {
+      id: 'help',
+      label: 'Help & Support',
+      icon: HelpCircle,
+      path: '/help'
+    },
+    {
+      id: 'logout',
+      label: 'Logout',
+      icon: LogOut,
+      action: 'logout'
+    }
+  ],
+
+  // Legacy roles for backward compatibility
   individual: [
     {
       id: 'dashboard',
@@ -569,21 +881,25 @@ export const sidebarMenus = {
 
 // Helper function to get menu by role
 export const getMenuByRole = (role) => {
-  // Map API roles to sidebar menu configs
+  // Map API roles to sidebar menu configs based on prompt requirements
   const roleMapping = {
+    // New role-based mappings according to prompt
+    'employee': 'employee', // Normal User (Employee) - Personal productivity focus
+    'manager': 'manager', // Manager - Team oversight capabilities  
+    'admin': 'admin', // Company Admin - Full organizational control
+    'org_admin': 'admin', // Company Admin alternative
+    
+    // Legacy mappings for backward compatibility
     'member': 'individual', // Individual member without organization
-    'employee': 'individual', // Employee role (similar to member)
     'org_member': 'orgMember', // Organization member without admin rights
-    'admin': 'organization', // Organization admin
-    'org_admin': 'organization', // Organization admin (alternative)
     'superadmin': 'superadmin', // Super admin
     'super_admin': 'superadmin', // Super admin (alternative)
     'individual': 'individual', // Individual user
-    'organization': 'organization', // Organization admin (direct mapping)
+    'organization': 'admin', // Organization admin maps to new admin config
   };
   
-  const mappedRole = roleMapping[role] || 'individual';
-  return sidebarMenus[mappedRole] || sidebarMenus.individual;
+  const mappedRole = roleMapping[role] || 'employee'; // Default to employee role
+  return sidebarMenus[mappedRole] || sidebarMenus.employee;
 };
 
 // Helper function to find active menu item
