@@ -35,7 +35,16 @@ import {
 } from 'lucide-react';
 import CoreInfoPanel from './CoreInfoPanel';
 import SubtasksPanel from './SubtasksPanel';
-import SubtaskModal from './SubtaskModal';
+import SubtaskForm from '../../components/forms/SubtaskForm';
+import '../../components/forms/FormsStyles.css';
+import { 
+  DeleteTaskModal, 
+  ReassignTaskModal, 
+  SnoozeTaskModal, 
+  MarkRiskModal, 
+  MarkDoneModal 
+} from '../../components/modals/TaskModals';
+import '../../components/modals/ModalStyles.css';
 import StatusDropdown from './StatusDropdown';
 import PriorityDropdown from './PriorityDropdown';
 import AssigneeSelector from './AssigneeSelector';
@@ -52,6 +61,7 @@ export default function TaskDetail({ taskId, onClose }) {
   const [showCreateSubtaskDrawer, setShowCreateSubtaskDrawer] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDoneModal, setShowDoneModal] = useState(false);
   const [moreInfo, setMoreInfo] = useState(false);
   const [currentUser] = useState({
     id: 1,
@@ -201,9 +211,23 @@ export default function TaskDetail({ taskId, onClose }) {
   };
 
   const handleMarkDone = () => {
-    if (window.confirm("Mark this task as completed?")) {
-      setTask({ ...task, status: "DONE" });
-    }
+    setShowDoneModal(true);
+  };
+
+  const handleDeleteTask = () => {
+    console.log('Deleting task');
+  };
+
+  const handleReassignTask = (assigneeId) => {
+    console.log('Reassigning task to:', assigneeId);
+  };
+
+  const handleSnoozeTask = (snoozeData) => {
+    console.log('Snoozing task:', snoozeData);
+  };
+
+  const handleMarkRisk = (riskNote) => {
+    console.log('Marking as risk:', riskNote);
   };
 
   const handleExportTask = () => {
@@ -782,11 +806,50 @@ export default function TaskDetail({ taskId, onClose }) {
       </div>
 
       {/* Modals */}
-      <SubtaskModal
+      <SubtaskForm
         isOpen={showCreateSubtaskDrawer}
         onClose={() => setShowCreateSubtaskDrawer(false)}
         onSubmit={handleCreateSubtask}
         parentTask={task}
+        mode="create"
+      />
+      
+      <DeleteTaskModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteTask}
+        task={task}
+      />
+      
+      <ReassignTaskModal
+        isOpen={showReassignModal}
+        onClose={() => setShowReassignModal(false)}
+        onConfirm={handleReassignTask}
+        task={task}
+      />
+      
+      <SnoozeTaskModal
+        isOpen={showSnoozeModal}
+        onClose={() => setShowSnoozeModal(false)}
+        onConfirm={handleSnoozeTask}
+        task={task}
+      />
+      
+      <MarkRiskModal
+        isOpen={showRiskModal}
+        onClose={() => setShowRiskModal(false)}
+        onConfirm={handleMarkRisk}
+        task={task}
+      />
+      
+      <MarkDoneModal
+        isOpen={showDoneModal}
+        onClose={() => setShowDoneModal(false)}
+        onConfirm={() => {
+          setTask({ ...task, status: "DONE" });
+          console.log('Task marked as done');
+        }}
+        task={task}
       />
     </div>
   );
