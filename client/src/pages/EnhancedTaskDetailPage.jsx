@@ -185,6 +185,14 @@ export const EnhancedTaskDetailPage = () => {
     toast({ title: 'Comment added' });
   };
 
+  const handleBack = () => {
+    setLocation('/tasks');
+  };
+
+  const handleEdit = () => {
+    toast({ title: 'Edit task clicked' });
+  };
+
 
   // Permission checks - simplified for compatibility
   const canViewTask = true; // Will be handled by ProtectedRoute in App.jsx
@@ -221,7 +229,7 @@ export const EnhancedTaskDetailPage = () => {
           <AlertDescription>
             {taskError.message || 'Failed to load task'}
           </AlertDescription>
-          <Button onClick={() => refetchTask()} className="mt-4">
+          <Button onClick={() => window.location.reload()} className="mt-4">
             Try Again
           </Button>
         </Alert>
@@ -237,7 +245,7 @@ export const EnhancedTaskDetailPage = () => {
           <AlertDescription>
             Task not found or you don't have permission to view it.
           </AlertDescription>
-          <Button onClick={handleBack} className="mt-4">
+          <Button onClick={() => setLocation('/tasks')} className="mt-4">
             Back to Tasks
           </Button>
         </Alert>
@@ -251,14 +259,13 @@ export const EnhancedTaskDetailPage = () => {
         {/* Task Header */}
         <TaskHeader
           task={task}
-          onBack={handleBack}
-          onEdit={canEditTask ? handleEdit : undefined}
-          onReassign={canEditTask ? handleReassign : undefined}
-          onCreateSubtask={canEditTask ? handleCreateSubtask : undefined}
-          onDelete={canDeleteTask ? handleDelete : undefined}
+          onCreateSubtask={handleCreateSubtask}
+          onDelete={handleDelete}
+          onReassign={handleReassign}
           onSnooze={handleSnooze}
+          onMarkRisk={handleMarkRisk}
+          onMarkDone={handleMarkDone}
           onExport={handleExport}
-          onStatusChange={handleStatusChange}
           isLoading={updateTaskMutation.isPending}
         />
 
