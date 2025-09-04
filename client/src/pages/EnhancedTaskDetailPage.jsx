@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import TaskHeader from '@/components/tasks/TaskHeader';
 import CoreTaskInfo from '@/components/tasks/CoreTaskInfo';
 import EnhancedTaskTabs from '@/components/tasks/EnhancedTaskTabs';
-import { TaskErrorBoundary, TaskOperationError } from '@/components/tasks/TaskErrorBoundary';
+// import { TaskErrorBoundary, TaskOperationError } from '@/components/tasks/TaskErrorBoundary';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // UI Components
@@ -254,7 +254,6 @@ export const EnhancedTaskDetailPage = () => {
   }
 
   return (
-    <TaskErrorBoundary>
       <div className="min-h-screen bg-gray-50">
         {/* Task Header */}
         <TaskHeader
@@ -274,18 +273,17 @@ export const EnhancedTaskDetailPage = () => {
           {/* Operation Error Alert */}
           {operationError && (
             <div className="mb-6">
-              <TaskOperationError
-                error={operationError.error}
-                operation={operationError.operation}
-                onRetry={() => {
-                  setOperationError(null);
-                  // Retry the failed operation based on type
-                  if (operationError.operation === 'update') {
-                    updateTaskMutation.mutate(task);
-                  }
-                }}
-                onCancel={() => setOperationError(null)}
-              />
+              <Alert className="border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800">
+                  {operationError.error?.message || 'An error occurred'}
+                </AlertDescription>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setOperationError(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              </Alert>
             </div>
           )}
 
@@ -380,13 +378,9 @@ export const EnhancedTaskDetailPage = () => {
                 </Button>
                 <Button 
                   variant="destructive" 
-                  onClick={confirmDelete}
-                  disabled={deleteTaskMutation.isPending}
+                  onClick={() => handleDelete()}
                   data-testid="button-confirm-delete"
                 >
-                  {deleteTaskMutation.isPending && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  )}
                   Delete Task
                 </Button>
               </div>
@@ -394,7 +388,6 @@ export const EnhancedTaskDetailPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </TaskErrorBoundary>
   );
 };
 
