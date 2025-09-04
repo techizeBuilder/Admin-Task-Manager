@@ -178,7 +178,7 @@ export const sidebarMenus = {
           id: 'overdue-tasks',
           label: 'Overdue Tasks',
           icon: AlertTriangle,
-          path: '/reports/overdue'
+          path: '/overdue-tasks'
         }
       ]
     },
@@ -426,7 +426,7 @@ export const sidebarMenus = {
           id: 'my-overdue-tasks',
           label: 'My Overdue Tasks',
           icon: AlertTriangle,
-          path: '/reports/overdue'
+          path: '/overdue-tasks'
         }
       ]
     },
@@ -529,7 +529,7 @@ export const sidebarMenus = {
           id: 'my-overdue-tasks',
           label: 'My Overdue Tasks',
           icon: AlertTriangle,
-          path: '/reports/overdue'
+          path: '/overdue-tasks'
         }
       ]
     },
