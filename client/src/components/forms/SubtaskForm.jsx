@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, User, Tag, AlertCircle, Paperclip, Plus } from 'lucide-react';
+import { X, Calendar, User, Tag, AlertCircle, Paperclip, Plus, Upload, FileText } from 'lucide-react';
+import { SearchableSelect } from '../ui/SearchableSelect';
+import '../ui/SearchableSelectStyles.css';
 
 function SubtaskForm({ 
   isOpen, 
@@ -103,17 +105,19 @@ function SubtaskForm({
                   <User size={16} />
                   Assignee
                 </label>
-                <select
+                <SearchableSelect
+                  options={[
+                    { value: '', name: 'Self', email: 'self@current.user' },
+                    { value: 'john-smith', name: 'John Smith', email: 'john@company.com' },
+                    { value: 'sarah-wilson', name: 'Sarah Wilson', email: 'sarah@company.com' },
+                    { value: 'mike-johnson', name: 'Mike Johnson', email: 'mike@company.com' },
+                    { value: 'emily-davis', name: 'Emily Davis', email: 'emily@company.com' }
+                  ]}
                   value={formData.assignee}
-                  onChange={(e) => setFormData({...formData, assignee: e.target.value})}
-                  className="form-select"
-                >
-                  <option value="">Self</option>
-                  <option value="John Smith">John Smith</option>
-                  <option value="Sarah Wilson">Sarah Wilson</option>
-                  <option value="Mike Johnson">Mike Johnson</option>
-                  <option value="Emily Davis">Emily Davis</option>
-                </select>
+                  onChange={(value) => setFormData({...formData, assignee: value})}
+                  placeholder="Select assignee..."
+                  searchPlaceholder="Search team members..."
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">
@@ -204,7 +208,24 @@ function SubtaskForm({
                 Attachments (Optional)
               </label>
               <div className="attachment-area">
-                <p>Drag & drop files here or <button type="button" className="browse-link">browse files</button></p>
+                <div className="upload-section">
+                  <Upload size={24} className="upload-icon" />
+                  <div className="upload-text">
+                    <p className="upload-main">Drag & drop files here</p>
+                    <p className="upload-sub">or <button type="button" className="browse-link">browse files</button></p>
+                    <p className="upload-note">Max file size: 10MB per file</p>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  className="file-input-hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
+                  onChange={(e) => {
+                    // Handle file selection
+                    console.log('Files selected:', e.target.files);
+                  }}
+                />
               </div>
             </div>
 
