@@ -149,67 +149,42 @@ export const EnhancedTaskDetailPage = () => {
     isPending: false
   };
 
-  // Event handlers
-  const handleBack = () => {
-    setLocation('/tasks');
-  };
-
-  const handleEdit = () => {
-    setLocation(`/tasks/${taskId}/edit`);
-  };
-
-  const handleStatusChange = (newStatus) => {
-    if (!taskPermissions.canManageTeamTasks && task.assignee?.id !== user?.id) {
-      toast({
-        title: 'Permission denied',
-        description: 'You can only change status of tasks assigned to you',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    updateTaskMutation.mutate({ status: newStatus });
+  // Event handlers for wireframe actions
+  const handleCreateSubtask = () => {
+    toast({ title: 'Add Sub-task clicked' });
   };
 
   const handleDelete = () => {
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDelete = () => {
-    // Check for incomplete subtasks
-    const incompleteSubtasks = subtasks.filter(s => s.status !== 'completed');
-    if (incompleteSubtasks.length > 0) {
-      toast({
-        title: 'Cannot delete task',
-        description: 'Please complete or remove all subtasks first',
-        variant: 'destructive'
-      });
-      setShowDeleteDialog(false);
-      return;
-    }
-
-    deleteTaskMutation.mutate();
+    toast({ title: 'Delete task clicked' });
   };
 
   const handleReassign = () => {
-    // Open reassign dialog (would be implemented)
-    toast({ title: 'Reassign functionality would open here' });
-  };
-
-  const handleCreateSubtask = () => {
-    // Open subtask creation dialog (would be implemented)
-    toast({ title: 'Create subtask functionality would open here' });
+    toast({ title: 'Reassign task clicked' });
   };
 
   const handleSnooze = () => {
-    // Open snooze dialog (would be implemented)
-    toast({ title: 'Snooze functionality would open here' });
+    toast({ title: 'Snooze task clicked' });
+  };
+
+  const handleMarkRisk = () => {
+    toast({ title: 'Mark Risk clicked' });
+  };
+
+  const handleMarkDone = () => {
+    if (task) {
+      setTask({ ...task, status: 'done' });
+      toast({ title: 'Task marked as done!' });
+    }
   };
 
   const handleExport = () => {
-    // Export task data (would be implemented)
-    toast({ title: 'Export functionality would open here' });
+    toast({ title: 'Export task clicked' });
   };
+
+  const handleAddComment = (commentData) => {
+    toast({ title: 'Comment added' });
+  };
+
 
   // Permission checks - simplified for compatibility
   const canViewTask = true; // Will be handled by ProtectedRoute in App.jsx
