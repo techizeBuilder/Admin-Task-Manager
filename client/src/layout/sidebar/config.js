@@ -37,7 +37,8 @@ import {
   AlertTriangle,
   BookOpen,
   Globe,
-  Layers
+  Layers,
+  Flag
 } from 'lucide-react';
 
 // Menu configuration for different user roles
@@ -318,6 +319,12 @@ export const sidebarMenus = {
           label: 'Status Management',
           icon: Cog,
           path: '/admin/status'
+        },
+        {
+          id: 'priority-management',
+          label: 'Priority Management',
+          icon: Flag,
+          path: '/admin/priority'
         }
       ]
     },

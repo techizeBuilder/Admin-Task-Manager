@@ -582,6 +582,22 @@ function App() {
             />
           </AdminLayout>
         </Route>
+        <Route path="/admin/status">
+          <AdminLayout>
+            <ProtectedRoute
+              component={StatusManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/priority">
+          <AdminLayout>
+            <ProtectedRoute
+              component={PriorityManager}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
         <Route path="/admin/activity-feed">
           <AdminLayout>
             <ProtectedRoute
