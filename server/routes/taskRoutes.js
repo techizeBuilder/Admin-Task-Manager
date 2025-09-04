@@ -342,6 +342,59 @@ router.put("/tasks/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// Update task status specifically
+router.patch("/tasks/:id/status", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user = req.user;
+    
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+    
+    const task = await storage.getTaskById(id);
+    
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Check permissions
+    if (task.organization.toString() !== user.organization.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Update only the status
+    const updatedTask = await storage.updateTask(id, { 
+      status: status,
+      updatedAt: new Date() 
+    });
+
+    res.json({
+      success: true,
+      message: 'Task status updated successfully',
+      data: updatedTask
+    });
+
+  } catch (error) {
+    console.error('Error updating task status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update task status',
+      error: error.message
+    });
+  }
+});
+
 // Delete task
 router.delete("/tasks/:id", authenticateToken, async (req, res) => {
   try {

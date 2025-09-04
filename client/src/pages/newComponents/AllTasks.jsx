@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
 import TaskDeleteConfirmationModal from "./TaskDeleteConfirmationModal";
@@ -662,6 +663,8 @@ export default function AllTasks({
     setEditingTask(null);
   };
 
+  const [, navigate] = useLocation();
+
   const handleViewTask = (taskId) => {
     const task = tasks.find((t) => t.id === taskId);
 
@@ -673,9 +676,7 @@ export default function AllTasks({
     }
 
     // Navigate to task detail page for regular tasks
-    if (onNavigateToTask) {
-      onNavigateToTask(taskId);
-    }
+    navigate(`/tasks/${taskId}`);
   };
 
   // Toggle task expansion

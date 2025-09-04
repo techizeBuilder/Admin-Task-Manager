@@ -1,0 +1,86 @@
+📌 Prompt: View Task Page (Task Detail Workspace)
+
+Design and implement the View Task Page (Task Detail Workspace). This is a dedicated page, separate from the dashboard, providing a comprehensive view and lifecycle management for a single task.
+
+1. Page Layout & Core Components
+Header Bar (at-a-glance summary)
+
+Task Title
+
+Priority (Low / Medium / High / Critical)
+
+Status (Open, In Progress, Done, etc.) → color-coded pill, editable if permissions allow
+
+Tags / Labels
+
+Assignee (with avatar & quick reassign option if permitted)
+
+Quick Actions Bar
+
+Common task-level operations:
+
+✏️ Edit
+
+👥 Reassign
+
+➕ Create Subtask
+
+🗑️ Delete
+
+⏰ Snooze
+
+📤 Export
+
+Core Information Section
+
+Task Description (rich text support)
+
+Start Date / Due Date
+
+Estimated Time
+
+Linked Tasks (dependencies, clickable for navigation)
+
+2. Tabbed Interface for Deep Management
+
+Subtasks Tab → Add/manage child tasks directly; includes progress indicators.
+
+Forms Tab → Display and allow filling of attached custom forms (task or sub-task level).
+
+Attachments Tab → Upload/download files, with version control + rollback to earlier versions.
+
+Activity Feed Tab → Immutable chronological log of all task actions (creation, edits, comments, status changes, uploads). Serves as audit trail.
+
+Comments Tab → Threaded discussions, with @mentions for notifying team members.
+
+3. Role-Based Permissions
+
+Actions shown/hidden dynamically based on role relative to task:
+
+Capability	Creator	Assignee	Collaborator	Admin
+View Task	✅	✅	✅	✅
+Edit Task	✅	Partial (own fields)	❌	✅
+Reassign	✅	If allowed	❌	✅
+Delete	✅	❌	❌	✅
+Change Status	✅	✅	❌	✅
+Add Comments	✅	✅	✅	✅
+Add Files	✅	✅	✅	✅
+4. System Logic & Error Handling
+
+Status Management Rules → Status transitions must follow company workflow (e.g., cannot move from “Completed” → “In Progress”).
+
+Dependency Checks → Warning if user tries to close a parent task with open subtasks.
+
+Permission Enforcement → Unauthorized actions:
+
+Buttons disabled with tooltip explanation.
+
+Attempting action directly → error message.
+
+Validation → Inline error handling:
+
+File upload failures (size/format restrictions).
+
+Missing required fields.
+
+⚡ Goal: Deliver a dedicated, role-aware, lifecycle-focused task workspace that consolidates all details, actions, and collaboration features into a single, clean interface.

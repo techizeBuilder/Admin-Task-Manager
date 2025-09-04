@@ -73,6 +73,7 @@ import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
 import RecurringTasks from "./features/tasks/pages/RecurringTasks";
 import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
+import TaskDetailView from "./pages/TaskDetailView";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
@@ -434,6 +435,12 @@ function App() {
         <Route path="/tasks">
           <AdminLayout>
             <ProtectedRoute component={AllTasks} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/:taskId">
+          <AdminLayout>
+            <ProtectedRoute component={TaskDetailView} />
           </AdminLayout>
         </Route>
         <Route path="/setting">
