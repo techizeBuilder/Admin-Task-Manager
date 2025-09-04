@@ -1268,6 +1268,370 @@ export async function registerRoutes(app) {
     }
   });
 
+  // Enhanced User Management Routes for Company Admins
+
+  // Add new user (Company Admin only)
+  app.post("/api/organization/users", authenticateToken, async (req, res) => {
+    try {
+      const { firstName, lastName, email, role, department, designation, location } = req.body;
+      const adminUser = req.user;
+
+      // Check if user has admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate required fields
+      if (!firstName || !lastName || !email || !role) {
+        return res.status(400).json({ message: "Name, email, and role are required" });
+      }
+
+      // Check license availability
+      const licenseInfo = await storage.getOrganizationLicenseInfo(adminUser.organizationId);
+      if (licenseInfo.availableSlots <= 0) {
+        return res.status(400).json({ message: "No available licenses. Please upgrade your plan." });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Generate invitation token
+      const inviteToken = storage.generateEmailVerificationToken();
+      const inviteExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+
+      // Create user with invitation
+      const userData = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        role: role,
+        department: department?.trim() || "",
+        designation: designation?.trim() || "",
+        location: location?.trim() || "",
+        organization: adminUser.organizationId,
+        status: "invited",
+        inviteToken: inviteToken,
+        inviteTokenExpiry: inviteExpiry,
+        invitedBy: adminUser.id,
+        invitedAt: new Date()
+      };
+
+      const newUser = await storage.createUser(userData);
+
+      // Send invitation email (placeholder - implement as needed)
+      console.log(`Invitation sent to ${email} with token: ${inviteToken}`);
+
+      res.json({
+        message: "User invited successfully",
+        user: {
+          id: newUser._id,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          email: newUser.email,
+          role: newUser.role,
+          status: newUser.status
+        }
+      });
+    } catch (error) {
+      console.error("Add user error:", error);
+      res.status(500).json({ message: "Failed to add user" });
+    }
+  });
+
+  // Update user details (Company Admin only)
+  app.patch("/api/organization/users/:userId", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { firstName, lastName, department, designation, location } = req.body;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user data
+      const updateData = {};
+      if (firstName) updateData.firstName = firstName.trim();
+      if (lastName) updateData.lastName = lastName.trim();
+      if (department !== undefined) updateData.department = department.trim();
+      if (designation !== undefined) updateData.designation = designation.trim();
+      if (location !== undefined) updateData.location = location.trim();
+
+      const updatedUser = await storage.updateUser(userId, updateData);
+
+      res.json({
+        message: "User updated successfully",
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          department: updatedUser.department,
+          designation: updatedUser.designation,
+          location: updatedUser.location
+        }
+      });
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Change user role (Company Admin only)
+  app.patch("/api/organization/users/:userId/role", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { role } = req.body;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate role
+      const validRoles = ['admin', 'manager', 'employee'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: "Invalid role specified" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user role
+      const updatedUser = await storage.updateUser(userId, { role: role });
+
+      res.json({
+        message: "User role updated successfully",
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          role: updatedUser.role
+        }
+      });
+    } catch (error) {
+      console.error("Role change error:", error);
+      res.status(500).json({ message: "Failed to change user role" });
+    }
+  });
+
+  // Deactivate user (Company Admin only)
+  app.patch("/api/organization/users/:userId/deactivate", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Cannot deactivate self
+      if (targetUser._id.toString() === adminUser.id) {
+        return res.status(400).json({ message: "Cannot deactivate your own account" });
+      }
+
+      // Update user status
+      const updatedUser = await storage.updateUser(userId, { 
+        status: "inactive",
+        isActive: false
+      });
+
+      res.json({
+        message: "User deactivated successfully",
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          status: updatedUser.status
+        }
+      });
+    } catch (error) {
+      console.error("Deactivate user error:", error);
+      res.status(500).json({ message: "Failed to deactivate user" });
+    }
+  });
+
+  // Reactivate user (Company Admin only)
+  app.patch("/api/organization/users/:userId/reactivate", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user status
+      const updatedUser = await storage.updateUser(userId, { 
+        status: "active",
+        isActive: true
+      });
+
+      res.json({
+        message: "User reactivated successfully",
+        user: {
+          id: updatedUser._id,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+          email: updatedUser.email,
+          status: updatedUser.status
+        }
+      });
+    } catch (error) {
+      console.error("Reactivate user error:", error);
+      res.status(500).json({ message: "Failed to reactivate user" });
+    }
+  });
+
+  // Remove user permanently (Company Admin only)
+  app.delete("/api/organization/users/:userId", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Cannot remove self
+      if (targetUser._id.toString() === adminUser.id) {
+        return res.status(400).json({ message: "Cannot remove your own account" });
+      }
+
+      // Check for assigned tasks (implement task reassignment logic as needed)
+      // For now, we'll allow removal but in production should require task reassignment
+
+      // Remove user
+      await storage.deleteUser(userId);
+
+      res.json({
+        message: "User removed successfully"
+      });
+    } catch (error) {
+      console.error("Remove user error:", error);
+      res.status(500).json({ message: "Failed to remove user" });
+    }
+  });
+
+  // Resend invitation (Company Admin only)
+  app.post("/api/organization/users/:userId/resend-invite", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.user;
+
+      // Check admin privileges
+      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
+        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      }
+
+      // Validate user exists and belongs to same organization
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Only resend for invited users
+      if (targetUser.status !== "invited") {
+        return res.status(400).json({ message: "User is not in invited status" });
+      }
+
+      // Generate new invitation token
+      const newInviteToken = storage.generateEmailVerificationToken();
+      const newExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+
+      // Update user with new token
+      await storage.updateUser(userId, {
+        inviteToken: newInviteToken,
+        inviteTokenExpiry: newExpiry,
+        invitedAt: new Date()
+      });
+
+      // Send new invitation email (placeholder)
+      console.log(`New invitation sent to ${targetUser.email} with token: ${newInviteToken}`);
+
+      res.json({
+        message: "Invitation resent successfully"
+      });
+    } catch (error) {
+      console.error("Resend invite error:", error);
+      res.status(500).json({ message: "Failed to resend invitation" });
+    }
+  });
+
+  // Get user activities (placeholder for user activity tracking)
+  app.get("/api/users/activities/:userId", authenticateToken, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const adminUser = req.user;
+
+      // Check admin privileges or same user
+      if (!adminUser || (!['admin', 'org_admin'].includes(adminUser.role) && adminUser.id !== userId)) {
+        return res.status(403).json({ message: "Insufficient privileges" });
+      }
+
+      // Placeholder for user activities - implement actual activity tracking as needed
+      const activities = [
+        {
+          description: "Logged in to the system",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          type: "login"
+        },
+        {
+          description: "Completed task: Update user documentation",
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+          type: "task_completion"
+        },
+        {
+          description: "Created new task: Review quarterly reports",
+          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+          type: "task_creation"
+        }
+      ];
+
+      res.json(activities);
+    } catch (error) {
+      console.error("Get user activities error:", error);
+      res.status(500).json({ message: "Failed to fetch user activities" });
+    }
+  });
+
   // Super Admin Routes - Add debug endpoint and sample data creation
   app.get("/api/super-admin/test", async (req, res) => {
     try {

@@ -1,0 +1,75 @@
+Prompt:
+
+Based on the provided sources, generate a detailed feature specification document for User Management within the Tasksetu platform. The document should clearly outline:
+
+1. Roles & Responsibilities
+
+Distinguish between Company Admin (organization-level control) and Tasksetu Admin / Super Admin (platform-level control).
+
+Emphasize that Regular Users and Managers do not have user management privileges.
+
+2. Company Admin – User Management Features
+
+Provide step-by-step descriptions, flows, and UI elements for each function available on the /admin/users page:
+
+Adding a New User
+
+Flow: Add User → Modal → Required fields (Name, Email, Role, License) + optional fields (Department, Designation, Location).
+
+Invitation logic: Pending status, activation email with 72-hour expiry.
+
+License handling: License count decreases upon user creation.
+
+Editing User Details
+
+Editable fields vs non-editable fields (e.g., Email cannot be changed directly).
+
+Special confirmation modal when changing Roles (e.g., User → Manager).
+
+Deactivating & Reactivating a User
+
+Deactivation logic: Inactive status, login blocked, assigned tasks remain with "Owner Inactive" label.
+
+Reactivation restores access.
+
+Clarify license impact (license remains assigned unless manually unassigned).
+
+Removing a User
+
+Permanent deletion flow.
+
+Mandatory task reassignment before removal.
+
+License handling: License freed immediately after removal.
+
+Viewing User Activity
+
+Include metrics in a summary table: Date Joined, Last Login, Assigned Tasks, Completed Tasks.
+
+3. Tasksetu Admin (Super Admin)
+
+Platform-level role for global user/company management.
+
+Outline their responsibilities (support, configuration, overrides) but clarify they are not part of normal company-level workflows.
+
+4. System Logic & Safeguards
+
+Invitation email expiry (72 hours).
+
+License pool adjustments on Add/Remove.
+
+Mandatory task reassignment before deletion.
+
+Role-change confirmation modal for access impact awareness.
+
+Validation errors for missing fields or license unavailability.
+
+5. UI/UX Guidelines
+
+/admin/users should include a searchable, filterable user table.
+
+Inline status indicators (Active, Inactive, Pending).
+
+Contextual action menus for each user row (Edit, Deactivate/Reactivate, Remove).
+
+Warning modals for critical actions (Deactivation, Removal, Role Change).

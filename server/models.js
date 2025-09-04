@@ -181,6 +181,27 @@ const userSchema = new mongoose.Schema(
       type: Object,
       default: {},
     },
+    // Additional fields for comprehensive user management
+    department: {
+      type: String,
+      trim: true,
+    },
+    designation: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      trim: true,
+    },
+    assignedTasks: {
+      type: Number,
+      default: 0,
+    },
+    completedTasks: {
+      type: Number,
+      default: 0,
+    },
     // Legacy fields for backward compatibility
     roles: {
       type: [String],
