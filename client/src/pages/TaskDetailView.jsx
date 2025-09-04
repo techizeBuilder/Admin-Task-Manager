@@ -17,7 +17,13 @@ import {
   MessageCircle,
   FileText,
   Paperclip,
-  Activity
+  Activity,
+  UserPlus,
+  Bell,
+  Shield,
+  Share,
+  MoreHorizontal,
+  Archive
 } from "lucide-react";
 import TaskStatusDropdown from "./newComponents/TaskStatusDropdown";
 import { getTaskPriorityColor } from "./TaskTypeUtils";
@@ -173,73 +179,60 @@ export default function TaskDetailView() {
               </div>
             </div>
 
-            {/* Right section - Assignee and Quick Actions */}
+            {/* Right section - User info */}
             <div className="flex items-center space-x-4">
-              {/* Assignee */}
-              {task.assignedTo && (
-                <div className="flex items-center space-x-2" data-testid="assignee-info">
-                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-sm text-gray-700">{task.assignedTo.name || task.assignedTo.email}</span>
-                </div>
-              )}
-
-              {/* Quick Actions */}
+              {/* User avatar and name */}
               <div className="flex items-center space-x-2">
-                {permissions.canEdit && (
-                  <button 
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    data-testid="button-edit"
-                    title="Edit Task"
-                  >
-                    <Edit3 className="h-4 w-4 text-gray-600" />
-                  </button>
-                )}
-                
-                {permissions.canReassign && (
-                  <button 
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    data-testid="button-reassign"
-                    title="Reassign Task"
-                  >
-                    <Users className="h-4 w-4 text-gray-600" />
-                  </button>
-                )}
-                
-                <button 
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  data-testid="button-create-subtask"
-                  title="Create Subtask"
-                >
-                  <Plus className="h-4 w-4 text-gray-600" />
+                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                  {task.assignee ? task.assignee.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="text-sm font-medium text-gray-900">{task.assignee || 'Unassigned'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons Bar */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-3">
+              {/* Left Actions */}
+              <div className="flex items-center space-x-2">
+                <button className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Sub-task
                 </button>
-                
-                <button 
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  data-testid="button-snooze"
-                  title="Snooze Task"
-                >
-                  <Clock className="h-4 w-4 text-gray-600" />
+                <button className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
                 </button>
-                
-                <button 
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  data-testid="button-export"
-                  title="Export Task"
-                >
-                  <Download className="h-4 w-4 text-gray-600" />
+                <button className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
+                  <UserPlus className="h-4 w-4 mr-1" />
+                  Reassign
                 </button>
-                
-                {permissions.canDelete && (
-                  <button 
-                    className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                    data-testid="button-delete"
-                    title="Delete Task"
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </button>
-                )}
+                <button className="inline-flex items-center px-3 py-1.5 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 transition-colors">
+                  <Bell className="h-4 w-4 mr-1" />
+                  Snooze
+                </button>
+                <button className="inline-flex items-center px-3 py-1.5 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700 transition-colors">
+                  <Shield className="h-4 w-4 mr-1" />
+                  Mark Risk
+                </button>
+                <button className="inline-flex items-center px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors">
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Mark Done
+                </button>
+              </div>
+
+              {/* Right Actions */}
+              <div className="flex items-center space-x-2">
+                <button className="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition-colors">
+                  <Share className="h-4 w-4 mr-1" />
+                  Export
+                </button>
+                <button className="p-2 hover:bg-gray-100 rounded-md transition-colors">
+                  <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                </button>
               </div>
             </div>
           </div>
@@ -249,313 +242,346 @@ export default function TaskDetailView() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Core Information */}
+          
+          {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Task Description */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Description</h3>
-              <div 
-                className="prose max-w-none text-gray-700"
-                data-testid="text-description"
-                dangerouslySetInnerHTML={{ __html: task.description || "No description provided." }}
-              />
+            
+            {/* Task Overview Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Task Overview</h2>
+                  <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">View More</button>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">Complete task information and details</p>
+                
+                {/* Active Reminders */}
+                {task.dueDate && (
+                  <div className="mb-6">
+                    <div className="flex items-center mb-2">
+                      <Clock className="h-4 w-4 text-orange-500 mr-2" />
+                      <span className="text-sm font-medium text-gray-900">Active Reminders:</span>
+                    </div>
+                    <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+                      <p className="text-sm text-orange-800">
+                        Due in 3 days - {task.dueDate}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Description */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Description</h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <p className="text-sm text-gray-700">
+                      {task.description || 'Migrate the existing database from MySQL to PostgreSQL while ensuring data integrity and minimal downtime.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Tabbed Interface */}
+            {/* Detailed View Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              {/* Tab Headers */}
               <div className="border-b border-gray-200">
-                <nav className="flex space-x-8 px-6" data-testid="tab-navigation">
+                <nav className="flex space-x-8 px-6" aria-label="Tabs">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                           activeTab === tab.id
-                            ? "border-blue-500 text-blue-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
                         data-testid={`tab-${tab.id}`}
                       >
-                        <div className="flex items-center space-x-2">
-                          <Icon className="h-4 w-4" />
-                          <span>{tab.label}</span>
-                        </div>
+                        <Icon className="h-4 w-4" />
+                        <span>{tab.label}</span>
+                        {tab.id === 'subtasks' && task.subtasks && (
+                          <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                            {task.subtasks.length}
+                          </span>
+                        )}
+                        {(tab.id === 'comments' || tab.id === 'attachments') && (
+                          <span className="bg-blue-100 text-blue-600 py-0.5 px-2 rounded-full text-xs">
+                            3
+                          </span>
+                        )}
                       </button>
                     );
                   })}
                 </nav>
               </div>
-
-              {/* Tab Content */}
+              
               <div className="p-6">
-                {activeTab === "subtasks" && (
-                  <SubtasksTab task={task} permissions={permissions} />
+                {/* Tab Content */}
+                {activeTab === 'subtasks' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-900">Sub-tasks ({task.subtasks ? task.subtasks.length : 0})</h3>
+                      <button className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Sub-task
+                      </button>
+                    </div>
+                    
+                    {/* Subtask list */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          <span className="text-sm">Setup OAuth providers</span>
+                        </div>
+                        <span className="text-xs text-gray-500">Completed</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <div className="flex items-center space-x-3">
+                          <Clock className="h-5 w-5 text-yellow-500" />
+                          <span className="text-sm">Database backup procedures</span>
+                        </div>
+                        <span className="text-xs text-gray-500">In Progress</span>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {activeTab === "forms" && (
-                  <FormsTab task={task} permissions={permissions} />
+                
+                {activeTab === 'comments' && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Comments (3)</h3>
+                    {/* Comments content */}
+                    <div className="space-y-4">
+                      <div className="flex space-x-3">
+                        <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                          JS
+                        </div>
+                        <div className="flex-1">
+                          <div className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">John Smith</span>
+                              <span className="text-xs text-gray-500">2 hours ago</span>
+                            </div>
+                            <p className="text-sm text-gray-700">Let me know when you're ready for the staging environment setup.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Comment input */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <div className="flex space-x-3">
+                          <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-medium">
+                            AC
+                          </div>
+                          <div className="flex-1">
+                            <textarea 
+                              placeholder="Leave a comment..." 
+                              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              rows={3}
+                            />
+                            <div className="flex justify-end mt-2 space-x-2">
+                              <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                              <button className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">Comment</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {activeTab === "attachments" && (
-                  <AttachmentsTab task={task} permissions={permissions} />
+                
+                {activeTab === 'attachments' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">Files (3)</h3>
+                      <button className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add File
+                      </button>
+                    </div>
+                    
+                    {/* File upload area */}
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6">
+                      <Archive className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-sm text-gray-600 mb-2">Drag and drop files here or browse</p>
+                      <p className="text-xs text-gray-500">Maximum file size: 25MB per file</p>
+                      <button className="mt-2 text-blue-600 hover:text-blue-700 text-sm">Choose Files</button>
+                    </div>
+                    
+                    {/* File list */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-5 w-5 text-gray-400" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">database-schema.sql</p>
+                            <p className="text-xs text-gray-500">Uploaded by John Smith • 2 hours ago</p>
+                          </div>
+                        </div>
+                        <button className="text-blue-600 hover:text-blue-700 text-sm">Download</button>
+                      </div>
+                    </div>
+                  </div>
                 )}
-                {activeTab === "activity" && (
-                  <ActivityTab task={task} />
-                )}
-                {activeTab === "comments" && (
-                  <CommentsTab task={task} permissions={permissions} />
+                
+                {activeTab === 'activity' && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Activity Feed</h3>
+                    <div className="flow-root">
+                      <ul className="-mb-8">
+                        <li>
+                          <div className="relative pb-8">
+                            <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                            <div className="relative flex space-x-3">
+                              <div>
+                                <span className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                                  <CheckCircle2 className="h-4 w-4 text-white" />
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                <div>
+                                  <p className="text-sm text-gray-500">John Smith marked this task <span className="font-medium text-gray-900">In Progress</span></p>
+                                </div>
+                                <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                                  <span>2h ago</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                        {/* More activity items */}
+                      </ul>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-
-          {/* Right Column - Task Details */}
+          
+          {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            {/* Task Metadata */}
+            
+            {/* Task Details */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Task Details</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Details</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Start Date</label>
-                  <div className="flex items-center mt-1" data-testid="text-start-date">
-                    <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {task.startDate ? new Date(task.startDate).toLocaleDateString() : "Not set"}
-                    </span>
-                  </div>
+                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <p className="text-sm text-gray-900 mt-1">{task.status}</p>
                 </div>
-
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Priority</label>
+                  <p className="text-sm text-gray-900 mt-1">{task.priority}</p>
+                </div>
+                
                 <div>
                   <label className="text-sm font-medium text-gray-500">Due Date</label>
-                  <div className="flex items-center mt-1" data-testid="text-due-date">
-                    <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "Not set"}
-                    </span>
-                  </div>
+                  <p className="text-sm text-gray-900 mt-1">{task.dueDate || 'Not set'}</p>
                 </div>
-
+                
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Estimated Time</label>
-                  <div className="flex items-center mt-1" data-testid="text-estimated-time">
-                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {task.estimatedHours ? `${task.estimatedHours} hours` : "Not estimated"}
-                    </span>
-                  </div>
+                  <label className="text-sm font-medium text-gray-500">Assignee</label>
+                  <p className="text-sm text-gray-900 mt-1">{task.assignee || 'Unassigned'}</p>
                 </div>
-
+                
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Created By</label>
-                  <div className="flex items-center mt-1" data-testid="text-created-by">
-                    <User className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {task.createdBy?.name || task.createdBy?.email || "Unknown"}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Created On</label>
-                  <div className="flex items-center mt-1" data-testid="text-created-date">
-                    <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">
-                      {new Date(task.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                  <label className="text-sm font-medium text-gray-500">Created</label>
+                  <p className="text-sm text-gray-900 mt-1">{task.createdAt || 'Unknown'}</p>
                 </div>
               </div>
             </div>
-
-            {/* Linked Tasks */}
-            {task.dependencies && task.dependencies.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Dependencies</h3>
-                <div className="space-y-2">
-                  {task.dependencies.map((dep, index) => (
-                    <div 
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                      data-testid={`dependency-${index}`}
-                    >
-                      <span className="text-sm text-gray-900">{dep.title}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getTaskPriorityColor(dep.priority)}`}>
-                        {dep.status}
+            
+            {/* Attachments & Status */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Attachments & Status</h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-700">Created Status</span>
+                  <span className="text-xs text-gray-500">Pending</span>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span className="text-sm text-gray-700">Priority</span>
+                  <span className="text-xs text-orange-600">High</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Collaborations & Tags */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Collaborations & Tags</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Collaborators</label>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">J</div>
+                    <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">S</div>
+                    <button className="h-6 w-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-400">
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Tags</label>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {task.tags && task.tags.map((tag, index) => (
+                      <span key={index} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                        {tag}
                       </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Tab Components
-function SubtasksTab({ task, permissions }) {
-  return (
-    <div data-testid="subtasks-tab">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-medium text-gray-900">Subtasks</h4>
-        {permissions.canEdit && (
-          <button 
-            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            data-testid="button-add-subtask"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Subtask
-          </button>
-        )}
-      </div>
-      
-      {task.subtasks && task.subtasks.length > 0 ? (
-        <div className="space-y-3">
-          {task.subtasks.map((subtask, index) => (
-            <div 
-              key={index}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              data-testid={`subtask-${index}`}
-            >
-              <div className="flex items-center space-x-3">
-                <CheckCircle2 className={`h-4 w-4 ${subtask.status === 'DONE' ? 'text-green-500' : 'text-gray-400'}`} />
-                <span className="text-sm text-gray-900">{subtask.title}</span>
-              </div>
-              <span className={`text-xs px-2 py-1 rounded-full ${getTaskPriorityColor(subtask.priority)}`}>
-                {subtask.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No subtasks</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new subtask.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FormsTab({ task, permissions }) {
-  return (
-    <div data-testid="forms-tab">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-medium text-gray-900">Custom Forms</h4>
-        {permissions.canEdit && (
-          <button 
-            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            data-testid="button-attach-form"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Attach Form
-          </button>
-        )}
-      </div>
-      
-      <div className="text-center py-8">
-        <FileText className="mx-auto h-12 w-12 text-gray-300" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No forms attached</h3>
-        <p className="mt-1 text-sm text-gray-500">Attach custom forms to collect structured data.</p>
-      </div>
-    </div>
-  );
-}
-
-function AttachmentsTab({ task, permissions }) {
-  return (
-    <div data-testid="attachments-tab">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-medium text-gray-900">Attachments</h4>
-        {permissions.canAddFiles && (
-          <button 
-            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            data-testid="button-upload-file"
-          >
-            <Paperclip className="h-4 w-4 mr-2" />
-            Upload File
-          </button>
-        )}
-      </div>
-      
-      <div className="text-center py-8">
-        <Paperclip className="mx-auto h-12 w-12 text-gray-300" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No attachments</h3>
-        <p className="mt-1 text-sm text-gray-500">Upload files to share with your team.</p>
-      </div>
-    </div>
-  );
-}
-
-function ActivityTab({ task }) {
-  return (
-    <div data-testid="activity-tab">
-      <h4 className="text-lg font-medium text-gray-900 mb-4">Activity Feed</h4>
-      
-      <div className="flow-root">
-        <ul className="-mb-8">
-          <li>
-            <div className="relative pb-8">
-              <div className="relative flex space-x-3">
-                <div>
-                  <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
-                    <User className="h-4 w-4 text-white" />
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div>
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-900">Task created</span>
-                    </div>
-                    <p className="mt-0.5 text-sm text-gray-500">
-                      {new Date(task.createdAt).toLocaleString()}
-                    </p>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function CommentsTab({ task, permissions }) {
-  return (
-    <div data-testid="comments-tab">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-medium text-gray-900">Comments</h4>
-      </div>
-      
-      {permissions.canAddComments && (
-        <div className="mb-6">
-          <textarea
-            placeholder="Add a comment..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-            rows="3"
-            data-testid="input-comment"
-          />
-          <div className="mt-2 flex justify-end">
-            <button 
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-              data-testid="button-post-comment"
-            >
-              Post Comment
-            </button>
+            
+            {/* Relationships & Hierarchy */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Relationships & Hierarchy</h3>
+              
+              <div className="space-y-3">
+                <div className="text-sm">
+                  <span className="text-gray-500">Sub-tasks Count:</span>
+                  <span className="ml-2 text-gray-900">{task.subtasks ? task.subtasks.length : 0}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="text-gray-500">Parent Task:</span>
+                  <span className="ml-2 text-blue-600 hover:text-blue-700 cursor-pointer">Database Migration</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Linked Items */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Linked Items (3)</h3>
+                <button className="text-blue-600 hover:text-blue-700 text-sm">Link Item</button>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-900">Update Documentation</span>
+                  </div>
+                  <span className="text-xs text-green-600">Completed</span>
+                </div>
+                <div className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-900">Migration Checklist</span>
+                  </div>
+                  <span className="text-xs text-blue-600">In Progress</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
-      
-      <div className="text-center py-8">
-        <MessageCircle className="mx-auto h-12 w-12 text-gray-300" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No comments yet</h3>
-        <p className="mt-1 text-sm text-gray-500">Start the conversation by adding a comment.</p>
       </div>
     </div>
   );
