@@ -9,7 +9,7 @@ import TaskHeader from '@/components/tasks/TaskHeader';
 import CoreTaskInfo from '@/components/tasks/CoreTaskInfo';
 import EnhancedTaskTabs from '@/components/tasks/EnhancedTaskTabs';
 import { TaskErrorBoundary, TaskOperationError } from '@/components/tasks/TaskErrorBoundary';
-import { EnhancedProtectedRoute } from '@/components/auth/EnhancedProtectedRoute';
+import EnhancedProtectedRoute from '@/components/auth/EnhancedProtectedRoute';
 
 // UI Components
 import { Skeleton } from '@/components/ui/skeleton';

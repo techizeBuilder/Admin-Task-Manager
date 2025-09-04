@@ -81,6 +81,7 @@ import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 import TaskDetailView from "./pages/TaskDetailView";
+import EnhancedTaskDetailPage from "./pages/EnhancedTaskDetailPage";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
@@ -452,7 +453,7 @@ function App() {
 
         <Route path="/tasks/:taskId">
           <AdminLayout>
-            <ProtectedRoute component={TaskDetailView} />
+            <ProtectedRoute component={EnhancedTaskDetailPage} />
           </AdminLayout>
         </Route>
         <Route path="/setting">
