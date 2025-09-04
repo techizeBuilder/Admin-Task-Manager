@@ -118,26 +118,10 @@ export default function TaskStatusDropdown({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
-            {/* Current Status */}
-            <div className="px-2 py-1 bg-gray-50 border-b border-gray-200">
-              <div className="flex items-center gap-1 text-xs text-gray-600">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: currentStatusObj?.color }}
-                />
-                <span className="font-medium">
-                  {currentStatusObj?.label}
-                </span>
-              </div>
-            </div>
-
+          <div className="absolute top-full left-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
             {/* Valid Transitions */}
             {validTransitions.length > 0 ? (
-              <div className="py-1">
-                <div className="px-2 py-1 text-xs font-medium text-gray-500">
-                  Change to:
-                </div>
+              <div>
                 {validTransitions.map((transitionCode) => {
                   const targetStatus = statuses.find(
                     (s) => s.code === transitionCode && s.active,
@@ -147,28 +131,21 @@ export default function TaskStatusDropdown({
                   return (
                     <button
                       key={transitionCode}
-                      className="w-full text-left px-2 py-1.5 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
+                      className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
                       onClick={() => {
                         onStatusChange(transitionCode);
                         setIsOpen(false);
                       }}
                     >
                       <span
-                        className="w-3 h-3 rounded-full"
+                        className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: targetStatus.color }}
                       />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">
-                          {targetStatus.label}
-                        </div>
-                        {targetStatus.description && (
-                          <div className="text-xs text-gray-500">
-                            {targetStatus.description}
-                          </div>
-                        )}
-                      </div>
+                      <span className="font-medium text-gray-900 flex-1">
+                        {targetStatus.label}
+                      </span>
                       {targetStatus.isFinal && (
-                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                        <span className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded">
                           Final
                         </span>
                       )}
