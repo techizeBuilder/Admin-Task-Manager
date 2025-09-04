@@ -1,5 +1,38 @@
 import React, { useState } from 'react';
 import { useRoute, useLocation } from 'wouter';
+import { 
+  ClipboardList, 
+  CheckSquare, 
+  MessageCircle, 
+  Activity, 
+  Paperclip, 
+  Link, 
+  Plus, 
+  Trash2, 
+  Users, 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle, 
+  Download,
+  X,
+  Calendar,
+  User,
+  Tag,
+  AlertCircle as AlertIcon,
+  ThumbsUp,
+  Reply,
+  Send,
+  Smile,
+  FileText,
+  Upload,
+  Cloud,
+  Filter,
+  CheckCircle2,
+  Edit,
+  UserPlus,
+  Zap,
+  Bell
+} from 'lucide-react';
 import CoreInfoPanel from './CoreInfoPanel';
 import SubtasksPanel from './SubtasksPanel';
 import SubtaskModal from './SubtaskModal';
@@ -8,6 +41,7 @@ import PriorityDropdown from './PriorityDropdown';
 import AssigneeSelector from './AssigneeSelector';
 import { EditableTitle, EditableTextArea } from './EditableComponents';
 import './TaskView.css';
+import './DetailedView.css';
 
 export default function TaskDetail({ taskId, onClose }) {
   const [activeTab, setActiveTab] = useState("core-info");
@@ -109,21 +143,21 @@ export default function TaskDetail({ taskId, onClose }) {
   });
 
   const tabs = [
-    { id: "core-info", label: "Core Info", icon: "📋", hasIcon: true },
+    { id: "core-info", label: "Core Info", icon: ClipboardList, hasIcon: true },
     {
       id: "subtasks",
       label: "Subtasks",
-      icon: "📝",
+      icon: CheckSquare,
       count: task.subtasks?.length || 0,
       hasIcon: true
     },
-    { id: "comments", label: "Comments", icon: "💬", count: 3, hasIcon: true },
-    { id: "activity", label: "Activity Feed", icon: "📊", hasIcon: true },
-    { id: "files", label: "Files & Links", icon: "📎", hasIcon: true },
+    { id: "comments", label: "Comments", icon: MessageCircle, count: 3, hasIcon: true },
+    { id: "activity", label: "Activity Feed", icon: Activity, hasIcon: true },
+    { id: "files", label: "Files & Links", icon: Paperclip, hasIcon: true },
     {
       id: "linked",
       label: "Linked Items",
-      icon: "🔗",
+      icon: Link,
       count: task.linkedItems?.length || 0,
       hasIcon: true
     }
@@ -182,31 +216,31 @@ export default function TaskDetail({ taskId, onClose }) {
       <div className="task-action-bar">
         <div className="action-buttons-left">
           <button className="action-btn primary" onClick={() => setShowCreateSubtaskDrawer(true)}>
-            <span className="btn-icon">📝</span>
+            <Plus className="btn-icon" size={16} />
             Add Sub-task
           </button>
           <button className="action-btn secondary" onClick={() => setShowDeleteModal(true)}>
-            <span className="btn-icon">🗑️</span>
+            <Trash2 className="btn-icon" size={16} />
             Delete
           </button>
           <button className="action-btn secondary" onClick={() => setShowReassignModal(true)}>
-            <span className="btn-icon">👤</span>
+            <Users className="btn-icon" size={16} />
             Reassign
           </button>
           <button className="action-btn secondary" onClick={() => setShowSnoozeModal(true)}>
-            <span className="btn-icon">⏰</span>
+            <Clock className="btn-icon" size={16} />
             Snooze
           </button>
           <button className="action-btn warning" onClick={() => setShowRiskModal(true)}>
-            <span className="btn-icon">⚠️</span>
+            <AlertTriangle className="btn-icon" size={16} />
             Mark Risk
           </button>
           <button className="action-btn success" onClick={handleMarkDone}>
-            <span className="btn-icon">✅</span>
+            <CheckCircle className="btn-icon" size={16} />
             Mark Done
           </button>
           <button className="action-btn secondary" onClick={handleExportTask}>
-            <span className="btn-icon">📊</span>
+            <Download className="btn-icon" size={16} />
             Export
           </button>
         </div>
@@ -214,19 +248,22 @@ export default function TaskDetail({ taskId, onClose }) {
 
       {/* Tab Navigation */}
       <div className="task-tabs">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <span className="tab-icon">📋</span>
-            <span className="tab-label">{tab.label}</span>
-            {tab.count !== undefined && (
-              <span className="tab-count">{tab.count}</span>
-            )}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const IconComponent = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <IconComponent className="tab-icon" size={16} />
+              <span className="tab-label">{tab.label}</span>
+              {tab.count !== undefined && (
+                <span className="tab-count">{tab.count}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Main Content Area */}
@@ -236,17 +273,23 @@ export default function TaskDetail({ taskId, onClose }) {
             {/* Task Overview Section */}
             <div className="task-overview-card">
               <div className="overview-header">
-                <div className="overview-icon">📋</div>
+                <div className="overview-icon">
+                  <ClipboardList size={24} />
+                </div>
                 <div className="overview-content">
                   <h2 className="overview-title">Task Overview</h2>
                   <p className="overview-subtitle">Complete task information and details</p>
                 </div>
-                <button className="view-more-btn">View More</button>
+                <button className="view-more-btn" onClick={() => setMoreInfo(!moreInfo)}>
+                  View More
+                </button>
               </div>
               
               {/* Active Reminders */}
               <div className="active-reminders">
-                <div className="reminder-icon">⏰</div>
+                <div className="reminder-icon">
+                  <AlertIcon size={20} />
+                </div>
                 <div className="reminder-content">
                   <strong>Active Reminders:</strong>
                   <div className="reminder-text">Due in 3 days - 2024-01-25</div>
@@ -257,22 +300,181 @@ export default function TaskDetail({ taskId, onClose }) {
               <div className="description-section">
                 <h3 className="section-title">Description</h3>
                 <div className="description-content">
-                  <EditableTextArea
-                    value={task.description}
-                    onSave={(newDescription) => setTask({...task, description: newDescription})}
-                    canEdit={permissions.canEdit}
-                    placeholder="Add task description..."
-                  />
+                  <p className="description-text">
+                    {task.description}
+                  </p>
                 </div>
               </div>
             </div>
             
-            {/* Core Info Panel */}
-            <CoreInfoPanel 
-              task={task}
-              onTaskUpdate={setTask}
-              permissions={permissions}
-            />
+            {/* Detailed View Panel */}
+            {moreInfo && (
+              <div className="detailed-view-panel">
+                <div className="detailed-view-header">
+                  <h3>Detailed View</h3>
+                  <button className="close-btn" onClick={() => setMoreInfo(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="details-grid">
+                  {/* Task Details */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <ClipboardList size={16} className="detail-icon" />
+                      <h4>Task Details</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Type:</span>
+                        <div className="detail-value">
+                          <span className="task-type-indicator">●</span>
+                          <span>Regular Task</span>
+                        </div>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Color Code:</span>
+                        <span className="detail-value">#007bff</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Visibility:</span>
+                        <span className="detail-value">Private</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Timeline */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <Calendar size={16} className="detail-icon" />
+                      <h4>Timeline</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Start Date:</span>
+                        <span className="detail-value">2024-01-15</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Due Date:</span>
+                        <span className="detail-value">2024-01-25</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Time Estimate:</span>
+                        <span className="detail-value">40 hours</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Creation Info */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <User size={16} className="detail-icon" />
+                      <h4>Creation Info</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Created By:</span>
+                        <span className="detail-value">Sarah Wilson</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Created:</span>
+                        <span className="detail-value">15/01/2024</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Last Updated:</span>
+                        <span className="detail-value">20/01/2024</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="assignment-grid">
+                  {/* Assignment & Status */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <Users size={16} className="detail-icon" />
+                      <h4>Assignment & Status</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Assignee:</span>
+                        <span className="detail-value">John Smith</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Current Status:</span>
+                        <span className="detail-value status-badge in-progress">In Progress</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Priority:</span>
+                        <span className="detail-value priority-badge high">High</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Collaborators & Tags */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <Tag size={16} className="detail-icon" />
+                      <h4>Collaborators & Tags</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Collaborators:</span>
+                        <div className="collaborators-list">
+                          <span className="collaborator-name">Mike Johnson</span>
+                          <span className="collaborator-name">Emily Davis</span>
+                        </div>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Tags:</span>
+                        <div className="tags-list">
+                          <span className="tag">#database</span>
+                          <span className="tag">#migration</span>
+                          <span className="tag">#backend</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Relationships & Hierarchy */}
+                  <div className="detail-card">
+                    <div className="detail-header">
+                      <Link size={16} className="detail-icon" />
+                      <h4>Relationships & Hierarchy</h4>
+                    </div>
+                    <div className="detail-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Parent Task:</span>
+                        <span className="detail-value">None</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Sub-tasks Count:</span>
+                        <span className="detail-value">5</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Linked Items:</span>
+                        <span className="detail-value">3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Attached Forms */}
+                <div className="attached-forms-section">
+                  <div className="forms-header">
+                    <ClipboardList size={16} className="forms-icon" />
+                    <h4>Attached Forms (1)</h4>
+                  </div>
+                  <div className="form-item">
+                    <div className="form-details">
+                      <h5>Migration Checklist</h5>
+                      <span className="form-type">checklist</span>
+                    </div>
+                    <span className="form-status in-progress">in progress</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         
@@ -300,9 +502,15 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                   <p>I've started working on the <strong>database schema migration</strong>. The initial analysis shows we need to handle about 2.5M records.</p>
                   <div className="comment-actions">
-                    <button className="comment-action">👍 2</button>
-                    <button className="comment-action">💬 1</button>
-                    <button className="comment-action">Reply</button>
+                    <button className="comment-action">
+                      <ThumbsUp size={14} /> 2
+                    </button>
+                    <button className="comment-action">
+                      <MessageCircle size={14} /> 1
+                    </button>
+                    <button className="comment-action">
+                      <Reply size={14} /> Reply
+                    </button>
                   </div>
                 </div>
               </div>
@@ -316,7 +524,9 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                   <p><strong>@John Smith</strong> - Great! Please make sure to backup the data before starting the migration process. Also, have you considered the downtime window?</p>
                   <div className="comment-actions">
-                    <button className="comment-action">Reply</button>
+                    <button className="comment-action">
+                      <Reply size={14} /> Reply
+                    </button>
                   </div>
                 </div>
               </div>
@@ -329,10 +539,12 @@ export default function TaskDetail({ taskId, onClose }) {
                     <span className="comment-time">391 days ago</span>
                   </div>
                   <div className="comment-formatting">
-                    <strong>B</strong> <em>I</em> <u>U</u> 📎
+                    <strong>B</strong> <em>I</em> <u>U</u> <Paperclip size={14} />
                   </div>
                   <div className="comment-actions">
-                    <button className="comment-action">😊</button>
+                    <button className="comment-action">
+                      <Smile size={14} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -344,8 +556,12 @@ export default function TaskDetail({ taskId, onClose }) {
                 className="comment-textarea"
               />
               <div className="comment-input-actions">
-                <button className="send-btn">➤</button>
-                <button className="attach-btn">📎</button>
+                <button className="send-btn">
+                  <Send size={16} />
+                </button>
+                <button className="attach-btn">
+                  <Paperclip size={16} />
+                </button>
               </div>
             </div>
           </div>
@@ -430,27 +646,35 @@ export default function TaskDetail({ taskId, onClose }) {
           <div className="files-view">
             <div className="files-header">
               <div className="files-title">
-                <span className="files-icon">📁</span>
+                <Paperclip className="files-icon" size={24} />
                 <div>
                   <h3>Files (3)</h3>
                   <p>Attachments and documents</p>
                 </div>
               </div>
-              <button className="add-file-btn">+ Add File</button>
+              <button className="add-file-btn">
+                <Plus size={16} /> Add File
+              </button>
             </div>
             
             <div className="file-upload-area">
-              <div className="upload-icon">☁️</div>
+              <div className="upload-icon">
+                <Cloud size={48} />
+              </div>
               <div className="upload-text">
                 <strong>Drag and drop files here or browse</strong>
                 <p>Maximum file size: 5MB per file</p>
               </div>
-              <button className="choose-files-btn">📁 Choose Files</button>
+              <button className="choose-files-btn">
+                <Upload size={16} /> Choose Files
+              </button>
             </div>
             
             <div className="files-list">
               <div className="file-item">
-                <div className="file-icon">📄</div>
+                <div className="file-icon">
+                  <FileText size={24} />
+                </div>
                 <div className="file-details">
                   <strong>database-schema.sql</strong>
                   <div className="file-meta">
@@ -462,7 +686,9 @@ export default function TaskDetail({ taskId, onClose }) {
               </div>
               
               <div className="file-item">
-                <div className="file-icon">📊</div>
+                <div className="file-icon">
+                  <FileText size={24} />
+                </div>
                 <div className="file-details">
                   <strong>migration-plan.xlsx</strong>
                   <div className="file-meta">
@@ -480,7 +706,7 @@ export default function TaskDetail({ taskId, onClose }) {
           <div className="linked-view">
             <div className="linked-header">
               <div className="linked-title">
-                <span className="linked-icon">🔗</span>
+                <Link className="linked-icon" size={24} />
                 <div>
                   <h3>Linked Items (3)</h3>
                   <p>Connected tasks, documents, and resources</p>
@@ -493,13 +719,17 @@ export default function TaskDetail({ taskId, onClose }) {
                   <option>Documents</option>
                   <option>Forms</option>
                 </select>
-                <button className="link-item-btn">+ Link Item</button>
+                <button className="link-item-btn">
+                  <Plus size={16} /> Link Item
+                </button>
               </div>
             </div>
             
             <div className="linked-items">
               <div className="linked-item">
-                <div className="item-icon">📋</div>
+                <div className="item-icon">
+                  <CheckSquare size={24} />
+                </div>
                 <div className="item-details">
                   <strong>Update Documentation</strong>
                   <div className="item-meta">
@@ -508,11 +738,15 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: task</div>
-                <div className="connection-status">🔗 Connected</div>
+                <div className="connection-status">
+                  <Link size={14} /> Connected
+                </div>
               </div>
               
               <div className="linked-item">
-                <div className="item-icon">📄</div>
+                <div className="item-icon">
+                  <FileText size={24} />
+                </div>
                 <div className="item-details">
                   <strong>Migration Plan</strong>
                   <div className="item-meta">
@@ -521,11 +755,15 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: document</div>
-                <div className="connection-status">🔗 Connected</div>
+                <div className="connection-status">
+                  <Link size={14} /> Connected
+                </div>
               </div>
               
               <div className="linked-item">
-                <div className="item-icon">📝</div>
+                <div className="item-icon">
+                  <ClipboardList size={24} />
+                </div>
                 <div className="item-details">
                   <strong>Migration Checklist</strong>
                   <div className="item-meta">
@@ -534,7 +772,9 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: form</div>
-                <div className="connection-status">🔗 Connected</div>
+                <div className="connection-status">
+                  <Link size={14} /> Connected
+                </div>
               </div>
             </div>
           </div>

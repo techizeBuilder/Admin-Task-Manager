@@ -75,7 +75,7 @@
 }
 
 .btn-icon {
-  font-size: 16px;
+  color: inherit;
 }
 
 /* Tab Navigation */
@@ -85,6 +85,7 @@
   padding: 0 24px;
   display: flex;
   overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .tab-button {
@@ -101,31 +102,39 @@
   border-bottom: 3px solid transparent;
   transition: all 0.2s ease;
   white-space: nowrap;
+  position: relative;
+  min-height: 60px;
 }
 
 .tab-button:hover {
   color: #4f46e5;
   background: #f8fafc;
+  border-radius: 8px 8px 0 0;
 }
 
 .tab-button.active {
   color: #4f46e5;
   border-bottom-color: #4f46e5;
   background: #f8fafc;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
 }
 
 .tab-icon {
-  font-size: 16px;
+  color: inherit;
+  transition: color 0.2s ease;
 }
 
 .tab-count {
   background: #4f46e5;
   color: white;
-  font-size: 12px;
+  font-size: 11px;
   padding: 2px 6px;
   border-radius: 10px;
   min-width: 18px;
   text-align: center;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* Main Content */
@@ -148,6 +157,7 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
 .overview-header {
@@ -165,7 +175,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  color: #4f46e5;
 }
 
 .overview-content {
@@ -214,7 +224,17 @@
 }
 
 .reminder-icon {
-  font-size: 20px;
+  color: #d97706;
+}
+
+.description-text {
+  color: #374151;
+  line-height: 1.6;
+  font-size: 14px;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
 }
 
 .reminder-content strong {
@@ -335,6 +355,9 @@
   padding: 4px 8px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .comment-action:hover {
@@ -346,13 +369,18 @@
   display: flex;
   gap: 8px;
   margin: 8px 0;
+  align-items: center;
 }
 
-.comment-formatting > * {
+.comment-formatting > *:not(svg) {
   padding: 4px 8px;
   background: #f3f4f6;
   border-radius: 4px;
   font-size: 12px;
+}
+
+.comment-formatting svg {
+  color: #6b7280;
 }
 
 /* Comment Input */
@@ -439,12 +467,23 @@
   margin: 0;
 }
 
-.activity-filter {
+.activity-filter-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.activity-filter {
+  border: none;
+  background: none;
   font-size: 14px;
-  background: white;
+  color: #374151;
+  outline: none;
+  cursor: pointer;
 }
 
 .activity-list {
@@ -502,6 +541,9 @@
   color: #6b7280;
   font-size: 13px;
   margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Files View */
@@ -575,8 +617,10 @@
 }
 
 .upload-icon {
-  font-size: 48px;
+  color: #9ca3af;
   margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 .upload-text strong {
