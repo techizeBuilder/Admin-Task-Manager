@@ -59,14 +59,9 @@ export function SearchableSelect({
         data-testid={dataTestId}
       >
         <div className="flex items-center justify-between">
-          <div className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
-            {selectedOption ? (
-              <div>
-                <div className="font-medium">{selectedOption.name}</div>
-                {selectedOption.email && <div className="text-xs text-gray-500">{selectedOption.email}</div>}
-              </div>
-            ) : placeholder}
-          </div>
+          <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+            {selectedOption ? selectedOption.name : placeholder}
+          </span>
           <svg 
             className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
             fill="none" 
