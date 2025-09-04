@@ -38,7 +38,8 @@ import {
   BookOpen,
   Globe,
   Layers,
-  Flag
+  Flag,
+  UserPlus
 } from 'lucide-react';
 
 // Menu configuration for different user roles
@@ -296,6 +297,12 @@ export const sidebarMenus = {
       label: 'Administration',
       icon: Shield,
       children: [
+        {
+          id: 'invite-users',
+          label: 'Invite Users',
+          icon: UserPlus,
+          path: '/admin/invite-users'
+        },
         {
           id: 'user-management',
           label: 'User Management',
