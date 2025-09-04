@@ -118,7 +118,7 @@ export default function TaskStatusDropdown({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-20">
+          <div className="absolute top-full left-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
             {/* Valid Transitions */}
             {validTransitions.length > 0 ? (
               <div>
