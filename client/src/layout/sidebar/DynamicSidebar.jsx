@@ -33,7 +33,7 @@ import {
  */
 export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
   const [location, setLocation] = useLocation();
-  const { role, canAccessRoute, hasPermission } = usePermissions();
+  const { role, canAccessRoute, hasPermission, user } = usePermissions();
   const [expandedItems, setExpandedItems] = useState({});
 
   const toggleExpanded = (itemId) => {
@@ -316,6 +316,31 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
     );
   };
 
+  // Get workspace name based on role and organization
+  const getWorkspaceName = () => {
+    const orgName = user?.organizationName || user?.organization?.name || 'Organization';
+    const hasOrganization = user?.organizationId || user?.organization;
+    
+    if (['individual'].includes(role)) {
+      return 'Personal Workspace';
+    }
+    
+    if (['admin', 'org_admin', 'manager', 'employee', 'member'].includes(role)) {
+      if (hasOrganization) {
+        return `${orgName} Workspace`;
+      } else if (role === 'member') {
+        return 'Personal Workspace';
+      }
+      return 'Organization Workspace';
+    }
+    
+    if (['super_admin', 'superadmin'].includes(role)) {
+      return 'Super Admin Panel';
+    }
+    
+    return 'Personal Workspace';
+  };
+
   const menuItems = getMenuItems();
 
   return (
@@ -326,7 +351,10 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <h1 className="text-xl font-bold text-gray-900">TaskSetu</h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">TaskSetu</h1>
+              <p className="text-sm text-gray-600">{getWorkspaceName()}</p>
+            </div>
           )}
           <button
             onClick={onToggle}

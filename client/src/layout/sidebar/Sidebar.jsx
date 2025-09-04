@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMenuByRole } from './config';
 import SidebarItem from './SidebarItem';
+import { useAuth } from '@/features/shared/hooks/useAuth';
 
 const Sidebar = ({ 
   role = 'individual', 
@@ -10,6 +11,7 @@ const Sidebar = ({
   defaultCollapsed = false,
   showToggle = true 
 }) => {
+  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
@@ -38,8 +40,12 @@ const Sidebar = ({
     setIsMobileOpen(!isMobileOpen);
   };
 
-  // Role-specific branding
+  // Role-specific branding with organization names
   const getRoleBranding = () => {
+    // Get organization name from user data
+    const orgName = user?.organization?.name || user?.organizationName || 'Organization';
+    const hasOrganization = user?.organizationId || user?.organization;
+    
     switch (role) {
       case 'superadmin':
       case 'super_admin':
@@ -53,17 +59,37 @@ const Sidebar = ({
       case 'org_admin':
         return {
           title: 'TaskSetu',
-          subtitle: 'Organization Dashboard',
+          subtitle: hasOrganization ? `${orgName} Workspace` : 'Organization Workspace',
           bgGradient: 'from-blue-600 to-cyan-600'
         };
+      case 'manager':
+        return {
+          title: 'TaskSetu',
+          subtitle: hasOrganization ? `${orgName} Workspace` : 'Team Workspace',
+          bgGradient: 'from-yellow-600 to-orange-600'
+        };
+      case 'employee':
       case 'orgMember':
       case 'org_member':
         return {
           title: 'TaskSetu',
-          subtitle: 'Organization Member',
+          subtitle: hasOrganization ? `${orgName} Workspace` : 'Organization Workspace',
           bgGradient: 'from-teal-600 to-cyan-600'
         };
       case 'member':
+        // Member role - could be individual or organization member
+        if (hasOrganization) {
+          return {
+            title: 'TaskSetu',
+            subtitle: `${orgName} Workspace`,
+            bgGradient: 'from-blue-500 to-teal-500'
+          };
+        }
+        return {
+          title: 'TaskSetu',
+          subtitle: 'Personal Workspace',
+          bgGradient: 'from-green-600 to-teal-600'
+        };
       case 'individual':
       default:
         return {

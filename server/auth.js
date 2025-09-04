@@ -46,11 +46,26 @@ export async function authenticateToken(req, res, next) {
 
     console.log('User found:', { id: user._id, email: user.email, organization: user.organization });
 
+    // Get organization details if user has one
+    let organizationName = null;
+    const organizationId = decoded.organizationId || user.organization?.toString() || user.organizationId;
+    
+    if (organizationId) {
+      try {
+        const organization = await storage.getOrganization(organizationId);
+        organizationName = organization?.name;
+      } catch (error) {
+        console.log('Failed to fetch organization:', error);
+      }
+    }
+
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      organizationId: decoded.organizationId || user.organization?.toString() || user.organizationId,
+      organizationId: organizationId,
+      organizationName: organizationName,
       role: decoded.role,
+      permissions: user.permissions || [],
     };
 
     console.log('Authentication successful for user:', req.user);
