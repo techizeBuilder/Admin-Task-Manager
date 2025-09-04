@@ -998,7 +998,7 @@ export default function AllTasks({
   };
 
   return (
-    <div className="space-y-6 px-4 py-6 min-h-0 overflow-hidden">
+    <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -1007,7 +1007,7 @@ export default function AllTasks({
             Manage and track all your tasks
           </p>
         </div>
-        <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
+        <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
             className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap`}
@@ -1151,14 +1151,14 @@ export default function AllTasks({
           </div>
         </div>
       </div>
-
       {/* Filters and Bulk Actions */}
-      <div className="card">
-        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-          <div className="flex-1">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-3">
+          {/* Search Bar */}
+          <div className="flex-1 min-w-0">
             <div className="relative">
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -1175,13 +1175,14 @@ export default function AllTasks({
                 placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="form-input pl-10"
+                className="w-full px-8 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
+          {/* Bulk Actions */}
           {selectedTasks.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-blue-50 rounded-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 bg-blue-50 rounded-md">
               <span className="text-sm font-medium text-blue-800">
                 {selectedTasks.length} selected
               </span>
@@ -1213,9 +1214,10 @@ export default function AllTasks({
             </div>
           )}
 
+          {/* Filters */}
           <div className="w-full">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 auto-cols-fr">
-              <div className="w-full min-w-0">
+            <div className="flex flex-wrap gap-2">
+              <div className="flex-1 min-w-[140px]">
                 <SearchableSelect
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.value)}
@@ -1230,7 +1232,7 @@ export default function AllTasks({
                 />
               </div>
 
-              <div className="w-full min-w-0">
+              <div className="flex-1 min-w-[140px]">
                 <SearchableSelect
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.value)}
@@ -1245,7 +1247,7 @@ export default function AllTasks({
                 />
               </div>
 
-              <div className="w-full min-w-0">
+              <div className="flex-1 min-w-[200px]">
                 <SearchableSelect
                   value={taskTypeFilter}
                   onChange={(e) => setTaskTypeFilter(e.value)}
@@ -1260,7 +1262,7 @@ export default function AllTasks({
                 />
               </div>
 
-              <div className="w-full min-w-0">
+              <div className="flex-1 min-w-[220px]">
                 <SearchableSelect
                   value={dueDateFilter}
                   onChange={(e) => {
@@ -1282,7 +1284,9 @@ export default function AllTasks({
                       ? [
                           {
                             value: "specific_date",
-                            label: `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`,
+                            label: `Date: ${new Date(
+                              window.calendarSpecificDate
+                            ).toLocaleDateString()}`,
                           },
                         ]
                       : []),
@@ -1291,13 +1295,14 @@ export default function AllTasks({
                 />
               </div>
 
-              <div className="w-full min-w-0">
+              <div className="flex-1 min-w-[140px]">
                 <SearchableSelect placeholder="All Categories" />
               </div>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* Calendar View Section */}
       {showCalendarView && (
