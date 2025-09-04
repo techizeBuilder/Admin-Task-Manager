@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePermissions } from '@/features/shared/hooks/usePermissions';
+// Simple role-based permissions instead of complex RBAC
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,7 +36,10 @@ export const TaskHeader = ({
   onStatusChange,
   isLoading = false
 }) => {
-  const { hasPermission, fields, task: taskPermissions } = usePermissions();
+  // Simplified permissions for compatibility
+  const isAdmin = localStorage.getItem('userRole') === 'admin';
+  const fields = { canManageVisibility: true, canAssignToOthers: isAdmin };
+  const taskPermissions = { canManageTeamTasks: isAdmin };
   const [showAllTags, setShowAllTags] = useState(false);
 
   if (!task) return null;
@@ -188,7 +191,7 @@ export const TaskHeader = ({
                   </DropdownMenuItem>
                   
                   {/* Destructive Actions */}
-                  {hasPermission('DELETE_TASK') && (
+                  {isAdmin && (
                     <>
                       <div className="border-t my-1" />
                       <DropdownMenuItem 

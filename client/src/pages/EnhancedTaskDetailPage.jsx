@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePermissions } from '@/features/shared/hooks/usePermissions';
+// import { usePermissions } from '@/features/shared/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 
 // Components
@@ -9,7 +9,7 @@ import TaskHeader from '@/components/tasks/TaskHeader';
 import CoreTaskInfo from '@/components/tasks/CoreTaskInfo';
 import EnhancedTaskTabs from '@/components/tasks/EnhancedTaskTabs';
 import { TaskErrorBoundary, TaskOperationError } from '@/components/tasks/TaskErrorBoundary';
-import EnhancedProtectedRoute from '@/components/auth/EnhancedProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // UI Components
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +29,11 @@ export const EnhancedTaskDetailPage = () => {
   const [match, params] = useRoute('/tasks/:taskId');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, hasPermission, taskPermissions } = usePermissions();
+  // Get user data using the same pattern as other components
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/verify"],
+    retry: false,
+  });
 
   // Local state
   const [operationError, setOperationError] = useState(null);
@@ -234,16 +238,10 @@ export const EnhancedTaskDetailPage = () => {
     toast({ title: 'Export functionality would open here' });
   };
 
-  // Permission checks
-  const canViewTask = hasPermission('VIEW_TASK') || 
-                     task?.assignee?.id === user?.id || 
-                     task?.createdBy?.id === user?.id;
-
-  const canEditTask = hasPermission('EDIT_TASK') || 
-                     (task?.createdBy?.id === user?.id && hasPermission('EDIT_OWN_TASK'));
-
-  const canDeleteTask = hasPermission('DELETE_TASK') || 
-                       (task?.createdBy?.id === user?.id && hasPermission('DELETE_OWN_TASK'));
+  // Permission checks - simplified for compatibility
+  const canViewTask = true; // Will be handled by ProtectedRoute in App.jsx
+  const canEditTask = user?.role === 'admin' || task?.createdBy?.id === user?.id;
+  const canDeleteTask = user?.role === 'admin' || task?.createdBy?.id === user?.id;
 
   // Loading states
   if (taskLoading) {
@@ -308,7 +306,7 @@ export const EnhancedTaskDetailPage = () => {
           onBack={handleBack}
           onEdit={canEditTask ? handleEdit : undefined}
           onReassign={canEditTask ? handleReassign : undefined}
-          onCreateSubtask={taskPermissions.canManageTeamTasks ? handleCreateSubtask : undefined}
+          onCreateSubtask={canEditTask ? handleCreateSubtask : undefined}
           onDelete={canDeleteTask ? handleDelete : undefined}
           onSnooze={handleSnooze}
           onExport={handleExport}
@@ -445,16 +443,4 @@ export const EnhancedTaskDetailPage = () => {
   );
 };
 
-/**
- * Protected Task Detail Page
- * Wraps the main component with authentication and route protection
- */
-const ProtectedTaskDetailPage = () => {
-  return (
-    <EnhancedProtectedRoute requiredPermission="VIEW_TASK">
-      <EnhancedTaskDetailPage />
-    </EnhancedProtectedRoute>
-  );
-};
-
-export default ProtectedTaskDetailPage;
+export default EnhancedTaskDetailPage;

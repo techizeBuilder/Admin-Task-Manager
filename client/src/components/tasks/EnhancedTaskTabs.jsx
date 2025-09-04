@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePermissions } from '@/features/shared/hooks/usePermissions';
+// Simplified permissions instead of complex RBAC
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,10 @@ export const EnhancedTaskTabs = ({
   onDeleteComment,
   currentUser
 }) => {
-  const { taskPermissions, fields } = usePermissions();
+  // Simplified permissions for compatibility
+  const isAdmin = localStorage.getItem('userRole') === 'admin';
+  const taskPermissions = { canManageTeamTasks: isAdmin };
+  const fields = { canAssignToOthers: isAdmin };
   const [activeTab, setActiveTab] = useState('subtasks');
 
   // Calculate counts for tab badges
