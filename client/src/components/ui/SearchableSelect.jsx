@@ -15,7 +15,8 @@ export function SearchableSelect({
   const inputRef = useRef(null);
 
   const filteredOptions = options.filter(option =>
-    option.label.toLowerCase().includes(searchTerm.toLowerCase())
+    option.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (option.email && option.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const selectedOption = options.find(option => option.value === value);
@@ -32,7 +33,7 @@ export function SearchableSelect({
   }, []);
 
   const handleSelect = (option) => {
-    onChange(option);
+    onChange(option.value);
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -58,9 +59,14 @@ export function SearchableSelect({
         data-testid={dataTestId}
       >
         <div className="flex items-center justify-between">
-          <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
+          <div className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+            {selectedOption ? (
+              <div>
+                <div className="font-medium">{selectedOption.name}</div>
+                {selectedOption.email && <div className="text-xs text-gray-500">{selectedOption.email}</div>}
+              </div>
+            ) : placeholder}
+          </div>
           <svg 
             className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
             fill="none" 
@@ -96,7 +102,10 @@ export function SearchableSelect({
                   onClick={() => handleSelect(option)}
                   data-testid={`${dataTestId}-option-${option.value}`}
                 >
-                  {option.label}
+                  <div>
+                    <div className="font-medium">{option.name}</div>
+                    {option.email && <div className="text-xs text-gray-500">{option.email}</div>}
+                  </div>
                 </button>
               ))
             ) : (
