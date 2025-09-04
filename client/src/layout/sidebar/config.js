@@ -310,6 +310,12 @@ export const sidebarMenus = {
           path: '/admin/users'
         },
         {
+          id: 'team-members',
+          label: 'Team Members',
+          icon: Users,
+          path: '/admin/team-members'
+        },
+        {
           id: 'company-profile',
           label: 'Company Profile',
           icon: Building2,
@@ -320,6 +326,12 @@ export const sidebarMenus = {
           label: 'License & Subscription',
           icon: Key,
           path: '/admin/subscription'
+        },
+        {
+          id: 'plans-licenses',
+          label: 'Plans & Licenses',
+          icon: Key,
+          path: '/admin/plans'
         },
         {
           id: 'status-management',
