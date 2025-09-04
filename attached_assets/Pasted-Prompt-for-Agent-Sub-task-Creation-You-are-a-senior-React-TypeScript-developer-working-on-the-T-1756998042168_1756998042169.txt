@@ -1,0 +1,78 @@
+Prompt for Agent – Sub-task Creation
+
+You are a senior React + TypeScript developer working on the Tasksetu project.
+Your task is to implement the Sub-task Creation feature inside the TaskView page, following the given specifications.
+
+📌 Requirements
+
+Sub-task Creation UI
+
+Implement as an inline component (inside the parent task’s Subtasks tab).
+
+Show a sub-task form row with these fields:
+
+Sub-task Name → mandatory text input, default "New Sub-task", max 60 chars, inline editable.
+
+Assigned To → mandatory searchable dropdown (default = self/creator).
+
+Due Date → mandatory date picker (default = parent’s due date, cannot exceed parent’s due date).
+
+Priority → optional dropdown (Low, Medium, High, Critical; default = Low).
+
+Status → mandatory dropdown (default = "To Do", options: To Do, In Progress, Blocked, Completed).
+
+Visibility → mandatory dropdown (default = inherit parent’s visibility, allow override for org users).
+
+Notes → optional rich text editor.
+
+Attachments → optional file uploader with drag & drop support + version control.
+
+Inheritance & Default Logic
+
+Inherited by default: Visibility → inherits parent task’s visibility.
+
+Suggested from parent: Due date → prefilled from parent’s due date.
+
+Independent fields: Priority & Assignee are independent (assignee = self by default).
+
+Validation Rules
+
+Sub-task must have a name, assignee, due date, status, and visibility.
+
+Due date cannot exceed parent’s due date → show inline validation error if violated.
+
+Enforce max 60 chars for name → error message if exceeded.
+
+Role-based Permissions
+
+Only creator, assignee, manager, or admin can add/edit subtasks.
+
+Unauthorized roles → show disabled state with tooltip “You don’t have permission”.
+
+UX & Theming
+
+Use Tailwind + shadcn/ui + lucide-react for design.
+
+Keep UI lightweight, inline editable, and fast to create subtasks.
+
+Add + Add Sub-task button → opens inline editable row.
+
+System Logic & Error Handling
+
+Status transitions follow Task Status Management rules (no invalid jumps).
+
+Attachments → support versioning (previous file retrievable).
+
+Show inline error if:
+
+Due date exceeds parent.
+
+Required field missing.
+
+File upload fails.
+
+Best Practices
+
+Use React Query for fetching/updating sub-task data.
+
+Keep components modular (SubtaskForm.tsx, SubtaskList.tsx, SubtaskItem.tsx).

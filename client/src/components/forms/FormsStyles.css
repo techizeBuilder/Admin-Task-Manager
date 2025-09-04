@@ -281,6 +281,20 @@
   color: #4338ca;
 }
 
+.form-note {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.form-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
 /* Info Section */
 .info-section {
   background: #f8fafc;

@@ -12,16 +12,16 @@ function SubtaskForm({
   mode = 'create' // 'create' or 'edit'
 }) {
   const [formData, setFormData] = useState({
-    title: '',
+    title: 'New Sub-task',
     assignee: '',
-    dueDate: '',
+    dueDate: parentTask?.dueDate || '',
     priority: 'Low Priority',
     status: 'To Do',
-    visibility: 'Private',
+    visibility: parentTask?.visibility || 'Internal',
     description: ''
   });
 
-  // Populate form when editing
+  // Populate form when editing or reset with parent data
   useEffect(() => {
     if (editData && mode === 'edit') {
       setFormData({
@@ -30,28 +30,73 @@ function SubtaskForm({
         dueDate: editData.dueDate || '',
         priority: editData.priority || 'Low Priority',
         status: editData.status || 'To Do',
-        visibility: editData.visibility || 'Private',
+        visibility: editData.visibility || 'Internal',
         description: editData.description || ''
       });
+    } else if (mode === 'create') {
+      setFormData({
+        title: 'New Sub-task',
+        assignee: '',
+        dueDate: parentTask?.dueDate || '',
+        priority: 'Low Priority',
+        status: 'To Do',
+        visibility: parentTask?.visibility || 'Internal',
+        description: ''
+      });
     }
-  }, [editData, mode]);
+  }, [editData, mode, parentTask]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.title.trim()) {
-      onSubmit(formData);
-      handleCancel();
+    const errors = validateForm();
+    
+    if (errors.length > 0) {
+      alert('Please fix the following errors:\n' + errors.join('\n'));
+      return;
     }
+    
+    onSubmit(formData);
+    handleCancel();
+  };
+
+  const validateForm = () => {
+    const errors = [];
+    
+    if (!formData.title.trim()) {
+      errors.push('Sub-task name is required');
+    }
+    
+    if (formData.title.length > 60) {
+      errors.push('Sub-task name cannot exceed 60 characters');
+    }
+    
+    if (!formData.assignee) {
+      errors.push('Assignee is required');
+    }
+    
+    if (!formData.dueDate) {
+      errors.push('Due date is required');
+    }
+    
+    if (parentTask?.dueDate && formData.dueDate) {
+      const selectedDate = new Date(formData.dueDate);
+      const parentDueDate = new Date(parentTask.dueDate);
+      if (selectedDate > parentDueDate) {
+        errors.push('Due date cannot exceed parent task due date');
+      }
+    }
+    
+    return errors;
   };
 
   const handleCancel = () => {
     setFormData({
-      title: '',
+      title: 'New Sub-task',
       assignee: '',
-      dueDate: '',
+      dueDate: parentTask?.dueDate || '',
       priority: 'Low Priority',
       status: 'To Do',
-      visibility: 'Private',
+      visibility: parentTask?.visibility || 'Internal',
       description: ''
     });
     onClose();
