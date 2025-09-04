@@ -56,6 +56,12 @@ import VerifyAndSetPassword from "./pages/auth/VerifyAndSetPassword";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import RegistrationSuccess from "./pages/auth/RegistrationSuccess";
 
+// Licensing & Subscription Components
+import LicenseManagementPage from "./features/licensing/pages/LicenseManagementPage";
+import BillingPage from "./features/licensing/pages/BillingPage";
+import PricingPage from "./features/licensing/pages/PricingPage";
+import PurchaseUpgradePage from "./features/licensing/pages/PurchaseUpgradePage";
+
 // Role Protection Components
 import {
   RoleProtectedRoute,
@@ -661,6 +667,26 @@ function App() {
           <SettingsLayout>
             <ProtectedRoute component={Subscription} requiredRole="admin" />
           </SettingsLayout>
+        </Route>
+        
+        {/* Licensing & Subscription Routes */}
+        <Route path="/admin/subscription">
+          <AdminLayout>
+            <ProtectedRoute component={LicenseManagementPage} requiredRole="admin" />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/billing">
+          <AdminLayout>
+            <ProtectedRoute component={BillingPage} requiredRole="admin" />
+          </AdminLayout>
+        </Route>
+        <Route path="/admin/upgrade">
+          <AdminLayout>
+            <ProtectedRoute component={PurchaseUpgradePage} requiredRole="admin" />
+          </AdminLayout>
+        </Route>
+        <Route path="/pricing">
+          <PricingPage />
         </Route>
         <Route path="/settings/roles">
           <SettingsLayout>
