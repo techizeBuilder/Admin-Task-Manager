@@ -1,0 +1,59 @@
+Prompt:
+
+Based on the clarified role definitions and project requirements, update the sidebar menu structure and access control system for the Tasksetu platform. Deliverables should cover:
+
+1. Sidebar Role Mapping
+
+Define the sidebar and submenu items for each role:
+
+Individual User (Solo Workspace Admin) → Show personal task pages, reports, license & billing (for their own account).
+
+Manager → Same as Member + access to "Team Tasks" and team-level reports.
+
+Member (Regular User) → Only personal task pages, reports, and profile.
+
+Company Admin → Full organization sidebar, including User Management, License & Billing, Company Settings.
+
+Tasksetu Admin (Super Admin) → Separate platform-level admin portal sidebar (Companies, Global Users, Feature Mapping, Audit Logs).
+
+2. Access Control Enforcement
+
+Implement role-based access control (RBAC) at the router level in the frontend.
+
+Ensure that if a user tries to paste a restricted URL directly in the browser (e.g., /admin/users by a Member), they are:
+
+Blocked with a 403 Unauthorized page, OR
+
+Redirected back to their allowed dashboard.
+
+All pages should validate access rights before rendering content.
+
+Ensure permissions are checked both on the frontend (for UX) and backend API endpoints (for security).
+
+3. Technical Implementation
+
+Use a centralized permissions config mapping roles → accessible routes.
+
+Sidebar should dynamically render only the allowed menu items for the logged-in user.
+
+Routing layer should cross-check role before loading a page.
+
+Add a fallback route (Not Authorized) for blocked pages.
+
+4. UI/UX Guidelines
+
+Sidebar should not show hidden links (avoid “greyed out” items for forbidden features).
+
+Unauthorized attempts should show a clean error state (e.g., "You don’t have permission to access this page").
+
+Profile menu (avatar) remains visible for all roles, with personal settings only.
+
+Output should include:
+
+Updated sidebar definitions per role.
+
+Route-access mapping.
+
+Flow for unauthorized access.
+
+Clear notes on ensuring URL-based access cannot bypass permissions.
