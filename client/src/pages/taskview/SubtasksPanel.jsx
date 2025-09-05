@@ -130,53 +130,45 @@ function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
           )}
         </div>
 
-        {!isCollapsed && (
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              placeholder="Search subtasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-xs border border-gray-300 rounded px-2 py-0.5 w-24 focus:w-32 transition-all duration-200"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="text-xs border border-gray-300 rounded px-1 py-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value="all">All Status</option>
-              <option value="todo">To Do</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-            </select>
-            <button
-              className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowInlineAdd(true);
-              }}
-            >
-              + Add Sub-task
-            </button>
-          </div>
-        )}
+      {!isCollapsed && (
+  <div className="flex items-center gap-2">
+    <input
+      type="text"
+      placeholder="Search subtasks..."
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="text-sm border border-gray-300 rounded px-3 py-1 w-40 focus:w-56 transition-all duration-200"
+      onClick={(e) => e.stopPropagation()}
+    />
+    <select
+      value={filter}
+      onChange={(e) => setFilter(e.target.value)}
+      className="text-sm border border-gray-300 rounded px-3 py-1"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <option value="all">All Status</option>
+      <option value="todo">To Do</option>
+      <option value="in-progress">In Progress</option>
+      <option value="completed">Completed</option>
+    </select>
+    <button
+      className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowInlineAdd(true);
+      }}
+    >
+      + Add Sub-task
+    </button>
+  </div>
+)}
+
       </div>
 
       {/* Compact Content */}
       {!isCollapsed && (
         <div>
-          {showInlineAdd && (
-            <div className="px-3 py-2 border-b border-gray-100 bg-blue-50">
-              <InlineSubtaskAdd
-                parentTask={parentTask}
-                currentUser={currentUser}
-                onSubmit={handleCreateSubtask}
-                onCancel={() => setShowInlineAdd(false)}
-              />
-            </div>
-          )}
+     
 
           <div>
             {filteredSubtasks.map((subtask, index) => (
@@ -299,71 +291,6 @@ function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
   );
 }
 
-// Inline subtask add component
-function InlineSubtaskAdd({ parentTask, currentUser, onSubmit, onCancel }) {
-  const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState("");
-  const [dueDate, setDueDate] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (title.trim()) {
-      onSubmit({
-        title: title.trim(),
-        assignee: assignee || currentUser.name,
-        dueDate: dueDate || new Date().toISOString().split('T')[0],
-        status: "OPEN",
-        priority: "medium",
-      });
-      setTitle("");
-      setAssignee("");
-      setDueDate("");
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-2">
-      <div className="grid grid-cols-3 gap-2">
-        <input
-          type="text"
-          placeholder="Sub-task title..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="text-xs border border-gray-300 rounded px-2 py-1"
-          autoFocus
-          required
-        />
-        <input
-          type="text"
-          placeholder="Assignee..."
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
-          className="text-xs border border-gray-300 rounded px-2 py-1"
-        />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="text-xs border border-gray-300 rounded px-2 py-1"
-        />
-      </div>
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-        >
-          Add
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
 
 export default SubtasksPanel;

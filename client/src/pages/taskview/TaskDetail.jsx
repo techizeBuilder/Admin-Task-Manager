@@ -352,7 +352,7 @@ export default function TaskDetail({ taskId, onClose }) {
                       <div className="detail-row">
                         <span className="detail-label">Type:</span>
                         <div className="detail-value">
-                          <span className="task-type-indicator">●</span>
+                    
                           <span>Regular Task</span>
                         </div>
                       </div>
