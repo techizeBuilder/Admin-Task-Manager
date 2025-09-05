@@ -39,7 +39,7 @@ const CustomEditor = ({
   ];
 
   return (
-    <div className={`custom-editor ${className}`}>
+    <div className={`custom-editor  ${className}`}>
       <ReactQuill
         theme="snow"
         value={value}
@@ -48,7 +48,7 @@ const CustomEditor = ({
         modules={modules}
         formats={formats}
         readOnly={readOnly}
-        style={{ height }}
+  
         {...props}
       />
     </div>

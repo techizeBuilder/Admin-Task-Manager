@@ -143,7 +143,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+      <h3 className="text-lg font-semibold text-gray-900">
         Comments ({comments.length})
       </h3>
 
@@ -155,7 +155,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
               value={newComment}
               onChange={setNewComment}
               placeholder="Add a comment... Use @username to mention someone"
-              height="120px"
+           
               className="border rounded-md"
             />
             
@@ -173,7 +173,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm">{user.firstName} {user.lastName}</span>
-                    <span className="text-xs text-gray-500">{user.email}</span>
+                    <span className="text-xs text-gray-900">{user.email}</span>
                   </div>
                 ))}
               </div>
@@ -182,7 +182,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
           
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <AtSign className="h-4 w-4" />
+          
               <span>Use @ to mention users</span>
             </div>
             <Button 
@@ -213,13 +213,13 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-gray-900 dark:text-white">
+                        <span className="font-medium text-sm text-gray-900 ">
                           {comment.author?.firstName && comment.author?.lastName 
                             ? `${comment.author.firstName} ${comment.author.lastName}`
                             : comment.author?.name || comment.author?.email || 'Unknown User'
                           }
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-900  ">
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                         </span>
                         {comment.isEdited && (
@@ -264,7 +264,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                         <CustomEditor
                           value={editText}
                           onChange={setEditText}
-                          height="80px"
+                      
                           className="border rounded-md"
                         />
                         <div className="flex gap-2">
@@ -278,7 +278,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                       </div>
                     ) : (
                       <div 
-                        className="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none"
+                        className="text-sm text-gray-900  prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{ 
                           __html: renderCommentContent(comment.content) 
                         }}
@@ -287,7 +287,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                     
                     {comment.mentions && comment.mentions.length > 0 && (
                       <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-xs text-gray-500">Mentioned:</span>
+                        <span className="text-xs text-gray-900  ">Mentioned:</span>
                         {comment.mentions.map((user, index) => (
                           <Badge key={index} variant="outline" className="text-xs">
                             {user.firstName} {user.lastName}
@@ -304,7 +304,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                             value={replyText}
                             onChange={setReplyText}
                             placeholder="Write a reply... Use @username to mention someone"
-                            height="80px"
+                         
                             className="border rounded-md"
                           />
                           <div className="flex gap-2">
@@ -341,7 +341,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
               {expandedComments[comment.id] && replies.length > 0 && (
                 <div className="ml-12 space-y-2">
                   {replies.map((reply) => (
-                    <Card key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800">
+                    <Card key={reply.id} className="p-3 bg-gray-900">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={reply.author?.avatar} />
@@ -353,13 +353,13 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-xs text-gray-900 dark:text-white">
+                              <span className="font-medium text-xs text-gray-900 ">
                                 {reply.author?.firstName && reply.author?.lastName 
                                   ? `${reply.author.firstName} ${reply.author.lastName}`
                                   : reply.author?.name || reply.author?.email || 'Unknown User'
                                 }
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-900">
                                 {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
                               </span>
                               {reply.isEdited && (
@@ -402,7 +402,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                           
                           {reply.mentions && reply.mentions.length > 0 && (
                             <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-xs text-gray-500">Mentioned:</span>
+                              <span className="text-xs text-gray-900">Mentioned:</span>
                               {reply.mentions.map((user, index) => (
                                 <Badge key={index} variant="outline" className="text-xs">
                                   {user.firstName} {user.lastName}
@@ -421,7 +421,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
         })}
         
         {getTopLevelComments().length === 0 && (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-gray-900">
             <p>No comments yet. Be the first to comment!</p>
           </div>
         )}

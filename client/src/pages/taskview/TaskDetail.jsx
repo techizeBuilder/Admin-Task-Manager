@@ -686,8 +686,12 @@ export default function TaskDetail({ taskId, onClose }) {
                   <option>Documents</option>
                   <option>Forms</option>
                 </select>
-                <button className="link-item-btn">
-                  <Plus size={16} /> Link Item
+                <button className="btn btn-primary flex align-middle">
+                  <Plus size={16} className='mx-2 ' />
+                  <h2>
+                    
+                     Link Item
+                    </h2>
                 </button>
               </div>
             </div>
@@ -705,8 +709,8 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: task</div>
-                <div className="connection-status">
-                  <Link size={14} /> Connected
+                <div className="connection-status flex ">
+                  <Link size={20} /> Connected
                 </div>
               </div>
               
@@ -722,8 +726,8 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: document</div>
-                <div className="connection-status">
-                  <Link size={14} /> Connected
+                <div className="connection-status flex">
+             <Link size={20} /> Connected
                 </div>
               </div>
               
@@ -739,8 +743,8 @@ export default function TaskDetail({ taskId, onClose }) {
                   </div>
                 </div>
                 <div className="item-type-label">Type: form</div>
-                <div className="connection-status">
-                  <Link size={14} /> Connected
+                <div className="connection-status flex">
+                  <Link size={20} /> Connected
                 </div>
               </div>
             </div>

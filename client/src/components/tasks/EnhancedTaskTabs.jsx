@@ -303,7 +303,7 @@ export const EnhancedTaskTabs = ({
               <span className="font-medium">{subtask.title}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">{subtask.dueDate}</span>
+              <span className="text-sm text-black">{subtask.dueDate}</span>
               <Avatar className="h-6 w-6">
                 <AvatarFallback className="text-xs">{subtask.assignee}</AvatarFallback>
               </Avatar>
@@ -356,10 +356,10 @@ export const EnhancedTaskTabs = ({
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-medium text-sm">{comment.author.name}</span>
-                <span className="text-xs text-gray-500">{comment.time}</span>
+                <span className="text-xs text-black">{comment.time}</span>
               </div>
-              <p className="text-sm text-gray-700 mb-3">{comment.content}</p>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <p className="text-sm text-black mb-3">{comment.content}</p>
+              <div className="flex items-center gap-4 text-xs text-black">
                 <button className="flex items-center gap-1 hover:text-blue-600">
                   👍 {comment.reactions.thumbsUp}
                 </button>
