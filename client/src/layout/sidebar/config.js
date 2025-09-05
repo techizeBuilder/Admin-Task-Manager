@@ -297,12 +297,12 @@ export const sidebarMenus = {
       label: 'Administration',
       icon: Shield,
       children: [
-        {
-          id: 'invite-users',
-          label: 'Invite Users',
-          icon: UserPlus,
-          path: '/admin/invite-users'
-        },
+        // {
+        //   id: 'invite-users',
+        //   label: 'Invite Users',
+        //   icon: UserPlus,
+        //   path: '/admin/invite-users'
+        // },
         {
           id: 'user-management',
           label: 'User Management',
