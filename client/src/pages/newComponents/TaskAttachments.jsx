@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react'
 import { FileText, BarChart3, Database, Image, Folder, Cloud, Download, Trash2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react'
-import AttachmentUploader from '../../components/common/AttachmentUploader'
+import SimpleFileUploader from '../../components/common/SimpleFileUploader'
 import '../../components/common/AttachmentUploader.css'
 
 export default function TaskAttachments({ taskId }) {
@@ -168,16 +168,12 @@ export default function TaskAttachments({ taskId }) {
 
         {/* File Upload Area */}
         <div className="mb-6">
-          <AttachmentUploader
+          <SimpleFileUploader
             files={files}
             onFilesChange={setFiles}
-            multiple={true}
-            maxSize={10 * 1024 * 1024}
+            maxSize={5 * 1024 * 1024}
             maxFiles={20}
-            acceptedTypes="*/*"
-            dragDropText="Drag and drop files here or browse"
-            showPreview={false}
-            className="attachment-uploader-white-bg"
+            className="w-full"
           />
         </div>
 

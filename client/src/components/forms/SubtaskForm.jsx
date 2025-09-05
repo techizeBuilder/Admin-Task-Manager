@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, User, Tag, AlertCircle, Paperclip, Plus, Upload, FileText } from 'lucide-react';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import '../ui/SearchableSelectStyles.css';
-import AttachmentUploader from '../common/AttachmentUploader';
+import RichTextEditor from '../common/RichTextEditor';
+import SimpleFileUploader from '../common/SimpleFileUploader';
 
 function SubtaskForm({ 
   isOpen, 
@@ -232,20 +233,12 @@ function SubtaskForm({
             {/* Description */}
             <div className="form-group">
               <label className="form-label">Description</label>
-              <div className="description-toolbar">
-                <button type="button" className="toolbar-btn">B</button>
-                <button type="button" className="toolbar-btn">I</button>
-                <button type="button" className="toolbar-btn">U</button>
-                <button type="button" className="toolbar-btn">
-                  <Paperclip size={12} />
-                </button>
-              </div>
-              <textarea
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(content) => setFormData({...formData, description: content})}
                 placeholder="Add notes or description... (supports rich text)"
-                className="form-textarea"
-                rows="4"
+                className="w-full"
+                minHeight="120px"
               />
               <div className="form-hint">
                 Use Tab to navigate fields, Enter to submit form
@@ -256,17 +249,14 @@ function SubtaskForm({
             <div className="form-group">
               <label className="form-label">
                 <Paperclip size={16} />
-                Attachments (Optional)
+                Attachments (Max 5MB total)
               </label>
-              <AttachmentUploader
+              <SimpleFileUploader
                 files={formData.attachments}
                 onFilesChange={(files) => setFormData({...formData, attachments: files})}
-                multiple={true}
-                maxSize={10 * 1024 * 1024}
+                maxSize={5 * 1024 * 1024}
                 maxFiles={5}
-                acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
-                dragDropText="Drag & drop files here or click to browse"
-                compact={false}
+                className="w-full"
               />
             </div>
 
