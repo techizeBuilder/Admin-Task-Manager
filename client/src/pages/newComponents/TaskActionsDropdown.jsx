@@ -3,6 +3,13 @@ import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-rea
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
 import { useLocation } from "wouter";
+import { 
+  DeleteTaskModal, 
+  ReassignTaskModal, 
+  SnoozeTaskModal, 
+  MarkRiskModal, 
+  MarkDoneModal 
+} from '../../components/modals/TaskModals';
 
 export default function TaskActionsDropdown({
   task,
@@ -16,6 +23,12 @@ export default function TaskActionsDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [, navigate] = useLocation();
+  
+  // Modal states
+  const [showSnoozeModal, setShowSnoozeModal] = useState(false);
+  const [showMarkRiskModal, setShowMarkRiskModal] = useState(false);
+  const [showMarkDoneModal, setShowMarkDoneModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -72,7 +85,8 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/tasks/${task.id}/subtasks/create`);
+              setIsOpen(false);
+              openSubtaskDrawer(task.id);
             }}
           >
             <Plus size={16} className="text-gray-600" />
@@ -83,7 +97,8 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/tasks/${task.id}/snooze`);
+              setIsOpen(false);
+              setShowSnoozeModal(true);
             }}
           >
             <Pause size={16} className="text-gray-600" />
@@ -94,7 +109,8 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/tasks/${task.id}/mark-risk`);
+              setIsOpen(false);
+              setShowMarkRiskModal(true);
             }}
           >
             <AlertTriangle size={16} className="text-gray-600" />
@@ -105,7 +121,8 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/tasks/${task.id}/mark-done`);
+              setIsOpen(false);
+              setShowMarkDoneModal(true);
             }}
           >
             <CheckCircle size={16} className="text-gray-600" />
@@ -118,7 +135,8 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/tasks/${task.id}/delete`);
+              setIsOpen(false);
+              setShowDeleteModal(true);
             }}
           >
             <Trash2 size={16} className="text-red-600" />
@@ -126,6 +144,47 @@ export default function TaskActionsDropdown({
           </button>
         </div>
       )}
+
+      {/* Modals */}
+      <SnoozeTaskModal
+        isOpen={showSnoozeModal}
+        onClose={() => setShowSnoozeModal(false)}
+        onConfirm={(snoozeData) => {
+          onSnooze && onSnooze(snoozeData);
+          setShowSnoozeModal(false);
+        }}
+        task={task}
+      />
+
+      <MarkRiskModal
+        isOpen={showMarkRiskModal}
+        onClose={() => setShowMarkRiskModal(false)}
+        onConfirm={(riskData) => {
+          onMarkAsRisk && onMarkAsRisk(riskData);
+          setShowMarkRiskModal(false);
+        }}
+        task={task}
+      />
+
+      <MarkDoneModal
+        isOpen={showMarkDoneModal}
+        onClose={() => setShowMarkDoneModal(false)}
+        onConfirm={(doneData) => {
+          onMarkAsDone && onMarkAsDone(doneData);
+          setShowMarkDoneModal(false);
+        }}
+        task={task}
+      />
+
+      <DeleteTaskModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          onDelete && onDelete();
+          setShowDeleteModal(false);
+        }}
+        task={task}
+      />
     </div>
   );
 }
