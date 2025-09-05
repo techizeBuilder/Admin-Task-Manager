@@ -97,7 +97,7 @@
   color: inherit;
 }
 
-/* Tab Navigation - Modern Design */
+/* Tab Navigation */
 .task-tabs {
   background: white;
   padding: 0 24px;
@@ -105,15 +105,13 @@
   overflow-x: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid #e5e7eb;
-  gap: 2px;
 }
 
 .tab-button {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   border: none;
   background: none;
   color: #6b7280;
@@ -123,30 +121,15 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   min-height: 60px;
-  border-radius: 8px 8px 0 0;
-  margin-bottom: -1px;
 }
 
 .tab-button:hover {
-  color: #3b82f6;
-  background: #f8fafc;
+  color: #4f46e5;
 }
 
 .tab-button.active {
-  color: #3b82f6;
+  color: #4f46e5;
   font-weight: 600;
-  background: #eff6ff;
-}
-
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #3b82f6;
-  border-radius: 1px 1px 0 0;
 }
 
 .tab-icon {
