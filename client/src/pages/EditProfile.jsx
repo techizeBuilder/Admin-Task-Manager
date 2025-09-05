@@ -12,13 +12,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Camera, Save, ArrowLeft, X, Shield, Clock, Key, Settings, Bell, Globe } from "lucide-react";
+import {
+  User,
+  Camera,
+  Save,
+  ArrowLeft,
+  X,
+  Shield,
+  Clock,
+  Key,
+  Settings,
+  Bell,
+  Globe,
+} from "lucide-react";
 
 export default function EditProfile() {
   const [, setLocation] = useLocation();
@@ -55,7 +73,7 @@ export default function EditProfile() {
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -99,8 +117,12 @@ export default function EditProfile() {
         phoneNumber: currentUser.phoneNumber || "",
         department: currentUser.department || "",
         manager: currentUser.manager || "",
-        organizationName: currentUser.organizationName || currentUser.organization?.name || "",
-        timeZone: currentUser.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata",
+        organizationName:
+          currentUser.organizationName || currentUser.organization?.name || "",
+        timeZone:
+          currentUser.timeZone ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone ||
+          "Asia/Kolkata",
         emailNotifications: currentUser.emailNotifications !== false,
         inAppNotifications: currentUser.inAppNotifications !== false,
         pushNotifications: currentUser.pushNotifications === true,
@@ -112,9 +134,10 @@ export default function EditProfile() {
 
   // Check for changes
   useEffect(() => {
-    const hasFormChanges = Object.keys(formData).some(key => 
-      formData[key] !== originalData[key]
-    ) || selectedFile !== null;
+    const hasFormChanges =
+      Object.keys(formData).some(
+        (key) => formData[key] !== originalData[key],
+      ) || selectedFile !== null;
     setHasChanges(hasFormChanges);
   }, [formData, originalData, selectedFile]);
 
@@ -174,10 +197,12 @@ export default function EditProfile() {
       // Optimistic cache update (header + edit profile dono refresh ho jayenge)
       queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
       queryClient.setQueryData(["/api/profile"], updatedUserData);
-      
+
       // Invalidate the header's user data query to trigger immediate header update
       if (data.user?.id) {
-        queryClient.invalidateQueries({ queryKey: ["/api/users", data.user.id] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/users", data.user.id],
+        });
       }
 
       // Reset local preview
@@ -197,9 +222,9 @@ export default function EditProfile() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -210,8 +235,12 @@ export default function EditProfile() {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       toast({
         title: "Validation Error",
         description: "All password fields are required",
@@ -219,38 +248,43 @@ export default function EditProfile() {
       });
       return;
     }
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
-        title: "Validation Error", 
+        title: "Validation Error",
         description: "New passwords do not match",
         variant: "destructive",
       });
       return;
     }
-    
+
     if (!validatePasswordStrength(passwordData.newPassword)) {
       toast({
         title: "Validation Error",
-        description: "Password must be at least 8 characters with uppercase, lowercase, and numbers",
+        description:
+          "Password must be at least 8 characters with uppercase, lowercase, and numbers",
         variant: "destructive",
       });
       return;
     }
-    
+
     try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(passwordData)
+      const response = await fetch("/api/auth/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(passwordData),
       });
-      
+
       if (response.ok) {
         toast({
           title: "Success",
           description: "Password changed successfully",
         });
-        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
         setShowPasswordSection(false);
       } else {
         const error = await response.text();
@@ -338,7 +372,7 @@ export default function EditProfile() {
       });
       return;
     }
-    
+
     // Phone number validation
     if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
       toast({
@@ -355,57 +389,59 @@ export default function EditProfile() {
   // Validation functions
   const validatePhoneNumber = (phone) => {
     const phoneRegex = /^[+]?[0-9]{10,15}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+    return phoneRegex.test(phone.replace(/\s/g, ""));
   };
 
   const validatePasswordStrength = (password) => {
-    return password.length >= 8 && 
-           /[A-Z]/.test(password) && 
-           /[a-z]/.test(password) && 
-           /[0-9]/.test(password);
+    return (
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[0-9]/.test(password)
+    );
   };
 
   // Helper functions
   const isOrgUser = () => {
-    return currentUser?.role !== 'individual' && currentUser?.organizationId;
+    return currentUser?.role !== "individual" && currentUser?.organizationId;
   };
 
   const getRoleBadgeVariant = (role) => {
     const variants = {
-      'admin': 'default',
-      'manager': 'secondary', 
-      'employee': 'outline',
-      'individual': 'outline'
+      admin: "default",
+      manager: "secondary",
+      employee: "outline",
+      individual: "outline",
     };
-    return variants[role] || 'outline';
+    return variants[role] || "outline";
   };
 
   const getRoleDisplayName = (role) => {
     const names = {
-      'admin': 'Company Admin',
-      'manager': 'Manager',
-      'employee': 'Regular User', 
-      'individual': 'Individual'
+      admin: "Company Admin",
+      manager: "Manager",
+      employee: "Regular User",
+      individual: "Individual",
     };
     return names[role] || role;
   };
 
   const getLicenseDisplayName = (license) => {
     const names = {
-      'explore_free': 'Explore Free',
-      'plan': 'Plan',
-      'execute': 'Execute',
-      'optimize': 'Optimize'
+      explore_free: "Explore Free",
+      plan: "Plan",
+      execute: "Execute",
+      optimize: "Optimize",
     };
     return names[license] || license;
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Not available';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric'
+    if (!dateString) return "Not available";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -557,7 +593,9 @@ export default function EditProfile() {
                       value={currentUser?.email || ""}
                       disabled={isOrgUser()}
                       readOnly={isOrgUser()}
-                      className={isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""}
+                      className={
+                        isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""
+                      }
                       data-testid="input-email"
                     />
                     {isOrgUser() && (
@@ -576,11 +614,13 @@ export default function EditProfile() {
                       placeholder="10-15 digits"
                       data-testid="input-phone"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Optional • 10-15 digits</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Optional • 10-15 digits
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               {/* Organization Information */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -596,8 +636,12 @@ export default function EditProfile() {
                       value={formData.organizationName}
                       onChange={handleInputChange}
                       disabled={isOrgUser()}
-                      className={isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""}
-                      placeholder={!isOrgUser() ? "Enter organization name" : ""}
+                      className={
+                        isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""
+                      }
+                      placeholder={
+                        !isOrgUser() ? "Enter organization name" : ""
+                      }
                       data-testid="input-organization"
                     />
                   </div>
@@ -616,7 +660,13 @@ export default function EditProfile() {
                   {isOrgUser() && (
                     <div>
                       <Label htmlFor="manager">Manager/Supervisor</Label>
-                      <Select name="manager" value={formData.manager} onValueChange={(value) => setFormData(prev => ({...prev, manager: value}))}>
+                      <Select
+                        name="manager"
+                        value={formData.manager}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, manager: value }))
+                        }
+                      >
                         <SelectTrigger data-testid="select-manager">
                           <SelectValue placeholder="Select manager" />
                         </SelectTrigger>
@@ -624,7 +674,9 @@ export default function EditProfile() {
                           <SelectItem value="">No manager assigned</SelectItem>
                           <SelectItem value="john-doe">John Doe</SelectItem>
                           <SelectItem value="jane-smith">Jane Smith</SelectItem>
-                          <SelectItem value="mike-wilson">Mike Wilson</SelectItem>
+                          <SelectItem value="mike-wilson">
+                            Mike Wilson
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">Optional</p>
@@ -632,7 +684,7 @@ export default function EditProfile() {
                   )}
                 </div>
               </div>
-              
+
               {/* Access & Roles (Read-only) */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -643,7 +695,10 @@ export default function EditProfile() {
                   <div>
                     <Label>Assigned Role</Label>
                     <div className="mt-2">
-                      <Badge variant={getRoleBadgeVariant(currentUser?.role)} data-testid="badge-role">
+                      <Badge
+                        variant={getRoleBadgeVariant(currentUser?.role)}
+                        data-testid="badge-role"
+                      >
                         {getRoleDisplayName(currentUser?.role)}
                       </Badge>
                     </div>
@@ -652,27 +707,35 @@ export default function EditProfile() {
                     <Label>License Tier</Label>
                     <div className="mt-2">
                       <Badge variant="outline" data-testid="badge-license">
-                        {getLicenseDisplayName(currentUser?.license || 'explore_free')}
+                        {getLicenseDisplayName(
+                          currentUser?.license || "explore_free",
+                        )}
                       </Badge>
                     </div>
                   </div>
                   <div>
                     <Label>Date of Joining</Label>
-                    <p className="text-sm text-gray-600 mt-2" data-testid="text-join-date">
+                    <p
+                      className="text-sm text-gray-600 mt-2"
+                      data-testid="text-join-date"
+                    >
                       {formatDate(currentUser?.createdAt)}
                     </p>
                   </div>
                   {currentUser?.licenseExpiresAt && (
                     <div>
                       <Label>License Expiring On</Label>
-                      <p className="text-sm text-gray-600 mt-2" data-testid="text-license-expiry">
+                      <p
+                        className="text-sm text-gray-600 mt-2"
+                        data-testid="text-license-expiry"
+                      >
                         {formatDate(currentUser.licenseExpiresAt)}
                       </p>
                     </div>
                   )}
                 </div>
               </div>
-              
+
               {/* Security Section */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -682,32 +745,39 @@ export default function EditProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Last Login</Label>
-                    <p className="text-sm text-gray-600 mt-2" data-testid="text-last-login">
-                      {formatDate(currentUser?.lastLoginAt) || 'Not available'}
+                    <p
+                      className="text-sm text-gray-600 mt-2"
+                      data-testid="text-last-login"
+                    >
+                      {formatDate(currentUser?.lastLoginAt) || "Not available"}
                     </p>
                   </div>
                   <div>
                     <Label>Password</Label>
                     <div className="mt-2">
-                      <Button 
+                      <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => setShowPasswordSection(!showPasswordSection)}
+                        onClick={() =>
+                          setShowPasswordSection(!showPasswordSection)
+                        }
                         data-testid="button-change-password"
                       >
-                        {showPasswordSection ? 'Cancel' : 'Change Password'}
+                        {showPasswordSection ? "Cancel" : "Change Password"}
                       </Button>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Password Change Section */}
                 {showPasswordSection && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                     <div className="space-y-3">
                       <div>
-                        <Label htmlFor="currentPassword">Current Password *</Label>
+                        <Label htmlFor="currentPassword">
+                          Current Password *
+                        </Label>
                         <Input
                           id="currentPassword"
                           name="currentPassword"
@@ -730,11 +800,14 @@ export default function EditProfile() {
                           data-testid="input-new-password"
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                          Must be 8+ characters with uppercase, lowercase, and numbers
+                          Must be 8+ characters with uppercase, lowercase, and
+                          numbers
                         </p>
                       </div>
                       <div>
-                        <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                        <Label htmlFor="confirmPassword">
+                          Confirm New Password *
+                        </Label>
                         <Input
                           id="confirmPassword"
                           name="confirmPassword"
@@ -745,9 +818,9 @@ export default function EditProfile() {
                           data-testid="input-confirm-password"
                         />
                       </div>
-                      <Button 
-                        type="button" 
-                        size="sm" 
+                      <Button
+                        type="button"
+                        size="sm"
                         onClick={handlePasswordSubmit}
                         data-testid="button-save-password"
                       >
@@ -757,7 +830,7 @@ export default function EditProfile() {
                   </div>
                 )}
               </div>
-              
+
               {/* Preferences Section */}
               <div>
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -767,73 +840,112 @@ export default function EditProfile() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="timeZone">Time Zone</Label>
-                    <Select name="timeZone" value={formData.timeZone} onValueChange={(value) => setFormData(prev => ({...prev, timeZone: value}))}>
+                    <Select
+                      name="timeZone"
+                      value={formData.timeZone}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, timeZone: value }))
+                      }
+                    >
                       <SelectTrigger data-testid="select-timezone">
                         <SelectValue placeholder="Select time zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Asia/Kolkata">India (UTC+05:30)</SelectItem>
-                        <SelectItem value="America/New_York">Eastern Time (UTC-05:00)</SelectItem>
-                        <SelectItem value="America/Los_Angeles">Pacific Time (UTC-08:00)</SelectItem>
-                        <SelectItem value="Europe/London">London (UTC+00:00)</SelectItem>
-                        <SelectItem value="Asia/Tokyo">Tokyo (UTC+09:00)</SelectItem>
+                        <SelectItem value="Asia/Kolkata">
+                          India (UTC+05:30)
+                        </SelectItem>
+                        <SelectItem value="America/New_York">
+                          Eastern Time (UTC-05:00)
+                        </SelectItem>
+                        <SelectItem value="America/Los_Angeles">
+                          Pacific Time (UTC-08:00)
+                        </SelectItem>
+                        <SelectItem value="Europe/London">
+                          London (UTC+00:00)
+                        </SelectItem>
+                        <SelectItem value="Asia/Tokyo">
+                          Tokyo (UTC+09:00)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
-<<<<<<< HEAD
-                    <Label className="text-base font-medium">Notification Settings</Label>
-                    <div className="mt-3 space-y-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="emailNotifications" className="font-normal">Email Notifications</Label>
-                          <Switch
-                            
-                            id="emailNotifications"
-                            checked={formData.emailNotifications}
-                            onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
-                            data-testid="switch-email-notifications"
-                          />
-=======
-                    <Label className="text-base font-medium mb-4 block">Notification Settings</Label>
+                    <Label className="text-base font-medium mb-4 block">
+                      Notification Settings
+                    </Label>
                     <div className="space-y-3">
                       <div className="notification-setting">
                         <div className="notification-label">
-                          <Label htmlFor="emailNotifications" className="notification-title">Email Notifications</Label>
-                          <p className="notification-description">Receive notifications via email</p>
->>>>>>> dc67476 (Improve user interface theme and notification settings display)
+                          <Label
+                            htmlFor="emailNotifications"
+                            className="notification-title"
+                          >
+                            Email Notifications
+                          </Label>
+                          <p className="notification-description">
+                            Receive notifications via email
+                          </p>
                         </div>
                         <Switch
                           id="emailNotifications"
                           checked={formData.emailNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
+                          onCheckedChange={(checked) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              emailNotifications: checked,
+                            }))
+                          }
                           data-testid="switch-email-notifications"
                         />
                       </div>
-                      
+
                       <div className="notification-setting">
                         <div className="notification-label">
-                          <Label htmlFor="inAppNotifications" className="notification-title">In-App Notifications</Label>
-                          <p className="notification-description">Show notifications within the application</p>
+                          <Label
+                            htmlFor="inAppNotifications"
+                            className="notification-title"
+                          >
+                            In-App Notifications
+                          </Label>
+                          <p className="notification-description">
+                            Show notifications within the application
+                          </p>
                         </div>
                         <Switch
                           id="inAppNotifications"
                           checked={formData.inAppNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
+                          onCheckedChange={(checked) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              inAppNotifications: checked,
+                            }))
+                          }
                           data-testid="switch-in-app-notifications"
                         />
                       </div>
-                      
+
                       <div className="notification-setting">
                         <div className="notification-label">
-                          <Label htmlFor="pushNotifications" className="notification-title">Push Notifications</Label>
-                          <p className="notification-description">Receive push notifications on your device</p>
+                          <Label
+                            htmlFor="pushNotifications"
+                            className="notification-title"
+                          >
+                            Push Notifications
+                          </Label>
+                          <p className="notification-description">
+                            Receive push notifications on your device
+                          </p>
                         </div>
                         <Switch
                           id="pushNotifications"
                           checked={formData.pushNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
+                          onCheckedChange={(checked) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              pushNotifications: checked,
+                            }))
+                          }
                           data-testid="switch-push-notifications"
                         />
                       </div>
