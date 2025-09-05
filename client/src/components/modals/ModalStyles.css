@@ -1,4 +1,11 @@
-/* Base Modal Styles */
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* Base Modal Styles - Background blur, content sharp */
 .modal-overlay, .view-modal-overlay {
   position: fixed;
   top: 0;
@@ -6,11 +13,13 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   padding: 20px;
+  overflow: hidden;
 }
 
 .modal-container, .view-modal-container {
@@ -21,6 +30,11 @@
   width: 100%;
   overflow: hidden;
   border: 1px solid #e5e7eb;
+  /* Ensure modal content is never blurred */
+  backdrop-filter: none;
+  filter: none;
+  position: relative;
+  z-index: 10000;
 }
 
 .modal-header, .view-modal-header {

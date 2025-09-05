@@ -107,6 +107,16 @@ function SubtaskForm({
     onClose();
   };
 
+  // Control body scroll when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+      return () => {
+        document.body.classList.remove('modal-open');
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

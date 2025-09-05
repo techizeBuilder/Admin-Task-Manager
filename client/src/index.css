@@ -424,7 +424,7 @@
     @apply bg-gray-50;
   }
 
-  /* Task Drawer */
+  /* Task Drawer - Background dim overlay, no blur */
   .task-drawer {
     @apply fixed inset-0 z-50;
     pointer-events: none;
@@ -446,8 +446,8 @@
 
   .drawer-overlay {
     @apply absolute inset-0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.4);
+    /* NO blur for drawer - just dim overlay */
     transition: all 0.4s ease;
     overflow: hidden;
   }
@@ -461,6 +461,9 @@
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     z-index: 51;
+    /* Ensure drawer content is never blurred */
+    backdrop-filter: none;
+    filter: none;
   }
 
   .task-drawer.open .drawer-content {
