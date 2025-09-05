@@ -396,30 +396,32 @@ export default function Tasks() {
                 boxShadow: "-5px 0 25px rgba(0,0,0,0.1)",
               }}
             >
-              <div className="drawer-header">
-                <h2 className="text-2xl font-bold text-white">
-                  Create New Task
-                </h2>
-                <button
-                  onClick={() => setShowCreateTaskDrawer(false)}
-                  className="close-btn"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-white">
+                    Create New Task
+                  </h2>
+                  <button
+                    onClick={() => setShowCreateTaskDrawer(false)}
+                    className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="drawer-body">
+              <div className="flex-1 overflow-y-auto bg-white">
                 <CreateTask
                   onClose={() => {
                     setShowCreateTaskDrawer(false);
