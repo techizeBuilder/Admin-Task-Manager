@@ -1016,8 +1016,8 @@ export default function TaskComments({ taskId }) {
                 onChange={handleCommentChange}
                 onClick={handleTextareaClick}
                 onKeyUp={handleTextareaKeyUp}
-                placeholder="Leave a comment... Use @ to mention team members"
-                className="comment-input w-full indent-4 pt-4 !border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Leave a comment..."
+                className="comment-input w-full indent-4 pt-4 !border border-gray-300 rounded-md p-2 focus:outline-none focus:border-gray-300"
                 rows="3"
                 disabled={isSubmitting}
               />

@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react'
 import { FileText, BarChart3, Database, Image, Folder, Cloud, Download, Trash2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react'
 import AttachmentUploader from '../../components/common/AttachmentUploader'
+import '../../components/common/AttachmentUploader.css'
 
 export default function TaskAttachments({ taskId }) {
   const [files, setFiles] = useState([
@@ -163,13 +164,6 @@ export default function TaskAttachments({ taskId }) {
               <p className="text-sm text-gray-600">Attachments and documents</p>
             </div>
           </div>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="btn btn-primary flex items-center gap-2 px-4 py-2"
-          >
-            <span className="text-sm">📎</span>
-            <span>Add File</span>
-          </button>
         </div>
 
         {/* File Upload Area */}
@@ -183,6 +177,7 @@ export default function TaskAttachments({ taskId }) {
             acceptedTypes="*/*"
             dragDropText="Drag and drop files here or browse"
             showPreview={false}
+            className="attachment-uploader-white-bg"
           />
         </div>
 
@@ -259,7 +254,7 @@ export default function TaskAttachments({ taskId }) {
           </div>
           <button
             onClick={() => setShowAddLink(true)}
-            className="btn btn-primary flex items-center gap-2 px-4 py-2"
+            className="btn btn-primary flex items-center gap-2 px-6 py-3 min-w-[140px] justify-center"
           >
             <LinkIcon size={16} />
             <span>Add Link</span>

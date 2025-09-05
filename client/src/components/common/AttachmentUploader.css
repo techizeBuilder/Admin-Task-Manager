@@ -1,0 +1,15 @@
+/* Custom styles for AttachmentUploader when used in TaskAttachments */
+.attachment-uploader-white-bg .border-2 {
+  background-color: white !important;
+  border-color: #d1d5db !important;
+}
+
+.attachment-uploader-white-bg .border-2:hover {
+  background-color: #f9fafb !important;
+  border-color: #6b7280 !important;
+}
+
+.attachment-uploader-white-bg .border-2.border-blue-500 {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+}
