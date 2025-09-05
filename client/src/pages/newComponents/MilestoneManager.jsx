@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { 
   Plus,
   Target,
@@ -15,9 +16,10 @@ import {
   MoreHorizontal,
   Edit3,
   Trash2,
-  Share2
+  Share2,
+  X
 } from "lucide-react";
-import MilesToneCreateModal from "./MilesToneCreateModal";
+import CreateTask from "./CreateTask";
 
 // Helper functions moved outside component
 const getStatusColor = (status) => {
@@ -495,7 +497,39 @@ export default function MilestoneManager() {
         )}
       </div>
 
-      {showAddForm && <MilesToneCreateModal setShowAddForm={setShowAddForm} />}
+      {/* Milestone Creation Modal */}
+      {showAddForm && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-container max-w-4xl">
+            <div className="modal-header" style={{ background: '#8b5cf6' }}>
+              <div className="modal-title-section">
+                <div className="modal-icon">
+                  <Target size={20} />
+                </div>
+                <div>
+                  <h3>Create Milestone</h3>
+                  <p>Create a new milestone to track project progress</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowAddForm(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <CreateTask
+                onClose={() => setShowAddForm(false)}
+                onSubmit={(milestoneData) => {
+                  console.log('Creating milestone:', milestoneData);
+                  setShowAddForm(false);
+                }}
+                initialTaskType="milestone"
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

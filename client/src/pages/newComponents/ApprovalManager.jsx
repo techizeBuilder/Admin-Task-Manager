@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from "react-dom";
 import { 
   Plus,
   CheckCircle,
@@ -18,7 +19,7 @@ import {
   Workflow,
   X
 } from 'lucide-react';
-import ApprovalTaskCreator from './ApprovalTaskCreator';
+import CreateTask from './CreateTask';
 
 export default function ApprovalManager() {
   const [currentUser] = useState({ id: 1, name: 'Current User', role: 'manager' });
@@ -402,37 +403,38 @@ export default function ApprovalManager() {
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}></div>
-          <div className="absolute right-0 top-0 h-full bg-white flex flex-col shadow-2xl" style={{width: 'min(90vw, 900px)'}}>
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center">
-                    <CheckCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">Create Approval Task</h2>
-                    <p className="text-blue-100 text-sm">Set up a new approval workflow</p>
-                  </div>
+      {/* Approval Task Creation Modal */}
+      {showCreateModal && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-container max-w-4xl">
+            <div className="modal-header" style={{ background: '#3b82f6' }}>
+              <div className="modal-title-section">
+                <div className="modal-icon">
+                  <CheckCircle size={20} />
                 </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-white" />
-                </button>
+                <div>
+                  <h3>Create Approval Task</h3>
+                  <p>Set up a new approval workflow</p>
+                </div>
               </div>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
+                <X size={20} />
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <ApprovalTaskCreator
+            
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <CreateTask
                 onClose={() => setShowCreateModal(false)}
-                onSubmit={handleCreateApprovalTask}
+                onSubmit={(approvalData) => {
+                  handleCreateApprovalTask(approvalData);
+                  setShowCreateModal(false);
+                }}
+                initialTaskType="approval"
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
