@@ -1152,31 +1152,7 @@ export default function AllTasks({
           </div>
         </div>
       </div>
-      {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-4">
-        <div className="relative max-w-md">
-          <svg
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-8 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
+    
 
       {/* Filters and Bulk Actions */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
@@ -1217,91 +1193,118 @@ export default function AllTasks({
           )}
 
           {/* Filters */}
-          <div className="w-full">
-            <div className="flex flex-wrap gap-2">
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Status" },
-                    { value: "todo", label: "To Do" },
-                    { value: "progress", label: "In Progress" },
-                    { value: "review", label: "In Review" },
-                    { value: "completed", label: "Completed" },
-                  ]}
-                  placeholder="Filter by Status"
-                />
-              </div>
 
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Priority" },
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
-                    { value: "urgent", label: "Urgent" },
-                  ]}
-                  placeholder="Filter by Priority"
-                />
-              </div>
+  <div className="flex flex-wrap items-center gap-3">
+    {/* Search Box */}
+    <div className="relative">
+      <svg
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        />
+      </svg>
+      <input
+        type="text"
+        placeholder="Search tasks..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-[180px]"
+      />
+    </div>
 
-              <div className="flex-1 min-w-[200px]">
-                <SearchableSelect
-                  value={taskTypeFilter}
-                  onChange={(e) => setTaskTypeFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Task Types" },
-                    { value: "Simple Task", label: "Simple Task" },
-                    { value: "Recurring Task", label: "Recurring Task" },
-                    { value: "Milestone", label: "Milestone" },
-                    { value: "Approval Task", label: "Approval Task" },
-                  ]}
-                  placeholder="Filter by Task Type"
-                />
-              </div>
+    {/* Status Filter */}
+    <SearchableSelect
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.value)}
+      options={[
+        { value: "all", label: "All Status" },
+        { value: "todo", label: "To Do" },
+        { value: "progress", label: "In Progress" },
+        { value: "review", label: "In Review" },
+        { value: "completed", label: "Completed" },
+      ]}
+      placeholder="Filter by Status"
+      className="min-w-[160px] w-auto"
+    />
 
-              <div className="flex-1 min-w-[220px]">
-                <SearchableSelect
-                  value={dueDateFilter}
-                  onChange={(e) => {
-                    setDueDateFilter(e.value);
-                    if (e.value !== "specific_date") {
-                      window.calendarSpecificDate = null;
-                    }
-                  }}
-                  options={[
-                    { value: "all", label: "All Due Dates" },
-                    { value: "overdue", label: "Overdue" },
-                    { value: "due_today", label: "Due Today" },
-                    { value: "due_tomorrow", label: "Due Tomorrow" },
-                    { value: "due_this_week", label: "Due This Week" },
-                    { value: "due_next_week", label: "Due Next Week" },
-                    { value: "due_this_month", label: "Due This Month" },
-                    { value: "no_due_date", label: "No Due Date" },
-                    ...(window.calendarSpecificDate
-                      ? [
-                          {
-                            value: "specific_date",
-                            label: `Date: ${new Date(
-                              window.calendarSpecificDate
-                            ).toLocaleDateString()}`,
-                          },
-                        ]
-                      : []),
-                  ]}
-                  placeholder="Filter by Due Date"
-                />
-              </div>
+    {/* Priority Filter */}
+    <SearchableSelect
+      value={priorityFilter}
+      onChange={(e) => setPriorityFilter(e.value)}
+      options={[
+        { value: "all", label: "All Priority" },
+        { value: "low", label: "Low" },
+        { value: "medium", label: "Medium" },
+        { value: "high", label: "High" },
+        { value: "urgent", label: "Urgent" },
+      ]}
+      placeholder="Filter by Priority"
+      className="min-w-[170px] w-auto"
+    />
 
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect placeholder="All Categories" />
-              </div>
-            </div>
-          </div>
+    {/* Task Type Filter */}
+    <SearchableSelect
+      value={taskTypeFilter}
+      onChange={(e) => setTaskTypeFilter(e.value)}
+      options={[
+        { value: "all", label: "All Task Types" },
+        { value: "Simple Task", label: "Simple Task" },
+        { value: "Recurring Task", label: "Recurring Task" },
+        { value: "Milestone", label: "Milestone" },
+        { value: "Approval Task", label: "Approval Task" },
+      ]}
+      placeholder="Filter by Task Type"
+      className="min-w-[180px] w-auto"
+    />
+
+    {/* Due Date Filter */}
+    <SearchableSelect
+      value={dueDateFilter}
+      onChange={(e) => {
+        setDueDateFilter(e.value);
+        if (e.value !== "specific_date") {
+          window.calendarSpecificDate = null;
+        }
+      }}
+      options={[
+        { value: "all", label: "All Due Dates" },
+        { value: "overdue", label: "Overdue" },
+        { value: "due_today", label: "Due Today" },
+        { value: "due_tomorrow", label: "Due Tomorrow" },
+        { value: "due_this_week", label: "Due This Week" },
+        { value: "due_next_week", label: "Due Next Week" },
+        { value: "due_this_month", label: "Due This Month" },
+        { value: "no_due_date", label: "No Due Date" },
+        ...(window.calendarSpecificDate
+          ? [
+              {
+                value: "specific_date",
+                label: `Date: ${new Date(
+                  window.calendarSpecificDate
+                ).toLocaleDateString()}`,
+              },
+            ]
+          : []),
+      ]}
+      placeholder="Filter by Due Date"
+      className="min-w-[190px] w-auto"
+    />
+
+    {/* Categories Filter */}
+    <SearchableSelect
+      placeholder="All Categories"
+      className="min-w-[160px] w-auto"
+    />
+  </div>
+
+
         </div>
       </div>
 
@@ -1419,55 +1422,56 @@ export default function AllTasks({
         <button className="btn btn-secondary btn-md">Export as Excel</button>
       </div>
 
-      {/* Tasks Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedTasks.length === tasks.length && tasks.length > 0
-                    }
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Task
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Assignee
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Priority
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Due Date
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Progress
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Tags
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Task Type
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Color Code
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+     {/* Tasks Table */}
+<div className="card p-0 overflow-hidden">
+  {/* Wrapper with scroll */}
+  <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
+    <table className="w-full min-w-max">
+      <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+        <tr>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
+            <input
+              type="checkbox"
+              checked={
+                selectedTasks.length === tasks.length && tasks.length > 0
+              }
+              onChange={(e) => handleSelectAll(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Task
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Assignee
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Status
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Priority
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Due Date
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Progress
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Tags
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Task Type
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Color Code
+          </th>
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
               {filteredTasks.map((task) => (
                 <React.Fragment key={task.id}>
                   <tr
@@ -1874,31 +1878,32 @@ export default function AllTasks({
                 </React.Fragment>
               ))}
             </tbody>
-          </table>
-        </div>
-      </div>
+    </table>
+  </div>
+</div>
 
-      {/* Pagination */}
-      <div className="flex bg-white rounded-md shadow-md p-3 items-center justify-between">
-        <div className="text-sm  text-gray-700">
-          Showing <span className="font-medium">1</span> to{" "}
-          <span className="font-medium">4</span> of{" "}
-          <span className="font-medium">97</span> results
-        </div>
-        <div className="flex items-center space-x-2">
-          <button className="btn btn-secondary btn-sm">Previous</button>
-          <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded">
-            1
-          </button>
-          <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-            2
-          </button>
-          <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-            3
-          </button>
-          <button className="btn btn-secondary btn-sm">Next</button>
-        </div>
-      </div>
+{/* Pagination */}
+<div className="flex bg-white rounded-md shadow-md p-3 items-center justify-between">
+  <div className="text-sm  text-gray-700">
+    Showing <span className="font-medium">1</span> to{" "}
+    <span className="font-medium">4</span> of{" "}
+    <span className="font-medium">97</span> results
+  </div>
+  <div className="flex items-center space-x-2">
+    <button className="btn btn-secondary btn-sm">Previous</button>
+    <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded">
+      1
+    </button>
+    <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
+      2
+    </button>
+    <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
+      3
+    </button>
+    <button className="btn btn-secondary btn-sm">Next</button>
+  </div>
+</div>
+
 
       {/* Slide-in Drawer */}
       {showCreateTaskDrawer && (
