@@ -346,10 +346,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
                   >
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent className="z-50">
-                    <SelectItem value="Regular User">Regular User</SelectItem>
-                    <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Company Admin">Company Admin</SelectItem>
+                  <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
+                    <SelectItem value="Regular User" className="bg-white hover:bg-gray-100">Regular User</SelectItem>
+                    <SelectItem value="Manager" className="bg-white hover:bg-gray-100">Manager</SelectItem>
+                    <SelectItem value="Company Admin" className="bg-white hover:bg-gray-100">Company Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.role && (
@@ -385,13 +385,13 @@ export function InviteUsersModal({ isOpen, onClose }) {
                   >
                     <SelectValue placeholder="Select license" />
                   </SelectTrigger>
-                  <SelectContent className="z-50">
-                    <SelectItem value="Explore (Free)">
+                  <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
+                    <SelectItem value="Explore (Free)" className="bg-white hover:bg-gray-100">
                       Explore (Free)
                     </SelectItem>
-                    <SelectItem value="Plan">Plan</SelectItem>
-                    <SelectItem value="Execute">Execute</SelectItem>
-                    <SelectItem value="Optimize">Optimize</SelectItem>
+                    <SelectItem value="Plan" className="bg-white hover:bg-gray-100">Plan</SelectItem>
+                    <SelectItem value="Execute" className="bg-white hover:bg-gray-100">Execute</SelectItem>
+                    <SelectItem value="Optimize" className="bg-white hover:bg-gray-100">Optimize</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.licenseId && (
