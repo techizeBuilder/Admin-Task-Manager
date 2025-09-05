@@ -110,12 +110,12 @@ function SubtaskForm({
   if (!isOpen) return null;
 
   return (
-    <div className="drawer-overlay">
-      <div className="drawer-container">
-        <div className="drawer-content">
+    <div className="modal-overlay">
+      <div className="modal-container max-w-2xl">
+        <div className="modal-content">
           {/* Header */}
-          <div className="drawer-header">
-            <div className="drawer-title-section">
+          <div className="modal-header" style={{ background: '#4f46e5' }}>
+            <div className="modal-title-section">
               <div className="modal-icon">
                 <Plus size={20} />
               </div>
@@ -130,7 +130,7 @@ function SubtaskForm({
           </div>
 
           {/* Form */}
-          <div className="drawer-form">
+          <div className="modal-body">
             <div className="form-card">
               <form onSubmit={handleSubmit}>
             {/* Task Title */}

@@ -437,20 +437,25 @@
     opacity: 1;
   }
 
+  /* Prevent body scroll when drawer is open */
+  body.drawer-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+
   .drawer-overlay {
     @apply absolute inset-0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
     transition: all 0.4s ease;
-    /* Allow background scrolling */
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   .drawer-content {
     @apply fixed right-0 top-0 h-full bg-white flex flex-col;
     width: min(90vw, 900px);
-    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.2);
+    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.3);
     border-left: 1px solid rgba(200, 200, 200, 0.3);
     transform: translateX(100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSubtask } from '../../contexts/SubtaskContext';
 import { useRoute, useLocation } from 'wouter';
 import { 
@@ -68,6 +68,17 @@ export default function TaskDetail({ taskId, onClose }) {
   const [showDoneModal, setShowDoneModal] = useState(false);
   const [moreInfo, setMoreInfo] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  
+  // Control body scroll when drawer opens
+  useEffect(() => {
+    if (onClose) { // Only when drawer is open (has onClose prop)
+      document.body.classList.add('drawer-open');
+      return () => {
+        document.body.classList.remove('drawer-open');
+      };
+    }
+  }, [onClose]);
+  
   const [currentUser] = useState({
     id: 1,
     firstName: "Current",
