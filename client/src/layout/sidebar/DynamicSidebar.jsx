@@ -122,6 +122,13 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
             path: "/admin/team-members",
             permission: PERMISSIONS.VIEW_USERS,
           },
+          // {
+          //   id: "invite-users",
+          //   label: "Invite Users",
+          //   icon: UserPlus,
+          //   path: "/admin/invite-users",
+          //   permission: PERMISSIONS.INVITE_USERS,
+          // },
           {
             id: "organization",
             label: "Organization",
