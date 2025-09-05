@@ -782,6 +782,7 @@ export default function EditProfile() {
                   </div>
                   
                   <div>
+<<<<<<< HEAD
                     <Label className="text-base font-medium">Notification Settings</Label>
                     <div className="mt-3 space-y-4">
                       <div className="space-y-1">
@@ -794,34 +795,47 @@ export default function EditProfile() {
                             onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
                             data-testid="switch-email-notifications"
                           />
+=======
+                    <Label className="text-base font-medium mb-4 block">Notification Settings</Label>
+                    <div className="space-y-3">
+                      <div className="notification-setting">
+                        <div className="notification-label">
+                          <Label htmlFor="emailNotifications" className="notification-title">Email Notifications</Label>
+                          <p className="notification-description">Receive notifications via email</p>
+>>>>>>> dc67476 (Improve user interface theme and notification settings display)
                         </div>
-                        <p className="text-xs text-gray-500">Receive notifications via email</p>
+                        <Switch
+                          id="emailNotifications"
+                          checked={formData.emailNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
+                          data-testid="switch-email-notifications"
+                        />
                       </div>
                       
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="inAppNotifications" className="font-normal">In-App Notifications</Label>
-                          <Switch
-                            id="inAppNotifications"
-                            checked={formData.inAppNotifications}
-                            onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
-                            data-testid="switch-in-app-notifications"
-                          />
+                      <div className="notification-setting">
+                        <div className="notification-label">
+                          <Label htmlFor="inAppNotifications" className="notification-title">In-App Notifications</Label>
+                          <p className="notification-description">Show notifications within the application</p>
                         </div>
-                        <p className="text-xs text-gray-500">Show notifications within the application</p>
+                        <Switch
+                          id="inAppNotifications"
+                          checked={formData.inAppNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
+                          data-testid="switch-in-app-notifications"
+                        />
                       </div>
                       
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="pushNotifications" className="font-normal">Push Notifications</Label>
-                          <Switch
-                            id="pushNotifications"
-                            checked={formData.pushNotifications}
-                            onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
-                            data-testid="switch-push-notifications"
-                          />
+                      <div className="notification-setting">
+                        <div className="notification-label">
+                          <Label htmlFor="pushNotifications" className="notification-title">Push Notifications</Label>
+                          <p className="notification-description">Receive push notifications on your device</p>
                         </div>
-                        <p className="text-xs text-gray-500">Receive push notifications on your device</p>
+                        <Switch
+                          id="pushNotifications"
+                          checked={formData.pushNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
+                          data-testid="switch-push-notifications"
+                        />
                       </div>
                     </div>
                   </div>
