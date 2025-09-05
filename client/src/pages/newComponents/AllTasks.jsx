@@ -18,6 +18,7 @@ import MilestoneCreator from "../MilestoneCreator";
 import CreateTask from "./CreateTask";
 import ApprovalTaskCreator from "./ApprovalTaskCreator";
 import { getTaskTypeInfo, getTaskPriorityColor } from "../TaskTypeUtils";
+import { Delete } from "lucide-react";
 
 export default function AllTasks({
   onCreateTask,
@@ -1159,158 +1160,147 @@ export default function AllTasks({
           </div>
         </div>
       </div>
-      {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-4">
-        <div className="relative max-w-md">
-          <svg
-            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-8 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
+    {/* Search, Bulk Actions & Filters - All in One Card */}
+<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 space-y-4">
+  {/* Search Bar */}
 
-      {/* Filters and Bulk Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <div className="flex flex-col gap-3">
 
-          {/* Bulk Actions */}
-          {selectedTasks.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2 bg-blue-50 rounded-md">
-              <span className="text-sm font-medium text-blue-800">
-                {selectedTasks.length} selected
-              </span>
-              <SearchableSelect
-                options={companyStatuses.map((status) => ({
-                  value: status.code,
-                  label: status.label,
-                }))}
-                placeholder="Bulk Update Status"
-                onChange={(selectedOption) => {
-                  if (selectedOption) {
-                    handleBulkStatusUpdate(selectedOption.value);
-                  }
-                }}
-              />
-              <button
-                className="btn btn-danger btn-sm whitespace-nowrap"
-                onClick={handleBulkDeleteTasks}
-                title="Delete selected tasks"
-              >
-                🗑️ Delete
-              </button>
-              <button
-                className="btn btn-secondary btn-sm whitespace-nowrap"
-                onClick={() => setSelectedTasks([])}
-              >
-                Clear Selection
-              </button>
-            </div>
-          )}
 
-          {/* Filters */}
-          <div className="w-full">
-            <div className="flex flex-wrap gap-2">
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Status" },
-                    { value: "todo", label: "To Do" },
-                    { value: "progress", label: "In Progress" },
-                    { value: "review", label: "In Review" },
-                    { value: "completed", label: "Completed" },
-                  ]}
-                  placeholder="Filter by Status"
-                />
-              </div>
+  {/* Filters */}
+  <div className="flex flex-wrap gap-2">
+      <div className="relative w-50 max-w-md">
+    <svg
+      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+    <input
+      type="text"
+      placeholder="Search tasks..."
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="w-full pl-10 pr-3 py-2 text-md border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    />
+  </div>
+    <SearchableSelect
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.value)}
+      options={[
+        { value: "all", label: "All Status" },
+        { value: "todo", label: "To Do" },
+        { value: "progress", label: "In Progress" },
+        { value: "review", label: "In Review" },
+        { value: "completed", label: "Completed" },
+      ]}
+      placeholder="Filter by Status"
+      className="min-w-[140px]"
+    />
 
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Priority" },
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
-                    { value: "urgent", label: "Urgent" },
-                  ]}
-                  placeholder="Filter by Priority"
-                />
-              </div>
+    <SearchableSelect
+      value={priorityFilter}
+      onChange={(e) => setPriorityFilter(e.value)}
+      options={[
+        { value: "all", label: "All Priority" },
+        { value: "low", label: "Low" },
+        { value: "medium", label: "Medium" },
+        { value: "high", label: "High" },
+        { value: "urgent", label: "Urgent" },
+      ]}
+      placeholder="Filter by Priority"
+      className="min-w-[140px]"
+    />
 
-              <div className="flex-1 min-w-[200px]">
-                <SearchableSelect
-                  value={taskTypeFilter}
-                  onChange={(e) => setTaskTypeFilter(e.value)}
-                  options={[
-                    { value: "all", label: "All Task Types" },
-                    { value: "Simple Task", label: "Simple Task" },
-                    { value: "Recurring Task", label: "Recurring Task" },
-                    { value: "Milestone", label: "Milestone" },
-                    { value: "Approval Task", label: "Approval Task" },
-                  ]}
-                  placeholder="Filter by Task Type"
-                />
-              </div>
+    <SearchableSelect
+      value={taskTypeFilter}
+      onChange={(e) => setTaskTypeFilter(e.value)}
+      options={[
+        { value: "all", label: "All Task Types" },
+        { value: "Simple Task", label: "Simple Task" },
+        { value: "Recurring Task", label: "Recurring Task" },
+        { value: "Milestone", label: "Milestone" },
+        { value: "Approval Task", label: "Approval Task" },
+      ]}
+      placeholder="Filter by Task Type"
+      className="min-w-[180px]"
+    />
 
-              <div className="flex-1 min-w-[220px]">
-                <SearchableSelect
-                  value={dueDateFilter}
-                  onChange={(e) => {
-                    setDueDateFilter(e.value);
-                    if (e.value !== "specific_date") {
-                      window.calendarSpecificDate = null;
-                    }
-                  }}
-                  options={[
-                    { value: "all", label: "All Due Dates" },
-                    { value: "overdue", label: "Overdue" },
-                    { value: "due_today", label: "Due Today" },
-                    { value: "due_tomorrow", label: "Due Tomorrow" },
-                    { value: "due_this_week", label: "Due This Week" },
-                    { value: "due_next_week", label: "Due Next Week" },
-                    { value: "due_this_month", label: "Due This Month" },
-                    { value: "no_due_date", label: "No Due Date" },
-                    ...(window.calendarSpecificDate
-                      ? [
-                          {
-                            value: "specific_date",
-                            label: `Date: ${new Date(
-                              window.calendarSpecificDate
-                            ).toLocaleDateString()}`,
-                          },
-                        ]
-                      : []),
-                  ]}
-                  placeholder="Filter by Due Date"
-                />
-              </div>
+    <SearchableSelect
+      value={dueDateFilter}
+      onChange={(e) => {
+        setDueDateFilter(e.value);
+        if (e.value !== "specific_date") window.calendarSpecificDate = null;
+      }}
+      options={[
+        { value: "all", label: "All Due Dates" },
+        { value: "overdue", label: "Overdue" },
+        { value: "due_today", label: "Due Today" },
+        { value: "due_tomorrow", label: "Due Tomorrow" },
+        { value: "due_this_week", label: "Due This Week" },
+        { value: "due_next_week", label: "Due Next Week" },
+        { value: "due_this_month", label: "Due This Month" },
+        { value: "no_due_date", label: "No Due Date" },
+        ...(window.calendarSpecificDate
+          ? [
+              {
+                value: "specific_date",
+                label: `Date: ${new Date(
+                  window.calendarSpecificDate
+                ).toLocaleDateString()}`,
+              },
+            ]
+          : []),
+      ]}
+      placeholder="Filter by Due Date"
+      className="min-w-[200px]"
+    />
 
-              <div className="flex-1 min-w-[140px]">
-                <SearchableSelect placeholder="All Categories" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <SearchableSelect
+      placeholder="All Categories"
+      className="min-w-[160px]"
+    />
+  </div>
+    {/* Bulk Actions */}
+  {selectedTasks.length > 0 && (
+    <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-md">
+      <span className="text-sm font-medium text-blue-800">
+        {selectedTasks.length} selected
+      </span>
+      <SearchableSelect
+        options={companyStatuses.map((status) => ({
+          value: status.code,
+          label: status.label,
+        }))}
+        placeholder="Bulk Update Status"
+        onChange={(selectedOption) => {
+          if (selectedOption) handleBulkStatusUpdate(selectedOption.value);
+        }}
+        className="min-w-[160px]"
+      />
+      <button
+        className="btn btn-danger btn whitespace-nowrap"
+        onClick={handleBulkDeleteTasks}
+      >
+  Delete
+      </button>
+      <button
+        className="btn btn-secondary btn whitespace-nowrap"
+        onClick={() => setSelectedTasks([])}
+      >
+        Clear Selection
+      </button>
+    </div>
+  )}
+
+</div>
+
 
 
       {/* Calendar View Section */}
