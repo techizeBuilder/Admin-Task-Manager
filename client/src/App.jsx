@@ -42,7 +42,9 @@ import LoginCustomization from "./pages/super-admin/LoginCustomization";
 
 import { Toaster } from "./components/ui/toaster";
 import { SubtaskProvider } from "./contexts/SubtaskContext";
+import { ViewProvider } from "./contexts/ViewContext";
 import GlobalSubtaskDrawer from "./components/forms/GlobalSubtaskDrawer";
+import GlobalViewModal from "./components/modals/GlobalViewModal";
 
 // Authentication Components
 import Register from "./pages/auth/Register";
@@ -272,7 +274,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SubtaskProvider>
-      <Switch>
+        <ViewProvider>
+          <Switch>
         {/* Root Route - Role-based redirect */}
         <Route path="/" component={RoleBasedRedirect} />
 
@@ -734,6 +737,8 @@ function App() {
       </Switch>
       <Toaster />
       <GlobalSubtaskDrawer />
+      <GlobalViewModal />
+      </ViewProvider>
       </SubtaskProvider>
     </QueryClientProvider>
   );

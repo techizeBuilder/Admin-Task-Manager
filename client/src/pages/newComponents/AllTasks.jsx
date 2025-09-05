@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useSubtask } from "../../contexts/SubtaskContext";
+import { useView } from "../../contexts/ViewContext";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
 import TaskDeleteConfirmationModal from "./TaskDeleteConfirmationModal";
@@ -24,6 +25,7 @@ export default function AllTasks({
   initialDueDateFilter,
 }) {
   const { openSubtaskDrawer } = useSubtask();
+  const { openViewModal } = useView();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -1720,8 +1722,6 @@ export default function AllTasks({
                       <div className="flex items-center justify-center">
                         <TaskActionsDropdown
                           task={task}
-                          onView={() => handleViewTask(task.id)}
-                          onCreateSubtask={() => handleAddSubtask(task.id)}
                           onSnooze={() => handleSnoozeTask(task.id)}
                           onMarkAsRisk={() => handleMarkAsRisk(task.id)}
                           onMarkAsDone={() =>

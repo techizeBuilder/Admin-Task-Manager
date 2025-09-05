@@ -21,10 +21,15 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
   return (
     <div className="modal-overlay">
       <div className="modal-container">
-        <div className="modal-header delete-header">
+        <div className="modal-header" style={{ background: '#ef4444' }}>
           <div className="modal-title-section">
-            <Trash2 size={24} />
-            <h3>Delete Task</h3>
+            <div className="modal-icon">
+              <Trash2 size={16} />
+            </div>
+            <div>
+              <h3>Delete Task</h3>
+              <p>Permanently remove this task</p>
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
@@ -81,11 +86,12 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
         </div>
         
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="modal-btn-secondary" onClick={onClose}>Cancel</button>
           <button 
-            className={`btn-danger ${!confirmChecks.irreversible ? 'disabled' : ''}`}
+            className={`modal-btn-primary ${!confirmChecks.irreversible ? 'disabled' : ''}`}
             onClick={handleConfirm}
             disabled={!confirmChecks.irreversible}
+            style={{ background: !confirmChecks.irreversible ? '#9ca3af' : '#ef4444' }}
           >
             Delete Task
           </button>
@@ -126,10 +132,15 @@ export function ReassignTaskModal({ isOpen, onClose, onConfirm, task }) {
   return (
     <div className="modal-overlay">
       <div className="modal-container">
-        <div className="modal-header reassign-header">
+        <div className="modal-header" style={{ background: '#4f46e5' }}>
           <div className="modal-title-section">
-            <Users size={24} />
-            <h3>Reassign Task: {task?.title || 'Database Migration'}</h3>
+            <div className="modal-icon">
+              <Users size={16} />
+            </div>
+            <div>
+              <h3>Reassign Task</h3>
+              <p>Change task assignee</p>
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
@@ -179,9 +190,9 @@ export function ReassignTaskModal({ isOpen, onClose, onConfirm, task }) {
         </div>
         
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="modal-btn-secondary" onClick={onClose}>Cancel</button>
           <button 
-            className={`btn-primary ${!selectedAssignee ? 'disabled' : ''}`}
+            className={`modal-btn-primary ${!selectedAssignee ? 'disabled' : ''}`}
             onClick={handleConfirm}
             disabled={!selectedAssignee}
           >
