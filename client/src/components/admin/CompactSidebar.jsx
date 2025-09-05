@@ -36,7 +36,7 @@ function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) {
   const managementNavigation = [
     { name: "Projects", href: "/projects", icon: FolderOpen },
     { name: "Forms", href: "/forms", icon: FileText },
-    { name: "Users", href: "/users", icon: Users },
+    { name: "User Management", href: "/admin/users", icon: Users },
     { name: "Roles", href: "/roles", icon: Shield },
   ];
 
