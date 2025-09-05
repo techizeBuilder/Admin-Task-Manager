@@ -14,7 +14,7 @@ function RiskModal({ task, onSubmit, onClose }) {
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <h3>Mark Task as At Risk: {task?.title}</h3>
+          <h4>Mark Task as At Risk: {task?.title}</h4>
           <button className="close-button" onClick={onClose}>
             ×
           </button>

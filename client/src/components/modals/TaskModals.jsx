@@ -36,7 +36,7 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
           </button>
         </div>
         
-        <div className="modal-content">
+        <div className="p-[2rem]">
           <div className="delete-confirmation">
             <p className="confirmation-text">
               Are you sure you want to delete this task?
@@ -85,7 +85,7 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
           </div>
         </div>
         
-        <div className="modal-actions">
+        <div className="modal-actions flex justify-between">
           <button className="modal-btn-secondary" onClick={onClose}>Cancel</button>
           <button 
             className={`modal-btn-primary ${!confirmChecks.irreversible ? 'disabled' : ''}`}
@@ -147,7 +147,7 @@ export function ReassignTaskModal({ isOpen, onClose, onConfirm, task }) {
           </button>
         </div>
         
-        <div className="modal-content">
+        <div className="p-[2rem]">
           <div className="reassign-form">
             <label className="form-label">Select new assignee:</label>
             <div className="dropdown-container">
@@ -189,7 +189,7 @@ export function ReassignTaskModal({ isOpen, onClose, onConfirm, task }) {
           </div>
         </div>
         
-        <div className="modal-actions">
+        <div className="modal-actions flex justify-between">
           <button className="modal-btn-secondary" onClick={onClose}>Cancel</button>
           <button 
             className={`modal-btn-primary ${!selectedAssignee ? 'disabled' : ''}`}
@@ -225,14 +225,14 @@ export function SnoozeTaskModal({ isOpen, onClose, onConfirm, task }) {
         <div className="modal-header snooze-header">
           <div className="modal-title-section">
             <Clock size={24} />
-            <h3>Snooze Task: {task?.title || 'Database Migration'}</h3>
+            <h4>Snooze Task: {task?.title || 'Database Migration'}</h4>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
         
-        <div className="modal-content">
+        <div className="p-[2rem]">
           <div className="snooze-form">
             <div className="form-group">
               <label className="form-label">Snooze until:</label>
@@ -262,7 +262,7 @@ export function SnoozeTaskModal({ isOpen, onClose, onConfirm, task }) {
           </div>
         </div>
         
-        <div className="modal-actions">
+        <div className="modal-actions flex justify-between">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button 
             className={`btn-primary ${!snoozeDate ? 'disabled' : ''}`}
@@ -294,14 +294,14 @@ export function MarkRiskModal({ isOpen, onClose, onConfirm, task }) {
         <div className="modal-header risk-header">
           <div className="modal-title-section">
             <AlertTriangle size={24} />
-            <h3>Mark Task as At Risk: {task?.title || 'Database Migration'}</h3>
+            <h4>Mark Task as At Risk: {task?.title || 'Database Migration'}</h4>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
         
-        <div className="modal-content">
+        <div className="p-[2rem]">
           <div className="risk-form">
             <div className="form-group">
               <label className="form-label">Risk Note:</label>
@@ -317,7 +317,7 @@ export function MarkRiskModal({ isOpen, onClose, onConfirm, task }) {
           </div>
         </div>
         
-        <div className="modal-actions">
+        <div className="modal-actions flex justify-between">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button 
             className="btn-warning"
@@ -358,14 +358,14 @@ export function MarkDoneModal({ isOpen, onClose, onConfirm, task }) {
         <div className="modal-header done-header">
           <div className="modal-title-section">
             <CheckCircle size={24} />
-            <h3>Mark this task complete</h3>
+            <h4>Mark this task complete</h4>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
         
-        <div className="modal-content">
+        <div className="p-[2rem]">
           {hasIncompleteSubtasks ? (
             <div className="incomplete-subtasks">
               <div className="warning-section">
@@ -406,7 +406,7 @@ export function MarkDoneModal({ isOpen, onClose, onConfirm, task }) {
           )}
         </div>
         
-        <div className="modal-actions">
+        <div className="modal-actions flex justify-between">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button className="btn-success" onClick={handleConfirm}>
             Complete
