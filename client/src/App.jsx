@@ -446,12 +446,6 @@ function App() {
 
         <Route path="/tasks">
           <AdminLayout>
-            <ProtectedRoute component={AllTasks} />
-          </AdminLayout>
-        </Route>
-
-        <Route path="/enhanced-tasks">
-          <AdminLayout>
             <ProtectedRoute component={EnhancedAllTasks} />
           </AdminLayout>
         </Route>
