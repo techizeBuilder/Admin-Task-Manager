@@ -1426,10 +1426,10 @@ export default function AllTasks({
 <div className="card p-0">
   {/* Table wrapper with horizontal scroll only */}
   <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-    <table className="w-full min-w-[1200px] table-fixed">
+    <table className="w-full min-w-max">
       <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
         <tr>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 text-nowrap sticky left-0 bg-gray-50 z-20">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap sticky left-0 bg-gray-50 z-20" style={{ minWidth: '60px' }}>
             <input
               type="checkbox"
               checked={
@@ -1439,34 +1439,34 @@ export default function AllTasks({
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64 text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '200px' }}>
             Task
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '120px' }}>
             Assignee
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '100px' }}>
             Status
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '100px' }}>
             Priority
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '120px' }}>
             Due Date
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '100px' }}>
             Progress
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '150px' }}>
             Tags
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '120px' }}>
             Task Type
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap" style={{ minWidth: '100px' }}>
             Color Code
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 text-nowrap sticky right-0 bg-gray-50 z-20">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap sticky right-0 bg-gray-50 z-20" style={{ minWidth: '120px' }}>
             Actions
           </th>
         </tr>
