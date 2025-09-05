@@ -382,7 +382,7 @@ export const EnhancedTaskTabs = ({
           </Avatar>
           <div className="flex-1">
             <Textarea 
-              placeholder="Leave a comment... Use @ to mention team members"
+              placeholder="Leave a comment..."
               className="mb-3"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
@@ -507,14 +507,10 @@ export const EnhancedTaskTabs = ({
           <span className="font-medium">Files (3)</span>
           <span className="text-sm text-gray-500">Attachments and documents</span>
         </div>
-        <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
-          <Upload className="h-4 w-4 mr-2" />
-          Add File
-        </Button>
       </div>
 
       {/* File Upload Area */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-white hover:bg-gray-50">
         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h4 className="text-lg font-medium text-gray-700 mb-2">Drag and drop files here or browse</h4>
         <p className="text-sm text-gray-500 mb-4">Maximum file size: 5MB per file</p>
@@ -593,7 +589,7 @@ export const EnhancedTaskTabs = ({
           </Select>
           <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
+              <Button size="sm" className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 min-w-[140px]">
                 <Plus className="h-4 w-4 mr-2" />
                 Link Item
               </Button>
