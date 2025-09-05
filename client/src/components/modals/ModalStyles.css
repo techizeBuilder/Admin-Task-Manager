@@ -168,39 +168,17 @@
   color: #374151; 
 }
 
-/* Completely suppress pseudo-elements in modals */
-.modal-overlay *,
-.modal-container * {
-  position: relative;
-}
-
-.modal-overlay *::before,
-.modal-overlay *::after,
-.modal-container *::before, 
-.modal-container *::after {
-  display: none !important;
+/* Only suppress specific pseudo-elements that cause "Open" text issues */
+.modal-overlay .task-status.open::before,
+.modal-overlay .task-status.open::after,
+.modal-container .task-status.open::before,
+.modal-container .task-status.open::after,
+.modal-overlay .status-badge.open::before,
+.modal-overlay .status-badge.open::after,
+.modal-container .status-badge.open::before,
+.modal-container .status-badge.open::after {
   content: none !important;
-  visibility: hidden !important;
-}
-
-/* Remove any text content injection */
-.modal-overlay .open::before,
-.modal-overlay .open::after,
-.modal-container .open::before,
-.modal-container .open::after {
-  content: "" !important;
   display: none !important;
-}
-
-/* Hide elements with "Open" text */
-.modal-overlay *[class*="open"]::before,
-.modal-overlay *[class*="open"]::after,
-.modal-container *[class*="open"]::before,
-.modal-container *[class*="open"]::after {
-  content: "" !important;
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
 }
 
 .task-priority.priority-high { background: #fee2e2; color: #991b1b; }
