@@ -11,10 +11,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Camera, Save, ArrowLeft, X } from "lucide-react";
+import { User, Camera, Save, ArrowLeft, X, Shield, Clock, Key, Settings, Bell, Globe } from "lucide-react";
 
 export default function EditProfile() {
   const [, setLocation] = useLocation();
@@ -26,10 +30,32 @@ export default function EditProfile() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    phoneNumber: "",
+    department: "",
+    manager: "",
+    organizationName: "",
+    timeZone: "",
+    emailNotifications: true,
+    inAppNotifications: true,
+    pushNotifications: false,
   });
   const [originalData, setOriginalData] = useState({
     firstName: "",
     lastName: "",
+    phoneNumber: "",
+    department: "",
+    manager: "",
+    organizationName: "",
+    timeZone: "",
+    emailNotifications: true,
+    inAppNotifications: true,
+    pushNotifications: false,
+  });
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -70,6 +96,14 @@ export default function EditProfile() {
       const userData = {
         firstName: currentUser.firstName || "",
         lastName: currentUser.lastName || "",
+        phoneNumber: currentUser.phoneNumber || "",
+        department: currentUser.department || "",
+        manager: currentUser.manager || "",
+        organizationName: currentUser.organizationName || currentUser.organization?.name || "",
+        timeZone: currentUser.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata",
+        emailNotifications: currentUser.emailNotifications !== false,
+        inAppNotifications: currentUser.inAppNotifications !== false,
+        pushNotifications: currentUser.pushNotifications === true,
       };
       setFormData(userData);
       setOriginalData(userData);
@@ -78,10 +112,9 @@ export default function EditProfile() {
 
   // Check for changes
   useEffect(() => {
-    const hasFormChanges =
-      formData.firstName !== originalData.firstName ||
-      formData.lastName !== originalData.lastName ||
-      selectedFile !== null;
+    const hasFormChanges = Object.keys(formData).some(key => 
+      formData[key] !== originalData[key]
+    ) || selectedFile !== null;
     setHasChanges(hasFormChanges);
   }, [formData, originalData, selectedFile]);
 
@@ -163,8 +196,73 @@ export default function EditProfile() {
   });
 
   const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
+  };
+
+  const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Validation Error",
+        description: "All password fields are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Validation Error", 
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!validatePasswordStrength(passwordData.newPassword)) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 8 characters with uppercase, lowercase, and numbers",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(passwordData)
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Password changed successfully",
+        });
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setShowPasswordSection(false);
+      } else {
+        const error = await response.text();
+        throw new Error(error);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to change password",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleImageSelect = (e) => {
@@ -240,8 +338,75 @@ export default function EditProfile() {
       });
       return;
     }
+    
+    // Phone number validation
+    if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid phone number (10-15 digits)",
+        variant: "destructive",
+      });
+      return;
+    }
 
     updateProfile.mutate(formData);
+  };
+
+  // Validation functions
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^[+]?[0-9]{10,15}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
+  };
+
+  const validatePasswordStrength = (password) => {
+    return password.length >= 8 && 
+           /[A-Z]/.test(password) && 
+           /[a-z]/.test(password) && 
+           /[0-9]/.test(password);
+  };
+
+  // Helper functions
+  const isOrgUser = () => {
+    return currentUser?.role !== 'individual' && currentUser?.organizationId;
+  };
+
+  const getRoleBadgeVariant = (role) => {
+    const variants = {
+      'admin': 'default',
+      'manager': 'secondary', 
+      'employee': 'outline',
+      'individual': 'outline'
+    };
+    return variants[role] || 'outline';
+  };
+
+  const getRoleDisplayName = (role) => {
+    const names = {
+      'admin': 'Company Admin',
+      'manager': 'Manager',
+      'employee': 'Regular User', 
+      'individual': 'Individual'
+    };
+    return names[role] || role;
+  };
+
+  const getLicenseDisplayName = (license) => {
+    const names = {
+      'explore_free': 'Explore Free',
+      'plan': 'Plan',
+      'execute': 'Execute',
+      'optimize': 'Optimize'
+    };
+    return names[license] || license;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not available';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    });
   };
 
   const getInitials = () => {
@@ -354,43 +519,303 @@ export default function EditProfile() {
               </div>
             </div>
 
-            {/* Form Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  placeholder="Enter your first name"
-                  required
-                />
+            {/* Basic Information Section */}
+            <div className="space-y-6">
+              <div className="border-b pb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <User className="h-5 w-5" />
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">Full Name *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        placeholder="First name"
+                        required
+                        data-testid="input-first-name"
+                      />
+                      <Input
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        placeholder="Last name"
+                        required
+                        data-testid="input-last-name"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      value={currentUser?.email || ""}
+                      disabled={isOrgUser()}
+                      className={isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""}
+                      data-testid="input-email"
+                    />
+                    {isOrgUser() && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Email changes are managed by your organization admin
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Input
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleInputChange}
+                      placeholder="10-15 digits"
+                      data-testid="input-phone"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Optional • 10-15 digits</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  placeholder="Enter your last name"
-                  required
-                />
+              
+              {/* Organization Information */}
+              <div className="border-b pb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Shield className="h-5 w-5" />
+                  Organization Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="organizationName">Organization Name</Label>
+                    <Input
+                      id="organizationName"
+                      name="organizationName"
+                      value={formData.organizationName}
+                      onChange={handleInputChange}
+                      disabled={isOrgUser()}
+                      className={isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""}
+                      placeholder={!isOrgUser() ? "Enter organization name" : ""}
+                      data-testid="input-organization"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="department">Department/Team</Label>
+                    <Input
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Engineering, Marketing"
+                      data-testid="input-department"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Optional</p>
+                  </div>
+                  {isOrgUser() && (
+                    <div>
+                      <Label htmlFor="manager">Manager/Supervisor</Label>
+                      <Select name="manager" value={formData.manager} onValueChange={(value) => setFormData(prev => ({...prev, manager: value}))}>
+                        <SelectTrigger data-testid="select-manager">
+                          <SelectValue placeholder="Select manager" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No manager assigned</SelectItem>
+                          <SelectItem value="john-doe">John Doe</SelectItem>
+                          <SelectItem value="jane-smith">Jane Smith</SelectItem>
+                          <SelectItem value="mike-wilson">Mike Wilson</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">Optional</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                value={currentUser?.email || ""}
-                disabled
-                className="bg-gray-100 cursor-not-allowed"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Email cannot be changed
-              </p>
+              
+              {/* Access & Roles (Read-only) */}
+              <div className="border-b pb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Key className="h-5 w-5" />
+                  Access & Roles
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Assigned Role</Label>
+                    <div className="mt-2">
+                      <Badge variant={getRoleBadgeVariant(currentUser?.role)} data-testid="badge-role">
+                        {getRoleDisplayName(currentUser?.role)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>License Tier</Label>
+                    <div className="mt-2">
+                      <Badge variant="outline" data-testid="badge-license">
+                        {getLicenseDisplayName(currentUser?.license || 'explore_free')}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Date of Joining</Label>
+                    <p className="text-sm text-gray-600 mt-2" data-testid="text-join-date">
+                      {formatDate(currentUser?.createdAt)}
+                    </p>
+                  </div>
+                  {currentUser?.licenseExpiresAt && (
+                    <div>
+                      <Label>License Expiring On</Label>
+                      <p className="text-sm text-gray-600 mt-2" data-testid="text-license-expiry">
+                        {formatDate(currentUser.licenseExpiresAt)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Security Section */}
+              <div className="border-b pb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Shield className="h-5 w-5" />
+                  Security
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Last Login</Label>
+                    <p className="text-sm text-gray-600 mt-2" data-testid="text-last-login">
+                      {formatDate(currentUser?.lastLoginAt) || 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Password</Label>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPasswordSection(!showPasswordSection)}
+                      className="mt-2"
+                      data-testid="button-change-password"
+                    >
+                      {showPasswordSection ? 'Cancel' : 'Change Password'}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Password Change Section */}
+                {showPasswordSection && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                      <div>
+                        <Label htmlFor="currentPassword">Current Password *</Label>
+                        <Input
+                          id="currentPassword"
+                          name="currentPassword"
+                          type="password"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          data-testid="input-current-password"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="newPassword">New Password *</Label>
+                        <Input
+                          id="newPassword"
+                          name="newPassword"
+                          type="password"
+                          value={passwordData.newPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          data-testid="input-new-password"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Must be 8+ characters with uppercase, lowercase, and numbers
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          required
+                          data-testid="input-confirm-password"
+                        />
+                      </div>
+                      <Button type="submit" size="sm" data-testid="button-save-password">
+                        Update Password
+                      </Button>
+                    </form>
+                  </div>
+                )}
+              </div>
+              
+              {/* Preferences Section */}
+              <div>
+                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                  <Settings className="h-5 w-5" />
+                  Preferences
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="timeZone">Time Zone</Label>
+                    <Select name="timeZone" value={formData.timeZone} onValueChange={(value) => setFormData(prev => ({...prev, timeZone: value}))}>
+                      <SelectTrigger data-testid="select-timezone">
+                        <SelectValue placeholder="Select time zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asia/Kolkata">India (UTC+05:30)</SelectItem>
+                        <SelectItem value="America/New_York">Eastern Time (UTC-05:00)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (UTC-08:00)</SelectItem>
+                        <SelectItem value="Europe/London">London (UTC+00:00)</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo (UTC+09:00)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-base font-medium">Notification Settings</Label>
+                    <div className="mt-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="emailNotifications" className="font-normal">Email Notifications</Label>
+                          <p className="text-xs text-gray-500">Receive notifications via email</p>
+                        </div>
+                        <Switch
+                          id="emailNotifications"
+                          checked={formData.emailNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
+                          data-testid="switch-email-notifications"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="inAppNotifications" className="font-normal">In-App Notifications</Label>
+                          <p className="text-xs text-gray-500">Show notifications within the application</p>
+                        </div>
+                        <Switch
+                          id="inAppNotifications"
+                          checked={formData.inAppNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
+                          data-testid="switch-in-app-notifications"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="pushNotifications" className="font-normal">Push Notifications</Label>
+                          <p className="text-xs text-gray-500">Receive push notifications on your device</p>
+                        </div>
+                        <Switch
+                          id="pushNotifications"
+                          checked={formData.pushNotifications}
+                          onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
+                          data-testid="switch-push-notifications"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Submit Button */}

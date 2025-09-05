@@ -535,6 +535,11 @@ function App() {
             <ProtectedRoute component={EditProfile} />
           </AdminLayout>
         </Route>
+        <Route path="/profile">
+          <AdminLayout>
+            <ProtectedRoute component={EditProfile} />
+          </AdminLayout>
+        </Route>
         <Route path="/admin/users">
           <AdminLayout>
             <ProtectedRoute
