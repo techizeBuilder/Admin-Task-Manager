@@ -21,7 +21,6 @@ import FormBuilder from "./pages/admin/FormBuilder";
 import Integrations from "./pages/admin/Integrations";
 import Roles from "./pages/admin/Roles";
 import Reports from "./pages/admin/Reports";
-import { InviteUsers } from "./pages/InviteUsers";
 import { RoleManagement } from "./pages/RoleManagement";
 import { PlansLicenses } from "./pages/admin/PlansLicenses";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -531,25 +530,9 @@ function App() {
             />
           </AdminLayout>
         </Route>
-        <Route path="/invite-users">
-          <AdminLayout>
-            <ProtectedRoute
-              component={InviteUsers}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
-            />
-          </AdminLayout>
-        </Route>
         <Route path="/edit-profile">
           <AdminLayout>
             <ProtectedRoute component={EditProfile} />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/invite-users">
-          <AdminLayout>
-            <ProtectedRoute
-              component={InviteUsers}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
-            />
           </AdminLayout>
         </Route>
         <Route path="/admin/users">
