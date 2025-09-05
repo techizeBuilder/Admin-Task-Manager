@@ -67,6 +67,7 @@ export default function TaskDetail({ taskId, onClose }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDoneModal, setShowDoneModal] = useState(false);
   const [moreInfo, setMoreInfo] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [currentUser] = useState({
     id: 1,
     firstName: "Current",
@@ -686,12 +687,14 @@ export default function TaskDetail({ taskId, onClose }) {
                   <option>Documents</option>
                   <option>Forms</option>
                 </select>
-                <button className="btn btn-primary flex align-middle">
+                <button 
+                  className="btn btn-primary flex align-middle"
+                  onClick={() => setShowLinkModal(true)}
+                >
                   <Plus size={16} className='mx-2 ' />
                   <h2>
-                    
-                     Link Item
-                    </h2>
+                    Link Item
+                  </h2>
                 </button>
               </div>
             </div>
@@ -798,6 +801,75 @@ export default function TaskDetail({ taskId, onClose }) {
         }}
         task={task}
       />
+      
+      {/* Link Item Modal */}
+      {showLinkModal && (
+        <div className="modal-overlay">
+          <div className="modal-container max-w-2xl">
+            <div className="modal-header" style={{ background: '#3b82f6' }}>
+              <div className="modal-title-section">
+                <div className="modal-icon">
+                  <Link size={20} />
+                </div>
+                <div>
+                  <h3>Link New Item</h3>
+                  <p>Connect tasks, documents, and resources</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowLinkModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <CheckSquare size={14} className="inline mr-1" />
+                    Item Type
+                  </label>
+                  <select className="form-select w-full">
+                    <option value="task">Task</option>
+                    <option value="document">Document</option>
+                    <option value="form">Form</option>
+                    <option value="external">External Link</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <FileText size={14} className="inline mr-1" />
+                    Search & Select
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Search for items to link..."
+                    className="form-input w-full"
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button 
+                    className="btn btn-secondary"
+                    onClick={() => setShowLinkModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      console.log('Link item clicked');
+                      setShowLinkModal(false);
+                    }}
+                  >
+                    Link Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
