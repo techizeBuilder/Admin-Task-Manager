@@ -320,7 +320,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
                   <SelectContent>
                     <SelectItem value="Regular User">Regular User</SelectItem>
                     <SelectItem value="Manager">Manager</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
+                    <SelectItem value="Company Admin">Company Admin</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.role && (
@@ -341,9 +341,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     <SelectValue placeholder="Select license" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="basic">Basic License</SelectItem>
-                    <SelectItem value="premium">Premium License</SelectItem>
-                    <SelectItem value="enterprise">Enterprise License</SelectItem>
+                    <SelectItem value="Explore (Free)">Explore (Free)</SelectItem>
+                    <SelectItem value="Plan">Plan</SelectItem>
+                    <SelectItem value="Execute">Execute</SelectItem>
+                    <SelectItem value="Optimize">Optimize</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.licenseId && (
