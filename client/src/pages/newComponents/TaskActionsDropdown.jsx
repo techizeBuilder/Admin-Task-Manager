@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-react";
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
@@ -145,46 +146,53 @@ export default function TaskActionsDropdown({
         </div>
       )}
 
-      {/* Modals */}
-      <SnoozeTaskModal
-        isOpen={showSnoozeModal}
-        onClose={() => setShowSnoozeModal(false)}
-        onConfirm={(snoozeData) => {
-          onSnooze && onSnooze(snoozeData);
-          setShowSnoozeModal(false);
-        }}
-        task={task}
-      />
+      {/* Modals rendered at document root level */}
+      {(showSnoozeModal || showMarkRiskModal || showMarkDoneModal || showDeleteModal) && 
+        createPortal(
+          <>
+            <SnoozeTaskModal
+              isOpen={showSnoozeModal}
+              onClose={() => setShowSnoozeModal(false)}
+              onConfirm={(snoozeData) => {
+                onSnooze && onSnooze(snoozeData);
+                setShowSnoozeModal(false);
+              }}
+              task={task}
+            />
 
-      <MarkRiskModal
-        isOpen={showMarkRiskModal}
-        onClose={() => setShowMarkRiskModal(false)}
-        onConfirm={(riskData) => {
-          onMarkAsRisk && onMarkAsRisk(riskData);
-          setShowMarkRiskModal(false);
-        }}
-        task={task}
-      />
+            <MarkRiskModal
+              isOpen={showMarkRiskModal}
+              onClose={() => setShowMarkRiskModal(false)}
+              onConfirm={(riskData) => {
+                onMarkAsRisk && onMarkAsRisk(riskData);
+                setShowMarkRiskModal(false);
+              }}
+              task={task}
+            />
 
-      <MarkDoneModal
-        isOpen={showMarkDoneModal}
-        onClose={() => setShowMarkDoneModal(false)}
-        onConfirm={(doneData) => {
-          onMarkAsDone && onMarkAsDone(doneData);
-          setShowMarkDoneModal(false);
-        }}
-        task={task}
-      />
+            <MarkDoneModal
+              isOpen={showMarkDoneModal}
+              onClose={() => setShowMarkDoneModal(false)}
+              onConfirm={(doneData) => {
+                onMarkAsDone && onMarkAsDone(doneData);
+                setShowMarkDoneModal(false);
+              }}
+              task={task}
+            />
 
-      <DeleteTaskModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={() => {
-          onDelete && onDelete();
-          setShowDeleteModal(false);
-        }}
-        task={task}
-      />
+            <DeleteTaskModal
+              isOpen={showDeleteModal}
+              onClose={() => setShowDeleteModal(false)}
+              onConfirm={() => {
+                onDelete && onDelete();
+                setShowDeleteModal(false);
+              }}
+              task={task}
+            />
+          </>,
+          document.body
+        )
+      }
     </div>
   );
 }

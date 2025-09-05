@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 20px;
 }
 
@@ -168,39 +168,39 @@
   color: #374151; 
 }
 
-/* Hide unwanted text content in modals */
-.modal-container *::before,
-.modal-container *::after,
+/* Completely suppress pseudo-elements in modals */
+.modal-overlay *,
+.modal-container * {
+  position: relative;
+}
+
 .modal-overlay *::before,
-.modal-overlay *::after {
-  content: none !important;
-}
-
-/* Override any pseudo-elements that might show unwanted text */
-.modal-container .task-status::before,
-.modal-container .status-badge::before,
-.modal-container .open::before,
-.modal-container .open::after,
-.modal-overlay .task-status::before,
-.modal-overlay .status-badge::before,
-.modal-overlay .open::before,
-.modal-overlay .open::after {
-  content: none !important;
+.modal-overlay *::after,
+.modal-container *::before, 
+.modal-container *::after {
   display: none !important;
+  content: none !important;
+  visibility: hidden !important;
 }
 
-/* Prevent any text injection from classes */
-.modal-container .open,
-.modal-overlay .open {
-  text-indent: 0 !important;
-}
-
-.modal-container .open:not(input):not(textarea):not(select)::before,
-.modal-container .open:not(input):not(textarea):not(select)::after,
-.modal-overlay .open:not(input):not(textarea):not(select)::before,
-.modal-overlay .open:not(input):not(textarea):not(select)::after {
+/* Remove any text content injection */
+.modal-overlay .open::before,
+.modal-overlay .open::after,
+.modal-container .open::before,
+.modal-container .open::after {
   content: "" !important;
   display: none !important;
+}
+
+/* Hide elements with "Open" text */
+.modal-overlay *[class*="open"]::before,
+.modal-overlay *[class*="open"]::after,
+.modal-container *[class*="open"]::before,
+.modal-container *[class*="open"]::after {
+  content: "" !important;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 .task-priority.priority-high { background: #fee2e2; color: #991b1b; }
