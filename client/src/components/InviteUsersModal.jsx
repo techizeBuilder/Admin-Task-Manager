@@ -34,7 +34,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "Regular User",
+    role: "",
     licenseId: "",
     department: "",
     designation: "",
@@ -60,7 +60,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
       setFormData({
         name: "",
         email: "",
-        role: "Regular User",
+        role: "",
         licenseId: "",
         department: "",
         designation: "",
