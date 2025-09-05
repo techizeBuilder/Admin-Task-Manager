@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import CustomEditor from '../../components/common/CustomEditor';
 import SearchableSelect from "../SearchableSelect";
 import FileUploadComponent from "./FileUploadComponent";
 // Calculate due date based on priority
@@ -291,11 +290,11 @@ export default function TaskEditModal({ task, onSave, onClose, permissions }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description
                 </label>
-                <ReactQuill
-                  className="custom-editor"
+                <CustomEditor
                   value={formData.description}
                   onChange={(value) => handleChange("description", value)}
                   placeholder="Enter task description..."
+                  showFileAttachment={true}
                 />
               </div>
 

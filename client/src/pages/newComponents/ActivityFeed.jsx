@@ -1,5 +1,10 @@
 
-import React, { useState } from 'react'
+import React, { useState } from 'react';
+import { 
+  CheckCircle, Edit, FileText, MessageCircle, Target, User, 
+  Paperclip, Trash2, RotateCcw, ClipboardList, Trophy, 
+  Bell, Moon, Repeat
+} from 'lucide-react';
 
 export default function ActivityFeed({ taskId }) {
   const [activities] = useState([
@@ -249,28 +254,28 @@ export default function ActivityFeed({ taskId }) {
   })
 
   const getActivityIcon = (type) => {
-    const icons = {
-      task_created: '✅',
-      field_updated: '✏️',
-      subtask_added: '📝',
-      subtask_completed: '✅',
-      status_changed: '🔄',
-      priority_changed: '🎯',
-      assignment_changed: '👤',
-      comment_added: '💬',
-      comment_edited: '✏️',
-      file_attached: '📎',
-      file_removed: '🗑️',
-      recurrence_updated: '🔁',
-      form_attached: '📋',
-      form_submitted: '✅',
-      task_completed: '🎉',
-      task_reopened: '🔄',
-      milestone_reached: '🏆',
-      reminder_sent: '🔔',
-      task_snoozed: '😴'
+    const iconComponents = {
+      task_created: <CheckCircle size={16} className="text-green-500" />,
+      field_updated: <Edit size={16} className="text-blue-500" />,
+      subtask_added: <FileText size={16} className="text-purple-500" />,
+      subtask_completed: <CheckCircle size={16} className="text-green-500" />,
+      status_changed: <RotateCcw size={16} className="text-orange-500" />,
+      priority_changed: <Target size={16} className="text-red-500" />,
+      assignment_changed: <User size={16} className="text-indigo-500" />,
+      comment_added: <MessageCircle size={16} className="text-blue-500" />,
+      comment_edited: <Edit size={16} className="text-blue-500" />,
+      file_attached: <Paperclip size={16} className="text-gray-500" />,
+      file_removed: <Trash2 size={16} className="text-red-500" />,
+      recurrence_updated: <Repeat size={16} className="text-purple-500" />,
+      form_attached: <ClipboardList size={16} className="text-green-500" />,
+      form_submitted: <CheckCircle size={16} className="text-green-500" />,
+      task_completed: <CheckCircle size={16} className="text-green-500" />,
+      task_reopened: <RotateCcw size={16} className="text-orange-500" />,
+      milestone_reached: <Trophy size={16} className="text-yellow-500" />,
+      reminder_sent: <Bell size={16} className="text-blue-500" />,
+      task_snoozed: <Moon size={16} className="text-gray-500" />
     }
-    return icons[type] || '📝'
+    return iconComponents[type] || <FileText size={16} className="text-gray-500" />
   }
 
   const getActivityMessage = (activity) => {
@@ -513,7 +518,7 @@ export default function ActivityFeed({ taskId }) {
                   
                   {/* Activity Icon */}
                   <div className="flex-shrink-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center mt-1">
-                    <span className="text-xs">{getActivityIcon(activity.type)}</span>
+                    {getActivityIcon(activity.type)}
                   </div>
                   
                   {/* Activity Content */}

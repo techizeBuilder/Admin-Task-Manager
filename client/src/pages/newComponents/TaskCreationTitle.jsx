@@ -1,3 +1,6 @@
+import React from "react";
+import { ClipboardList, RotateCcw, Target, CheckCircle } from "lucide-react";
+
 export default function TaskCreationTile({
   type,
   title,
@@ -32,7 +35,7 @@ export default function TaskCreationTile({
         <div
           className={`w-6 h-6 mt-1 rounded-xl flex items-center justify-center transition-all duration-300 ${iconColorClasses[color]}`}
         >
-          <span className="text-md">{icon}</span>
+          {icon}
         </div>
         {/* <div className="flex-1 min-w-0"> */}
         <h4 className="text-lg font-semibold text-gray-900 group-hover:text-gray-700 ">

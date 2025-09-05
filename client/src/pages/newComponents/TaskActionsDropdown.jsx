@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-react";
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
 
@@ -62,7 +63,7 @@ export default function TaskActionsDropdown({
               handleAction(() => openViewModal(task));
             }}
           >
-            <span className="text-lg">👁️</span>
+            <Eye size={16} className="text-gray-600" />
             <span className="font-medium">View</span>
           </button>
 
@@ -73,7 +74,7 @@ export default function TaskActionsDropdown({
               handleAction(() => openSubtaskDrawer(task));
             }}
           >
-            <span className="text-lg">🔗</span>
+            <Plus size={16} className="text-gray-600" />
             <span className="font-medium">Create Sub-task</span>
           </button>
 
@@ -84,7 +85,7 @@ export default function TaskActionsDropdown({
               handleAction(onSnooze);
             }}
           >
-            <span className="text-lg">⏸️</span>
+            <Pause size={16} className="text-gray-600" />
             <span className="font-medium">Snooze</span>
           </button>
 
@@ -95,7 +96,7 @@ export default function TaskActionsDropdown({
               handleAction(onMarkAsRisk);
             }}
           >
-            <span className="text-lg">⚠️</span>
+            <AlertTriangle size={16} className="text-gray-600" />
             <span className="font-medium">Mark as Risk</span>
           </button>
 
@@ -106,7 +107,7 @@ export default function TaskActionsDropdown({
               handleAction(onMarkAsDone);
             }}
           >
-            <span className="text-lg">✅</span>
+            <CheckCircle size={16} className="text-gray-600" />
             <span className="font-medium">Mark as Done</span>
           </button>
 
@@ -119,7 +120,7 @@ export default function TaskActionsDropdown({
               handleAction(onDelete);
             }}
           >
-            <span className="text-lg">🗑️</span>
+            <Trash2 size={16} className="text-red-600" />
             <span className="font-medium">Delete</span>
           </button>
         </div>

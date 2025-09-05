@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import ReactQuill from "react-quill";
+import CustomEditor from '../../components/common/CustomEditor';
 import SearchableSelect from "../SearchableSelect";
 import { calculateDueDateFromPriority } from "./PriorityManager";
 import useTasksStore from "../../stores/tasksStore";
@@ -518,11 +518,11 @@ export default function SubtaskCreator({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes
           </label>
-          <ReactQuill
-            className="custom-editor"
+          <CustomEditor
             value={formData.notes}
             onChange={(value) => handleInputChange("notes", value)}
             placeholder="Add any additional notes for this sub-task..."
+            showFileAttachment={true}
           />
         </div>
 
