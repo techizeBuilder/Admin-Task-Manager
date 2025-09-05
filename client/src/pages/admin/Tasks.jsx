@@ -384,17 +384,16 @@ export default function Tasks() {
         )}
         {/* Create Task Drawer */}
         {showCreateTaskDrawer && (
-          <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
+          <div className="fixed inset-0 z-50 overflow-hidden">
             <div
-              className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30 transition-opacity"
               onClick={() => setShowCreateTaskDrawer(false)}
             ></div>
             <div
-              className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+              className="absolute right-0 top-0 h-full bg-white flex flex-col transform transition-transform duration-300 ease-in-out"
               style={{
                 width: "min(90vw, 900px)",
                 boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-                borderLeft: "1px solid rgba(255,255,255,0.2)",
               }}
             >
               <div className="drawer-header">
