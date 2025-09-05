@@ -1,7 +1,9 @@
+import { FileText, RotateCcw, Target, CheckCircle } from 'lucide-react';
+
 export const getTaskTypeInfo = (taskType) => {
   const taskTypes = {
     regular: {
-      icon: "📋",
+      icon: <FileText size={16} className="text-blue-600" />,
       label: "Regular Task",
       color: "#3B82F6",
       bgColor: "bg-blue-50",
@@ -9,7 +11,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-blue-700",
     },
     recurring: {
-      icon: "🔄",
+      icon: <RotateCcw size={16} className="text-green-600" />,
       label: "Recurring Task",
       color: "#10B981",
       bgColor: "bg-green-50",
@@ -17,7 +19,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-green-700",
     },
     milestone: {
-      icon: "🎯",
+      icon: <Target size={16} className="text-purple-600" />,
       label: "Milestone",
       color: "#8B5CF6",
       bgColor: "bg-purple-50",
@@ -25,7 +27,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-purple-700",
     },
     approval: {
-      icon: "✅",
+      icon: <CheckCircle size={16} className="text-amber-600" />,
       label: "Approval Task",
       color: "#F59E0B",
       bgColor: "bg-amber-50",

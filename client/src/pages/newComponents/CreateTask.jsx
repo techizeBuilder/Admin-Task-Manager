@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FileText, RotateCcw, Target, CheckCircle, Settings, FlaskConical, Rocket, Link } from "lucide-react";
 import { RegularTaskForm } from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
@@ -671,7 +672,7 @@ function LegacyCreateTask({
                     : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
                 }`}
               >
-                <span className="text-lg">📋</span>
+                <FileText size={20} className="text-blue-600" />
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="text-lg font-semibold text-gray-900 group-hover:text-blue-700">
@@ -683,15 +684,15 @@ function LegacyCreateTask({
                 </p>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span className="flex items-center gap-1">
-                    <span>⭐</span>
+                    <Target size={16} className="text-purple-600" />
                     Milestone
                   </span>
                   <span className="flex items-center gap-1">
-                    <span>✅</span>
+                    <CheckCircle size={16} className="text-green-600" />
                     Approval
                   </span>
                   <span className="flex items-center gap-1">
-                    <span>🔄</span>
+                    <RotateCcw size={16} className="text-purple-600" />
                     Recurring
                   </span>
                 </div>
@@ -715,7 +716,7 @@ function LegacyCreateTask({
                     : "bg-green-100 text-green-600 group-hover:bg-green-200"
                 }`}
               >
-                <span className="text-sm">🔄</span>
+                <RotateCcw size={16} className="text-purple-600" />
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-semibold text-gray-900 group-hover:text-green-700">
@@ -743,7 +744,7 @@ function LegacyCreateTask({
                     : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
                 }`}
               >
-                <span className="text-sm">🎯</span>
+                <Target size={16} className="text-red-600" />
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-semibold text-gray-900 group-hover:text-purple-700">
@@ -772,7 +773,7 @@ function LegacyCreateTask({
                     : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
                 }`}
               >
-                <span className="text-sm">✅</span>
+                <CheckCircle size={16} className="text-amber-600" />
               </div>
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-semibold text-gray-900 group-hover:text-emerald-700">
@@ -1084,7 +1085,7 @@ function LegacyCreateTask({
                               ["green", "blue", "purple", "orange"][i]
                             }-600`}
                           >
-                            {["✅", "⚙️", "🧪", "🚀"][i]}
+                            {[<CheckCircle size={16} className="text-green-600" />, <Settings size={16} className="text-blue-600" />, <FlaskConical size={16} className="text-purple-600" />, <Rocket size={16} className="text-red-600" />][i]}
                           </span>
                           <span className="text-sm text-gray-700">{task}</span>
                         </div>
