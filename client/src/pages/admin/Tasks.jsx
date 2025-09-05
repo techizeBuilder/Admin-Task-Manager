@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TaskKanbanView } from "@/components/tasks/TaskKanbanView";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, Kanban, Plus } from "lucide-react";
+import { Table, Kanban, Plus, ClipboardList } from "lucide-react";
 import CreateTask from "../../pages/newComponents/CreateTask";
 import ApprovalTaskCreator from "../../pages/newComponents/ApprovalTaskCreator";
 import AllTasks from "../../components/tasks/TaskTableView";
@@ -310,7 +310,7 @@ export default function Tasks() {
                         className="w-full text-left px-4 py-3 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 flex items-center gap-3"
                         onClick={() => handleTaskTypeSelect("regular")}
                       >
-                        <span className="text-2xl">📋</span>
+                        <span className="text-2xl"><ClipboardList/></span>
                         <div>
                           <div className="font-medium text-gray-900">
                             Simple Task

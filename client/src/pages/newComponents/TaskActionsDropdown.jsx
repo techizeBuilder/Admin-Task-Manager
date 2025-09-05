@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-react";
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
+import { useLocation } from "wouter";
 
 export default function TaskActionsDropdown({
   task,
@@ -14,7 +15,7 @@ export default function TaskActionsDropdown({
   const { openViewModal } = useView();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-
+  const [,Navigate] =useLocation()
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -60,7 +61,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(() => openViewModal(task));
+              Navigate('/tasks/1')
             }}
           >
             <Eye size={16} className="text-gray-600" />
