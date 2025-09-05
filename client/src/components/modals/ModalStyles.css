@@ -163,7 +163,45 @@
 .task-status.completed { background: #d1fae5; color: #065f46; }
 .task-status.in-progress { background: #dbeafe; color: #1e40af; }
 .task-status.todo { background: #f3f4f6; color: #374151; }
-.task-status.open { background: #f3f4f6; color: #374151; }
+.task-status.open { 
+  background: #f3f4f6; 
+  color: #374151; 
+}
+
+/* Hide unwanted text content in modals */
+.modal-container *::before,
+.modal-container *::after,
+.modal-overlay *::before,
+.modal-overlay *::after {
+  content: none !important;
+}
+
+/* Override any pseudo-elements that might show unwanted text */
+.modal-container .task-status::before,
+.modal-container .status-badge::before,
+.modal-container .open::before,
+.modal-container .open::after,
+.modal-overlay .task-status::before,
+.modal-overlay .status-badge::before,
+.modal-overlay .open::before,
+.modal-overlay .open::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Prevent any text injection from classes */
+.modal-container .open,
+.modal-overlay .open {
+  text-indent: 0 !important;
+}
+
+.modal-container .open:not(input):not(textarea):not(select)::before,
+.modal-container .open:not(input):not(textarea):not(select)::after,
+.modal-overlay .open:not(input):not(textarea):not(select)::before,
+.modal-overlay .open:not(input):not(textarea):not(select)::after {
+  content: "" !important;
+  display: none !important;
+}
 
 .task-priority.priority-high { background: #fee2e2; color: #991b1b; }
 .task-priority.priority-medium { background: #fef3c7; color: #92400e; }
