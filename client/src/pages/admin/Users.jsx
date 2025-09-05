@@ -465,16 +465,16 @@ export default function Users() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleViewActivity(user)}>
+                      <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg z-50">
+                        <DropdownMenuItem onClick={() => handleViewActivity(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
                           <Eye className="h-4 w-4 mr-2" />
                           View Activity
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                        <DropdownMenuItem onClick={() => handleEditUser(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
                           <Edit3 className="h-4 w-4 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleUserStatus(user)}>
+                        <DropdownMenuItem onClick={() => toggleUserStatus(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
                           {user.status === 'Active' ? (
                             <>
                               <UserX className="h-4 w-4 mr-2" />
@@ -489,7 +489,7 @@ export default function Users() {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleRemoveUser(user)}
-                          className="text-red-600 focus:text-red-600"
+                          className="bg-white hover:bg-red-50 text-red-600 focus:text-red-600 cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Remove User
