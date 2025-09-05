@@ -1,5 +1,6 @@
 
 import React, { useState, useRef } from 'react'
+import { FileText, BarChart3, Database, Image, Folder, Cloud, Download, Trash2, ExternalLink } from 'lucide-react'
 
 export default function TaskAttachments({ taskId }) {
   const [files, setFiles] = useState([
@@ -10,7 +11,7 @@ export default function TaskAttachments({ taskId }) {
       type: 'sql',
       uploadedBy: 'John Smith',
       uploadedAt: '1/20/2024 at 02:30 PM',
-      icon: '🗄️'
+      icon: <Database size={16} className="text-blue-500" />
     },
     {
       id: 2,
@@ -19,7 +20,7 @@ export default function TaskAttachments({ taskId }) {
       type: 'pdf',
       uploadedBy: 'Sarah Wilson',
       uploadedAt: '1/21/2024 at 09:15 AM',
-      icon: '📄'
+      icon: <FileText size={16} className="text-blue-500" />
     },
     {
       id: 3,
@@ -28,7 +29,7 @@ export default function TaskAttachments({ taskId }) {
       type: 'xlsx',
       uploadedBy: 'Mike Johnson',
       uploadedAt: '1/22/2024 at 11:45 AM',
-      icon: '📊'
+      icon: <BarChart3 size={16} className="text-green-500" />
     }
   ])
 
@@ -106,11 +107,11 @@ export default function TaskAttachments({ taskId }) {
   const getFileIcon = (filename) => {
     const ext = filename.split('.').pop().toLowerCase()
     const icons = {
-      pdf: '📄',
+      pdf: <FileText size={16} className="text-red-500" />,
       doc: '📝',
       docx: '📝',
-      xls: '📊',
-      xlsx: '📊',
+      xls: <BarChart3 size={16} className="text-green-500" />,
+      xlsx: <BarChart3 size={16} className="text-green-500" />,
       ppt: '📊',
       pptx: '📊',
       jpg: '🖼️',

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { ThumbsUp, Heart, Rocket, Flame, Smile, PartyPopper } from 'lucide-react';
 
 export default function TaskComments({ taskId }) {
   const [comments, setComments] = useState([

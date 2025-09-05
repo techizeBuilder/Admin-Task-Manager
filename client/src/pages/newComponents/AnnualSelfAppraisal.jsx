@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { User, Trophy, Zap, Target, Star, MessageCircle } from 'lucide-react';
 
 export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
   const [formData, setFormData] = useState({
@@ -352,7 +353,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Personal Information (Read-Only) */}
             <div className="bg-gray-50 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-blue-600">👤</span>
+                <User size={20} className="text-blue-600" />
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -410,7 +411,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Achievements Section */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-green-600">🏆</span>
+                <Trophy size={20} className="text-green-600" />
                 Achievements & Accomplishments
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -442,7 +443,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Challenges Section */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-orange-600">⚡</span>
+                <Zap size={20} className="text-orange-600" />
                 Challenges & Growth
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -474,7 +475,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Goals Section */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-purple-600">🎯</span>
+                <Target size={20} className="text-purple-600" />
                 Goals & Aspirations
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -506,7 +507,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Self-Rating Section */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-indigo-600">⭐</span>
+                <Star size={20} className="text-indigo-600" />
                 Self-Assessment Ratings
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -560,7 +561,7 @@ export default function AnnualSelfAppraisal({ onClose, employeeData = null }) {
             {/* Manager Feedback Section (Optional) */}
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <span className="text-teal-600">💬</span>
+                <MessageCircle size={20} className="text-teal-600" />
                 Manager Feedback (Optional)
               </h2>
               <div className="space-y-6">

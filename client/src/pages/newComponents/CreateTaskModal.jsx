@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ClipboardList, RotateCcw, Target, CheckCircle, X } from 'lucide-react';
 import { RegularTaskContent } from '../../components/forms/RegularTaskContent';
 import { MilestoneTaskContent } from '../../components/forms/MilestoneTaskContent';
 import { EnhancedRegularTaskContent } from '../../components/forms/EnhancedRegularTaskContent';
@@ -31,7 +32,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
       id: 'regular',
       name: 'Regular Task',
       description: 'Standard one-time task',
-      icon: '📋',
+      icon: <ClipboardList size={20} />,
       iconBg: 'bg-blue-500',
       borderColor: 'border-blue-500',
       bgColor: 'bg-blue-50'
@@ -40,7 +41,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
       id: 'recurring',
       name: 'Recurring Task', 
       description: 'Repeats on schedule',
-      icon: '🔄',
+      icon: <RotateCcw size={20} />,
       iconBg: 'bg-blue-500',
       borderColor: 'border-blue-500',
       bgColor: 'bg-blue-50'
@@ -49,7 +50,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
       id: 'milestone',
       name: 'Milestone',
       description: 'Project checkpoint',
-      icon: '🎯',
+      icon: <Target size={20} />,
       iconBg: 'bg-red-500',
       borderColor: 'border-red-500',
       bgColor: 'bg-red-50'
@@ -58,7 +59,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
       id: 'approval',
       name: 'Approval Task',
       description: 'Requires approval',
-      icon: '✅',
+      icon: <CheckCircle size={20} />,
       iconBg: 'bg-green-500',
       borderColor: 'border-green-500',
       bgColor: 'bg-green-50'
@@ -109,7 +110,7 @@ export default function CreateTaskModal({ onClose, onSubmit, initialTaskType = '
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       selectedTaskType === type.id ? type.iconBg : 'bg-gray-200'
                     } text-white`}>
-                      <span className="text-lg">{type.icon}</span>
+                      {type.icon}
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">{type.name}</h4>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Clock, Calendar, AlertTriangle, CheckCircle, User, Filter } from 'lucide-react';
+import { Clock, Calendar, AlertTriangle, CheckCircle, User, Filter, Star, RotateCcw, FileText } from 'lucide-react';
 
 export default function Deadlines() {
   const [filter, setFilter] = useState('all'); // all, overdue, today, upcoming, completed
@@ -120,13 +120,13 @@ export default function Deadlines() {
   const getTypeIcon = (type) => {
     switch (type) {
       case 'milestone':
-        return '⭐';
+        return <Star size={16} className="text-yellow-500" />;
       case 'approval':
-        return '✅';
+        return <CheckCircle size={16} className="text-green-500" />;
       case 'recurring':
-        return '🔁';
+        return <RotateCcw size={16} className="text-purple-500" />;
       default:
-        return '📄';
+        return <FileText size={16} className="text-gray-500" />;
     }
   };
 

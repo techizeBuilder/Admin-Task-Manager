@@ -43,6 +43,7 @@ import {
   CheckCircle,
   Save,
   Keyboard,
+  Circle,
   Trash2,
   Plus
 } from "lucide-react";
@@ -235,10 +236,10 @@ export function AdvancedCreateTask({
 
   // Priority levels configuration
   const priorityLevels = [
-    { value: "low", label: "Low", color: "bg-green-100 text-green-800 border-green-200", icon: "🟢" },
-    { value: "medium", label: "Medium", color: "bg-blue-100 text-blue-800 border-blue-200", icon: "🔵" },
-    { value: "high", label: "High", color: "bg-blue-100 text-blue-800 border-blue-200", icon: "🔵" },
-    { value: "urgent", label: "Urgent", color: "bg-red-100 text-red-800 border-red-200", icon: "🔴" }
+    { value: "low", label: "Low", color: "bg-green-100 text-green-800 border-green-200", icon: <Circle size={16} className="text-green-500 fill-green-500" /> },
+    { value: "medium", label: "Medium", color: "bg-blue-100 text-blue-800 border-blue-200", icon: <Circle size={16} className="text-blue-500 fill-blue-500" /> },
+    { value: "high", label: "High", color: "bg-orange-100 text-orange-800 border-orange-200", icon: <Circle size={16} className="text-orange-500 fill-orange-500" /> },
+    { value: "urgent", label: "Urgent", color: "bg-red-100 text-red-800 border-red-200", icon: <Circle size={16} className="text-red-500 fill-red-500" /> }
   ];
 
   // Form handlers

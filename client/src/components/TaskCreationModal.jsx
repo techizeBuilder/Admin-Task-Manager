@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ClipboardList, RotateCcw, Target, CheckCircle } from 'lucide-react';
 
 export function TaskCreationModal({ isOpen, onClose, onSubmit }) {
   const [selectedTaskType, setSelectedTaskType] = useState('regular');
@@ -14,28 +15,28 @@ export function TaskCreationModal({ isOpen, onClose, onSubmit }) {
       id: 'regular',
       name: 'Regular Task',
       description: 'Standard one-time task',
-      icon: '📋',
+      icon: <ClipboardList size={20} />,
       color: 'blue'
     },
     {
       id: 'recurring',
       name: 'Recurring Task', 
       description: 'Repeats on schedule',
-      icon: '🔄',
+      icon: <RotateCcw size={20} />,
       color: 'blue'
     },
     {
       id: 'milestone',
       name: 'Milestone',
       description: 'Project checkpoint',
-      icon: '🎯',
+      icon: <Target size={20} />,
       color: 'red'
     },
     {
       id: 'approval',
       name: 'Approval Task',
       description: 'Requires approval',
-      icon: '✅',
+      icon: <CheckCircle size={20} />,
       color: 'green'
     }
   ];
@@ -91,7 +92,7 @@ export function TaskCreationModal({ isOpen, onClose, onSubmit }) {
                         ? `bg-${type.color}-500 text-white`
                         : `bg-${type.color}-100 text-${type.color}-600`
                     }`}>
-                      <span className="text-lg">{type.icon}</span>
+                      {type.icon}
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">{type.name}</h4>
