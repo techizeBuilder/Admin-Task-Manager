@@ -384,16 +384,16 @@ export default function Tasks() {
         )}
         {/* Create Task Drawer */}
         {showCreateTaskDrawer && (
-          <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="fixed inset-0 z-50">
             <div
-              className="absolute inset-0 bg-black/30 transition-opacity"
+              className="absolute inset-0 bg-gray-900/20"
               onClick={() => setShowCreateTaskDrawer(false)}
             ></div>
             <div
-              className="absolute right-0 top-0 h-full bg-white flex flex-col transform transition-transform duration-300 ease-in-out"
+              className="absolute right-0 top-0 h-full bg-white flex flex-col"
               style={{
                 width: "min(90vw, 900px)",
-                boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+                boxShadow: "-5px 0 25px rgba(0,0,0,0.1)",
               }}
             >
               <div className="drawer-header">
@@ -433,9 +433,9 @@ export default function Tasks() {
 
         {/* Approval Task Creator Modal */}
         {showApprovalTaskModal && (
-          <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
+          <div className="fixed inset-0 z-50">
             <div
-              className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+              className="absolute inset-0 bg-gray-900/20"
               onClick={() => setShowApprovalTaskModal(false)}
             ></div>
             <div
