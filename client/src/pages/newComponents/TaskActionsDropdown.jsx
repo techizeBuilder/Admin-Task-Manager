@@ -15,7 +15,7 @@ export default function TaskActionsDropdown({
   const { openViewModal } = useView();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const [,Navigate] =useLocation()
+  const [, navigate] = useLocation();
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -61,7 +61,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              Navigate('/tasks/1')
+              navigate(`/tasks/${task.id}`);
             }}
           >
             <Eye size={16} className="text-gray-600" />
@@ -72,7 +72,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(() => openSubtaskDrawer(task));
+              navigate(`/tasks/${task.id}/subtasks/create`);
             }}
           >
             <Plus size={16} className="text-gray-600" />
@@ -83,7 +83,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(onSnooze);
+              navigate(`/tasks/${task.id}/snooze`);
             }}
           >
             <Pause size={16} className="text-gray-600" />
@@ -94,7 +94,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(onMarkAsRisk);
+              navigate(`/tasks/${task.id}/mark-risk`);
             }}
           >
             <AlertTriangle size={16} className="text-gray-600" />
@@ -105,7 +105,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(onMarkAsDone);
+              navigate(`/tasks/${task.id}/mark-done`);
             }}
           >
             <CheckCircle size={16} className="text-gray-600" />
@@ -118,7 +118,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(onDelete);
+              navigate(`/tasks/${task.id}/delete`);
             }}
           >
             <Trash2 size={16} className="text-red-600" />

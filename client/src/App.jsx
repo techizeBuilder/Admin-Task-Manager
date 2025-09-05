@@ -460,6 +460,36 @@ function App() {
             <ProtectedRoute component={TaskDetail} />
           </AdminLayout>
         </Route>
+
+        <Route path="/tasks/:taskId/snooze">
+          <AdminLayout>
+            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Snooze Task</h1><p>Configure when to resume this task</p></div>} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/:taskId/mark-risk">
+          <AdminLayout>
+            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Mark as Risk</h1><p>Mark this task as at risk and provide details</p></div>} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/:taskId/mark-done">
+          <AdminLayout>
+            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Mark as Done</h1><p>Complete this task and update status</p></div>} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/:taskId/delete">
+          <AdminLayout>
+            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Delete Task</h1><p>Permanently remove this task</p></div>} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/tasks/:taskId/subtasks/create">
+          <AdminLayout>
+            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Create Subtask</h1><p>Add a new subtask to this task</p></div>} />
+          </AdminLayout>
+        </Route>
         <Route path="/setting">
           <AdminLayout>
             <ProtectedRoute component={AdminSettings} />
