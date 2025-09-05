@@ -424,9 +424,13 @@
     @apply block text-sm font-semibold text-gray-700 mb-2;
   }
 
-  /* Status Badges */
+  /* Status Badges - Unified Definition */
   .status-badge {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200;
+  }
+
+  .status-badge:hover {
+    @apply transform -translate-y-0.5 shadow-md;
   }
 
   .status-todo {
@@ -2445,21 +2449,7 @@
   display: inline-block;
 }
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: capitalize;
-  transition: all 0.2s ease;
-}
-
-.status-badge:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
+/* Removed duplicate .status-badge definition to prevent conflicts */
 
 /* Status-specific styles with enhanced colors */
 .status-open {
