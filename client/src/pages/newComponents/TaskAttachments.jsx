@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react'
-import { FileText, BarChart3, Database, Image, Folder, Cloud, Download, Trash2, ExternalLink } from 'lucide-react'
+import { FileText, BarChart3, Database, Image, Folder, Cloud, Download, Trash2, ExternalLink, Plus, Link as LinkIcon } from 'lucide-react'
+import AttachmentUploader from '../../components/common/AttachmentUploader'
 
 export default function TaskAttachments({ taskId }) {
   const [files, setFiles] = useState([
@@ -172,45 +173,17 @@ export default function TaskAttachments({ taskId }) {
         </div>
 
         {/* File Upload Area */}
-        <div
-          className={`upload-area border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 mb-6 ${
-            dragActive 
-              ? 'border-blue-500 bg-blue-50 transform scale-102' 
-              : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-          }`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
+        <div className="mb-6">
+          <AttachmentUploader
+            files={files}
+            onFilesChange={setFiles}
+            multiple={true}
+            maxSize={10 * 1024 * 1024}
+            maxFiles={20}
+            acceptedTypes="*/*"
+            dragDropText="Drag and drop files here or browse"
+            showPreview={false}
           />
-          
-          <div className="upload-icon mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto">
-              <span className="text-3xl">☁️</span>
-            </div>
-          </div>
-          
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Drag and drop files here or browse
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Maximum file size: 10MB per file
-          </p>
-          
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="btn btn-secondary inline-flex items-center gap-2"
-          >
-            <span>📁</span>
-            <span>Choose Files</span>
-          </button>
         </div>
 
         {/* Files List */}
@@ -288,16 +261,24 @@ export default function TaskAttachments({ taskId }) {
             onClick={() => setShowAddLink(true)}
             className="btn btn-primary flex items-center gap-2 px-4 py-2"
           >
-            <span className="text-sm">🔗</span>
+            <LinkIcon size={16} />
             <span>Add Link</span>
           </button>
         </div>
 
         {/* Add Link Modal */}
         {showAddLink && (
-          <div className="add-link-modal bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Add New Link</h3>
+          <div className="add-link-modal bg-white rounded-2xl border border-gray-200 p-6 mb-6 shadow-lg animate-fadeIn">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                  <LinkIcon size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Add New Link</h3>
+                  <p className="text-sm text-gray-600">Add an external reference or resource</p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowAddLink(false)}
                 className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center text-gray-600 transition-colors"
@@ -306,57 +287,61 @@ export default function TaskAttachments({ taskId }) {
               </button>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <LinkIcon size={14} className="inline mr-1" />
                   Link Title *
                 </label>
                 <input
                   type="text"
                   value={newLink.title}
                   onChange={(e) => setNewLink(prev => ({ ...prev, title: e.target.value }))}
-                  className="form-input w-full"
-                  placeholder="Enter link title..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                  placeholder="Enter a descriptive title"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <ExternalLink size={14} className="inline mr-1" />
                   URL *
                 </label>
                 <input
                   type="url"
                   value={newLink.url}
                   onChange={(e) => setNewLink(prev => ({ ...prev, url: e.target.value }))}
-                  className="form-input w-full"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
                   placeholder="https://example.com"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
+                  <FileText size={14} className="inline mr-1" />
+                  Description (Optional)
                 </label>
                 <textarea
                   value={newLink.description}
                   onChange={(e) => setNewLink(prev => ({ ...prev, description: e.target.value }))}
-                  className="form-textarea w-full"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none transition-all duration-200 shadow-sm hover:shadow-md"
                   rows={3}
-                  placeholder="Optional description..."
+                  placeholder="Brief description of this link and its relevance to the task"
                 />
               </div>
               
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <button
                   onClick={handleAddLink}
-                  className="btn btn-primary flex-1"
+                  className="btn btn-primary flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl py-3 font-medium transition-all duration-200 hover:from-green-600 hover:to-emerald-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   disabled={!newLink.title || !newLink.url}
                 >
+                  <Plus size={16} />
                   Add Link
                 </button>
                 <button
                   onClick={() => setShowAddLink(false)}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary flex-1 border border-gray-300 text-gray-700 rounded-xl py-3 font-medium transition-all duration-200 hover:bg-gray-50 hover:shadow-md"
                 >
                   Cancel
                 </button>
@@ -407,14 +392,14 @@ export default function TaskAttachments({ taskId }) {
                           className="w-8 h-8 bg-blue-100 hover:bg-blue-200 rounded-lg flex items-center justify-center text-blue-600 transition-colors"
                           title="Open Link"
                         >
-                          <span className="text-sm">↗️</span>
+                          <ExternalLink size={14} />
                         </button>
                         <button
                           onClick={() => handleDeleteLink(link.id)}
                           className="w-8 h-8 bg-red-100 hover:bg-red-200 rounded-lg flex items-center justify-center text-red-600 transition-colors"
                           title="Delete"
                         >
-                          <span className="text-sm">🗑️</span>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </div>

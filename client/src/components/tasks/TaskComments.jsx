@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { MoreHorizontal, Edit, Trash2, AtSign } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, AtSign, Reply, Send } from "lucide-react";
+import CustomEditor from "../common/CustomEditor";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,9 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
   const [editText, setEditText] = useState("");
   const [mentionSuggestions, setMentionSuggestions] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [expandedComments, setExpandedComments] = useState({});
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
@@ -38,10 +42,52 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
     await onAddComment({
       content: newComment,
       mentions: mentionedUsers,
-      taskId
+      taskId,
+      parentId: null
     });
     
     setNewComment("");
+  };
+
+  const handleReplySubmit = async (parentId) => {
+    if (!replyText.trim()) return;
+    
+    // Extract mentions from the reply
+    const mentionRegex = /@(\w+)/g;
+    const mentions = [...replyText.matchAll(mentionRegex)];
+    const mentionedUsers = mentions.map(match => {
+      const username = match[1];
+      return users.find(u => 
+        u.firstName?.toLowerCase().includes(username.toLowerCase()) || 
+        u.lastName?.toLowerCase().includes(username.toLowerCase()) ||
+        u.email?.toLowerCase().includes(username.toLowerCase())
+      );
+    }).filter(Boolean);
+
+    await onAddComment({
+      content: replyText,
+      mentions: mentionedUsers,
+      taskId,
+      parentId
+    });
+    
+    setReplyText("");
+    setReplyingTo(null);
+  };
+
+  const toggleReplies = (commentId) => {
+    setExpandedComments(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
+  };
+
+  const getReplies = (parentId) => {
+    return comments.filter(comment => comment.parentId === parentId);
+  };
+
+  const getTopLevelComments = () => {
+    return comments.filter(comment => !comment.parentId);
   };
 
   const handleEdit = (comment) => {
@@ -105,14 +151,12 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
       <Card className="p-4">
         <div className="space-y-3">
           <div className="relative">
-            <Textarea
+            <CustomEditor
               value={newComment}
-              onChange={(e) => {
-                setNewComment(e.target.value);
-                handleMentionInput(e.target.value);
-              }}
+              onChange={setNewComment}
               placeholder="Add a comment... Use @username to mention someone"
-              className="min-h-[80px]"
+              height="120px"
+              className="border rounded-md"
             />
             
             {showMentions && (
@@ -153,97 +197,224 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
 
       {/* Comments list */}
       <div className="space-y-3">
-        {comments.map((comment) => (
-          <Card key={comment.id} className="p-4">
-            <div className="flex items-start gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={comment.author?.avatar} />
-                <AvatarFallback>
-                  {comment.author?.firstName?.[0]}{comment.author?.lastName?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm text-gray-900 dark:text-white">
-                      {comment.author?.firstName} {comment.author?.lastName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                    </span>
-                    {comment.isEdited && (
-                      <Badge variant="secondary" className="text-xs">
-                        edited
-                      </Badge>
+        {getTopLevelComments().map((comment) => {
+          const replies = getReplies(comment.id);
+          return (
+            <div key={comment.id} className="space-y-3">
+              <Card className="p-4">
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={comment.author?.avatar} />
+                    <AvatarFallback>
+                      {comment.author?.firstName?.[0]}{comment.author?.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm text-gray-900 dark:text-white">
+                          {comment.author?.firstName} {comment.author?.lastName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                        </span>
+                        {comment.isEdited && (
+                          <Badge variant="secondary" className="text-xs">
+                            edited
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setReplyingTo(comment.id)}>
+                            <Reply className="h-4 w-4 mr-2" />
+                            Reply
+                          </DropdownMenuItem>
+                          {(comment.author?._id === currentUser?._id || currentUser?.role === 'admin') && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleEdit(comment)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => onDeleteComment(comment.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    {editingId === comment.id ? (
+                      <div className="space-y-2">
+                        <CustomEditor
+                          value={editText}
+                          onChange={setEditText}
+                          height="80px"
+                          className="border rounded-md"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleSaveEdit}>
+                            Save
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderCommentContent(comment.content) 
+                        }}
+                      />
+                    )}
+                    
+                    {comment.mentions && comment.mentions.length > 0 && (
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-xs text-gray-500">Mentioned:</span>
+                        {comment.mentions.map((user, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {user.firstName} {user.lastName}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Reply form */}
+                    {replyingTo === comment.id && (
+                      <div className="mt-3 pl-4 border-l-2 border-gray-200">
+                        <div className="space-y-2">
+                          <CustomEditor
+                            value={replyText}
+                            onChange={setReplyText}
+                            placeholder="Write a reply... Use @username to mention someone"
+                            height="80px"
+                            className="border rounded-md"
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleReplySubmit(comment.id)}>
+                              <Send className="h-4 w-4 mr-1" />
+                              Reply
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setReplyingTo(null)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show/Hide replies toggle */}
+                    {replies.length > 0 && (
+                      <div className="mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleReplies(comment.id)}
+                          className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal"
+                        >
+                          {expandedComments[comment.id] ? 'Hide' : 'View'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                        </Button>
+                      </div>
                     )}
                   </div>
-                  
-                  {(comment.author?._id === currentUser?._id || currentUser?.role === 'admin') && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(comment)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => onDeleteComment(comment.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
                 </div>
-                
-                {editingId === comment.id ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      className="min-h-[60px]"
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleSaveEdit}>
-                        Save
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleCancelEdit}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    className="text-sm text-gray-700 dark:text-gray-300"
-                    dangerouslySetInnerHTML={{ 
-                      __html: renderCommentContent(comment.content) 
-                    }}
-                  />
-                )}
-                
-                {comment.mentions && comment.mentions.length > 0 && (
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-xs text-gray-500">Mentioned:</span>
-                    {comment.mentions.map((user, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {user.firstName} {user.lastName}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
+              </Card>
+
+              {/* Replies */}
+              {expandedComments[comment.id] && replies.length > 0 && (
+                <div className="ml-12 space-y-2">
+                  {replies.map((reply) => (
+                    <Card key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={reply.author?.avatar} />
+                          <AvatarFallback className="text-xs">
+                            {reply.author?.firstName?.[0]}{reply.author?.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-xs text-gray-900 dark:text-white">
+                                {reply.author?.firstName} {reply.author?.lastName}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                              </span>
+                              {reply.isEdited && (
+                                <Badge variant="secondary" className="text-xs">
+                                  edited
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {(reply.author?._id === currentUser?._id || currentUser?.role === 'admin') && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                    <MoreHorizontal className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(reply)}>
+                                    <Edit className="h-3 w-3 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => onDeleteComment(reply.id)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                          
+                          <div 
+                            className="text-xs text-gray-700 dark:text-gray-300 prose prose-xs max-w-none"
+                            dangerouslySetInnerHTML={{ 
+                              __html: renderCommentContent(reply.content) 
+                            }}
+                          />
+                          
+                          {reply.mentions && reply.mentions.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-xs text-gray-500">Mentioned:</span>
+                              {reply.mentions.map((user, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {user.firstName} {user.lastName}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          </Card>
-        ))}
+          );
+        })}
         
-        {comments.length === 0 && (
+        {getTopLevelComments().length === 0 && (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <p>No comments yet. Be the first to comment!</p>
           </div>

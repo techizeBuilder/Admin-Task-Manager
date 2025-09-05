@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, User, Tag, AlertCircle, Paperclip, Plus, Upload, FileText } from 'lucide-react';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import '../ui/SearchableSelectStyles.css';
+import AttachmentUploader from '../common/AttachmentUploader';
 
 function SubtaskForm({ 
   isOpen, 
@@ -18,7 +19,8 @@ function SubtaskForm({
     priority: 'Low Priority',
     status: 'To Do',
     visibility: parentTask?.visibility || 'Internal',
-    description: ''
+    description: '',
+    attachments: []
   });
 
   // Populate form when editing or reset with parent data
@@ -31,7 +33,8 @@ function SubtaskForm({
         priority: editData.priority || 'Low Priority',
         status: editData.status || 'To Do',
         visibility: editData.visibility || 'Internal',
-        description: editData.description || ''
+        description: editData.description || '',
+        attachments: editData.attachments || []
       });
     } else if (mode === 'create') {
       setFormData({
@@ -41,7 +44,8 @@ function SubtaskForm({
         priority: 'Low Priority',
         status: 'To Do',
         visibility: parentTask?.visibility || 'Internal',
-        description: ''
+        description: '',
+        attachments: []
       });
     }
   }, [editData, mode, parentTask]);
@@ -254,26 +258,16 @@ function SubtaskForm({
                 <Paperclip size={16} />
                 Attachments (Optional)
               </label>
-              <div className="attachment-area">
-                <div className="upload-section">
-                  <Upload size={24} className="upload-icon" />
-                  <div className="upload-text">
-                    <p className="upload-main">Drag & drop files here</p>
-                    <p className="upload-sub">or <button type="button" className="browse-link">browse files</button></p>
-                    <p className="upload-note">Max file size: 10MB per file</p>
-                  </div>
-                </div>
-                <input
-                  type="file"
-                  multiple
-                  className="file-input-hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
-                  onChange={(e) => {
-                    // Handle file selection
-                    console.log('Files selected:', e.target.files);
-                  }}
-                />
-              </div>
+              <AttachmentUploader
+                files={formData.attachments}
+                onFilesChange={(files) => setFormData({...formData, attachments: files})}
+                multiple={true}
+                maxSize={10 * 1024 * 1024}
+                maxFiles={5}
+                acceptedTypes=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
+                dragDropText="Drag & drop files here or click to browse"
+                compact={false}
+              />
             </div>
 
             {/* Inheritance Rules Info */}
