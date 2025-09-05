@@ -216,8 +216,8 @@ const AttachmentUploader = ({
       <div
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer
           ${isDragging 
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+            ? `border-blue-500 ${className?.includes('attachment-uploader-white-bg') ? 'bg-blue-50' : 'bg-blue-50 dark:bg-blue-950'}` 
+            : `border-gray-300 hover:border-blue-400 ${className?.includes('attachment-uploader-white-bg') ? 'bg-white hover:bg-gray-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`
           }`}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragEvents}

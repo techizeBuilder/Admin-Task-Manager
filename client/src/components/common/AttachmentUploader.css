@@ -13,3 +13,16 @@
   background-color: #eff6ff !important;
   border-color: #3b82f6 !important;
 }
+
+/* Override dark mode styles specifically */
+.attachment-uploader-white-bg [class*="dark:bg-blue-950"],
+.attachment-uploader-white-bg [class*="dark:hover:bg-gray-800"],
+.attachment-uploader-white-bg .dark\:bg-blue-950,
+.attachment-uploader-white-bg .dark\:hover\:bg-gray-800 {
+  background-color: white !important;
+}
+
+.attachment-uploader-white-bg [class*="dark:bg-blue-950"]:hover,
+.attachment-uploader-white-bg [class*="dark:hover:bg-gray-800"]:hover {
+  background-color: #f9fafb !important;
+}
