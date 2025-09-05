@@ -688,23 +688,24 @@ export default function EditProfile() {
                   </div>
                   <div>
                     <Label>Password</Label>
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowPasswordSection(!showPasswordSection)}
-                      className="mt-2"
-                      data-testid="button-change-password"
-                    >
-                      {showPasswordSection ? 'Cancel' : 'Change Password'}
-                    </Button>
+                    <div className="mt-2">
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPasswordSection(!showPasswordSection)}
+                        data-testid="button-change-password"
+                      >
+                        {showPasswordSection ? 'Cancel' : 'Change Password'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 
                 {/* Password Change Section */}
                 {showPasswordSection && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                    <div className="space-y-3">
                       <div>
                         <Label htmlFor="currentPassword">Current Password *</Label>
                         <Input
@@ -744,10 +745,15 @@ export default function EditProfile() {
                           data-testid="input-confirm-password"
                         />
                       </div>
-                      <Button type="submit" size="sm" data-testid="button-save-password">
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={handlePasswordSubmit}
+                        data-testid="button-save-password"
+                      >
                         Update Password
                       </Button>
-                    </form>
+                    </div>
                   </div>
                 )}
               </div>
@@ -777,42 +783,44 @@ export default function EditProfile() {
                   
                   <div>
                     <Label className="text-base font-medium">Notification Settings</Label>
-                    <div className="mt-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
+                    <div className="mt-3 space-y-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
                           <Label htmlFor="emailNotifications" className="font-normal">Email Notifications</Label>
-                          <p className="text-xs text-gray-500">Receive notifications via email</p>
+                          <Switch
+                            id="emailNotifications"
+                            checked={formData.emailNotifications}
+                            onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
+                            data-testid="switch-email-notifications"
+                          />
                         </div>
-                        <Switch
-                          id="emailNotifications"
-                          checked={formData.emailNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
-                          data-testid="switch-email-notifications"
-                        />
+                        <p className="text-xs text-gray-500">Receive notifications via email</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
                           <Label htmlFor="inAppNotifications" className="font-normal">In-App Notifications</Label>
-                          <p className="text-xs text-gray-500">Show notifications within the application</p>
+                          <Switch
+                            id="inAppNotifications"
+                            checked={formData.inAppNotifications}
+                            onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
+                            data-testid="switch-in-app-notifications"
+                          />
                         </div>
-                        <Switch
-                          id="inAppNotifications"
-                          checked={formData.inAppNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, inAppNotifications: checked}))}
-                          data-testid="switch-in-app-notifications"
-                        />
+                        <p className="text-xs text-gray-500">Show notifications within the application</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
                           <Label htmlFor="pushNotifications" className="font-normal">Push Notifications</Label>
-                          <p className="text-xs text-gray-500">Receive push notifications on your device</p>
+                          <Switch
+                            id="pushNotifications"
+                            checked={formData.pushNotifications}
+                            onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
+                            data-testid="switch-push-notifications"
+                          />
                         </div>
-                        <Switch
-                          id="pushNotifications"
-                          checked={formData.pushNotifications}
-                          onCheckedChange={(checked) => setFormData(prev => ({...prev, pushNotifications: checked}))}
-                          data-testid="switch-push-notifications"
-                        />
+                        <p className="text-xs text-gray-500">Receive push notifications on your device</p>
                       </div>
                     </div>
                   </div>
