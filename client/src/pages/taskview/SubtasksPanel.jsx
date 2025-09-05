@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useSubtask } from '../../contexts/SubtaskContext';
 
 // Subtasks Panel component
-function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
+function SubtasksPanel({ subtasks, parentTask, currentUser }) {
+  const { openSubtaskDrawer } = useSubtask();
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showInlineAdd, setShowInlineAdd] = useState(false);
@@ -155,7 +157,7 @@ function SubtasksPanel({ subtasks, onCreateSubtask, parentTask, currentUser }) {
       className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
       onClick={(e) => {
         e.stopPropagation();
-        setShowInlineAdd(true);
+        openSubtaskDrawer(parentTask);
       }}
     >
       + Add Sub-task

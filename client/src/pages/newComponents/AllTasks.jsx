@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useSubtask } from "../../contexts/SubtaskContext";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
 import TaskDeleteConfirmationModal from "./TaskDeleteConfirmationModal";
@@ -22,6 +23,7 @@ export default function AllTasks({
   onNavigateToTask,
   initialDueDateFilter,
 }) {
+  const { openSubtaskDrawer } = useSubtask();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -742,7 +744,10 @@ export default function AllTasks({
   };
 
   const handleAddSubtask = (taskId) => {
-    setShowSubtaskCreator(taskId);
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      openSubtaskDrawer(task);
+    }
   };
 
   const handleToggleSubtasks = (taskId) => {

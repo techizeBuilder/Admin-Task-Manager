@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useSubtask } from "../../contexts/SubtaskContext";
 
 export default function TaskActionsDropdown({
   task,
-  onCreateSubtask,
   onSnooze,
   onMarkAsRisk,
   onMarkAsDone,
   onView,
   onDelete,
 }) {
+  const { openSubtaskDrawer } = useSubtask();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -68,7 +69,7 @@ export default function TaskActionsDropdown({
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              handleAction(onCreateSubtask);
+              handleAction(() => openSubtaskDrawer(task));
             }}
           >
             <span className="text-lg">🔗</span>

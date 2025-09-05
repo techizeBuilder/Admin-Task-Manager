@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSubtask } from '../../contexts/SubtaskContext';
 import { useRoute, useLocation } from 'wouter';
 import { 
   ClipboardList, 
@@ -53,6 +54,7 @@ import './TaskView.css';
 import './DetailedView.css';
 
 export default function TaskDetail({ taskId, onClose }) {
+  const { openSubtaskDrawer } = useSubtask();
   const [activeTab, setActiveTab] = useState("core-info");
   const [, setLocation] = useLocation();
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
@@ -239,7 +241,7 @@ export default function TaskDetail({ taskId, onClose }) {
       {/* Top Action Bar */}
       <div className="task-action-bar">
         <div className="action-buttons-left">
-          <button className="action-btn primary" onClick={() => setShowCreateSubtaskDrawer(true)}>
+          <button className="action-btn primary" onClick={() => openSubtaskDrawer(task)}>
             <Plus className="btn-icon" size={16} />
             Add Sub-task
           </button>
@@ -505,7 +507,6 @@ export default function TaskDetail({ taskId, onClose }) {
         {activeTab === "subtasks" && (
           <SubtasksPanel
             subtasks={task.subtasks}
-            onCreateSubtask={handleCreateSubtask}
             parentTask={task}
             currentUser={currentUser}
           />
