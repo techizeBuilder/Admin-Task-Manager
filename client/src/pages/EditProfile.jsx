@@ -553,8 +553,10 @@ export default function EditProfile() {
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
+                      name="email"
                       value={currentUser?.email || ""}
                       disabled={isOrgUser()}
+                      readOnly={isOrgUser()}
                       className={isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""}
                       data-testid="input-email"
                     />
