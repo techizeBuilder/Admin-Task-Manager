@@ -18,7 +18,7 @@ import MilestoneCreator from "../MilestoneCreator";
 import CreateTask from "./CreateTask";
 import ApprovalTaskCreator from "./ApprovalTaskCreator";
 import { getTaskTypeInfo, getTaskPriorityColor } from "../TaskTypeUtils";
-import { Delete } from "lucide-react";
+import { CheckCircle, ClipboardList, Delete, RotateCcw, Target } from "lucide-react";
 
 export default function AllTasks({
   onCreateTask,
@@ -1104,7 +1104,7 @@ export default function AllTasks({
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                     onClick={() => handleTaskTypeSelect("regular")}
                   >
-                    <span className="text-lg">📋</span>
+                    <span className="text-lg"><ClipboardList/></span>
                     <div>
                       <div className="font-medium text-gray-900">
                         Simple Task
@@ -1118,7 +1118,7 @@ export default function AllTasks({
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                     onClick={() => handleTaskTypeSelect("recurring")}
                   >
-                    <span className="text-lg">🔄</span>
+                    <span className="text-lg"><RotateCcw/> </span>
                     <div>
                       <div className="font-medium text-gray-900">
                         Recurring Task
@@ -1132,7 +1132,7 @@ export default function AllTasks({
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                     onClick={() => handleTaskTypeSelect("milestone")}
                   >
-                    <span className="text-lg">🎯</span>
+                    <span className="text-lg"><Target/> </span>
                     <div>
                       <div className="font-medium text-gray-900">Milestone</div>
                       <div className="text-sm text-gray-500">
@@ -1144,7 +1144,7 @@ export default function AllTasks({
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
                     onClick={() => handleTaskTypeSelect("approval")}
                   >
-                    <span className="text-lg">✅</span>
+                    <span className="text-lg"><CheckCircle/> </span>
                     <div>
                       <div className="font-medium text-gray-900">
                         Approval Task
