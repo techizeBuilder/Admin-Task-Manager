@@ -50,6 +50,8 @@ import StatusDropdown from './StatusDropdown';
 import PriorityDropdown from './PriorityDropdown';
 import AssigneeSelector from './AssigneeSelector';
 import { EditableTitle, EditableTextArea } from './EditableComponents';
+import { TaskComments } from '../../components/tasks/TaskComments';
+import TaskAttachments from '../newComponents/TaskAttachments';
 import './TaskView.css';
 import './DetailedView.css';
 
@@ -70,6 +72,67 @@ export default function TaskDetail({ taskId, onClose }) {
     name: "Current User",
     role: "assignee",
   });
+
+  // Mock users for mentions
+  const [users] = useState([
+    { id: 1, firstName: "John", lastName: "Smith", email: "john@company.com" },
+    { id: 2, firstName: "Sarah", lastName: "Wilson", email: "sarah@company.com" },
+    { id: 3, firstName: "Mike", lastName: "Johnson", email: "mike@company.com" },
+    { id: 4, firstName: "Emily", lastName: "Davis", email: "emily@company.com" },
+  ]);
+
+  // Mock comments with rich text content
+  const [comments, setComments] = useState([
+    {
+      id: 1,
+      content: "I've started working on the <strong>database schema migration</strong>. The initial analysis shows we need to handle about 2.5M records.",
+      author: { id: 1, firstName: "John", lastName: "Smith", email: "john@company.com" },
+      createdAt: new Date(Date.now() - 391 * 24 * 60 * 60 * 1000).toISOString(),
+      mentions: [],
+      replies: [
+        {
+          id: 2,
+          content: "<strong>@John Smith</strong> - Great! Please make sure to backup the data before starting the migration process. Also, have you considered the downtime window?",
+          author: { id: 2, firstName: "Sarah", lastName: "Wilson", email: "sarah@company.com" },
+          createdAt: new Date(Date.now() - 391 * 24 * 60 * 60 * 1000).toISOString(),
+          mentions: [{ id: 1, firstName: "John", lastName: "Smith", email: "john@company.com" }],
+        }
+      ]
+    },
+    {
+      id: 3,
+      content: "Working on the UI components for the migration status dashboard. <em>Will have updates soon!</em>",
+      author: { id: 3, firstName: "Mike", lastName: "Johnson", email: "mike@company.com" },
+      createdAt: new Date(Date.now() - 390 * 24 * 60 * 60 * 1000).toISOString(),
+      mentions: [],
+      replies: []
+    }
+  ]);
+
+  // Comment handlers
+  const handleAddComment = async (commentData) => {
+    const newComment = {
+      id: Date.now(),
+      content: commentData.content,
+      author: currentUser,
+      createdAt: new Date().toISOString(),
+      mentions: commentData.mentions || [],
+      replies: []
+    };
+    setComments(prev => [...prev, newComment]);
+  };
+
+  const handleEditComment = async (commentId, newContent) => {
+    setComments(prev => prev.map(comment => 
+      comment.id === commentId 
+        ? { ...comment, content: newContent, updatedAt: new Date().toISOString() }
+        : comment
+    ));
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    setComments(prev => prev.filter(comment => comment.id !== commentId));
+  };
 
   // Mock task data - matches wireframe requirements
   const [task, setTask] = useState({
@@ -513,83 +576,15 @@ export default function TaskDetail({ taskId, onClose }) {
         )}
         
         {activeTab === "comments" && (
-          <div className="comments-view">
-            <div className="comments-header">
-              <h3>Comments (3)</h3>
-            </div>
-            <div className="comments-list">
-              <div className="comment-item">
-                <div className="comment-avatar">JS</div>
-                <div className="comment-content">
-                  <div className="comment-header">
-                    <strong>John Smith</strong>
-                    <span className="comment-time">391 days ago</span>
-                  </div>
-                  <p>I've started working on the <strong>database schema migration</strong>. The initial analysis shows we need to handle about 2.5M records.</p>
-                  <div className="comment-actions">
-                    <button className="comment-action">
-                      <ThumbsUp size={14} /> 2
-                    </button>
-                    <button className="comment-action">
-                      <MessageCircle size={14} /> 1
-                    </button>
-                    <button className="comment-action">
-                      <Reply size={14} /> Reply
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="comment-item">
-                <div className="comment-avatar">SW</div>
-                <div className="comment-content">
-                  <div className="comment-header">
-                    <strong>Sarah Wilson</strong>
-                    <span className="comment-time">391 days ago</span>
-                  </div>
-                  <p><strong>@John Smith</strong> - Great! Please make sure to backup the data before starting the migration process. Also, have you considered the downtime window?</p>
-                  <div className="comment-actions">
-                    <button className="comment-action">
-                      <Reply size={14} /> Reply
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="comment-item">
-                <div className="comment-avatar">MJ</div>
-                <div className="comment-content">
-                  <div className="comment-header">
-                    <strong>Mike Johnson</strong>
-                    <span className="comment-time">391 days ago</span>
-                  </div>
-                  <div className="comment-formatting">
-                    <strong>B</strong> <em>I</em> <u>U</u> <Paperclip size={14} />
-                  </div>
-                  <div className="comment-actions">
-                    <button className="comment-action">
-                      <Smile size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="comment-input">
-              <textarea 
-                placeholder="Leave a comment... Use @ to mention team members"
-                className="comment-textarea"
-              />
-              <div className="comment-input-actions">
-                <button className="send-btn">
-                  <Send size={16} />
-                </button>
-                <button className="attach-btn">
-                  <Paperclip size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
+          <TaskComments
+            taskId={taskId}
+            comments={comments}
+            onAddComment={handleAddComment}
+            onEditComment={handleEditComment}
+            onDeleteComment={handleDeleteComment}
+            currentUser={currentUser}
+            users={users}
+          />
         )}
         
         {activeTab === "activity" && (
@@ -668,63 +663,7 @@ export default function TaskDetail({ taskId, onClose }) {
         )}
         
         {activeTab === "files" && (
-          <div className="files-view">
-            <div className="files-header">
-              <div className="files-title">
-                <Paperclip className="files-icon" size={24} />
-                <div>
-                  <h3>Files (3)</h3>
-                  <p>Attachments and documents</p>
-                </div>
-              </div>
-              <button className="add-file-btn">
-                <Plus size={16} /> Add File
-              </button>
-            </div>
-            
-            <div className="file-upload-area">
-              <div className="upload-icon">
-                <Cloud size={48} />
-              </div>
-              <div className="upload-text">
-                <strong>Drag and drop files here or browse</strong>
-                <p>Maximum file size: 5MB per file</p>
-              </div>
-              <button className="choose-files-btn">
-                <Upload size={16} /> Choose Files
-              </button>
-            </div>
-            
-            <div className="files-list">
-              <div className="file-item">
-                <div className="file-icon">
-                  <FileText size={24} />
-                </div>
-                <div className="file-details">
-                  <strong>database-schema.sql</strong>
-                  <div className="file-meta">
-                    <span>Size: 45KB</span>
-                    <span>Uploaded by: John Smith</span>
-                    <span>1/20/2024 at 02:30 PM</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="file-item">
-                <div className="file-icon">
-                  <FileText size={24} />
-                </div>
-                <div className="file-details">
-                  <strong>migration-plan.xlsx</strong>
-                  <div className="file-meta">
-                    <span>Size: 2.1MB</span>
-                    <span>Uploaded by: Sarah Wilson</span>
-                    <span>1/18/2024 at 10:15 AM</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <TaskAttachments taskId={taskId} />
         )}
         
         {activeTab === "linked" && (
