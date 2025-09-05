@@ -294,7 +294,7 @@ export default function TaskEditModal({ task, onSave, onClose, permissions }) {
                   value={formData.description}
                   onChange={(value) => handleChange("description", value)}
                   placeholder="Enter task description..."
-                  showFileAttachment={true}
+            
                 />
               </div>
 

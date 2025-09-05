@@ -522,7 +522,7 @@ export default function SubtaskCreator({
             value={formData.notes}
             onChange={(value) => handleInputChange("notes", value)}
             placeholder="Add any additional notes for this sub-task..."
-            showFileAttachment={true}
+      
           />
         </div>
 

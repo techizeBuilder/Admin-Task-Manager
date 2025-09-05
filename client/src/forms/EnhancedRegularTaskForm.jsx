@@ -146,7 +146,7 @@ const EnhancedRegularTaskForm = ({
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Describe your task..."
-                showFileAttachment={true}
+       
                 className="border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             )}
