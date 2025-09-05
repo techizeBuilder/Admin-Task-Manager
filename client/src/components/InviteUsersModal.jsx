@@ -111,11 +111,11 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Clear any existing error for this field
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: null }));
+      setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
 
@@ -142,7 +142,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
     onSuccess: (data) => {
       toast({
         title: "User Added Successfully!",
-        description: `${formData.name} has been added to your organization.${formData.sendInvitationEmail ? ' An invitation email has been sent.' : ''}`,
+        description: `${formData.name} has been added to your organization.${formData.sendInvitationEmail ? " An invitation email has been sent." : ""}`,
         variant: "default",
         duration: 5000,
       });
@@ -166,7 +166,11 @@ export function InviteUsersModal({ isOpen, onClose }) {
   });
 
   // Validation state for form submission
-  const isFormValid = formData.name.trim() && formData.email.trim() && formData.licenseId && Object.keys(errors).length === 0;
+  const isFormValid =
+    formData.name.trim() &&
+    formData.email.trim() &&
+    formData.licenseId &&
+    Object.keys(errors).length === 0;
 
   // Submit user form with validation
   const handleSubmit = async (e) => {
@@ -175,11 +179,11 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
     // Validate form
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else {
@@ -188,21 +192,21 @@ export function InviteUsersModal({ isOpen, onClose }) {
         newErrors.email = emailError;
       }
     }
-    
+
     if (!formData.licenseId) {
       newErrors.licenseId = "License selection is required";
     }
 
     // Check for field length errors
     const fieldErrors = [
-      validateField('department', formData.department),
-      validateField('designation', formData.designation),
-      validateField('location', formData.location),
-    ].filter(error => error);
-    
+      validateField("department", formData.department),
+      validateField("designation", formData.designation),
+      validateField("location", formData.location),
+    ].filter((error) => error);
+
     if (fieldErrors.length > 0) {
-      fieldErrors.forEach(error => {
-        const field = error.toLowerCase().split(' ')[0];
+      fieldErrors.forEach((error) => {
+        const field = error.toLowerCase().split(" ")[0];
         newErrors[field] = error;
       });
     }
@@ -235,14 +239,15 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-50">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-xl font-semibold">
             <UserPlus className="h-5 w-5 text-blue-600" />
             <span>Add New User</span>
           </DialogTitle>
           <DialogDescription>
-            Add a new user to your organization with appropriate role and license assignment.
+            Add a new user to your organization with appropriate role and
+            license assignment.
           </DialogDescription>
         </DialogHeader>
 
@@ -253,11 +258,14 @@ export function InviteUsersModal({ isOpen, onClose }) {
               <User className="h-5 w-5 mr-2 text-blue-600" />
               User Information
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name Input */}
               <div>
-                <Label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Full Name *
                 </Label>
                 <Input
@@ -265,8 +273,12 @@ export function InviteUsersModal({ isOpen, onClose }) {
                   type="text"
                   placeholder="Enter full name"
                   value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={errors.name ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className={
+                    errors.name
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                      : ""
+                  }
                 />
                 {errors.name && (
                   <p className="mt-2 text-sm text-red-600 flex items-center">
@@ -278,7 +290,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Email Input */}
               <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Email Address *
                 </Label>
                 <div className="relative">
@@ -290,7 +305,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     type="email"
                     placeholder="Enter email address"
                     value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     className={`pl-10 ${errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                     disabled={isValidating}
                   />
@@ -310,14 +325,28 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Role Selection */}
               <div>
-                <Label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Role *
                 </Label>
-                <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                  <SelectTrigger className={errors.role ? "border-red-300 focus:border-red-500" : ""}>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => {
+                    console.log("Role selected:", value);
+                    handleInputChange("role", value);
+                  }}
+                >
+                  <SelectTrigger
+                    className={
+                      errors.role ? "border-red-300 focus:border-red-500" : ""
+                    }
+                    onClick={() => console.log("Role dropdown clicked")}
+                  >
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50">
                     <SelectItem value="Regular User">Regular User</SelectItem>
                     <SelectItem value="Manager">Manager</SelectItem>
                     <SelectItem value="Company Admin">Company Admin</SelectItem>
@@ -333,15 +362,33 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* License Selection */}
               <div>
-                <Label htmlFor="licenseId" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="licenseId"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   License Type *
                 </Label>
-                <Select value={formData.licenseId} onValueChange={(value) => handleInputChange('licenseId', value)}>
-                  <SelectTrigger className={errors.licenseId ? "border-red-300 focus:border-red-500" : ""}>
+                <Select
+                  value={formData.licenseId}
+                  onValueChange={(value) => {
+                    console.log("License selected:", value);
+                    handleInputChange("licenseId", value);
+                  }}
+                >
+                  <SelectTrigger
+                    className={
+                      errors.licenseId
+                        ? "border-red-300 focus:border-red-500"
+                        : ""
+                    }
+                    onClick={() => console.log("License dropdown clicked")}
+                  >
                     <SelectValue placeholder="Select license" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Explore (Free)">Explore (Free)</SelectItem>
+                  <SelectContent className="z-50">
+                    <SelectItem value="Explore (Free)">
+                      Explore (Free)
+                    </SelectItem>
                     <SelectItem value="Plan">Plan</SelectItem>
                     <SelectItem value="Execute">Execute</SelectItem>
                     <SelectItem value="Optimize">Optimize</SelectItem>
@@ -357,7 +404,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Department Input */}
               <div>
-                <Label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="department"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Department
                 </Label>
                 <div className="relative">
@@ -369,7 +419,9 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     type="text"
                     placeholder="Enter department"
                     value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("department", e.target.value)
+                    }
                     className={`pl-10 ${errors.department ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   />
                 </div>
@@ -383,7 +435,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Designation Input */}
               <div>
-                <Label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="designation"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Designation
                 </Label>
                 <div className="relative">
@@ -395,7 +450,9 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     type="text"
                     placeholder="Enter designation"
                     value={formData.designation}
-                    onChange={(e) => handleInputChange('designation', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("designation", e.target.value)
+                    }
                     className={`pl-10 ${errors.designation ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   />
                 </div>
@@ -409,7 +466,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Location Input */}
               <div>
-                <Label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="location"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Location
                 </Label>
                 <div className="relative">
@@ -421,7 +481,9 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     type="text"
                     placeholder="Enter location"
                     value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("location", e.target.value)
+                    }
                     className={`pl-10 ${errors.location ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   />
                 </div>
@@ -435,7 +497,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
 
               {/* Phone Input */}
               <div>
-                <Label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Phone Number
                 </Label>
                 <div className="relative">
@@ -447,7 +512,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
                     type="tel"
                     placeholder="Enter phone number"
                     value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
                     className={`pl-10 ${errors.phone ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   />
                 </div>
@@ -465,7 +530,9 @@ export function InviteUsersModal({ isOpen, onClose }) {
                   <Checkbox
                     id="sendInvitationEmail"
                     checked={formData.sendInvitationEmail}
-                    onCheckedChange={(checked) => handleInputChange('sendInvitationEmail', checked)}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("sendInvitationEmail", checked)
+                    }
                   />
                   <Label
                     htmlFor="sendInvitationEmail"
