@@ -69,7 +69,10 @@ export default function TaskDetail({ taskId, onClose }) {
   const [moreInfo, setMoreInfo] = useState(false);
   const [currentUser] = useState({
     id: 1,
+    firstName: "Current",
+    lastName: "User", 
     name: "Current User",
+    email: "current@company.com",
     role: "assignee",
   });
 

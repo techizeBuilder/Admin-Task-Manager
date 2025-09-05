@@ -214,7 +214,10 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm text-gray-900 dark:text-white">
-                          {comment.author?.firstName} {comment.author?.lastName}
+                          {comment.author?.firstName && comment.author?.lastName 
+                            ? `${comment.author.firstName} ${comment.author.lastName}`
+                            : comment.author?.name || comment.author?.email || 'Unknown User'
+                          }
                         </span>
                         <span className="text-xs text-gray-500">
                           {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
@@ -351,7 +354,10 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-xs text-gray-900 dark:text-white">
-                                {reply.author?.firstName} {reply.author?.lastName}
+                                {reply.author?.firstName && reply.author?.lastName 
+                                  ? `${reply.author.firstName} ${reply.author.lastName}`
+                                  : reply.author?.name || reply.author?.email || 'Unknown User'
+                                }
                               </span>
                               <span className="text-xs text-gray-500">
                                 {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
