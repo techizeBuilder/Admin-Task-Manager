@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export function InviteUsersModal({ isOpen, onClose }) {
+export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -229,8 +229,38 @@ export function InviteUsersModal({ isOpen, onClose }) {
       }
       setIsValidating(false);
 
-      // Submit user data
-      await addUserMutation.mutateAsync(formData);
+      // Create new user object
+      const newUser = {
+        id: Date.now().toString(),
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        license: formData.licenseId,
+        department: formData.department || '',
+        designation: formData.designation || '',
+        location: formData.location || '',
+        status: 'Pending',
+        dateCreated: new Date().toISOString(),
+        lastLogin: null,
+        tasksAssigned: 0,
+        tasksCompleted: 0,
+        formsCreated: 0,
+        activeProcesses: 0
+      };
+
+      // Call the callback to add user to parent component
+      if (onUserAdded) {
+        onUserAdded(newUser);
+      }
+      
+      toast({
+        title: "User Added Successfully!",
+        description: `${formData.name} has been added to your organization.${formData.sendInvitationEmail ? ' An invitation email will be sent.' : ''}`,
+        variant: "default",
+        duration: 5000,
+      });
+      
+      onClose();
     } catch (error) {
       console.error("Error adding user:", error);
       setIsSubmitting(false);
@@ -243,11 +273,10 @@ export function InviteUsersModal({ isOpen, onClose }) {
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-xl font-semibold">
             <UserPlus className="h-5 w-5 text-blue-600" />
-            <span>Add New User</span>
+            <span>Add User</span>
           </DialogTitle>
           <DialogDescription>
-            Add a new user to your organization with appropriate role and
-            license assignment.
+            Add a new user to your organization. User will be created in Pending state until invitation is accepted.
           </DialogDescription>
         </DialogHeader>
 
@@ -548,7 +577,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <div className="text-sm text-gray-500">
-              Add user to your organization
+              User will be created in Pending state
             </div>
             <div className="flex space-x-3">
               <Button
@@ -564,7 +593,7 @@ export function InviteUsersModal({ isOpen, onClose }) {
                 disabled={isSubmitting}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isSubmitting ? "Saving..." : "Save User"}
+                {isSubmitting ? "Adding User..." : "Add User"}
               </Button>
             </div>
           </div>

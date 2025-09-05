@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { InviteUsersModal } from "@/components/InviteUsersModal";
+import { AddUserModal } from "@/components/InviteUsersModal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -210,7 +210,7 @@ export function InviteUsers() {
       </Card>
 
       {/* Invite Users Modal */}
-      <InviteUsersModal 
+      <AddUserModal 
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
       />

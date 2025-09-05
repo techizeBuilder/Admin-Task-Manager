@@ -36,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { InviteUsersModal } from "@/components/InviteUsersModal";
+import { AddUserModal } from "@/components/InviteUsersModal";
 
 export default function UserManagement() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -395,7 +395,7 @@ export default function UserManagement() {
       </Card>
 
       {/* Invite Users Modal */}
-      <InviteUsersModal 
+      <AddUserModal 
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
       />

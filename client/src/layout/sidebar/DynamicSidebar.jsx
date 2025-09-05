@@ -108,23 +108,23 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
         label: "Administration",
         icon: Settings,
         children: [
-          // {
-          //   id: "user-management",
-          //   label: "User Management",
-          //   icon: Users,
-          //   path: "/admin/user-management",
-          //   permission: PERMISSIONS.MANAGE_USERS,
-          // },
-          // {
-          //   id: "team-members",
-          //   label: "Team Members",
-          //   icon: Users,
-          //   path: "/admin/team-members",
-          //   permission: PERMISSIONS.VIEW_USERS,
-          // },
+          {
+            id: "user-management",
+            label: "User Management",
+            icon: Users,
+            path: "/admin/user-management",
+            permission: PERMISSIONS.MANAGE_USERS,
+          },
+          {
+            id: "team-members",
+            label: "Team Members",
+            icon: Users,
+            path: "/admin/team-members",
+            permission: PERMISSIONS.VIEW_USERS,
+          },
           {
             id: "invite-users",
-            label: "User Management",
+            label: "Invite Users",
             icon: UserPlus,
             path: "/admin/invite-users",
             permission: PERMISSIONS.INVITE_USERS,
