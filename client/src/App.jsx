@@ -79,6 +79,7 @@ import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
 import RecurringTasks from "./features/tasks/pages/RecurringTasks";
 import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
+import EnhancedAllTasks from "./pages/newComponents/EnhancedAllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
@@ -446,6 +447,12 @@ function App() {
         <Route path="/tasks">
           <AdminLayout>
             <ProtectedRoute component={AllTasks} />
+          </AdminLayout>
+        </Route>
+
+        <Route path="/enhanced-tasks">
+          <AdminLayout>
+            <ProtectedRoute component={EnhancedAllTasks} />
           </AdminLayout>
         </Route>
 
