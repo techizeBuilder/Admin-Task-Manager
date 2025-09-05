@@ -3,7 +3,7 @@ import { FileText, RotateCcw, Target, CheckCircle } from 'lucide-react';
 export const getTaskTypeInfo = (taskType) => {
   const taskTypes = {
     regular: {
-      icon: <FileText size={16} className="text-blue-600" />,
+      iconName: "FileText",
       label: "Regular Task",
       color: "#3B82F6",
       bgColor: "bg-blue-50",
@@ -11,7 +11,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-blue-700",
     },
     recurring: {
-      icon: <RotateCcw size={16} className="text-green-600" />,
+      iconName: "RotateCcw",
       label: "Recurring Task",
       color: "#10B981",
       bgColor: "bg-green-50",
@@ -19,7 +19,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-green-700",
     },
     milestone: {
-      icon: <Target size={16} className="text-purple-600" />,
+      iconName: "Target",
       label: "Milestone",
       color: "#8B5CF6",
       bgColor: "bg-purple-50",
@@ -27,7 +27,7 @@ export const getTaskTypeInfo = (taskType) => {
       textColor: "text-purple-700",
     },
     approval: {
-      icon: <CheckCircle size={16} className="text-amber-600" />,
+      iconName: "CheckCircle",
       label: "Approval Task",
       color: "#F59E0B",
       bgColor: "bg-amber-50",
@@ -37,6 +37,23 @@ export const getTaskTypeInfo = (taskType) => {
   };
 
   return taskTypes[taskType] || taskTypes.regular;
+};
+
+export const getTaskTypeIcon = (taskType, size = 16, className = "") => {
+  const taskInfo = getTaskTypeInfo(taskType);
+  
+  switch(taskInfo.iconName) {
+    case "FileText":
+      return <FileText size={size} className={className || "text-blue-600"} />;
+    case "RotateCcw":
+      return <RotateCcw size={size} className={className || "text-green-600"} />;
+    case "Target":
+      return <Target size={size} className={className || "text-purple-600"} />;
+    case "CheckCircle":
+      return <CheckCircle size={size} className={className || "text-amber-600"} />;
+    default:
+      return <FileText size={size} className={className || "text-blue-600"} />;
+  }
 };
 
 export const getTaskPriorityColor = (priority) => {
