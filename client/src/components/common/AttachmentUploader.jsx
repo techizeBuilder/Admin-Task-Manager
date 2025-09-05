@@ -219,6 +219,7 @@ const AttachmentUploader = ({
             ? `border-blue-500 ${className?.includes('attachment-uploader-white-bg') ? 'bg-blue-50' : 'bg-blue-50 dark:bg-blue-950'}` 
             : `border-gray-300 hover:border-blue-400 ${className?.includes('attachment-uploader-white-bg') ? 'bg-white hover:bg-gray-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`
           }`}
+        style={className?.includes('attachment-uploader-white-bg') ? { backgroundColor: 'white' } : {}}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragEvents}
         onDragLeave={handleDragLeave}
