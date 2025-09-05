@@ -1423,13 +1423,13 @@ export default function AllTasks({
       </div>
 
      {/* Tasks Table */}
-<div className="card p-0 overflow-hidden">
-  {/* Wrapper with scroll */}
-  <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
-    <table className="w-full min-w-max">
+<div className="card p-0">
+  {/* Table wrapper with horizontal scroll only */}
+  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+    <table className="w-full min-w-[1200px] table-fixed">
       <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
         <tr>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 text-nowrap sticky left-0 bg-gray-50 z-20">
             <input
               type="checkbox"
               checked={
@@ -1439,13 +1439,13 @@ export default function AllTasks({
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64 text-nowrap">
             Task
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 text-nowrap">
             Assignee
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 text-nowrap">
             Status
           </th>
           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
@@ -1466,7 +1466,7 @@ export default function AllTasks({
           <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
             Color Code
           </th>
-          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+          <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 text-nowrap sticky right-0 bg-gray-50 z-20">
             Actions
           </th>
         </tr>
@@ -1482,7 +1482,7 @@ export default function AllTasks({
                       borderLeft: `4px solid ${getTaskColorCode(task)}`,
                     }}
                   >
-                    <td className="px-6 py-4 text-nowrap">
+                    <td className="px-6 py-4 text-nowrap sticky left-0 bg-white z-10">
                       <input
                         type="checkbox"
                         checked={selectedTasks.includes(task.id)}
@@ -1715,7 +1715,7 @@ export default function AllTasks({
                         title={getTaskColorCode(task)}
                       ></div>
                     </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    <td className="px-6 py-4 text-nowrap sticky right-0 bg-white z-10">
                       <div className="flex items-center justify-center">
                         <TaskActionsDropdown
                           task={task}
@@ -1740,7 +1740,7 @@ export default function AllTasks({
                         key={`subtask-${subtask.id}`}
                         className="bg-gray-50 hover:bg-gray-100 transition-colors"
                       >
-                        <td className="px-6 py-3"></td>
+                        <td className="px-6 py-3 sticky left-0 bg-gray-50 z-10"></td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-2 pl-8">
                             <span className="text-blue-500">↳</span>
@@ -1844,7 +1844,7 @@ export default function AllTasks({
                             title={getTaskColorCode(subtask)}
                           ></div>
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="px-6 py-3 sticky right-0 bg-gray-50 z-10">
                           <div className="flex items-center justify-center">
                             <button
                               className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
