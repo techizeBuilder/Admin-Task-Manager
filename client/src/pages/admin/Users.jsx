@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import userDataManager from "@/data/userDataManager";
 import { 
   UserPlus, 
   Users as UsersIcon, 
@@ -50,76 +51,14 @@ import { ViewUserActivityModal } from "@/components/ViewUserActivityModal";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Users() {
-  const [users, setUsers] = useState([
-    {
-      id: '1',
-      name: 'Priya Sharma',
-      email: 'priya@company.com',
-      role: 'Company Admin',
-      license: 'Optimize',
-      department: 'Administration',
-      designation: 'Admin Manager',
-      location: 'Mumbai',
-      status: 'Active',
-      dateCreated: '2024-01-15T00:00:00.000Z',
-      lastLogin: '2025-09-05T10:30:00.000Z',
-      tasksAssigned: 25,
-      tasksCompleted: 22,
-      formsCreated: 8,
-      activeProcesses: 3
-    },
-    {
-      id: '2',
-      name: 'Arjun Mehta',
-      email: 'arjun@company.com',
-      role: 'Manager',
-      license: 'Execute',
-      department: 'Operations',
-      designation: 'Operations Manager',
-      location: 'Delhi',
-      status: 'Active',
-      dateCreated: '2024-02-10T00:00:00.000Z',
-      lastLogin: '2025-09-04T15:45:00.000Z',
-      tasksAssigned: 18,
-      tasksCompleted: 16,
-      formsCreated: 5,
-      activeProcesses: 2
-    },
-    {
-      id: '3',
-      name: 'Rohan Kumar',
-      email: 'rohan@company.com',
-      role: 'Regular User',
-      license: 'Plan',
-      department: 'Development',
-      designation: 'Software Developer',
-      location: 'Bangalore',
-      status: 'Inactive',
-      dateCreated: '2024-03-05T00:00:00.000Z',
-      lastLogin: '2025-08-15T12:00:00.000Z',
-      tasksAssigned: 12,
-      tasksCompleted: 8,
-      formsCreated: 2,
-      activeProcesses: 4
-    },
-    {
-      id: '4',
-      name: 'Sneha Patel',
-      email: 'sneha@company.com',
-      role: 'Regular User',
-      license: 'Explore (Free)',
-      department: 'Marketing',
-      designation: 'Marketing Executive',
-      location: 'Pune',
-      status: 'Pending',
-      dateCreated: '2025-09-03T00:00:00.000Z',
-      lastLogin: null,
-      tasksAssigned: 0,
-      tasksCompleted: 0,
-      formsCreated: 0,
-      activeProcesses: 0
-    }
-  ]);
+  const [users, setUsers] = useState([]);
+  const [licensePool, setLicensePool] = useState({});
+
+  // Load data from UserDataManager on component mount
+  useEffect(() => {
+    setUsers(userDataManager.getAllUsers());
+    setLicensePool(userDataManager.getLicensePool());
+  }, []);
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
@@ -131,9 +70,27 @@ export default function Users() {
 
   const { toast } = useToast();
 
-  // Add new user
-  const handleAddUser = (newUser) => {
-    setUsers(prev => [...prev, newUser]);
+  // Add new user using UserDataManager
+  const handleAddUser = (newUserData) => {
+    try {
+      const newUser = userDataManager.addUser(newUserData);
+      setUsers(userDataManager.getAllUsers());
+      setLicensePool(userDataManager.getLicensePool());
+      
+      toast({
+        title: "User Added Successfully!",
+        description: `${newUser.name} has been added to your organization. License pool updated.`,
+        variant: "default",
+        duration: 5000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Adding User",
+        description: error.message,
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
   };
 
   // Edit user
@@ -142,60 +99,93 @@ export default function Users() {
     setIsEditUserModalOpen(true);
   };
 
-  const handleUpdateUser = (updatedUser, oldRole = null) => {
+  const handleUpdateUser = (updatedUserData, oldRole = null) => {
     // If role changed, show confirmation dialog
-    if (oldRole && updatedUser.role !== oldRole) {
-      setRoleChangeData({ updatedUser, oldRole });
+    if (oldRole && updatedUserData.role !== oldRole) {
+      setRoleChangeData({ updatedUser: updatedUserData, oldRole });
       setIsRoleChangeDialogOpen(true);
       return;
     }
 
-    // Update user normally
-    setUsers(prev => prev.map(user => 
-      user.id === updatedUser.id ? updatedUser : user
-    ));
+    try {
+      // Update user using UserDataManager
+      const updatedUser = userDataManager.updateUser(updatedUserData.id, updatedUserData);
+      setUsers(userDataManager.getAllUsers());
+      setLicensePool(userDataManager.getLicensePool());
 
-    toast({
-      title: "User Updated Successfully!",
-      description: `${updatedUser.name}'s details have been updated.`,
-      variant: "default",
-      duration: 3000,
-    });
+      toast({
+        title: "User Updated Successfully!",
+        description: `${updatedUser.name}'s details have been updated.`,
+        variant: "default",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Updating User",
+        description: error.message,
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
   };
 
   // Confirm role change
   const confirmRoleChange = () => {
     if (roleChangeData) {
-      setUsers(prev => prev.map(user => 
-        user.id === roleChangeData.updatedUser.id ? roleChangeData.updatedUser : user
-      ));
+      try {
+        const updatedUser = userDataManager.updateUser(roleChangeData.updatedUser.id, roleChangeData.updatedUser);
+        setUsers(userDataManager.getAllUsers());
+        setLicensePool(userDataManager.getLicensePool());
 
-      toast({
-        title: "Role Changed Successfully!",
-        description: `${roleChangeData.updatedUser.name}'s role has been changed from ${roleChangeData.oldRole} to ${roleChangeData.updatedUser.role}. Access rights have been updated.`,
-        variant: "default",
-        duration: 5000,
-      });
+        toast({
+          title: "Role Changed Successfully!",
+          description: `${updatedUser.name}'s role has been changed from ${roleChangeData.oldRole} to ${updatedUser.role}. Access rights have been updated.`,
+          variant: "default",
+          duration: 5000,
+        });
+      } catch (error) {
+        toast({
+          title: "Error Changing Role",
+          description: error.message,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
     }
     setRoleChangeData(null);
     setIsRoleChangeDialogOpen(false);
   };
 
-  // Deactivate/Reactivate user
+  // Deactivate/Reactivate user using UserDataManager
   const toggleUserStatus = (user) => {
-    const newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
-    
-    setUsers(prev => prev.map(u => 
-      u.id === user.id ? { ...u, status: newStatus } : u
-    ));
+    try {
+      let updatedUser;
+      let action;
+      
+      if (user.status === 'Active') {
+        updatedUser = userDataManager.deactivateUser(user.id);
+        action = 'deactivated';
+      } else {
+        updatedUser = userDataManager.reactivateUser(user.id);
+        action = 'reactivated';
+      }
+      
+      setUsers(userDataManager.getAllUsers());
 
-    const action = newStatus === 'Inactive' ? 'deactivated' : 'reactivated';
-    toast({
-      title: `User ${action.charAt(0).toUpperCase() + action.slice(1)}!`,
-      description: `${user.name} has been ${action}. ${newStatus === 'Inactive' ? 'They cannot log in and assigned tasks will show Owner Inactive label.' : 'They can now log in normally.'}`,
-      variant: newStatus === 'Inactive' ? 'destructive' : 'default',
-      duration: 5000,
-    });
+      toast({
+        title: `User ${action.charAt(0).toUpperCase() + action.slice(1)}!`,
+        description: `${user.name} has been ${action}. ${updatedUser.status === 'Inactive' ? 'They cannot log in and assigned tasks will show Owner Inactive label.' : 'They can now log in normally.'}`,
+        variant: updatedUser.status === 'Inactive' ? 'destructive' : 'default',
+        duration: 5000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Updating User Status",
+        description: error.message,
+        variant: "destructive",
+        duration: 5000,
+      });
+    }
   };
 
   // Remove user
@@ -206,26 +196,25 @@ export default function Users() {
 
   const confirmRemoveUser = () => {
     if (selectedUser) {
-      // Check if user has active tasks
-      if (selectedUser.activeProcesses > 0) {
+      try {
+        const removedUser = userDataManager.removeUser(selectedUser.id);
+        setUsers(userDataManager.getAllUsers());
+        setLicensePool(userDataManager.getLicensePool());
+        
+        toast({
+          title: "User Removed Successfully!",
+          description: `${removedUser.name} has been permanently removed from your organization. Their ${removedUser.licenseId} license has been returned to the available pool.`,
+          variant: "default",
+          duration: 5000,
+        });
+      } catch (error) {
         toast({
           title: "Cannot Remove User",
-          description: `${selectedUser.name} has ${selectedUser.activeProcesses} active task(s). Please reassign tasks before removing the user.`,
+          description: error.message,
           variant: "destructive",
           duration: 6000,
         });
-        setIsRemoveDialogOpen(false);
-        return;
       }
-
-      setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-      
-      toast({
-        title: "User Removed Successfully!",
-        description: `${selectedUser.name} has been permanently removed from your organization. Their license has been returned to the available pool.`,
-        variant: "default",
-        duration: 5000,
-      });
     }
     setIsRemoveDialogOpen(false);
     setSelectedUser(null);
@@ -237,24 +226,9 @@ export default function Users() {
     setIsViewActivityModalOpen(true);
   };
 
-  // Export user data
+  // Export user data using UserDataManager
   const exportUserData = () => {
-    const csvData = users.map(user => ({
-      Name: user.name,
-      Email: user.email,
-      Role: user.role,
-      License: user.license,
-      Department: user.department || '',
-      Designation: user.designation || '',
-      Location: user.location || '',
-      Status: user.status,
-      'Date Joined': new Date(user.dateCreated).toLocaleDateString(),
-      'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
-      'Tasks Assigned': user.tasksAssigned,
-      'Tasks Completed': user.tasksCompleted,
-      'Forms Created': user.formsCreated,
-      'Active Processes': user.activeProcesses
-    }));
+    const csvData = userDataManager.exportUserData();
 
     const csvContent = "data:text/csv;charset=utf-8," 
       + [Object.keys(csvData[0]).join(',')]
@@ -271,7 +245,7 @@ export default function Users() {
 
     toast({
       title: "Export Successful!",
-      description: "User activity data has been exported to CSV.",
+      description: "User activity data has been exported to CSV with completion rates.",
       variant: "default",
       duration: 3000,
     });
@@ -344,6 +318,37 @@ export default function Users() {
           </Button>
         </div>
       </div>
+
+      {/* License Pool Status */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            License Pool Status
+          </CardTitle>
+          <CardDescription>
+            Current license allocation and availability
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Object.entries(licensePool).map(([licenseType, data]) => (
+              <div key={licenseType} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <div className="font-medium text-sm">{licenseType}</div>
+                  <div className="text-xs text-gray-500">
+                    {data.used} used / {data.total} total
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-lg text-green-600">{data.available}</div>
+                  <div className="text-xs text-gray-500">available</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -432,7 +437,7 @@ export default function Users() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">
-                      {user.license}
+                      {user.licenseId}
                     </Badge>
                   </TableCell>
                   <TableCell>
