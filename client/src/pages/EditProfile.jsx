@@ -788,6 +788,7 @@ export default function EditProfile() {
                         <div className="flex items-center justify-between">
                           <Label htmlFor="emailNotifications" className="font-normal">Email Notifications</Label>
                           <Switch
+                            
                             id="emailNotifications"
                             checked={formData.emailNotifications}
                             onCheckedChange={(checked) => setFormData(prev => ({...prev, emailNotifications: checked}))}
