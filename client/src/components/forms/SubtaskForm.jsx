@@ -122,7 +122,7 @@ function SubtaskForm({
   return (
     <div className="modal-overlay">
       <div className="modal-container max-w-2xl">
-        <div className="modal-content">
+      
           {/* Header */}
           <div className="modal-header" style={{ background: '#4f46e5' }}>
             <div className="modal-title-section">
@@ -296,7 +296,7 @@ function SubtaskForm({
               </form>
             </div>
           </div>
-        </div>
+      
       </div>
     </div>
   );
