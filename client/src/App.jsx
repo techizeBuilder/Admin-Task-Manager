@@ -552,6 +552,14 @@ function App() {
             />
           </AdminLayout>
         </Route>
+        <Route path="/admin/users">
+          <AdminLayout>
+            <ProtectedRoute
+              component={Users}
+              allowedRoles={["superadmin", "org_admin", "admin"]}
+            />
+          </AdminLayout>
+        </Route>
         <Route path="/admin/plans">
           <AdminLayout>
             <ProtectedRoute
