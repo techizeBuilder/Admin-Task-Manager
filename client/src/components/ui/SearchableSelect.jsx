@@ -14,10 +14,15 @@ export function SearchableSelect({
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  const filteredOptions = options.filter(option =>
-    option.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (option.email && option.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredOptions = options.filter(option => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      (option?.name?.toLowerCase()?.includes(searchTermLower)) ||
+      (option?.label?.toLowerCase()?.includes(searchTermLower)) ||
+      (option?.email?.toLowerCase()?.includes(searchTermLower)) ||
+      (option?.value?.toString()?.toLowerCase()?.includes(searchTermLower))
+    );
+  });
 
   const selectedOption = options.find(option => option.value === value);
 

@@ -620,7 +620,8 @@ export default function EditProfile() {
                   </div>
                 </div>
               </div>
-
+                    {isOrgUser() &&
+                 <>   
               {/* Organization Information */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -683,7 +684,8 @@ export default function EditProfile() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div></>
+                    }
 
               {/* Access & Roles (Read-only) */}
               <div className="border-b pb-4">

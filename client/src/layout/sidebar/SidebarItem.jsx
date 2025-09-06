@@ -36,18 +36,23 @@ const SidebarItem = ({
 
   const IconComponent = item.icon;
   
+  const isSection = item.type === 'section' || item.children;
+  const isActiveOrChildActive = isActive || hasActiveChild;
+  
   const itemClasses = `
-    group relative flex items-center rounded-lg transition-all duration-200 cursor-pointer
-    ${isActive || hasActiveChild 
-      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-500' 
-      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+    group relative flex items-center transition-all duration-200 cursor-pointer rounded-lg
+    ${isActiveOrChildActive
+      ? 'text-[#ffffe6] bg-[#2a2a3c] border-r-[3px] border-[#2563eb]'
+      : 'text-[rgb(152,153,172)] hover:text-[#ffffe6] hover:bg-[#2a2a3c] hover:border-r-[3px] hover:border-[#2563eb]'
     }
     ${isCollapsed 
       ? 'px-2 py-2.5 justify-center' 
       : depth > 0 
-        ? 'ml-4 px-3 py-2.5 gap-3' 
-        : 'px-3 py-2.5 gap-3'
+        ? 'ml-4 px-4 py-2.5 gap-3' 
+        : 'px-4 py-2.5 gap-3'
     }
+    ${isSection ? 'my-1' : ''}
+    ${isExpanded ? 'mb-1' : ''}
   `;
 
   const content = (
@@ -57,7 +62,7 @@ const SidebarItem = ({
           size={18} 
           className={`
             flex-shrink-0 transition-colors duration-200
-            ${isActive || hasActiveChild ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}
+            ${isActive || hasActiveChild ? 'text-[#2563eb]' : 'text-[#9899AC] group-hover:text-[#2563eb]'}
           `}
         />
       )}
@@ -70,11 +75,14 @@ const SidebarItem = ({
           
           {hasChildren && (
             <div className="flex-shrink-0">
-              {isExpanded ? (
-                <ChevronDown size={14} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={14} className="text-gray-400" />
-              )}
+              <ChevronRight 
+                size={14} 
+                className={`
+                  transform transition-transform duration-200
+                  ${isExpanded ? 'rotate-90' : ''}
+                  ${isActive || hasActiveChild ? 'text-[#2563eb]' : 'text-[rgb(152,153,172)]'}
+                `} 
+              />
             </div>
           )}
         </>
@@ -82,7 +90,7 @@ const SidebarItem = ({
 
       {/* Tooltip for collapsed state */}
       {isCollapsed && (
-        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+        <div className="absolute left-full ml-2 px-2 py-1 bg-[#2a2a3c] text-[#ffffe6] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
           {item.label}
         </div>
       )}
@@ -99,7 +107,11 @@ const SidebarItem = ({
     }
     
     return (
-      <div className={itemClasses} onClick={handleClick} data-testid={`sidebar-item-${item.id}`}>
+      <div 
+        className={`${itemClasses} overflow-hidden`} 
+        onClick={handleClick} 
+        data-testid={`sidebar-item-${item.id}`}
+      >
         {children}
       </div>
     );
@@ -113,7 +125,7 @@ const SidebarItem = ({
       
       {/* Render children if expanded */}
       {hasChildren && isExpanded && !isCollapsed && (
-        <div className="mt-1 space-y-1">
+        <div className="mt-1 pt-1 space-y-0.5">
           {item.children.map((child) => (
             <SidebarItem
               key={child.id}

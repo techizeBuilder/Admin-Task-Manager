@@ -21,6 +21,7 @@ import {
   Building2,
   Briefcase,
   User,
+  BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +36,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
       'User Name': user.name,
       'Email': user.email,
       'Role': user.role,
-      'License': user.license,
+      'License': user.licenseId,
       'Department': user.department || 'N/A',
       'Designation': user.designation || 'N/A',
       'Location': user.location || 'N/A',
@@ -152,11 +153,14 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {user.license}
+                  <BadgeCheck className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm">
+                    <strong>License:</strong> <Badge variant="outline" className="font-mono text-xs">
+                    {user.licenseId}
                   </Badge>
-                  <span className="text-sm">License</span>
+                  </span>
                 </div>
+              
               </div>
             </CardContent>
           </Card>

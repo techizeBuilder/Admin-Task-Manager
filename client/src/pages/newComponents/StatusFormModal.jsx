@@ -103,13 +103,13 @@ function StatusFormModal({
   ];
 
   return (
-    <div className="status-form-modal-overlay">
-      <div className="status-form-modal">
-        <div className="modal-header">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-t-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <svg
-                className="w-6 h-6 text-white"
+                className="w-5 h-5 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -122,17 +122,21 @@ function StatusFormModal({
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-lg font-semibold text-white">
               {isEdit ? "Edit Status" : "Create New Status"}
             </h2>
           </div>
-          <button className="close-button" onClick={onClose} type="button">
+          <button 
+            className="text-white/80 hover:text-white transition-colors text-2xl leading-none" 
+            onClick={onClose} 
+            type="button"
+          >
             ×
           </button>
         </div>
 
-        <div className="modal-content">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="p-6 overflow-y-auto">
+          <form onSubmit={handleSubmit} >
             {/* Status Code & Label Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="form-group">

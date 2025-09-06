@@ -126,18 +126,17 @@ const Sidebar = ({
         className={`
           fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
           transform transition-all duration-300 ease-in-out
-          ${isCollapsed ? 'w-16' : 'w-64'}
+          ${isCollapsed ? 'w-16' : 'w-[280px]'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          bg-white border-r border-gray-200 shadow-lg lg:shadow-none
-          flex flex-col
+          bg-[#1E1E2D] flex flex-col
           ${className}
         `}
         data-testid="sidebar-container"
       >
         {/* Header */}
         <div className={`
-          p-4 border-b border-gray-200 
-          bg-gradient-to-r ${branding.bgGradient} text-white
+          p-4 
+          bg-gradient-to-r from-[#009EF7] to-[#0095E8] text-white
           ${isCollapsed ? 'px-2' : ''}
         `}>
           <div className="flex items-center justify-between">
@@ -165,7 +164,7 @@ const Sidebar = ({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto py-2">
           {menuItems.map((item) => (
             <SidebarItem
               key={item.id}

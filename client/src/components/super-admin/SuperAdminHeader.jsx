@@ -82,7 +82,7 @@ export default function SuperAdminHeader() {
               />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 bg-slate-50">
             <div className="px-2 py-1.5 text-xs text-gray-500">
               Signed in as {getUserFullName()}
             </div>
