@@ -22,7 +22,7 @@ export default function RoleBasedRedirect() {
     // Redirect based on user role
     if (user.role === 'super_admin' || user.role === 'superadmin') {
       setLocation('/super-admin');
-    } else if (user.role === 'admin' || user.role === 'member' || user.role === 'employee' || user.role === 'individual') {
+    } else if (user.role === 'admin' || user.role === 'manager' || user.role === 'member' || user.role === 'employee' || user.role === 'individual') {
       setLocation('/dashboard');
     } else {
       // Unknown role, redirect to login

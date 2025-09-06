@@ -38,6 +38,7 @@ const Dashboard = () => {
       
       case 'admin':
       case 'org_admin':
+      case 'manager':
         return <OrganizationDashboard />;
       
       case 'member':

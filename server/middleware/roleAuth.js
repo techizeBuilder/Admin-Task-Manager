@@ -90,6 +90,7 @@ export const requireOrgAdminOrAbove = requireRole([
   "superadmin",
   "org_admin",
   "admin",
+  "manager",
 ]);
 
 export const requireEmployee = requireRole([
@@ -104,8 +105,8 @@ export const requireOrgAdminOnly = (req, res, next) => {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  // Allow both 'org_admin' and 'admin' roles for organization management
-  if (req.user.role !== "org_admin" && req.user.role !== "admin") {
+  // Allow 'org_admin', 'admin', and 'manager' roles for organization management
+  if (req.user.role !== "org_admin" && req.user.role !== "admin" && req.user.role !== "manager") {
     return res.status(403).json({
       error:
         "Access denied. This feature is only available to organization administrators.",
@@ -127,8 +128,8 @@ export const requireOrganizationManagement = (req, res, next) => {
       });
   }
 
-  // Allow superadmin, org_admin, and admin roles
-  return requireRole(["superadmin", "org_admin", "admin"])(req, res, next);
+  // Allow superadmin, org_admin, admin, and manager roles
+  return requireRole(["superadmin", "org_admin", "admin", "manager"])(req, res, next);
 };
 
 export const requireOrganizationAccess = async (req, res, next) => {
