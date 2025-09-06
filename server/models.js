@@ -169,6 +169,26 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    licenseId: {
+      type: String,
+      enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
+      required: true
+    },
+    department: {
+      type: String,
+      trim: true,
+      maxlength: 50
+    },
+    designation: {
+      type: String,
+      trim: true,
+      maxlength: 50
+    },
+    location: {
+      type: String,
+      trim: true,
+      maxlength: 50
+    },
     inviteToken: String,
     inviteTokenExpiry: Date,
     invitedBy: {
@@ -888,6 +908,14 @@ const pendingUserSchema = new mongoose.Schema({
   type: { type: String, enum: ["individual", "organization"], required: true },
   organizationName: { type: String }, // Only for organization type
   organizationSlug: { type: String }, // Only for organization type
+  licenseId: { 
+    type: String, 
+    enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
+    required: true 
+  },
+  department: { type: String, maxlength: 50 },
+  designation: { type: String, maxlength: 50 },
+  location: { type: String, maxlength: 50 },
   verificationCode: { type: String },
   verificationExpires: { type: Date },
   isVerified: { type: Boolean, default: false },

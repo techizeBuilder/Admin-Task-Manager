@@ -16,6 +16,7 @@ import {
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
 import { taskRoutes } from "./routes/taskRoutes.js";
+import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 
 export async function registerRoutes(app) {
   // Configure CORS
@@ -39,6 +40,14 @@ export async function registerRoutes(app) {
 
   // Serve static files for uploaded images
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+  // Register user invitation routes
+  try {
+    registerUserInvitationRoutes(app);
+    console.log("User invitation routes registered successfully");
+  } catch (error) {
+    console.error("Error registering user invitation routes:", error);
+  }
 
   // Auth routes
   app.post("/api/auth/login", async (req, res) => {

@@ -73,9 +73,19 @@ export default function Users() {
   // Add new user using UserDataManager
   const handleAddUser = (newUserData) => {
     try {
-      const newUser = userDataManager.addUser(newUserData);
+      // Remove any leading/trailing spaces from inputs
+      const sanitizedData = {
+        ...newUserData,
+        name: newUserData.name?.trim(),
+        email: newUserData.email?.trim(),
+        department: newUserData.department?.trim(),
+        designation: newUserData.designation?.trim(),
+        location: newUserData.location?.trim()
+      };
+
+      const newUser = userDataManager.addUser(sanitizedData);
       setUsers(userDataManager.getAllUsers());
-      setLicensePool(userDataManager.getLicensePool());
+      // setLicensePool(userDataManager.getLicensePool());
       
       toast({
         title: "User Added Successfully!",
@@ -84,11 +94,16 @@ export default function Users() {
         duration: 5000,
       });
     } catch (error) {
+      // Format validation errors for better display
+      const errorMessage = error.message.startsWith('Validation failed:') 
+        ? error.message.replace('Validation failed:', '').split(',').join('\n')
+        : error.message;
+
       toast({
         title: "Error Adding User",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
-        duration: 5000,
+        duration: 8000, // Increased duration for multi-line errors
       });
     }
   };

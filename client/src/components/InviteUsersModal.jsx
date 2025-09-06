@@ -82,10 +82,11 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     return null;
   };
 
-  // Check if email exists in organization
+  // Check if email can be invited
   const checkEmailExists = async (email) => {
     try {
-      const response = await fetch("/api/organization/check-email", {
+      setIsValidating(true);
+      const response = await fetch("/api/organization/check-invitation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,11 +94,32 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
         },
         body: JSON.stringify({ email }),
       });
+      
       const data = await response.json();
-      return data.exists;
+      
+      if (data.exists) {
+        setErrors(prev => ({
+          ...prev,
+          email: data.message || (
+            data.type === "existing_user" 
+              ? "This email is already a member of an organization"
+              : "This email has already received an invitation"
+          )
+        }));
+        setIsValidating(false);
+        return true;
+      }
+      
+      setIsValidating(false);
+      return false;
     } catch (error) {
       console.error("Error checking email:", error);
-      return false;
+      setErrors(prev => ({
+        ...prev,
+        email: "Error checking email availability. Please try again."
+      }));
+      setIsValidating(false);
+      return true;
     }
   };
 
@@ -115,49 +137,53 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
 
     // Clear any existing error for this field
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: null }));
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
-  // Add user mutation
-  const addUserMutation = useMutation({
-    mutationFn: async (userData) => {
-      const response = await fetch("/api/organization/add-user", {
+  // Invitation mutation
+  const inviteUserMutation = useMutation({
+    mutationFn: async (inviteData) => {
+      const response = await fetch("/api/organization/invite-users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ invites: [inviteData] }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to add user");
+        throw new Error(result.message || result.error || "Failed to send invitation");
+      }
+
+      if (result.errors?.length > 0) {
+        throw new Error(result.errors[0].error || "Failed to send invitation");
       }
 
       return result;
     },
     onSuccess: (data) => {
       toast({
-        title: "User Added Successfully!",
-        description: `${formData.name} has been added to your organization.${formData.sendInvitationEmail ? " An invitation email has been sent." : ""}`,
+        title: "Invitation Sent Successfully!",
+        description: `${formData.name} has been invited to your organization. They will need to accept the invitation and create a password to access their account.`,
         variant: "default",
         duration: 5000,
       });
 
       onClose();
-      queryClient.invalidateQueries({
-        queryKey: ["/api/organization/users"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/organization/license"],
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/organization/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/organization/license"] });
     },
     onError: (error) => {
       toast({
-        title: "Failed to add user",
+        title: "Failed to Send Invitation",
         description: error.message,
         variant: "destructive",
         duration: 8000,
@@ -169,8 +195,20 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   const isFormValid =
     formData.name.trim() &&
     formData.email.trim() &&
+    formData.role &&
     formData.licenseId &&
     Object.keys(errors).length === 0;
+
+  // Handle email blur - check for existing email
+  const handleEmailBlur = async () => {
+    if (formData.email && !errors.email) {
+      try {
+        await checkEmailExists(formData.email);
+      } catch (error) {
+        console.error("Email check failed:", error);
+      }
+    }
+  };
 
   // Submit user form with validation
   const handleSubmit = async (e) => {
@@ -193,7 +231,11 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
       }
     }
 
-    if (!formData.licenseId) {
+    if (formData.role==='') {
+      newErrors.role = "Role selection is required";
+    }
+    
+    if (formData.licenseId==='') {
       newErrors.licenseId = "License selection is required";
     }
 
@@ -221,46 +263,37 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
       // Check email uniqueness
       setIsValidating(true);
       const emailExists = await checkEmailExists(formData.email);
-      if (emailExists) {
-        setErrors({ email: "Email already exists in the system" });
-        setIsSubmitting(false);
-        setIsValidating(false);
-        return;
-      }
       setIsValidating(false);
 
-      // Create new user object
-      const newUser = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        license: formData.licenseId,
-        department: formData.department || '',
-        designation: formData.designation || '',
-        location: formData.location || '',
-        status: 'Pending',
-        dateCreated: new Date().toISOString(),
-        lastLogin: null,
-        tasksAssigned: 0,
-        tasksCompleted: 0,
-        formsCreated: 0,
-        activeProcesses: 0
+      if (emailExists) {
+        return; // Error is already set by checkEmailExists
+      }
+      const roleObj={
+        'Regular User':'user',
+        'Manager':'manager',
+        'Company Admin':'admin'
+      }
+          // Create invitation data
+      const inviteData = {
+        name: formData.name.trim(),
+        email: formData.email.toLowerCase().trim(),
+        role: roleObj[formData.role],
+        licenseId: formData.licenseId,
+        department: formData.department?.trim() || undefined,
+        designation: formData.designation?.trim() || undefined,
+        location: formData.location?.trim() || undefined,
+        phone: formData.phone?.trim() || undefined,
+        sendEmail: formData.sendInvitationEmail
       };
 
-      // Call the callback to add user to parent component
-      if (onUserAdded) {
-        onUserAdded(newUser);
-      }
+      // Log the invitation data being sent
+      console.log('Sending invitation data:', inviteData);
+
+      // Send invitation using the mutation
+      await inviteUserMutation.mutateAsync(inviteData);
       
-      toast({
-        title: "User Added Successfully!",
-        description: `${formData.name} has been added to your organization.${formData.sendInvitationEmail ? ' An invitation email will be sent.' : ''}`,
-        variant: "default",
-        duration: 5000,
-      });
-      
-      onClose();
+      // Clear isSubmitting flag on success
+      setIsSubmitting(false);
     } catch (error) {
       console.error("Error adding user:", error);
       setIsSubmitting(false);
@@ -335,8 +368,8 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
                     placeholder="Enter email address"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
+                    onBlur={handleEmailBlur}
                     className={`pl-10 ${errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    disabled={isValidating}
                   />
                   {isValidating && (
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -398,10 +431,18 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
                   License Type *
                 </Label>
                 <Select
-                  value={formData.licenseId}
+                  value={formData.licenseId || ""}
                   onValueChange={(value) => {
                     console.log("License selected:", value);
-                    handleInputChange("licenseId", value);
+                    setFormData(prev => ({
+                      ...prev,
+                      licenseId: value
+                    }));
+                    setErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.licenseId;
+                      return newErrors;
+                    });
                   }}
                 >
                   <SelectTrigger
@@ -410,7 +451,6 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
                         ? "border-red-300 focus:border-red-500"
                         : ""
                     }
-                    onClick={() => console.log("License dropdown clicked")}
                   >
                     <SelectValue placeholder="Select license" />
                   </SelectTrigger>

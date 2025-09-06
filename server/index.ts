@@ -3,8 +3,20 @@ import express from "express";
 import mongoose from "mongoose";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
+import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 
 const app = express();
+
+// Add error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+// Add error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -14,8 +26,26 @@ const connectToMongoDB = async () => {
   try {
     const mongoUri =
       "mongodb+srv://jeeturadicalloop:Mjvesqnj8gY3t0zP@cluster0.by2xy6x.mongodb.net/TaskSetu";
-    await mongoose.connect(mongoUri);
+    
+    // Add MongoDB connection options
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    
     console.log("Connected to MongoDB TaskSetu database");
+    
+    // Register routes with error handling
+    try {
+      await registerRoutes(app);
+      console.log("Main routes registered");
+      
+      registerUserInvitationRoutes(app);
+      console.log("User invitation routes registered");
+    } catch (routeError) {
+      console.error("Error registering routes:", routeError);
+      throw routeError;
+    }
 
     // Initialize sample data if needed
     await initializeSampleData();
