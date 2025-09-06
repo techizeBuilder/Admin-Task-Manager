@@ -1,37 +1,68 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building2, Users, Settings, BarChart3, UserPlus, Mail, Trash2, Crown, User, AlertCircle } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import ProfileWidget from '@/components/profile/ProfileWidget';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Building2,
+  Users,
+  Settings,
+  BarChart3,
+  UserPlus,
+  Mail,
+  Trash2,
+  Crown,
+  User,
+  AlertCircle,
+} from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import ProfileWidget from "@/components/profile/ProfileWidget";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('employee');
-  const [emailError, setEmailError] = useState('');
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("employee");
+  const [emailError, setEmailError] = useState("");
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const { toast } = useToast();
 
   // Check if email has already been invited
   const checkExistingInvitation = async (email) => {
     if (!email.trim()) {
-      setEmailError('');
+      setEmailError("");
       return;
     }
 
     setIsCheckingEmail(true);
-    setEmailError('');
+    setEmailError("");
 
     try {
       const token = localStorage.getItem("token");
@@ -58,7 +89,7 @@ export default function AdminDashboard() {
       if (!response.ok) {
         throw new Error(data.message || `Server error: ${response.status}`);
       }
-      
+
       if (data.exists) {
         setEmailError(data.message);
       }
@@ -71,46 +102,47 @@ export default function AdminDashboard() {
   };
 
   const { data: orgStats } = useQuery({
-    queryKey: ['/api/admin/organization-stats'],
-    enabled: true
+    queryKey: ["/api/admin/organization-stats"],
+    enabled: true,
   });
 
   const { data: orgUsers } = useQuery({
-    queryKey: ['/api/admin/users'],
-    enabled: true
+    queryKey: ["/api/admin/users"],
+    enabled: true,
   });
 
   const { data: orgProjects } = useQuery({
-    queryKey: ['/api/admin/projects'],
-    enabled: true
+    queryKey: ["/api/admin/projects"],
+    enabled: true,
   });
 
   const { data: orgTasks } = useQuery({
-    queryKey: ['/api/admin/tasks'],
-    enabled: true
+    queryKey: ["/api/admin/tasks"],
+    enabled: true,
   });
 
   const inviteUserMutation = useMutation({
     mutationFn: async (data) => {
-      return await apiRequest('POST', '/api/admin/invite-user', data);
+      return await apiRequest("POST", "/api/admin/invite-user", data);
     },
     onSuccess: () => {
       toast({
         title: "Invitation sent",
-        description: "User invitation has been sent successfully."
+        description: "User invitation has been sent successfully.",
       });
       setInviteDialogOpen(false);
-      setInviteEmail('');
-      setInviteRole('employee');
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      setInviteEmail("");
+      setInviteRole("employee");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     },
     onError: (error) => {
       toast({
         title: "Failed to send invitation",
-        description: error.message || "An error occurred while sending the invitation.",
-        variant: "destructive"
+        description:
+          error.message || "An error occurred while sending the invitation.",
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const handleInviteUser = () => {
@@ -118,14 +150,14 @@ export default function AdminDashboard() {
       toast({
         title: "Email required",
         description: "Please enter a valid email address.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     inviteUserMutation.mutate({
       email: inviteEmail,
-      role: inviteRole
+      role: inviteRole,
     });
   };
 
@@ -142,7 +174,7 @@ export default function AdminDashboard() {
               Admin Access
             </Badge>
           </div>
-          
+
           <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -154,7 +186,8 @@ export default function AdminDashboard() {
               <DialogHeader>
                 <DialogTitle>Invite New User</DialogTitle>
                 <DialogDescription>
-                  Send an invitation to a new team member to join your organization.
+                  Send an invitation to a new team member to join your
+                  organization.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -168,11 +201,15 @@ export default function AdminDashboard() {
                       value={inviteEmail}
                       onChange={(e) => {
                         setInviteEmail(e.target.value);
-                        if (emailError) setEmailError('');
+                        if (emailError) setEmailError("");
                       }}
                       onBlur={(e) => checkExistingInvitation(e.target.value)}
                       disabled={isCheckingEmail}
-                      className={emailError ? "border-red-300 focus:border-red-400 focus:ring-red-200" : ""}
+                      className={
+                        emailError
+                          ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+                          : ""
+                      }
                     />
                     {isCheckingEmail && (
                       <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -203,14 +240,19 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setInviteDialogOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleInviteUser}
                   disabled={inviteUserMutation.isPending}
                 >
-                  {inviteUserMutation.isPending ? 'Sending...' : 'Send Invitation'}
+                  {inviteUserMutation.isPending
+                    ? "Sending..."
+                    : "Send Invitation"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -219,7 +261,11 @@ export default function AdminDashboard() {
       </div>
 
       <div className="p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Team</TabsTrigger>
@@ -232,18 +278,22 @@ export default function AdminDashboard() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Team Members
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{orgStats?.totalUsers || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {orgStats?.totalUsers || 0}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     +{orgStats?.newUsersThisMonth || 0} this month
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
                   <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -254,15 +304,19 @@ export default function AdminDashboard() {
                     {orgStats?.completedProjects || 0} completed
                   </p>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Tasks This Month</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Tasks This Month
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{orgStats?.tasksThisMonth || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {orgStats?.tasksThisMonth || 0}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {orgStats?.completedTasksThisMonth || 0} completed
                   </p>
@@ -271,11 +325,15 @@ export default function AdminDashboard() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Team Productivity</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Team Productivity
+                  </CardTitle>
                   <Settings className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{orgStats?.productivityScore || 85}%</div>
+                  <div className="text-2xl font-bold">
+                    {orgStats?.productivityScore || 85}%
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     +{orgStats?.productivityGrowth || 5}% from last month
                   </p>
@@ -287,20 +345,29 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Project Activity</CardTitle>
-                  <CardDescription>Latest updates from your projects</CardDescription>
+                  <CardDescription>
+                    Latest updates from your projects
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {orgProjects?.slice(0, 3).map((project) => (
-                      <div key={project._id} className="flex items-center justify-between border-b pb-2">
+                      <div
+                        key={project._id}
+                        className="flex items-center justify-between border-b pb-2"
+                      >
                         <div>
                           <p className="text-sm font-medium">{project.name}</p>
-                          <p className="text-xs text-muted-foreground">{project.status}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {project.status}
+                          </p>
                         </div>
                         <Badge variant="outline">{project.updatedAt}</Badge>
                       </div>
                     )) || (
-                      <p className="text-sm text-muted-foreground">No recent project activity</p>
+                      <p className="text-sm text-muted-foreground">
+                        No recent project activity
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -309,27 +376,41 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Team Performance</CardTitle>
-                  <CardDescription>Individual team member progress</CardDescription>
+                  <CardDescription>
+                    Individual team member progress
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {orgUsers?.slice(0, 3).map((user) => (
-                      <div key={user._id} className="flex items-center justify-between border-b pb-2">
+                      <div
+                        key={user._id}
+                        className="flex items-center justify-between border-b pb-2"
+                      >
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                             <span className="text-xs font-medium text-blue-600">
-                              {user.firstName?.[0]}{user.lastName?.[0]}
+                              {user.firstName?.[0]}
+                              {user.lastName?.[0]}
                             </span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                            <p className="text-xs text-muted-foreground">{user.role}</p>
+                            <p className="text-sm font-medium">
+                              {user.firstName} {user.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {user.role}
+                            </p>
                           </div>
                         </div>
-                        <Badge variant="outline">{user.tasksCompleted || 0} tasks</Badge>
+                        <Badge variant="outline">
+                          {user.tasksCompleted || 0} tasks
+                        </Badge>
                       </div>
                     )) || (
-                      <p className="text-sm text-muted-foreground">No team members found</p>
+                      <p className="text-sm text-muted-foreground">
+                        No team members found
+                      </p>
                     )}
                   </div>
                 </CardContent>
@@ -354,16 +435,27 @@ export default function AdminDashboard() {
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium text-blue-600">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
+                            {user.firstName?.[0]}
+                            {user.lastName?.[0]}
                           </span>
                         </div>
                         <div>
-                          <h4 className="font-medium">{user.firstName} {user.lastName}</h4>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <h4 className="font-medium">
+                            {user.firstName} {user.lastName}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {user.email}
+                          </p>
                           <div className="flex items-center space-x-2 mt-1">
                             <Badge variant="outline">{user.role}</Badge>
                             {user.status && (
-                              <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                              <Badge
+                                variant={
+                                  user.status === "active"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
                                 {user.status}
                               </Badge>
                             )}
@@ -385,7 +477,9 @@ export default function AdminDashboard() {
               )) || (
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <p className="text-muted-foreground">No team members found</p>
+                    <p className="text-muted-foreground">
+                      No team members found
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -397,7 +491,7 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-medium">Project Management</h3>
               <Button>Create Project</Button>
             </div>
-            
+
             <div className="grid gap-4">
               {orgProjects?.map((project) => (
                 <Card key={project._id}>
@@ -405,7 +499,9 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="font-medium">{project.name}</h4>
-                        <p className="text-sm text-muted-foreground">{project.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {project.description}
+                        </p>
                         <div className="flex items-center space-x-2 mt-2">
                           <Badge variant="outline">{project.status}</Badge>
                           <span className="text-xs text-muted-foreground">
@@ -434,7 +530,9 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Organization Settings</CardTitle>
-                  <CardDescription>Manage your organization preferences</CardDescription>
+                  <CardDescription>
+                    Manage your organization preferences
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Button variant="outline" className="w-full">
@@ -452,7 +550,9 @@ export default function AdminDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Subscription & Billing</CardTitle>
-                  <CardDescription>Manage your subscription plan</CardDescription>
+                  <CardDescription>
+                    Manage your subscription plan
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -461,7 +561,9 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Users</span>
-                    <span className="text-sm font-medium">{orgStats?.totalUsers || 0} / 50</span>
+                    <span className="text-sm font-medium">
+                      {orgStats?.totalUsers || 0} / 50
+                    </span>
                   </div>
                   <Button variant="outline" className="w-full">
                     Upgrade Plan

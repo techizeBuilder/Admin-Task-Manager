@@ -187,16 +187,16 @@ export default function Dashboard() {
       change: "+15%",
       changeType: "positive",
     },
-    {
-      title: "Projects",
-      value: stats.totalProjects,
-      description: "Active projects",
-      icon: FolderOpen,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-      change: "+5%",
-      changeType: "positive",
-    },
+    // {
+    //   title: "Projects",
+    //   value: stats.totalProjects,
+    //   description: "Active projects",
+    //   icon: FolderOpen,
+    //   color: "text-blue-600",
+    //   bgColor: "bg-blue-50",
+    //   change: "+5%",
+    //   changeType: "positive",
+    // },
   ];
 
   const recentActivities = [
