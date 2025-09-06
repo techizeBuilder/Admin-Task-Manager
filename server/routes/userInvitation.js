@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from "../middleware/roleAuth.js";
+import { authenticateToken, requireOrgAdminOrAbove } from "../middleware/roleAuth.js";
 import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
 
@@ -28,8 +28,8 @@ router.post("/check-email-exists", authenticateToken, async (req, res) => {
   }
 });
 
-// Send user invitation
-router.post("/invite-users", authenticateToken, async (req, res) => {
+// Send user invitation - requires manager role or above  
+router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (req, res) => {
   try {
     const { invites } = req.body;
     const adminUser = req.user;
