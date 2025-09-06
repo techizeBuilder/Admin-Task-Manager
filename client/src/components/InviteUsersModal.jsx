@@ -269,8 +269,8 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
         return; // Error is already set by checkEmailExists
       }
       const roleObj={
-        'Regular User':'user',
-        'Manager':'manager',
+        'Regular User':'member',
+        'Manager':'manager', 
         'Company Admin':'admin'
       }
           // Create invitation data

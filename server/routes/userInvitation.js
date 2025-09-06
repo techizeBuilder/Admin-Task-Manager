@@ -47,10 +47,10 @@ router.post("/invite-users", authenticateToken, async (req, res) => {
     for (const invite of invites) {
       try {
         // Basic validation
-        if (!invite.name || !invite.email || !invite.role || !invite.licenseId) {
+        if (!invite.name || !invite.email || !invite.role) {
           results.errors.push({
             email: invite.email || 'unknown',
-            error: 'All required fields must be provided (name, email, role, licenseId)'
+            error: 'All required fields must be provided (name, email, role)'
           });
           continue;
         }
@@ -68,8 +68,8 @@ router.post("/invite-users", authenticateToken, async (req, res) => {
         // Log for debugging
         console.log('Email validation passed for:', invite.email);
 
-        // Validate role format
-        const validRoles = ['admin', 'user', 'manager'];
+        // Validate role format - support both frontend and backend role values
+        const validRoles = ['admin', 'user', 'manager', 'member', 'employee', 'org_admin'];
         const normalizedRole = invite.role.toLowerCase().replace(/\s+/g, '');
         if (!validRoles.includes(normalizedRole)) {
           results.errors.push({
@@ -79,14 +79,8 @@ router.post("/invite-users", authenticateToken, async (req, res) => {
           continue;
         }
 
-        // Validate license ID format
-        if (typeof invite.licenseId !== 'string' || invite.licenseId.toLowerCase() === 'plan') {
-          results.errors.push({
-            email: invite.email,
-            error: 'Invalid license ID provided'
-          });
-          continue;
-        }
+        // Skip license validation for now - can be added later if needed
+        // License ID is optional in this implementation
 
         // Check for existing user
         const existingUser = await storage.getUserByEmail(invite.email);
@@ -98,20 +92,19 @@ router.post("/invite-users", authenticateToken, async (req, res) => {
           continue;
         }
 
-        // Create the user invitation
-        const invitationResult = await storage.createUserInvitation({
-          ...invite,
-          organizationId: adminUser.organizationId,
-          invitedBy: adminUser.id
-        });
+        // Get organization details for invitation
+        const organization = await storage.getOrganization(adminUser.organizationId);
+        const organizationName = organization?.name || 'TaskSetu';
 
-        if (invite.sendEmail) {
-          await emailService.sendInvitation(invite.email, {
-            name: invite.name,
-            role: invite.role,
-            invitedBy: adminUser.name
-          });
-        }
+        // Create the user invitation using the correct method
+        const invitationResult = await storage.inviteUserToOrganization({
+          email: invite.email,
+          organizationId: adminUser.organizationId,
+          roles: [invite.role],
+          invitedBy: adminUser.id,
+          invitedByName: adminUser.name || adminUser.email,
+          organizationName: organizationName
+        });
 
         results.success.push({
           email: invite.email,
