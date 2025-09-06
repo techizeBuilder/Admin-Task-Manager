@@ -172,10 +172,14 @@ const userSchema = new mongoose.Schema(
     licenseId: {
       type: String,
       enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
-      required: true
+     required: function () {
+    // Only require license when user is active
+    return this.status !== 'invited';
+  },
+  default: null
     },
     department: {
-      type: String,
+      type: String, 
       trim: true,
       maxlength: 50
     },
@@ -911,7 +915,11 @@ const pendingUserSchema = new mongoose.Schema({
   licenseId: { 
     type: String, 
     enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
-    required: true 
+    required: function () {
+    // Only require license when user is active
+    return this.status !== 'invited';
+  },
+  default: null
   },
   department: { type: String, maxlength: 50 },
   designation: { type: String, maxlength: 50 },

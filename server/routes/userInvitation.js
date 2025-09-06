@@ -103,7 +103,9 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
           roles: [invite.role],
           invitedBy: adminUser.id,
           invitedByName: adminUser.name || adminUser.email,
-          organizationName: organizationName
+          organizationName: organizationName,
+            licenseId: invite.licenseId || null,  // pass licenseId if provided
+  sendEmail: invite.sendEmail !== false // default true
         });
 
         results.success.push({
