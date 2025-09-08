@@ -42,7 +42,7 @@ export default function LicenseManagementPage() {
 
   const currentPlan = getCurrentPlan();
   const isOnTrial = currentPlanKey === 'explore';
-  const warnings = getLimitWarnings();
+  const warnings = getLimitWarnings;
   const hasWarnings = warnings.length > 0;
 
   // Handle upgrade modal trigger from usage limits
@@ -79,217 +79,558 @@ export default function LicenseManagementPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" data-testid="license-management-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="page-title">
-            License & Subscription
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1" data-testid="page-description">
-            Manage your plan, view usage, and upgrade when needed
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-6 space-y-6" data-testid="license-management-page">
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <Crown className="h-8 w-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900" data-testid="page-title">
+                License & Subscription
+              </h1>
+              <p className="text-gray-600 mt-1" data-testid="page-description">
+                Manage your subscription plan and monitor usage
+              </p>
+            </div>
+          </div>
+          {hasAccess('billing') && (
+            <Button 
+              asChild 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg" 
+              data-testid="view-billing-button"
+            >
+              <Link to="/admin/billing">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                View Billing
+              </Link>
+            </Button>
+          )}
         </div>
-        {hasAccess('billing') && (
-          <Button asChild variant="outline" data-testid="view-billing-button">
-            <Link to="/admin/billing">View Billing</Link>
-          </Button>
-        )}
-      </div>
 
-      {/* Warnings */}
-      {hasWarnings && (
-        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-yellow-800 dark:text-yellow-200">
+        {/* Warning Alerts */}
+        {hasWarnings && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2 text-yellow-800 mb-3">
               <AlertCircle className="h-5 w-5" />
-              <span>Usage Warnings</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {warnings.map((warning, index) => (
-              <div key={index} className={cn(
-                'p-3 rounded flex items-start space-x-3',
-                warning.type === 'error' ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'
-              )} data-testid={`warning-${index}`}>
-                <AlertCircle className={cn(
-                  'h-4 w-4 mt-0.5 flex-shrink-0',
-                  warning.type === 'error' ? 'text-red-500' : 'text-yellow-500'
-                )} />
-                <div className="text-sm">
-                  <div className="font-medium">{warning.feature.charAt(0).toUpperCase() + warning.feature.slice(1)}</div>
-                  <div className="text-gray-600">{warning.message}</div>
+              <span className="font-medium">Usage Alerts</span>
+            </div>
+            <div className="space-y-2">
+              {warnings.map((warning, index) => (
+                <div key={index} className="text-sm text-yellow-700" data-testid={`warning-${index}`}>
+                  <span className="font-medium">
+                    {warning.feature.charAt(0).toUpperCase() + warning.feature.slice(1)}:
+                  </span>{' '}
+                  {warning.message}
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </div>
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Current Plan & Usage */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Current Plan Summary */}
-          <Card data-testid="current-plan-card">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Crown className="h-6 w-6 text-yellow-500" />
-                  <div>
-                    <CardTitle className="flex items-center space-x-2">
-                      <span>Current Plan</span>
-                      <Badge variant={isOnTrial ? "secondary" : "default"} data-testid="plan-status-badge">
-                        {isOnTrial ? 'Trial' : 'Active'}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription data-testid="plan-name">
-                      {currentPlan.name} - ${currentPlan.price[billingCycle]}{billingCycle === 'yearly' ? '/year' : '/month'}
-                    </CardDescription>
+        {/* Stats Cards Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Current Plan Card */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-gray-600 text-sm">Current Plan</div>
+              <Crown className="h-5 w-5 text-blue-600" />
+            </div>
+            <div className="text-2xl font-bold text-gray-900 mb-1">
+              {currentPlan.name}
+            </div>
+            <div className="text-sm text-gray-600">
+              ${currentPlan.price[billingCycle]}/{billingCycle === 'yearly' ? 'year' : 'month'}
+            </div>
+            {isOnTrial && (
+              <Badge className="mt-2 bg-blue-100 text-blue-700 text-xs">
+                Trial
+              </Badge>
+            )}
+          </div>
+
+          {/* Usage Stats Cards */}
+          {[
+            { key: 'users', icon: Users, label: 'Team Members', color: 'text-green-600' },
+            { key: 'projects', icon: FolderOpen, label: 'Projects', color: 'text-blue-600' },
+            { key: 'tasks', icon: CheckSquare, label: 'Tasks', color: 'text-purple-600' }
+          ].map(({ key, icon: Icon, label, color }) => {
+            const status = getFeatureStatus(key);
+            return (
+              <div key={key} className="bg-white rounded-lg p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-gray-600 text-sm">{label}</div>
+                  <Icon className={`h-5 w-5 ${color}`} />
+                </div>
+                <div className="text-2xl font-bold text-gray-900 mb-1">
+                  {status.current}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {status.limit === -1 ? 'Unlimited' : `of ${status.limit}`}
+                </div>
+                {status.percentage > 0 && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={cn(
+                          "h-2 rounded-full",
+                          status.percentage >= 80 ? "bg-red-500" :
+                          status.percentage >= 60 ? "bg-yellow-500" :
+                          "bg-green-500"
+                        )}
+                        style={{ width: `${Math.min(status.percentage, 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-                {canUpgrade() && (
-                  <Button onClick={() => handleUpgradeClick('starter')} data-testid="quick-upgrade-button">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Upgrade
-                  </Button>
                 )}
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Usage Meters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(usage).map(([key, value]) => {
-                  const status = getFeatureStatus(key);
-                  return (
-                    <UsageMeter
-                      key={key}
-                      label={key.charAt(0).toUpperCase() + key.slice(1)}
-                      current={status.current}
-                      limit={status.limit}
-                      percentage={status.percentage}
-                      isOverLimit={status.isOverLimit}
-                      isNearLimit={status.isNearLimit}
-                      unit={key === 'storage' ? '' : ''}
-                      tooltip={`Your current ${key} usage vs plan limits`}
-                      data-testid={`usage-meter-${key}`}
-                    />
-                  )}
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            );
+          })}
+        </div>
 
-          {/* Plan Comparison Cards */}
-          <Card data-testid="plan-comparison-card">
-            <CardHeader>
-              <CardTitle>Available Plans</CardTitle>
-              <CardDescription>
-                Choose the plan that fits your team's needs
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Billing Toggle */}
-              <BillingToggle
-                billingCycle={billingCycle}
-                onToggle={setBillingCycle}
-                savingsPercentage={getSavingsPercentage()}
-                disabled={isLoading}
-                data-testid="billing-cycle-toggle"
-              />
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Usage Overview Section */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg border border-gray-200">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Usage Overview</h2>
+                <p className="text-sm text-gray-600 mt-1">Monitor your current usage against plan limits</p>
+              </div>
               
-              {/* Plan Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(plans).map(([planKey, plan]) => (
-                  <PlanCard
-                    key={planKey}
-                    plan={plan}
-                    planKey={planKey}
-                    billingCycle={billingCycle}
-                    isCurrentPlan={planKey === currentPlanKey}
-                    isPopular={planKey === 'professional'}
-                    onSelect={handleUpgradeClick}
-                    loading={isLoading}
-                    disabled={!hasAccess('upgrade') && planKey !== currentPlanKey}
-                    data-testid={`plan-card-${planKey}`}
-                  />
-                ))}
+              {/* Usage Meters Grid */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(usage).map(([key, value]) => {
+                    const status = getFeatureStatus(key);
+                    return (
+                      <div key={key} className="space-y-3" data-testid={`usage-meter-${key}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">
+                            {key.charAt(0).toUpperCase() + key.slice(1)}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {status.current}/{status.limit === -1 ? '∞' : status.limit}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={cn(
+                              "h-2 rounded-full transition-all",
+                              status.isOverLimit ? "bg-red-500" :
+                              status.isNearLimit ? "bg-yellow-500" :
+                              "bg-green-500"
+                            )}
+                            style={{ width: `${Math.min(status.percentage, 100)}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>{Math.round(status.percentage)}% used</span>
+                          {status.isOverLimit && (
+                            <span className="text-red-600 font-medium">Over limit</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Trial Countdown (if applicable) */}
-          {isOnTrial && (
-            <TrialCountdown
-              daysLeft={trialDaysLeft}
-              onUpgrade={() => handleUpgradeClick('starter')}
-              data-testid="trial-countdown"
-            />
-          )}
-
-          {/* Quick Stats */}
-          <Card data-testid="quick-stats-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Usage Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { key: 'users', icon: Users, label: 'Team Members' },
-                { key: 'projects', icon: FolderOpen, label: 'Projects' },
-                { key: 'storage', icon: Database, label: 'Storage' },
-                { key: 'tasks', icon: CheckSquare, label: 'Tasks' }
-              ].map(({ key, icon: Icon, label }) => {
-                const status = getFeatureStatus(key);
-                return (
-                  <div key={key} className="flex items-center justify-between" data-testid={`stat-${key}`}>
-                    <div className="flex items-center space-x-2">
-                      <Icon className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{label}</span>
-                    </div>
-                    <div className="text-sm font-medium">
-                      {status.current}/{status.limit}
-                    </div>
+            {/* Available Plans Section */}
+            <div className="bg-white rounded-lg border border-gray-200 mt-6">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Available Plans</h2>
+                    <p className="text-sm text-gray-600 mt-1">Choose the plan that fits your needs</p>
                   </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+                  <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setBillingCycle('monthly')}
+                      className={cn(
+                        "px-3 py-1 text-sm rounded-md transition-colors",
+                        billingCycle === 'monthly' 
+                          ? "bg-white text-gray-900 shadow-sm" 
+                          : "text-gray-600 hover:text-gray-900"
+                      )}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setBillingCycle('yearly')}
+                      className={cn(
+                        "px-3 py-1 text-sm rounded-md transition-colors",
+                        billingCycle === 'yearly' 
+                          ? "bg-white text-gray-900 shadow-sm" 
+                          : "text-gray-600 hover:text-gray-900"
+                      )}
+                    >
+                      Yearly
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Plan Cards */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Explore Plan */}
+                  <div className={cn(
+                    "border rounded-lg p-6 transition-all hover:shadow-md",
+                    currentPlanKey === 'explore' 
+                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Explore (Free)</h3>
+                        <p className="text-sm text-gray-600 mt-1">First-time users, trial mode</p>
+                      </div>
+                      {currentPlanKey === 'explore' && (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
+                          Current
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold text-gray-900">$0</span>
+                      <span className="text-gray-600 ml-1">/15 days</span>
+                    </div>
 
-          {/* Upgrade CTA (for non-admin users) */}
-          {!hasAccess('upgrade') && (
-            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800" data-testid="upgrade-cta-card">
-              <CardHeader>
-                <CardTitle className="text-blue-800 dark:text-blue-200 flex items-center space-x-2">
-                  <Zap className="h-5 w-5" />
-                  <span>Need More?</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
-                  Contact your administrator to upgrade your plan and unlock more features.
-                </p>
-                <Button variant="outline" size="sm" className="w-full" disabled data-testid="contact-admin-button">
-                  Contact Admin
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
+                        <p className="text-sm text-gray-600">All features available</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 10 tasks/month</li>
+                          <li>• 2 custom forms</li>
+                          <li>• 1 process</li>
+                          <li>• 3 reports</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Duration</h4>
+                        <p className="text-sm text-gray-600">15 days trial only</p>
+                        <p className="text-xs text-orange-600 mt-1">After expiry, prompt to upgrade</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => handleUpgradeClick('explore')}
+                      disabled={currentPlanKey === 'explore'}
+                      className={cn(
+                        "w-full",
+                        currentPlanKey === 'explore'
+                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      )}
+                    >
+                      {currentPlanKey === 'explore' ? 'Current Plan' : 'Start Free Trial'}
+                    </Button>
+                  </div>
+
+                  {/* Plan */}
+                  <div className={cn(
+                    "border rounded-lg p-6 transition-all hover:shadow-md",
+                    currentPlanKey === 'plan' 
+                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Plan</h3>
+                        <p className="text-sm text-gray-600 mt-1">Individuals / small teams</p>
+                      </div>
+                      {currentPlanKey === 'plan' && (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
+                          Current
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold text-gray-900">
+                        ${billingCycle === 'yearly' ? '190' : '19'}
+                      </span>
+                      <span className="text-gray-600 ml-1">
+                        /{billingCycle === 'yearly' ? 'year' : 'month'}
+                      </span>
+                      {billingCycle === 'yearly' && (
+                        <div className="text-sm text-green-600 font-medium">Save $38/year</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
+                        <p className="text-sm text-gray-600">All features unlocked</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 100 tasks/month</li>
+                          <li>• 10 custom forms</li>
+                          <li>• 5 processes</li>
+                          <li>• Unlimited reports</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
+                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => handleUpgradeClick('plan')}
+                      disabled={currentPlanKey === 'plan' || !hasAccess('upgrade')}
+                      className={cn(
+                        "w-full",
+                        currentPlanKey === 'plan'
+                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      )}
+                    >
+                      {currentPlanKey === 'plan' ? 'Current Plan' : 'Select Plan'}
+                    </Button>
+                  </div>
+
+                  {/* Execute Plan */}
+                  <div className={cn(
+                    "border rounded-lg p-6 transition-all hover:shadow-md relative",
+                    currentPlanKey === 'execute' 
+                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-purple-100 text-purple-700 text-xs px-3 py-1">
+                        Popular
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Execute</h3>
+                        <p className="text-sm text-gray-600 mt-1">Growing teams</p>
+                      </div>
+                      {currentPlanKey === 'execute' && (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
+                          Current
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold text-gray-900">
+                        ${billingCycle === 'yearly' ? '490' : '49'}
+                      </span>
+                      <span className="text-gray-600 ml-1">
+                        /{billingCycle === 'yearly' ? 'year' : 'month'}
+                      </span>
+                      {billingCycle === 'yearly' && (
+                        <div className="text-sm text-green-600 font-medium">Save $98/year</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
+                        <p className="text-sm text-gray-600">All features unlocked</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 500 tasks/month</li>
+                          <li>• 50 custom forms</li>
+                          <li>• 25 processes</li>
+                          <li>• Unlimited reports</li>
+                          <li>• Priority support</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
+                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => handleUpgradeClick('execute')}
+                      disabled={currentPlanKey === 'execute' || !hasAccess('upgrade')}
+                      className={cn(
+                        "w-full",
+                        currentPlanKey === 'execute'
+                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      )}
+                    >
+                      {currentPlanKey === 'execute' ? 'Current Plan' : 'Select Plan'}
+                    </Button>
+                  </div>
+
+                  {/* Optimize Plan */}
+                  <div className={cn(
+                    "border rounded-lg p-6 transition-all hover:shadow-md",
+                    currentPlanKey === 'optimize' 
+                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
+                      : "border-gray-200 hover:border-gray-300"
+                  )}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Optimize</h3>
+                        <p className="text-sm text-gray-600 mt-1">Large organizations</p>
+                      </div>
+                      {currentPlanKey === 'optimize' && (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">
+                          Current
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="mb-4">
+                      <span className="text-3xl font-bold text-gray-900">
+                        ${billingCycle === 'yearly' ? '990' : '99'}
+                      </span>
+                      <span className="text-gray-600 ml-1">
+                        /{billingCycle === 'yearly' ? 'year' : 'month'}
+                      </span>
+                      {billingCycle === 'yearly' && (
+                        <div className="text-sm text-green-600 font-medium">Save $198/year</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
+                        <p className="text-sm text-gray-600">All features unlocked</p>
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• Unlimited tasks</li>
+                          <li>• Unlimited custom forms</li>
+                          <li>• Unlimited processes</li>
+                          <li>• Unlimited reports</li>
+                          <li>• 24/7 priority support</li>
+                          <li>• Dedicated account manager</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
+                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => handleUpgradeClick('optimize')}
+                      disabled={currentPlanKey === 'optimize' || !hasAccess('upgrade')}
+                      className={cn(
+                        "w-full",
+                        currentPlanKey === 'optimize'
+                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                      )}
+                    >
+                      {currentPlanKey === 'optimize' ? 'Current Plan' : 'Contact Sales'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Trial Countdown */}
+            {isOnTrial && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-orange-600 mb-2">
+                    {trialDaysLeft}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-4">
+                    days left in trial
+                  </div>
+                  <Button 
+                    onClick={() => handleUpgradeClick('starter')}
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Upgrade Now
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="space-y-3">
+                {hasAccess('upgrade') ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => handleUpgradeClick('professional')}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Upgrade Plan
+                    </Button>
+                    {hasAccess('billing') && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start"
+                        asChild
+                      >
+                        <Link to="/admin/billing">
+                          <Database className="h-4 w-4 mr-2" />
+                          View Billing
+                        </Link>
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <Zap className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-3">
+                      Contact your administrator to upgrade
+                    </p>
+                    <Button variant="outline" size="sm" disabled>
+                      Contact Admin
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        currentPlan={currentPlan}
-        targetPlan={selectedUpgradePlan}
-        billingCycle={billingCycle}
-        reason={upgradeReason}
-        onConfirm={handleConfirmUpgrade}
-        loading={isLoading}
-      />
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          currentPlan={currentPlan}
+          targetPlan={selectedUpgradePlan}
+          billingCycle={billingCycle}
+          reason={upgradeReason}
+          onConfirm={handleConfirmUpgrade}
+          loading={isLoading}
+        />
+      </div>
     </div>
   );
 }

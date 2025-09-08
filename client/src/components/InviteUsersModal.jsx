@@ -27,11 +27,15 @@ import {
   MapPin,
   Phone,
   Briefcase,
+  Plus,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function AddUserModal({ isOpen, onClose, onUserAdded }) {
-  const [formData, setFormData] = useState({
+  const [users, setUsers] = useState([{
+    id: 1,
     name: "",
     email: "",
     role: "",
@@ -41,7 +45,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     location: "",
     phone: "",
     sendInvitationEmail: true,
-  });
+  }]);
   const [errors, setErrors] = useState({});
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +61,8 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
-      setFormData({
+      setUsers([{
+        id: 1,
         name: "",
         email: "",
         role: "",
@@ -67,7 +72,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
         location: "",
         phone: "",
         sendInvitationEmail: true,
-      });
+      }]);
       setErrors({});
       setIsSubmitting(false);
       setIsValidating(false);
@@ -85,7 +90,6 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   // Check if email can be invited
   const checkEmailExists = async (email) => {
     try {
-      setIsValidating(true);
       const response = await fetch("/api/organization/check-invitation", {
         method: "POST",
         headers: {
@@ -96,57 +100,65 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
       });
       
       const data = await response.json();
-      
-      if (data.exists) {
-        setErrors(prev => ({
-          ...prev,
-          email: data.message || (
-            data.type === "existing_user" 
-              ? "This email is already a member of an organization"
-              : "This email has already received an invitation"
-          )
-        }));
-        setIsValidating(false);
-        return true;
-      }
-      
-      setIsValidating(false);
-      return false;
+      return data.exists;
     } catch (error) {
       console.error("Error checking email:", error);
-      setErrors(prev => ({
-        ...prev,
-        email: "Error checking email availability. Please try again."
-      }));
-      setIsValidating(false);
-      return true;
+      return false;
     }
   };
 
-  // Validate field length
-  const validateField = (fieldName, value) => {
-    if (value && value.length > 100) {
-      return `${fieldName.charAt(0).toUpperCase() + fieldName.slice(1)} must be less than 100 characters`;
-    }
-    return null;
+  // Add new user row
+  const addUserRow = () => {
+    const newId = Math.max(...users.map(u => u.id)) + 1;
+    setUsers([...users, {
+      id: newId,
+      name: "",
+      email: "",
+      role: "",
+      licenseId: "",
+      department: "",
+      designation: "",
+      location: "",
+      phone: "",
+      sendInvitationEmail: true,
+    }]);
   };
 
-  // Handle form input changes
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  // Remove user row
+  const removeUserRow = (id) => {
+    if (users.length > 1) {
+      setUsers(users.filter(user => user.id !== id));
+      // Clear errors for removed user
+      const newErrors = { ...errors };
+      Object.keys(newErrors).forEach(key => {
+        if (key.startsWith(`user_${id}_`)) {
+          delete newErrors[key];
+        }
+      });
+      setErrors(newErrors);
+    }
+  };
 
-    // Clear any existing error for this field
-    if (errors[field]) {
-      setErrors((prev) => {
+  // Handle user input changes
+  const handleUserChange = (id, field, value) => {
+    console.log('handleUserChange called:', { id, field, value }); // Debug log
+    setUsers(users.map(user => 
+      user.id === id ? { ...user, [field]: value } : user
+    ));
+
+    // Clear error for this field
+    const errorKey = `user_${id}_${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[field];
+        delete newErrors[errorKey];
         return newErrors;
       });
     }
   };
 
   // Invitation mutation
-  const inviteUserMutation = useMutation({
+  const inviteUsersMutation = useMutation({
     mutationFn: async (inviteData) => {
       const response = await fetch("/api/organization/invite-users", {
         method: "POST",
@@ -154,28 +166,36 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ invites: [inviteData] }),
+        body: JSON.stringify({ invites: inviteData }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || result.error || "Failed to send invitation");
-      }
-
-      if (result.errors?.length > 0) {
-        throw new Error(result.errors[0].error || "Failed to send invitation");
+        throw new Error(result.message || result.error || "Failed to send invitations");
       }
 
       return result;
     },
     onSuccess: (data) => {
-      toast({
-        title: "Invitation Sent Successfully!",
-        description: `${formData.name} has been invited to your organization. They will need to accept the invitation and create a password to access their account.`,
-        variant: "default",
-        duration: 5000,
-      });
+      const successCount = data.success?.length || 0;
+      const errorCount = data.errors?.length || 0;
+      
+      if (successCount > 0 && errorCount === 0) {
+        toast({
+          title: "Invitations Sent Successfully!",
+          description: `${successCount} user${successCount > 1 ? 's have' : ' has'} been invited to your organization.`,
+          variant: "default",
+          duration: 5000,
+        });
+      } else if (successCount > 0 && errorCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `${successCount} invitations sent successfully, ${errorCount} failed.`,
+          variant: "default",
+          duration: 8000,
+        });
+      }
 
       onClose();
       queryClient.invalidateQueries({ queryKey: ["/api/organization/users"] });
@@ -183,7 +203,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     },
     onError: (error) => {
       toast({
-        title: "Failed to Send Invitation",
+        title: "Failed to Send Invitations",
         description: error.message,
         variant: "destructive",
         duration: 8000,
@@ -191,433 +211,313 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     },
   });
 
-  // Validation state for form submission
-  const isFormValid =
-    formData.name.trim() &&
-    formData.email.trim() &&
-    formData.role &&
-    formData.licenseId &&
-    Object.keys(errors).length === 0;
-
-  // Handle email blur - check for existing email
-  const handleEmailBlur = async () => {
-    if (formData.email && !errors.email) {
-      try {
-        await checkEmailExists(formData.email);
-      } catch (error) {
-        console.error("Email check failed:", error);
-      }
-    }
-  };
-
-  // Submit user form with validation
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate form
-    const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else {
-      const emailError = validateEmail(formData.email);
-      if (emailError) {
-        newErrors.email = emailError;
-      }
-    }
-
-    if (formData.role==='') {
-      newErrors.role = "Role selection is required";
-    }
-    
-    if (formData.licenseId==='') {
-      newErrors.licenseId = "License selection is required";
-    }
-
-    // Check for field length errors
-    const fieldErrors = [
-      validateField("department", formData.department),
-      validateField("designation", formData.designation),
-      validateField("location", formData.location),
-    ].filter((error) => error);
-
-    if (fieldErrors.length > 0) {
-      fieldErrors.forEach((error) => {
-        const field = error.toLowerCase().split(" ")[0];
-        newErrors[field] = error;
-      });
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setIsSubmitting(false);
-      return;
-    }
+    const roleObj = {
+      'Regular User': 'member',
+      'Manager': 'manager', 
+      'Company Admin': 'admin'
+    };
 
     try {
-      // Check email uniqueness
-      setIsValidating(true);
-      const emailExists = await checkEmailExists(formData.email);
-      setIsValidating(false);
+      let inviteData = [];
+      const newErrors = {};
 
-      if (emailExists) {
-        return; // Error is already set by checkEmailExists
+      // Validate multiple users
+      for (const user of users) {
+        const userPrefix = `user_${user.id}_`;
+        
+        if (!user.name.trim()) {
+          newErrors[`${userPrefix}name`] = "Name is required";
+        }
+        
+        if (!user.email.trim()) {
+          newErrors[`${userPrefix}email`] = "Email is required";
+        } else {
+          const emailError = validateEmail(user.email);
+          if (emailError) {
+            newErrors[`${userPrefix}email`] = emailError;
+          }
+        }
+        
+        if (!user.role) {
+          newErrors[`${userPrefix}role`] = "Role is required";
+        }
+        
+        if (!user.licenseId) {
+          newErrors[`${userPrefix}licenseId`] = "License is required";
+        }
       }
-      const roleObj={
-        'Regular User':'member',
-        'Manager':'manager', 
-        'Company Admin':'admin'
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsSubmitting(false);
+        return;
       }
-          // Create invitation data
-      const inviteData = {
-        name: formData.name.trim(),
-        email: formData.email.toLowerCase().trim(),
-        role: roleObj[formData.role],
-        licenseId: formData.licenseId,
-        department: formData.department?.trim() || undefined,
-        designation: formData.designation?.trim() || undefined,
-        location: formData.location?.trim() || undefined,
-        phone: formData.phone?.trim() || undefined,
-        sendEmail: formData.sendInvitationEmail
-      };
 
-      // Log the invitation data being sent
-      console.log('Sending invitation data:', inviteData);
+      // Check for duplicate emails within the form
+      const emails = users.map(u => u.email.toLowerCase().trim());
+      const duplicates = emails.filter((email, index) => emails.indexOf(email) !== index);
+      if (duplicates.length > 0) {
+        toast({
+          title: "Duplicate Emails",
+          description: "Please remove duplicate email addresses.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Send invitation using the mutation
-      await inviteUserMutation.mutateAsync(inviteData);
-      
-      // Clear isSubmitting flag on success
+      // Check existing emails
+      for (const user of users) {
+        const emailExists = await checkEmailExists(user.email);
+        if (emailExists) {
+          newErrors[`user_${user.id}_email`] = "This email already exists or has been invited";
+        }
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsSubmitting(false);
+        return;
+      }
+
+      inviteData = users.map(user => ({
+        name: user.name.trim(),
+        email: user.email.toLowerCase().trim(),
+        role: roleObj[user.role],
+        licenseId: user.licenseId,
+        department: user.department?.trim() || undefined,
+        designation: user.designation?.trim() || undefined,
+        location: user.location?.trim() || undefined,
+        phone: user.phone?.trim() || undefined,
+        sendEmail: user.sendInvitationEmail
+      }));
+
+      await inviteUsersMutation.mutateAsync(inviteData);
       setIsSubmitting(false);
+
     } catch (error) {
-      console.error("Error adding user:", error);
+      console.error("Error inviting users:", error);
       setIsSubmitting(false);
     }
   };
 
+  const renderUserRow = (user, index) => (
+    <div key={user.id} className="p-4 border border-gray-200 rounded-lg space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-gray-900">User {index + 1}</h4>
+        {users.length > 1 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => removeUserRow(user.id)}
+            className="text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Name */}
+        <div>
+          <Label htmlFor={`name_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Full Name *
+          </Label>
+          <Input
+            id={`name_${user.id}`}
+            type="text"
+            placeholder="Enter full name"
+            value={user.name}
+            onChange={(e) => handleUserChange(user.id, "name", e.target.value)}
+            className={errors[`user_${user.id}_name`] ? "border-red-300" : ""}
+          />
+          {errors[`user_${user.id}_name`] && (
+            <p className="mt-1 text-sm text-red-600">{errors[`user_${user.id}_name`]}</p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div>
+          <Label htmlFor={`email_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address *
+          </Label>
+          <Input
+            id={`email_${user.id}`}
+            type="email"
+            placeholder="Enter email address"
+            value={user.email}
+            onChange={(e) => handleUserChange(user.id, "email", e.target.value)}
+            className={errors[`user_${user.id}_email`] ? "border-red-300" : ""}
+          />
+          {errors[`user_${user.id}_email`] && (
+            <p className="mt-1 text-sm text-red-600">{errors[`user_${user.id}_email`]}</p>
+          )}
+        </div>
+
+        {/* Role */}
+        <div>
+          <Label htmlFor={`role_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Role *
+          </Label>
+          <Select
+            key={`role_${user.id}`}
+            value={user.role}
+            onValueChange={(value) => {
+              console.log('Role onValueChange:', { userId: user.id, value });
+              handleUserChange(user.id, "role", value);
+            }}
+          >
+            <SelectTrigger className={errors[`user_${user.id}_role`] ? "border-red-300" : ""}>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Regular User">Regular User</SelectItem>
+              <SelectItem value="Manager">Manager</SelectItem>
+              <SelectItem value="Company Admin">Company Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors[`user_${user.id}_role`] && (
+            <p className="mt-1 text-sm text-red-600">{errors[`user_${user.id}_role`]}</p>
+          )}
+        </div>
+
+        {/* License */}
+        <div>
+          <Label htmlFor={`license_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            License Type *
+          </Label>
+          <Select
+            key={`license_${user.id}`}
+            value={user.licenseId}
+            onValueChange={(value) => {
+              console.log('License onValueChange:', { userId: user.id, value });
+              handleUserChange(user.id, "licenseId", value);
+            }}
+          >
+            <SelectTrigger className={errors[`user_${user.id}_licenseId`] ? "border-red-300" : ""}>
+              <SelectValue placeholder="Select license" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Explore (Free)">Explore (Free)</SelectItem>
+              <SelectItem value="Plan">Plan</SelectItem>
+              <SelectItem value="Execute">Execute</SelectItem>
+              <SelectItem value="Optimize">Optimize</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors[`user_${user.id}_licenseId`] && (
+            <p className="mt-1 text-sm text-red-600">{errors[`user_${user.id}_licenseId`]}</p>
+          )}
+        </div>
+
+        {/* Department */}
+        <div>
+          <Label htmlFor={`department_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Department
+          </Label>
+          <Input
+            id={`department_${user.id}`}
+            type="text"
+            placeholder="Enter department"
+            value={user.department}
+            onChange={(e) => handleUserChange(user.id, "department", e.target.value)}
+          />
+        </div>
+
+        {/* Designation */}
+        <div>
+          <Label htmlFor={`designation_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Designation
+          </Label>
+          <Input
+            id={`designation_${user.id}`}
+            type="text"
+            placeholder="Enter designation"
+            value={user.designation}
+            onChange={(e) => handleUserChange(user.id, "designation", e.target.value)}
+          />
+        </div>
+
+        {/* Location */}
+        <div>
+          <Label htmlFor={`location_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Location
+          </Label>
+          <Input
+            id={`location_${user.id}`}
+            type="text"
+            placeholder="Enter location"
+            value={user.location}
+            onChange={(e) => handleUserChange(user.id, "location", e.target.value)}
+          />
+        </div>
+
+        {/* Phone */}
+        <div>
+          <Label htmlFor={`phone_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+            Phone Number
+          </Label>
+          <Input
+            id={`phone_${user.id}`}
+            type="tel"
+            placeholder="Enter phone number"
+            value={user.phone}
+            onChange={(e) => handleUserChange(user.id, "phone", e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Send Email Checkbox */}
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id={`sendEmail_${user.id}`}
+          checked={user.sendInvitationEmail}
+          onCheckedChange={(checked) => handleUserChange(user.id, "sendInvitationEmail", checked)}
+        />
+        <Label htmlFor={`sendEmail_${user.id}`} className="text-sm font-medium text-gray-700">
+          Send Invitation Email
+        </Label>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-50">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-xl font-semibold">
-            <UserPlus className="h-5 w-5 text-blue-600" />
-            <span>Add User</span>
+            <Users className="h-5 w-5 text-blue-600" />
+            <span>Invite Users</span>
           </DialogTitle>
           <DialogDescription>
-            Add a new user to your organization. User will be created in Pending state until invitation is accepted.
+            Invite single or multiple users to your organization. Users will be created in Pending state until invitation is accepted.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* User Information Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <User className="h-5 w-5 mr-2 text-blue-600" />
-              User Information
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Name Input */}
-              <div>
-                <Label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Full Name *
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter full name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  className={
-                    errors.name
-                      ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-                      : ""
-                  }
-                />
-                {errors.name && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Email Input */}
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Email Address *
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email address"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    onBlur={handleEmailBlur}
-                    className={`pl-10 ${errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                  />
-                  {isValidating && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400"></div>
-                    </div>
-                  )}
-                </div>
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Role Selection */}
-              <div>
-                <Label
-                  htmlFor="role"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Role *
-                </Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => {
-                    console.log("Role selected:", value);
-                    handleInputChange("role", value);
-                  }}
-                >
-                  <SelectTrigger
-                    className={
-                      errors.role ? "border-red-300 focus:border-red-500" : ""
-                    }
-                    onClick={() => console.log("Role dropdown clicked")}
-                  >
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
-                    <SelectItem value="Regular User" className="bg-white hover:bg-gray-100">Regular User</SelectItem>
-                    <SelectItem value="Manager" className="bg-white hover:bg-gray-100">Manager</SelectItem>
-                    <SelectItem value="Company Admin" className="bg-white hover:bg-gray-100">Company Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.role && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.role}
-                  </p>
-                )}
-              </div>
-
-              {/* License Selection */}
-              <div>
-                <Label
-                  htmlFor="licenseId"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  License Type *
-                </Label>
-                <Select
-                  value={formData.licenseId || ""}
-                  onValueChange={(value) => {
-                    console.log("License selected:", value);
-                    setFormData(prev => ({
-                      ...prev,
-                      licenseId: value
-                    }));
-                    setErrors(prev => {
-                      const newErrors = { ...prev };
-                      delete newErrors.licenseId;
-                      return newErrors;
-                    });
-                  }}
-                >
-                  <SelectTrigger
-                    className={
-                      errors.licenseId
-                        ? "border-red-300 focus:border-red-500"
-                        : ""
-                    }
-                  >
-                    <SelectValue placeholder="Select license" />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
-                    <SelectItem value="Explore (Free)" className="bg-white hover:bg-gray-100">
-                      Explore (Free)
-                    </SelectItem>
-                    <SelectItem value="Plan" className="bg-white hover:bg-gray-100">Plan</SelectItem>
-                    <SelectItem value="Execute" className="bg-white hover:bg-gray-100">Execute</SelectItem>
-                    <SelectItem value="Optimize" className="bg-white hover:bg-gray-100">Optimize</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.licenseId && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.licenseId}
-                  </p>
-                )}
-              </div>
-
-              {/* Department Input */}
-              <div>
-                <Label
-                  htmlFor="department"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Department
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Building2 className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    id="department"
-                    type="text"
-                    placeholder="Enter department"
-                    value={formData.department}
-                    onChange={(e) =>
-                      handleInputChange("department", e.target.value)
-                    }
-                    className={`pl-10 ${errors.department ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                  />
-                </div>
-                {errors.department && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.department}
-                  </p>
-                )}
-              </div>
-
-              {/* Designation Input */}
-              <div>
-                <Label
-                  htmlFor="designation"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Designation
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Briefcase className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    id="designation"
-                    type="text"
-                    placeholder="Enter designation"
-                    value={formData.designation}
-                    onChange={(e) =>
-                      handleInputChange("designation", e.target.value)
-                    }
-                    className={`pl-10 ${errors.designation ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                  />
-                </div>
-                {errors.designation && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.designation}
-                  </p>
-                )}
-              </div>
-
-              {/* Location Input */}
-              <div>
-                <Label
-                  htmlFor="location"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Location
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    id="location"
-                    type="text"
-                    placeholder="Enter location"
-                    value={formData.location}
-                    onChange={(e) =>
-                      handleInputChange("location", e.target.value)
-                    }
-                    className={`pl-10 ${errors.location ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                  />
-                </div>
-                {errors.location && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.location}
-                  </p>
-                )}
-              </div>
-
-              {/* Phone Input */}
-              <div>
-                <Label
-                  htmlFor="phone"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Phone Number
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Enter phone number"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    className={`pl-10 ${errors.phone ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1 flex-shrink-0" />
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
-
-              {/* Send Invitation Email Checkbox */}
-              <div className="md:col-span-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="sendInvitationEmail"
-                    checked={formData.sendInvitationEmail}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("sendInvitationEmail", checked)
-                    }
-                  />
-                  <Label
-                    htmlFor="sendInvitationEmail"
-                    className="text-sm font-medium text-gray-700 cursor-pointer"
-                  >
-                    Send Invitation Email (default: ON)
-                  </Label>
-                </div>
-              </div>
-            </div>
+            {users.map((user, index) => renderUserRow(user, index))}
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addUserRow}
+            className="w-full border-dashed border-2 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700 py-3"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add More
+          </Button>
 
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <div className="text-sm text-gray-500">
-              User will be created in Pending state
+              {users.length} user{users.length !== 1 ? 's' : ''} will be invited
             </div>
             <div className="flex space-x-3">
               <Button
@@ -633,7 +533,9 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
                 disabled={isSubmitting}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {isSubmitting ? "Adding User..." : "Add User"}
+                {isSubmitting ? "Sending Invitations..." : 
+                 `Invite ${users.length} User${users.length !== 1 ? 's' : ''}`
+                }
               </Button>
             </div>
           </div>
