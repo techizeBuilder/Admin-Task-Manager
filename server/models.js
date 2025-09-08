@@ -176,7 +176,7 @@ const userSchema = new mongoose.Schema(
     // Only require license when user is active
     return this.status !== 'invited';
   },
-  default: null
+  default: "Explore (Free)"   
     },
     department: {
       type: String, 
@@ -919,7 +919,7 @@ const pendingUserSchema = new mongoose.Schema({
     // Only require license when user is active
     return this.status !== 'invited';
   },
-  default: null
+  default: "Explore (Free)"   
   },
   department: { type: String, maxlength: 50 },
   designation: { type: String, maxlength: 50 },
