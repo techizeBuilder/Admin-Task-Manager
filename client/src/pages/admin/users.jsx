@@ -73,19 +73,9 @@ export default function Users() {
   // Add new user using UserDataManager
   const handleAddUser = (newUserData) => {
     try {
-      // Remove any leading/trailing spaces from inputs
-      const sanitizedData = {
-        ...newUserData,
-        name: newUserData.name?.trim(),
-        email: newUserData.email?.trim(),
-        department: newUserData.department?.trim(),
-        designation: newUserData.designation?.trim(),
-        location: newUserData.location?.trim()
-      };
-
-      const newUser = userDataManager.addUser(sanitizedData);
+      const newUser = userDataManager.addUser(newUserData);
       setUsers(userDataManager.getAllUsers());
-      // setLicensePool(userDataManager.getLicensePool());
+      setLicensePool(userDataManager.getLicensePool());
       
       toast({
         title: "User Added Successfully!",
@@ -94,16 +84,11 @@ export default function Users() {
         duration: 5000,
       });
     } catch (error) {
-      // Format validation errors for better display
-      const errorMessage = error.message.startsWith('Validation failed:') 
-        ? error.message.replace('Validation failed:', '').split(',').join('\n')
-        : error.message;
-
       toast({
         title: "Error Adding User",
-        description: errorMessage,
+        description: error.message,
         variant: "destructive",
-        duration: 8000, // Increased duration for multi-line errors
+        duration: 5000,
       });
     }
   };
@@ -326,7 +311,7 @@ export default function Users() {
           </Button>
           <Button 
             onClick={() => setIsAddUserModalOpen(true)}
-            className="bg-blue-600 text-warning-50 hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
           >
             <UserPlus className="h-4 w-4" />
             Add User
@@ -586,8 +571,8 @@ export default function Users() {
       </AlertDialog>
 
       {/* Remove User Confirmation Dialog */}
-      <AlertDialog  open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-        <AlertDialogContent className='bg-slate-50'>
+      <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-red-500" />

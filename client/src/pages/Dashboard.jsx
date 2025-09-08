@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { IndividualDashboard, OrganizationDashboard, SuperAdminDashboard } from '../dashboard';
+import { IndividualDashboard, OrganizationDashboard, SuperAdminDashboard, ManagerDashboard } from '../dashboard';
 
 /**
  * Dynamic Dashboard Router - Renders appropriate dashboard based on user role
@@ -38,8 +38,12 @@ const Dashboard = () => {
       
       case 'admin':
       case 'org_admin':
-      case 'manager':
+      case 'company_admin':
+      case 'owner':
         return <OrganizationDashboard />;
+      
+      case 'manager':
+        return <ManagerDashboard />;
       
       case 'member':
       case 'employee':

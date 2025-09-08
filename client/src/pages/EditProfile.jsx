@@ -50,7 +50,7 @@ export default function EditProfile() {
     lastName: "",
     phoneNumber: "",
     department: "",
-    manager: "",
+    manager: "no-manager",
     organizationName: "",
     timeZone: "",
     emailNotifications: true,
@@ -62,7 +62,7 @@ export default function EditProfile() {
     lastName: "",
     phoneNumber: "",
     department: "",
-    manager: "",
+    manager: "no-manager",
     organizationName: "",
     timeZone: "",
     emailNotifications: true,
@@ -76,6 +76,9 @@ export default function EditProfile() {
     confirmPassword: "",
   });
   const [hasChanges, setHasChanges] = useState(false);
+  const [errors, setErrors] = useState({
+    phoneNumber: "",
+  });
 
   // Fetch current user profile - try auth/verify first as fallback
   const { data: authUser } = useQuery({
@@ -116,7 +119,7 @@ export default function EditProfile() {
         lastName: currentUser.lastName || "",
         phoneNumber: currentUser.phoneNumber || "",
         department: currentUser.department || "",
-        manager: currentUser.manager || "",
+        manager: currentUser.manager || "no-manager",
         organizationName:
           currentUser.organizationName || currentUser.organization?.name || "",
         timeZone:
@@ -129,6 +132,19 @@ export default function EditProfile() {
       };
       setFormData(userData);
       setOriginalData(userData);
+
+      // Validate phone number on load
+      if (userData.phoneNumber && userData.phoneNumber.trim() !== "" && !validatePhoneNumber(userData.phoneNumber)) {
+        setErrors((prev) => ({
+          ...prev,
+          phoneNumber: "Please enter a valid phone number (10-15 digits)",
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          phoneNumber: "",
+        }));
+      }
     }
   }, [currentUser]);
 
@@ -222,10 +238,33 @@ export default function EditProfile() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === "checkbox" ? checked : value;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: newValue,
     }));
+
+    // Real-time phone number validation
+    if (name === "phoneNumber") {
+      if (value.trim() === "") {
+        // Clear error when field is empty (since it's optional)
+        setErrors((prev) => ({
+          ...prev,
+          phoneNumber: "",
+        }));
+      } else if (!validatePhoneNumber(value)) {
+        setErrors((prev) => ({
+          ...prev,
+          phoneNumber: "Please enter a valid phone number (10-15 digits)",
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          phoneNumber: "",
+        }));
+      }
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -373,17 +412,28 @@ export default function EditProfile() {
       return;
     }
 
-    // Phone number validation
-    if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+    // Check for validation errors
+    if (errors.phoneNumber) {
       toast({
         title: "Validation Error",
-        description: "Please enter a valid phone number (10-15 digits)",
+        description: "Please fix the phone number error before submitting",
         variant: "destructive",
       });
       return;
     }
 
-    updateProfile.mutate(formData);
+    // Prepare data to send - exclude organization name for admins
+    const dataToSend = { ...formData };
+    if (isAdminWithReadOnlyOrg()) {
+      delete dataToSend.organizationName;
+    }
+
+    // Convert "no-manager" back to empty string for backend
+    if (dataToSend.manager === "no-manager") {
+      dataToSend.manager = "";
+    }
+
+    updateProfile.mutate(dataToSend);
   };
 
   // Validation functions
@@ -404,6 +454,17 @@ export default function EditProfile() {
   // Helper functions
   const isOrgUser = () => {
     return currentUser?.role !== "individual" && currentUser?.organizationId;
+  };
+
+  // Check if user is admin and should have read-only organization info
+  const isAdminWithReadOnlyOrg = () => {
+    const adminRoles = ["admin", "company_admin", "owner", "super_admin"];
+    return adminRoles.includes(currentUser?.role?.toLowerCase());
+  };
+
+  // Check if organization section should be shown
+  const shouldShowOrgSection = () => {
+    return isOrgUser() || isAdminWithReadOnlyOrg();
   };
 
   const getRoleBadgeVariant = (role) => {
@@ -591,14 +652,14 @@ export default function EditProfile() {
                       id="email"
                       name="email"
                       value={currentUser?.email || ""}
-                      disabled={isOrgUser()}
-                      readOnly={isOrgUser()}
+                      disabled={true}
+                      readOnly={shouldShowOrgSection()}
                       className={
-                        isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""
+                        shouldShowOrgSection() ? "bg-gray-100 cursor-not-allowed" : ""
                       }
                       data-testid="input-email"
                     />
-                    {isOrgUser() && (
+                    {shouldShowOrgSection() && (
                       <p className="text-xs text-gray-500 mt-1">
                         Email changes are managed by your organization admin
                       </p>
@@ -613,14 +674,21 @@ export default function EditProfile() {
                       onChange={handleInputChange}
                       placeholder="10-15 digits"
                       data-testid="input-phone"
+                      className={errors.phoneNumber ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Optional • 10-15 digits
-                    </p>
+                    {errors.phoneNumber ? (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.phoneNumber}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Optional • 10-15 digits
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-                    {isOrgUser() &&
+                    {shouldShowOrgSection() &&
                  <>   
               {/* Organization Information */}
               <div className="border-b pb-4">
@@ -628,6 +696,13 @@ export default function EditProfile() {
                   <Shield className="h-5 w-5" />
                   Organization Information
                 </h3>
+                {isAdminWithReadOnlyOrg() && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-700">
+                      <strong>Note:</strong> Organization information is read-only for administrators to maintain data integrity.
+                    </p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="organizationName">Organization Name</Label>
@@ -636,15 +711,25 @@ export default function EditProfile() {
                       name="organizationName"
                       value={formData.organizationName}
                       onChange={handleInputChange}
-                      disabled={isOrgUser()}
+                      disabled={isOrgUser() || isAdminWithReadOnlyOrg()}
                       className={
-                        isOrgUser() ? "bg-gray-100 cursor-not-allowed" : ""
+                        (isOrgUser() || isAdminWithReadOnlyOrg()) ? "bg-gray-100 cursor-not-allowed" : ""
                       }
                       placeholder={
-                        !isOrgUser() ? "Enter organization name" : ""
+                        (!isOrgUser() && !isAdminWithReadOnlyOrg()) ? "Enter organization name" : ""
                       }
                       data-testid="input-organization"
                     />
+                    {isAdminWithReadOnlyOrg() && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Organization information is read-only for administrators
+                      </p>
+                    )}
+                    {isOrgUser() && !isAdminWithReadOnlyOrg() && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Organization name is managed by administrators
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="department">Department/Team</Label>
@@ -658,7 +743,7 @@ export default function EditProfile() {
                     />
                     <p className="text-xs text-gray-500 mt-1">Optional</p>
                   </div>
-                  {isOrgUser() && (
+                  {shouldShowOrgSection() && (
                     <div>
                       <Label htmlFor="manager">Manager/Supervisor</Label>
                       <Select
@@ -668,11 +753,11 @@ export default function EditProfile() {
                           setFormData((prev) => ({ ...prev, manager: value }))
                         }
                       >
-                        <SelectTrigger data-testid="select-manager">
+                        <SelectTrigger data-testid="select-manager" >
                           <SelectValue placeholder="Select manager" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">No manager assigned</SelectItem>
+                        <SelectContent className='bg-white'>
+                          <SelectItem value="no-manager">No manager assigned</SelectItem>
                           <SelectItem value="john-doe">John Doe</SelectItem>
                           <SelectItem value="jane-smith">Jane Smith</SelectItem>
                           <SelectItem value="mike-wilson">
@@ -971,7 +1056,7 @@ export default function EditProfile() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={updateProfile.isPending || !hasChanges}
+                disabled={updateProfile.isPending || !hasChanges || errors.phoneNumber}
                 className="bg-blue-800 hover:bg-blue-700 text-white cursor-pointer text-xs"
               >
                 {updateProfile.isPending ? (

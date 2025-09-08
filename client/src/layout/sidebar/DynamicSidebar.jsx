@@ -147,7 +147,7 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
             id: "plans-licenses",
             label: "Plans & Licenses",
             icon: Key,
-            path: "/admin/plans",
+            path: "/license",
             permission: PERMISSIONS.MANAGE_BILLING,
           },
           {
@@ -209,6 +209,13 @@ export const DynamicSidebar = ({ isCollapsed = false, onToggle }) => {
             icon: Activity,
             path: "/super-admin/logs",
             permission: PERMISSIONS.VIEW_AUDIT_LOGS,
+          },
+          {
+            id: "license-control",
+            label: "License Control",
+            icon: Key,
+            path: "/super-admin/license-control",
+            permission: PERMISSIONS.SYSTEM_ADMIN,
           },
           {
             id: "system-settings",
