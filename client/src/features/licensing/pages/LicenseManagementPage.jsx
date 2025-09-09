@@ -11,7 +11,7 @@ import UsageMeter from '../components/UsageMeter';
 import TrialCountdown from '../components/TrialCountdown';
 import BillingToggle from '../components/BillingToggle';
 import PlanCard from '../components/PlanCard';
-import UpgradeModal from '../components/UpgradeModal';
+
 import { cn } from '@/lib/utils';
 
 /**
@@ -254,10 +254,12 @@ export default function LicenseManagementPage() {
                     days left in trial
                   </div>
                   <Button 
-                    onClick={() => handleUpgradeClick('starter')}
                     className="bg-orange-600 hover:bg-orange-700 text-white"
+                    asChild
                   >
-                    Upgrade Now
+                    <Link to="/admin/upgrade">
+                      Upgrade Now
+                    </Link>
                   </Button>
                 </div>
               </div>
@@ -272,10 +274,12 @@ export default function LicenseManagementPage() {
                     <Button 
                       variant="outline" 
                       className="w-full justify-start h-10"
-                      onClick={() => handleUpgradeClick('execute')}
+                      asChild
                     >
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Upgrade Plan
+                      <Link to="/admin/subscription/upgrade">
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Upgrade Plan
+                      </Link>
                     </Button>
                     {hasAccess('billing') && (
                       <Button 
@@ -307,332 +311,12 @@ export default function LicenseManagementPage() {
 
         </div>
 
-        {/* Available Plans Section */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          {/* Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Available Plans</h2>
-                <p className="text-sm text-gray-600 mt-1">Choose the plan that fits your needs</p>
-              </div>
-              <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setBillingCycle('monthly')}
-                  className={cn(
-                    "px-3 py-1 text-sm rounded-md transition-colors",
-                    billingCycle === 'monthly' 
-                      ? "bg-white text-gray-900 shadow-sm" 
-                      : "text-gray-600 hover:text-gray-900"
-                  )}
-                >
-                  Monthly
-                </button>
-                <button
-                  onClick={() => setBillingCycle('yearly')}
-                  className={cn(
-                    "px-3 py-1 text-sm rounded-md transition-colors",
-                    billingCycle === 'yearly' 
-                      ? "bg-white text-gray-900 shadow-sm" 
-                      : "text-gray-600 hover:text-gray-900"
-                  )}
-                >
-                  Yearly
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Plan Cards */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {/* Explore Plan */}
-                  <div className={cn(
-                    "border rounded-lg p-6 transition-all hover:shadow-md",
-                    currentPlanKey === 'explore' 
-                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
-                      : "border-gray-200 hover:border-gray-300"
-                  )}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">Explore (Free)</h3>
-                        <p className="text-sm text-gray-600 mt-1">First-time users, trial mode</p>
-                      </div>
-                      {currentPlanKey === 'explore' && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs">
-                          Current
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-gray-900">$0</span>
-                      <span className="text-gray-600 ml-1">/15 days</span>
-                    </div>
-
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
-                        <p className="text-sm text-gray-600">All features available</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• 10 tasks/month</li>
-                          <li>• 2 custom forms</li>
-                          <li>• 1 process</li>
-                          <li>• 3 reports</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Duration</h4>
-                        <p className="text-sm text-gray-600">15 days trial only</p>
-                        <p className="text-xs text-orange-600 mt-1">After expiry, prompt to upgrade</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => handleUpgradeClick('explore')}
-                      disabled={currentPlanKey === 'explore'}
-                      className={cn(
-                        "w-full",
-                        currentPlanKey === 'explore'
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                      )}
-                    >
-                      {currentPlanKey === 'explore' ? 'Current Plan' : 'Start Free Trial'}
-                    </Button>
-                  </div>
-
-                  {/* Plan */}
-                  <div className={cn(
-                    "border rounded-lg p-6 transition-all hover:shadow-md",
-                    currentPlanKey === 'plan' 
-                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
-                      : "border-gray-200 hover:border-gray-300"
-                  )}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">Plan</h3>
-                        <p className="text-sm text-gray-600 mt-1">Individuals / small teams</p>
-                      </div>
-                      {currentPlanKey === 'plan' && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs">
-                          Current
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-gray-900">
-                        ${billingCycle === 'yearly' ? '190' : '19'}
-                      </span>
-                      <span className="text-gray-600 ml-1">
-                        /{billingCycle === 'yearly' ? 'year' : 'month'}
-                      </span>
-                      {billingCycle === 'yearly' && (
-                        <div className="text-sm text-green-600 font-medium">Save $38/year</div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
-                        <p className="text-sm text-gray-600">All features unlocked</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• 100 tasks/month</li>
-                          <li>• 10 custom forms</li>
-                          <li>• 5 processes</li>
-                          <li>• Unlimited reports</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
-                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => handleUpgradeClick('plan')}
-                      disabled={currentPlanKey === 'plan' || !hasAccess('upgrade')}
-                      className={cn(
-                        "w-full",
-                        currentPlanKey === 'plan'
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                      )}
-                    >
-                      {currentPlanKey === 'plan' ? 'Current Plan' : 'Select Plan'}
-                    </Button>
-                  </div>
-
-                  {/* Execute Plan */}
-                  <div className={cn(
-                    "border rounded-lg p-6 transition-all hover:shadow-md relative",
-                    currentPlanKey === 'execute' 
-                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
-                      : "border-gray-200 hover:border-gray-300"
-                  )}>
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-purple-100 text-purple-700 text-xs px-3 py-1">
-                        Popular
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">Execute</h3>
-                        <p className="text-sm text-gray-600 mt-1">Growing teams</p>
-                      </div>
-                      {currentPlanKey === 'execute' && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs">
-                          Current
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-gray-900">
-                        ${billingCycle === 'yearly' ? '490' : '49'}
-                      </span>
-                      <span className="text-gray-600 ml-1">
-                        /{billingCycle === 'yearly' ? 'year' : 'month'}
-                      </span>
-                      {billingCycle === 'yearly' && (
-                        <div className="text-sm text-green-600 font-medium">Save $98/year</div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
-                        <p className="text-sm text-gray-600">All features unlocked</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• 500 tasks/month</li>
-                          <li>• 50 custom forms</li>
-                          <li>• 25 processes</li>
-                          <li>• Unlimited reports</li>
-                          <li>• Priority support</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
-                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => handleUpgradeClick('execute')}
-                      disabled={currentPlanKey === 'execute' || !hasAccess('upgrade')}
-                      className={cn(
-                        "w-full",
-                        currentPlanKey === 'execute'
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                      )}
-                    >
-                      {currentPlanKey === 'execute' ? 'Current Plan' : 'Select Plan'}
-                    </Button>
-                  </div>
-
-                  {/* Optimize Plan */}
-                  <div className={cn(
-                    "border rounded-lg p-6 transition-all hover:shadow-md",
-                    currentPlanKey === 'optimize' 
-                      ? "border-blue-200 bg-blue-50 ring-2 ring-blue-100" 
-                      : "border-gray-200 hover:border-gray-300"
-                  )}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">Optimize</h3>
-                        <p className="text-sm text-gray-600 mt-1">Large organizations</p>
-                      </div>
-                      {currentPlanKey === 'optimize' && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs">
-                          Current
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-gray-900">
-                        ${billingCycle === 'yearly' ? '990' : '99'}
-                      </span>
-                      <span className="text-gray-600 ml-1">
-                        /{billingCycle === 'yearly' ? 'year' : 'month'}
-                      </span>
-                      {billingCycle === 'yearly' && (
-                        <div className="text-sm text-green-600 font-medium">Save $198/year</div>
-                      )}
-                    </div>
-
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Feature Access</h4>
-                        <p className="text-sm text-gray-600">All features unlocked</p>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Usage Limits</h4>
-                        <ul className="text-sm text-gray-600 space-y-1">
-                          <li>• Unlimited tasks</li>
-                          <li>• Unlimited custom forms</li>
-                          <li>• Unlimited processes</li>
-                          <li>• Unlimited reports</li>
-                          <li>• 24/7 priority support</li>
-                          <li>• Dedicated account manager</li>
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-gray-700 mb-2">Duration Options</h4>
-                        <p className="text-sm text-gray-600">Monthly / Yearly billing</p>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => handleUpgradeClick('optimize')}
-                      disabled={currentPlanKey === 'optimize' || !hasAccess('upgrade')}
-                      className={cn(
-                        "w-full",
-                        currentPlanKey === 'optimize'
-                          ? "bg-gray-100 text-gray-600 cursor-not-allowed"
-                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                      )}
-                    >
-                      {currentPlanKey === 'optimize' ? 'Current Plan' : 'Contact Sales'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+     
 
      
 
 
-        <UpgradeModal
-          open={showUpgradeModal}
-          onOpenChange={setShowUpgradeModal}
-          currentPlan={currentPlan}
-          targetPlan={selectedUpgradePlan}
-          billingCycle={billingCycle}
-          reason={upgradeReason}
-          onConfirm={handleConfirmUpgrade}
-          loading={isLoading}
-        />
+        
       </div>
     </div>
   );

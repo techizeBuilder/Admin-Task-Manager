@@ -1,7 +1,9 @@
-// Import License Management Page
+// Import License Management Pages
 import LicenseManagementPage from '@/features/licensing/pages/LicenseManagementPage';
+import PurchaseUpgradePage from '@/features/licensing/pages/PurchaseUpgradePage';
+import BillingPage from '@/features/licensing/pages/BillingPage';
 
-// Add route for License Management
+// Add routes for License Management
 export const routes = [
   // ...existing routes...
   {
@@ -9,6 +11,24 @@ export const routes = [
     component: LicenseManagementPage,
     protected: true,
     permissions: ['view_license']
+  },
+  {
+    path: '/admin/subscription/upgrade',
+    component: PurchaseUpgradePage,
+    protected: true,
+    permissions: ['upgrade_license']
+  },
+  {
+    path: '/admin/billing',
+    component: BillingPage,
+    protected: true,
+    permissions: ['view_billing']
+  },
+  {
+    path: '/settings/billing',
+    component: BillingPage,
+    protected: true,
+    permissions: ['view_billing']
   },
   // ...existing routes...
 ];
