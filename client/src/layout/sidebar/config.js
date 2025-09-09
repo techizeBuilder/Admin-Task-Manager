@@ -321,18 +321,7 @@ export const sidebarMenus = {
           icon: Building2,
           path: '/admin/org-profile'
         },
-        {
-          id: 'license-subscription',
-          label: 'License & Subscription',
-          icon: Key,
-          path: '/admin/subscription'
-        },
-        {
-          id: 'plans-licenses',
-          label: 'Plans & Licenses',
-          icon: Key,
-          path: '/admin/plans'
-        },
+     
         {
           id: 'status-management',
           label: 'Status Management',
@@ -357,6 +346,12 @@ export const sidebarMenus = {
           label: 'Profile',
           icon: User,
           path: '/profile'
+        },
+           {
+          id: 'license-subscription',
+          label: 'License Management',
+          icon: Key,
+          path: '/admin/subscription'
         },
         {
           id: 'notifications',

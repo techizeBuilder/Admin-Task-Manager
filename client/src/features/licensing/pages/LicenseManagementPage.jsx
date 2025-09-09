@@ -131,9 +131,9 @@ export default function LicenseManagementPage() {
         )}
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Current Plan Card */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="bg-white rounded-lg p-6 border border-gray-200 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
               <div className="text-gray-600 text-sm">Current Plan</div>
               <Crown className="h-5 w-5 text-blue-600" />
@@ -145,7 +145,7 @@ export default function LicenseManagementPage() {
               ${currentPlan.price[billingCycle]}/{billingCycle === 'yearly' ? 'year' : 'month'}
             </div>
             {isOnTrial && (
-              <Badge className="mt-2 bg-blue-100 text-blue-700 text-xs">
+              <Badge className="mt-2 bg-blue-100 text-blue-700 text-xs w-15">
                 Trial
               </Badge>
             )}
@@ -190,20 +190,20 @@ export default function LicenseManagementPage() {
           })}
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Usage Overview Section */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg border border-gray-200">
+        {/* Usage Overview and Trial Countdown Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Usage Overview Section - Left 8 columns */}
+          <div className="lg:col-span-8">
+            <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Usage Overview</h2>
                 <p className="text-sm text-gray-600 mt-1">Monitor your current usage against plan limits</p>
               </div>
               
-              {/* Usage Meters Grid */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Usage Meters Grid - Flex grow to fill remaining space */}
+              <div className="p-6 flex-1 flex items-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                   {Object.entries(usage).map(([key, value]) => {
                     const status = getFeatureStatus(key);
                     return (
@@ -239,46 +239,113 @@ export default function LicenseManagementPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Available Plans Section */}
-            <div className="bg-white rounded-lg border border-gray-200 mt-6">
-              {/* Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Available Plans</h2>
-                    <p className="text-sm text-gray-600 mt-1">Choose the plan that fits your needs</p>
+          {/* Trial Countdown and Quick Actions - Right 4 columns */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Trial Countdown Card - Top */}
+            {isOnTrial && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-orange-600 mb-2">
+                    {trialDaysLeft}
                   </div>
-                  <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setBillingCycle('monthly')}
-                      className={cn(
-                        "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'monthly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
-                          : "text-gray-600 hover:text-gray-900"
-                      )}
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      onClick={() => setBillingCycle('yearly')}
-                      className={cn(
-                        "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'yearly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
-                          : "text-gray-600 hover:text-gray-900"
-                      )}
-                    >
-                      Yearly
-                    </button>
+                  <div className="text-sm text-gray-600 mb-4">
+                    days left in trial
                   </div>
+                  <Button 
+                    onClick={() => handleUpgradeClick('starter')}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Upgrade Now
+                  </Button>
                 </div>
               </div>
-              
-              {/* Plan Cards */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            )}
+
+            {/* Quick Actions Card - Bottom */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+           
+              <div className="space-y-3">
+                {hasAccess('upgrade') ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start h-10"
+                      onClick={() => handleUpgradeClick('execute')}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Upgrade Plan
+                    </Button>
+                    {hasAccess('billing') && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start h-10"
+                        asChild
+                      >
+                        <Link to="/admin/billing">
+                          <Database className="h-4 w-4 mr-2" />
+                          View Billing
+                        </Link>
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <Zap className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-3">
+                      Contact your administrator to upgrade
+                    </p>
+                    <Button variant="outline" size="sm" disabled className="h-8">
+                      Contact Admin
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Available Plans Section */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Header */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Available Plans</h2>
+                <p className="text-sm text-gray-600 mt-1">Choose the plan that fits your needs</p>
+              </div>
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setBillingCycle('monthly')}
+                  className={cn(
+                    "px-3 py-1 text-sm rounded-md transition-colors",
+                    billingCycle === 'monthly' 
+                      ? "bg-white text-gray-900 shadow-sm" 
+                      : "text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingCycle('yearly')}
+                  className={cn(
+                    "px-3 py-1 text-sm rounded-md transition-colors",
+                    billingCycle === 'yearly' 
+                      ? "bg-white text-gray-900 shadow-sm" 
+                      : "text-gray-600 hover:text-gray-900"
+                  )}
+                >
+                  Yearly
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Plan Cards */}
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                   {/* Explore Plan */}
                   <div className={cn(
                     "border rounded-lg p-6 transition-all hover:shadow-md",
@@ -552,74 +619,10 @@ export default function LicenseManagementPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Trial Countdown */}
-            {isOnTrial && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600 mb-2">
-                    {trialDaysLeft}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    days left in trial
-                  </div>
-                  <Button 
-                    onClick={() => handleUpgradeClick('starter')}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                  >
-                    Upgrade Now
-                  </Button>
-                </div>
-              </div>
-            )}
+     
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                {hasAccess('upgrade') ? (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => handleUpgradeClick('professional')}
-                    >
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Upgrade Plan
-                    </Button>
-                    {hasAccess('billing') && (
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start"
-                        asChild
-                      >
-                        <Link to="/admin/billing">
-                          <Database className="h-4 w-4 mr-2" />
-                          View Billing
-                        </Link>
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-4">
-                    <Zap className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-3">
-                      Contact your administrator to upgrade
-                    </p>
-                    <Button variant="outline" size="sm" disabled>
-                      Contact Admin
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Upgrade Modal */}
         <UpgradeModal
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
