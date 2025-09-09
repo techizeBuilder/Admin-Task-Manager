@@ -3,10 +3,16 @@ import LicenseManagementPage from '@/features/licensing/pages/LicenseManagementP
 import PurchaseUpgradePage from '@/features/licensing/pages/PurchaseUpgradePage';
 import BillingPage from '@/features/licensing/pages/BillingPage';
 import QuickTaskPage from '@/pages/QuickTaskPage';
+import RegisterPage from '@/pages/RegisterPage';
 
 // Add routes for License Management
 export const routes = [
   // ...existing routes...
+  {
+    path: '/register',
+    component: RegisterPage,
+    protected: false
+  },
   {
     path: '/admin/subscription',
     component: LicenseManagementPage,
