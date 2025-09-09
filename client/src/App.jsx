@@ -98,6 +98,7 @@ import SidebarDemo from "./layout/sidebar/SidebarDemo";
 import MemberDashboard from "./layout/sidebar/MemberDashboard";
 import CurrentUserSidebar from "./pages/CurrentUserSidebar";
 import DynamicDashboard from "./pages/Dashboard";
+import QuickAddBar from "./components/tasks/QuickAddBar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -399,7 +400,7 @@ function App() {
         <Route path="/quick-tasks">
           <AdminLayout>
             <ProtectedRoute
-              component={() => <div className="p-6"><h1 className="text-2xl font-bold">Quick Tasks - Coming Soon</h1><p className="text-gray-600 mt-2">This feature will be available in the next update.</p></div>}
+              component={QuickAddBar}
               allowedRoles={["individual", "member", "employee", "admin"]}
             />
           </AdminLayout>
