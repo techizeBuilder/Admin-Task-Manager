@@ -1,16 +1,40 @@
 import { Receipt } from 'lucide-react';
 
-// Navigation configuration
-export const navigationConfig = {
-  // ...existing sections...
+// Core navigation items configuration
+const navigationConfig = {
   settings: [
-    // ...existing settings items...
-    {
-      title: 'Billing & Invoices',
-      href: '/settings/billing',
+    { 
+      id: 'profile',
+      name: 'Profile', 
+      href: '/settings/profile', 
+      icon: 'UserIcon' 
+    },
+    { 
+      id: 'license',
+      name: 'License Management', 
+      href: '/admin/subscription', 
+      icon: 'CrownIcon' 
+    },
+    { 
+      id: 'billing',
+      name: 'Billing & Invoices', 
+      href: '/settings/billing', 
       icon: Receipt,
-      permissions: ['view_billing'],
-      description: 'Manage subscription and download invoices'
+      permissions: ['view_billing']
+    },
+    { 
+      id: 'notifications',
+      name: 'Notifications', 
+      href: '/settings/notifications', 
+      icon: 'BellIcon' 
+    },
+    { 
+      id: 'help',
+      name: 'Help & Support', 
+      href: '/help', 
+      icon: 'QuestionMarkIcon' 
     }
   ]
 };
+
+export default navigationConfig;

@@ -353,6 +353,12 @@ export const sidebarMenus = {
           icon: Key,
           path: '/admin/subscription'
         },
+          {
+          id: 'billing_invoice',
+          label: 'Billing & Invoices',
+          icon: Key,
+          path: '/admin/billing'
+        },
         {
           id: 'notifications',
           label: 'Notifications',
