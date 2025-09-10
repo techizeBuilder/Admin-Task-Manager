@@ -459,7 +459,7 @@ export default function EditProfile() {
   // Check if user is admin and should have read-only organization info
   const isAdminWithReadOnlyOrg = () => {
     const adminRoles = ["admin", "company_admin", "owner", "super_admin"];
-    return adminRoles.includes(currentUser?.role?.toLowerCase());
+    return adminRoles.includes(currentUser?.role[0]?.toLowerCase());
   };
 
   // Check if organization section should be shown

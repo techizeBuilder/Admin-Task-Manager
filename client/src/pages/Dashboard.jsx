@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { IndividualDashboard, OrganizationDashboard, SuperAdminDashboard, ManagerDashboard } from '../dashboard';
+import { useActiveRole } from '../components/RoleSwitcher';
 
 /**
  * Dynamic Dashboard Router - Renders appropriate dashboard based on user role
@@ -29,7 +30,9 @@ const Dashboard = () => {
 
   // Route to appropriate dashboard based on user role
   const renderDashboard = () => {
-    const userRole = user?.role[0]?.toLowerCase();
+    // Get the current active role from context or use the first role as default
+    const activeRole = user?.activeRole || user?.role?.[0];
+    const userRole = activeRole?.toLowerCase();
 
     switch (userRole) {
       case 'superadmin':

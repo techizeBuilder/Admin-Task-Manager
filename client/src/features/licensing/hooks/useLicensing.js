@@ -141,8 +141,8 @@ export default function useLicensing() {
   
   const hasAccess = (feature) => {
     // Role-based access control
-    if (user?.role === 'org_admin') return true;
-    if (user?.role === 'super_admin') return true;
+    if (user?.role.includes('org_admin')) return true;
+    if (user?.role.includes('super_admin')) return true;
     return false; // Regular users and managers have read-only access
   };
 

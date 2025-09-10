@@ -14,7 +14,7 @@ const SidebarDemo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-white flex">
       {/* Role Switcher */}
       <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg p-3 border">
         <h3 className="text-sm font-semibold mb-2">Switch Role:</h3>

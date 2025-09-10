@@ -3,6 +3,7 @@ import { Route, Switch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { getQueryFn } from "@/lib/queryClient";
+import { RoleProvider } from "./components/RoleSwitcher";
 
 // Role-based Dashboards
 import SuperAdminDashboard from "./pages/dashboards/SuperAdminDashboard";
@@ -195,17 +196,21 @@ function ProtectedRoute({
 
   // Check if user has required role or is in allowed roles
   const hasAccess = () => {
+    // Get the current active role or default to first role
+    const activeRole = user.activeRole || user.role?.[0];
+    const userRoles = user.role || [];
+    
     if (requiredRole) {
-      return user.role.includes(requiredRole);
+      return userRoles.includes(requiredRole) || activeRole === requiredRole;
     }
     if (allowedRoles.length > 0) {
-      return allowedRoles.some(role => user.role.includes(role));
+      return allowedRoles.some((role) => userRoles.includes(role)) || allowedRoles.includes(activeRole);
     }
     return true; // No role requirement
   };
 
   if (!hasAccess()) {
-    const isIndividualUser = user.role === "individual";
+    const isIndividualUser = user.role && user.role.includes("individual");
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
@@ -273,9 +278,10 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SubtaskProvider>
-        <ViewProvider>
-          <Switch>
+      <RoleProvider>
+        <SubtaskProvider>
+          <ViewProvider>
+            <Switch>
         {/* Root Route - Role-based redirect */}
         <Route path="/" component={RoleBasedRedirect} />
 
@@ -767,6 +773,7 @@ function App() {
       <GlobalViewModal />
       </ViewProvider>
       </SubtaskProvider>
+      </RoleProvider>
     </QueryClientProvider>
   );
 }

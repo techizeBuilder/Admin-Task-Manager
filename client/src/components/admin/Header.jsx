@@ -13,6 +13,7 @@ import {
 import { Bell, Search, User, Settings, LogOut, Edit3 } from "lucide-react";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import RoleSwitcher from "../RoleSwitcher";
 
 export default function Header({ user }) {
   const [, setLocation] = useLocation();
@@ -211,6 +212,9 @@ export default function Header({ user }) {
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* Role Switcher */}
+          <RoleSwitcher />
+          
           {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
             <Bell className="h-3 w-3" />
           </Button> */}
