@@ -217,7 +217,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     setIsSubmitting(true);
 
     const roleObj = {
-      'Regular User': 'member',
+      'Regular User': 'employee',
       'Manager': 'manager', 
       'Company Admin': 'admin'
     };
@@ -504,15 +504,18 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             {users.map((user, index) => renderUserRow(user, index))}
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addUserRow}
-            className="w-full border-dashed border-2 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700 py-3"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add More
-          </Button>
+        <div className="flex justify-end">
+  <Button
+    type="button"
+    variant="outline"
+    onClick={addUserRow}
+    className="w-30 border-dashed border-2 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-gray-700 py-3"
+  >
+    <Plus className="h-4 w-4 mr-2" />
+    Add More
+  </Button>
+</div>
+
 
           {/* Form Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
@@ -531,7 +534,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 text-white hover:bg-blue-700"
               >
                 {isSubmitting ? "Sending Invitations..." : 
                  `Invite ${users.length} User${users.length !== 1 ? 's' : ''}`

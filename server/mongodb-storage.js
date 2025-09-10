@@ -97,6 +97,7 @@ export class MongoStorage {
   }
 
   async createUser(userData) {
+    console.log('Creating user with data:', userData);
     // For invited users, set default values for required fields
     if (userData.status === 'invited' && !userData.passwordHash) {
       userData.firstName = userData.firstName || '';
@@ -1448,7 +1449,7 @@ export class MongoStorage {
     licenseId,       // ✅ added
     sendEmail = true // ✅ default true if not provided
   } = inviteData;
-  
+  console.log('roles',roles)
   // Check if user already exists in this organization (active or invited)
   const existingUser = await User.findOne({ 
     email: email.toLowerCase(),

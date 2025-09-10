@@ -31,6 +31,7 @@ router.post("/check-email-exists", authenticateToken, async (req, res) => {
 // Send user invitation
 router.post("/invite-users", authenticateToken, async (req, res) => {
   try {
+    console.log('debugger----->>')
     const { invites } = req.body;
     const adminUser = req.user;
 

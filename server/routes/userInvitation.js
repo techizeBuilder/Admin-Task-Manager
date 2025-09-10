@@ -43,7 +43,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
       errors: [],
       details: []
     };
-
+   console.log('Email validation passed forss:', invites);
     for (const invite of invites) {
       try {
         // Basic validation
@@ -66,10 +66,10 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
         }
         
         // Log for debugging
-        console.log('Email validation passed for:', invite.email);
+        console.log('Email validation passed for:', invite);
 
         // Validate role format - support both frontend and backend role values
-        const validRoles = ['admin', 'user', 'manager', 'member', 'employee', 'org_admin'];
+        const validRoles = ['admin', 'user', 'manager',  'employee', 'org_admin'];
         const normalizedRole = invite.role.toLowerCase().replace(/\s+/g, '');
         if (!validRoles.includes(normalizedRole)) {
           results.errors.push({
@@ -100,12 +100,12 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
         const invitationResult = await storage.inviteUserToOrganization({
           email: invite.email,
           organizationId: adminUser.organizationId,
-          roles: [invite.role],
+          roles: [normalizedRole],
           invitedBy: adminUser.id,
           invitedByName: adminUser.name || adminUser.email,
           organizationName: organizationName,
-            licenseId: invite.licenseId || null,  // pass licenseId if provided
-  sendEmail: invite.sendEmail !== false // default true
+          licenseId: invite.licenseId || null,  // pass licenseId if provided
+          sendEmail: invite.sendEmail !== false // default true
         });
 
         results.success.push({
@@ -114,7 +114,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
         });
 
       } catch (error) {
-        console.error("Error processing invitation:", error);
+       
         results.errors.push({
           email: invite.email,
           error: 'Failed to process invitation'

@@ -292,7 +292,7 @@ export default function UserManagement() {
         
         <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 text-white hover:bg-blue-700">
               <UserPlus className="h-4 w-4 mr-2" />
               Add Users
             </Button>

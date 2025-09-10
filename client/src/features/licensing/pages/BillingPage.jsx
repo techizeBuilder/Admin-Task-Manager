@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * Billing & Invoices Page new point - Billing summary card, payment history table with Download Invoice
+ * Billing & Invoices Page - Billing summary card, payment history table with Download Invoice
  */
 export default function BillingPage() {
   const [autoRenew, setAutoRenew] = useState(true);
@@ -226,28 +226,28 @@ export default function BillingPage() {
   });
 
   // Check access - only admins should see billing details
-  // if (!hasAccess('billing')) {
-  //   return (
-  //     <div className="container mx-auto p-6" data-testid="billing-access-denied">
-  //       <Card className="max-w-md mx-auto">
-  //         <CardHeader>
-  //           <CardTitle className="flex items-center space-x-2 text-red-600">
-  //             <AlertCircle className="h-5 w-5" />
-  //             <span>Access Denied</span>
-  //           </CardTitle>
-  //           <CardDescription>
-  //             You don't have permission to view billing information.
-  //           </CardDescription>
-  //         </CardHeader>
-  //         <CardContent>
-  //           <p className="text-sm text-gray-600">
-  //             Contact your organization administrator for billing details.
-  //           </p>
-  //         </CardContent>
-  //       </Card>
-  //     </div>
-  //   );
-  // }
+  if (!hasAccess('billing')) {
+    return (
+      <div className="container mx-auto p-6" data-testid="billing-access-denied">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              <span>Access Denied</span>
+            </CardTitle>
+            <CardDescription>
+              You don't have permission to view billing information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600">
+              Contact your organization administrator for billing details.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -29,7 +29,7 @@ const Dashboard = () => {
 
   // Route to appropriate dashboard based on user role
   const renderDashboard = () => {
-    const userRole = user?.role?.toLowerCase();
+    const userRole = user?.role[0]?.toLowerCase();
 
     switch (userRole) {
       case 'superadmin':

@@ -376,20 +376,19 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
     },
-    role: {
-      type: String,
-      enum: [
-      
-        "super_admin",
-        "org_admin",
-        "manager",
-        "individual",
-        "employee",
-  
-      ],
-      default: "employee",
-      required: true,
-    },
+  role: {
+  type: [String],
+  enum: [
+    "super_admin",
+    "org_admin",
+    "manager",
+    "individual",
+    "employee",
+  ],
+  default: ["employee"],
+  required: true,
+}
+,
     permissions: {
       type: [String],
       default: [],

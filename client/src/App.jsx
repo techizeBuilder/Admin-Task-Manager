@@ -157,7 +157,7 @@ function ProtectedRoute({
   const { data: user, isLoading, error } = useUserRole();
   const [, setLocation] = useLocation();
   const token = localStorage.getItem("token");
-
+  console.log('debugger ',user)
   useEffect(() => {
     // Only redirect if we have no token at all
     if (!token) {
@@ -196,10 +196,10 @@ function ProtectedRoute({
   // Check if user has required role or is in allowed roles
   const hasAccess = () => {
     if (requiredRole) {
-      return user.role === requiredRole;
+      return user.role.includes(requiredRole);
     }
     if (allowedRoles.length > 0) {
-      return allowedRoles.includes(user.role);
+      return allowedRoles.some(role => user.role.includes(role));
     }
     return true; // No role requirement
   };
@@ -373,7 +373,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={DynamicDashboard}
-              allowedRoles={["admin", "employee", "member", "individual"]}
+              allowedRoles={["org_admin", "employee", "individual"]}
             />
           </AdminLayout>
         </Route>
@@ -383,7 +383,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={RecurringTasks}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -392,7 +392,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={CreateTask}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -401,7 +401,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={QuickAddBar}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -410,7 +410,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={MilestoneManager}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -419,7 +419,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={ApprovalManager}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -428,7 +428,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={CalendarView}
-              allowedRoles={["individual", "member", "employee", "admin"]}
+              allowedRoles={["individual", "employee", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -511,7 +511,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={UserManagement}
-              allowedRoles={["admin"]}
+              allowedRoles={["org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -519,7 +519,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={TeamMembers}
-              allowedRoles={["org_admin", "admin", "member"]}
+              allowedRoles={["org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -527,7 +527,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={TeamMembers}
-              allowedRoles={["org_admin", "admin", "member"]}
+              allowedRoles={["org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -545,7 +545,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={Users}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -553,7 +553,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={PlansLicenses}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -561,7 +561,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={RoleManagement}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -569,7 +569,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={RoleManagement}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -577,7 +577,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={RecurringTaskManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -586,7 +586,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={ApprovalManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -594,7 +594,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={MilestoneManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -602,7 +602,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={StatusManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -610,7 +610,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={PriorityManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -618,7 +618,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={StatusManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -626,7 +626,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={PriorityManager}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -634,7 +634,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={ActivityFeed}
-              allowedRoles={["superadmin", "org_admin", "admin"]}
+              allowedRoles={["superadmin", "org_admin", "org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -668,7 +668,7 @@ function App() {
           <AdminLayout>
             <ProtectedRoute
               component={NotificationCenter}
-              allowedRoles={["admin"]}
+              allowedRoles={["org_admin"]}
             />
           </AdminLayout>
         </Route>
@@ -694,7 +694,7 @@ function App() {
         {/* Settings Routes */}
         <Route path="/settings">
           <SettingsLayout>
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requiredRole="org_admin">
               <div className="p-6">
                 <script>
                   window.location.href = '/settings/user-management';
@@ -706,37 +706,37 @@ function App() {
         </Route>
         <Route path="/settings/general">
           <SettingsLayout>
-            <ProtectedRoute component={GeneralSettings} requiredRole="admin" />
+            <ProtectedRoute component={GeneralSettings} requiredRole="org_admin" />
           </SettingsLayout>
         </Route>
         <Route path="/settings/user-management">
           <SettingsLayout>
             <ProtectedRoute
               component={SettingsUserManagement}
-              allowedRoles={["org_admin", "admin"]}
+              allowedRoles={["org_admin", "org_admin"]}
             />
           </SettingsLayout>
         </Route>
         <Route path="/settings/subscription">
           <SettingsLayout>
-            <ProtectedRoute component={Subscription} requiredRole="admin" />
+            <ProtectedRoute component={Subscription} requiredRole="org_admin" />
           </SettingsLayout>
         </Route>
         
         {/* Licensing & Subscription Routes */}
         <Route path="/admin/subscription">
           <AdminLayout>
-            <ProtectedRoute component={LicenseManagementPage} requiredRole="admin" />
+            <ProtectedRoute component={LicenseManagementPage} requiredRole="org_admin" />
           </AdminLayout>
         </Route>
         <Route path="/admin/billing">
           <AdminLayout>
-            <ProtectedRoute component={BillingPage} requiredRole="admin" />
+            <ProtectedRoute component={BillingPage} requiredRole="org_admin" />
           </AdminLayout>
         </Route>
         <Route path="/admin/upgrade">
           <AdminLayout>
-            <ProtectedRoute component={PurchaseUpgradePage} requiredRole="admin" />
+            <ProtectedRoute component={PurchaseUpgradePage} requiredRole="org_admin" />
           </AdminLayout>
         </Route>
         <Route path="/pricing">
@@ -744,7 +744,7 @@ function App() {
         </Route>
         <Route path="/settings/roles">
           <SettingsLayout>
-            <ProtectedRoute component={SettingsRoles} requiredRole="admin" />
+            <ProtectedRoute component={SettingsRoles} requiredRole="org_admin" />
           </SettingsLayout>
         </Route>
 

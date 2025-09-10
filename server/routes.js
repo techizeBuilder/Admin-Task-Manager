@@ -375,12 +375,7 @@ export async function registerRoutes(app) {
     try {
       const { firstName, lastName, email } = req.body;
 
-      console.log("Individual registration attempt:", {
-        firstName,
-        lastName,
-        email,
-      });
-
+    
       // Validate required fields
       if (!firstName || !lastName || !email) {
         return res.status(400).json({ message: "All fields are required" });
@@ -429,7 +424,7 @@ export async function registerRoutes(app) {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.toLowerCase().trim(),
-        role: "member",
+        role: "individual",
         status: "pending",
         accountType: "individual",
       };
@@ -570,7 +565,7 @@ export async function registerRoutes(app) {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.toLowerCase().trim(),
-        role: "admin",
+        role: "org_admin",
         status: "pending",
         organizationId: organization._id,
         accountType: "organization",
