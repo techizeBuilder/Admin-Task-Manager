@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 /**
- * Billing & Invoices Page - Billing summary card, payment history table with Download Invoice
+ * Billing & Invoices Page new point - Billing summary card, payment history table with Download Invoice
  */
 export default function BillingPage() {
   const [autoRenew, setAutoRenew] = useState(true);
