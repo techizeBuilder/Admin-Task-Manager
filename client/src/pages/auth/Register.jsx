@@ -18,22 +18,38 @@ export default function Register() {
   const { toast } = useToast();
   const [selectedType, setSelectedType] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    organizationName: "",
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  // Separate form data
+const [individualData, setIndividualData] = useState({
+  firstName: "",
+  lastName: "",
+  email: "",
+});
 
-  const handleTypeSelection = (type) => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setSelectedType(type);
-      setIsTransitioning(false);
-    }, 200);
-  };
+const [organizationData, setOrganizationData] = useState({
+  organizationName: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+});
+  const [isLoading, setIsLoading] = useState(false);
+// Separate error objects
+const [individualErrors, setIndividualErrors] = useState({});
+const [organizationErrors, setOrganizationErrors] = useState({});
+const handleTypeSelection = (type) => {
+  setIsTransitioning(true);
+  setTimeout(() => {
+    setSelectedType(type);
+    setIsTransitioning(false);
+
+    // Clear errors when switching forms
+    if (type === "individual") {
+      setOrganizationErrors({});
+    } else if (type === "organization") {
+      setIndividualErrors({});
+    }
+  }, 200);
+};
+
 
   const handleBackToChoice = () => {
     setIsTransitioning(true);
@@ -46,120 +62,161 @@ export default function Register() {
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+const handleInputChange = (formType, field, value) => {
+  if (formType === "individual") {
+    setIndividualData((prev) => ({ ...prev, [field]: value }));
+    if (individualErrors[field]) {
+      setIndividualErrors((prev) => ({ ...prev, [field]: "" }));
     }
-  };
+  } else if (formType === "organization") {
+    setOrganizationData((prev) => ({ ...prev, [field]: value }));
+    if (organizationErrors[field]) {
+      setOrganizationErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  }
+};
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    const newErrors = {};
+   
+ e.preventDefault();
 
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
-    }
+  let newErrors = {};
+  let payload = {};
 
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
+  if (selectedType === "individual") {
+    const { firstName, lastName, email } = individualData;
 
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (selectedType === "organization") {
-      if (!formData.organizationName.trim()) {
-        newErrors.organizationName = "Organization name is required";
-      } else if (formData.organizationName.trim().length < 2) {
-        newErrors.organizationName = "Organization name must be at least 2 characters";
-      } else if (formData.organizationName.trim().length > 100) {
-        newErrors.organizationName = "Organization name must be 100 characters or less";
-      }
-    }
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!email) newErrors.email = "Email is required";
+    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email";
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+      setIndividualErrors(newErrors);
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const endpoint =
-        selectedType === "individual"
-          ? "/api/auth/register/individual"
-          : "/api/auth/register/organization";
+    payload = { firstName: firstName.trim(), lastName: lastName.trim(), email };
+  }
 
-      const payload =
-        selectedType === "individual"
-          ? {
-              email: formData.email,
-              firstName: formData.firstName.trim(),
-              lastName: formData.lastName.trim(),
-            }
-          : {
-              organizationName: formData.organizationName.trim(),
-              email: formData.email,
-              firstName: formData.firstName.trim(),
-              lastName: formData.lastName.trim(),
-            };
+  if (selectedType === "organization") {
+    const { organizationName, firstName, lastName, email } = organizationData;
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    if (!organizationName.trim()) newErrors.organizationName = "Organization name is required";
+    else if (organizationName.trim().length < 2) newErrors.organizationName = "At least 2 characters";
+    else if (organizationName.trim().length > 100) newErrors.organizationName = "Max 100 characters";
 
-      const result = await response.json();
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!email) newErrors.email = "Email is required";
+    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email";
 
-      if (response.ok) {
-        // Handle email resent scenario
-        if (result.resent) {
-          toast({
-            title: "Verification Email Resent",
-            description: result.message || "We've re-sent your verification link.",
-            variant: "default",
-            className: "bg-green-50 border-green-200 text-green-800",
-          });
-          // Don't redirect, stay on the form
-          return;
-        }
-
-        // Handle auto-authentication
-        if (result.autoAuthenticated && result.token) {
-          localStorage.setItem("token", result.token);
-          toast({
-            title:
-              selectedType === "organization"
-                ? "Organization created successfully"
-                : "Registration successful",
-            description:
-              result.message ||
-              "Welcome to TaskSetu! Auto-authenticated for testing.",
-          });
-          setLocation("/dashboard");
-        } else {
-          // Handle new registration
-          localStorage.setItem("verificationEmail", formData.email);
-          localStorage.setItem("registrationEmail", formData.email);
-          localStorage.setItem("registrationType", selectedType);
-
-          setLocation(
-            `/registration-success?email=${encodeURIComponent(formData.email)}&type=${selectedType}`,
-          );
-        }
-      } else {
-        setErrors({ submit: result.message || "Registration failed" });
-      }
-    } catch (error) {
-      setErrors({ submit: "Network error. Please try again." });
-    } finally {
-      setIsLoading(false);
+    if (Object.keys(newErrors).length > 0) {
+      setOrganizationErrors(newErrors);
+      return;
     }
+
+    payload = {
+      organizationName: organizationName.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email,
+    };
+  }
+
+    setIsLoading(true);
+  try {
+  const endpoint =
+    selectedType === "individual"
+      ? "/api/auth/register/individual"
+      : "/api/auth/register/organization";
+
+  const payload =
+    selectedType === "individual"
+      ? {
+          email: individualData.email,
+          firstName: individualData.firstName.trim(),
+          lastName: individualData.lastName.trim(),
+        }
+      : {
+          organizationName: organizationData.organizationName.trim(),
+          email: organizationData.email,
+          firstName: organizationData.firstName.trim(),
+          lastName: organizationData.lastName.trim(),
+        };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json();
+
+  if (response.ok) {
+    // Handle email resent scenario
+    if (result.resent) {
+      toast({
+        title: "Verification Email Resent",
+        description:
+          result.message || "We've re-sent your verification link.",
+        variant: "default",
+        className: "bg-green-50 border-green-200 text-green-800",
+      });
+      return; // stay on form
+    }
+
+    // Handle auto-authentication
+    if (result.autoAuthenticated && result.token) {
+      localStorage.setItem("token", result.token);
+      toast({
+        title:
+          selectedType === "organization"
+            ? "Organization created successfully"
+            : "Registration successful",
+        description:
+          result.message ||
+          "Welcome to TaskSetu! Auto-authenticated for testing.",
+      });
+      setLocation("/dashboard");
+    } else {
+      // Handle new registration
+      const email =
+        selectedType === "individual"
+          ? individualData.email
+          : organizationData.email;
+
+      localStorage.setItem("verificationEmail", email);
+      localStorage.setItem("registrationEmail", email);
+      localStorage.setItem("registrationType", selectedType);
+
+      setLocation(
+        `/registration-success?email=${encodeURIComponent(
+          email
+        )}&type=${selectedType}`
+      );
+    }
+  } else {
+    if (selectedType === "individual") {
+      setIndividualErrors({
+        submit: result.message || "Registration failed",
+      });
+    } else {
+      setOrganizationErrors({
+        submit: result.message || "Registration failed",
+      });
+    }
+  }
+} catch (error) {
+  if (selectedType === "individual") {
+    setIndividualErrors({ submit: "Network error. Please try again." });
+  } else {
+    setOrganizationErrors({ submit: "Network error. Please try again." });
+  }
+} finally {
+  setIsLoading(false);
+}
+
   };
 
   // Choice Selection View
@@ -430,22 +487,22 @@ export default function Register() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
+                      First Name 
                     </label>
                     <input
                       type="text"
-                      value={formData.firstName}
+                      value={individualData.firstName}
                       onChange={(e) =>
-                        handleInputChange("firstName", e.target.value)
+                        handleInputChange("individual", "firstName", e.target.value)
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        errors.firstName ? "border-red-300" : "border-gray-300"
+                        individualErrors.firstName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="First name"
                     />
-                    {errors.firstName && (
+                    {individualErrors.firstName && (
                       <p className="text-red-500 text-xs mt-1">
-                        {errors.firstName}
+                        {individualErrors.firstName}
                       </p>
                     )}
                   </div>
@@ -455,18 +512,18 @@ export default function Register() {
                     </label>
                     <input
                       type="text"
-                      value={formData.lastName}
+                      value={individualData.lastName}
                       onChange={(e) =>
-                        handleInputChange("lastName", e.target.value)
+                        handleInputChange("individual","lastName", e.target.value)
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        errors.lastName ? "border-red-300" : "border-gray-300"
+                        individualErrors.lastName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Last name"
                     />
-                    {errors.lastName && (
+                    {individualErrors.lastName && (
                       <p className="text-red-500 text-xs mt-1">
-                        {errors.lastName}
+                        {individualErrors.lastName}
                       </p>
                     )}
                   </div>
@@ -478,22 +535,22 @@ export default function Register() {
                   </label>
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    value={individualData.email}
+                    onChange={(e) => handleInputChange("individual","email", e.target.value)}
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      errors.email ? "border-red-300" : "border-gray-300"
+                      individualErrors.email ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Email address"
                   />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  {individualErrors.email && (
+                    <p className="text-red-500 text-xs mt-1">{individualErrors.email}</p>
                   )}
                 </div>
 
-                {errors.submit && (
+                {individualErrors.submit && (
                   <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    {errors.submit}
+                    {individualErrors.submit}
                   </div>
                 )}
 
@@ -631,20 +688,20 @@ export default function Register() {
                   </label>
                   <input
                     type="text"
-                    value={formData.organizationName}
+                    value={organizationData.organizationName}
                     onChange={(e) =>
-                      handleInputChange("organizationName", e.target.value)
+                      handleInputChange("organization", "organizationName", e.target.value)
                     }
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                      errors.organizationName
+                      organizationErrors.organizationName
                         ? "border-red-300"
                         : "border-gray-300"
                     }`}
                     placeholder="Enter organization name"
                   />
-                  {errors.organizationName && (
+                  {organizationErrors.organizationName && (
                     <p className="text-red-500 text-xs mt-1">
-                      {errors.organizationName}
+                      {organizationErrors.organizationName}
                     </p>
                   )}
                 </div>
@@ -656,18 +713,18 @@ export default function Register() {
                     </label>
                     <input
                       type="text"
-                      value={formData.firstName}
+                      value={organizationData.firstName}
                       onChange={(e) =>
-                        handleInputChange("firstName", e.target.value)
+                        handleInputChange("organization", "firstName", e.target.value)
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                        errors.firstName ? "border-red-300" : "border-gray-300"
+                        organizationErrors.firstName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Enter first name"
                     />
-                    {errors.firstName && (
+                    {organizationErrors.firstName && (
                       <p className="text-red-500 text-xs mt-1">
-                        {errors.firstName}
+                        {organizationErrors.firstName}
                       </p>
                     )}
                   </div>
@@ -677,18 +734,18 @@ export default function Register() {
                     </label>
                     <input
                       type="text"
-                      value={formData.lastName}
+                      value={organizationData.lastName}
                       onChange={(e) =>
-                        handleInputChange("lastName", e.target.value)
+                        handleInputChange("organization", "lastName", e.target.value)
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                        errors.lastName ? "border-red-300" : "border-gray-300"
+                        organizationErrors.lastName ? "border-red-300" : "border-gray-300"
                       }`}
                       placeholder="Enter last name"
                     />
-                    {errors.lastName && (
+                    {organizationErrors.lastName && (
                       <p className="text-red-500 text-xs mt-1">
-                        {errors.lastName}
+                        {organizationErrors.lastName}
                       </p>
                     )}
                   </div>
@@ -700,25 +757,25 @@ export default function Register() {
                   </label>
                   <input
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    value={organizationData.email}
+                    onChange={(e) => handleInputChange("organization", "email", e.target.value)}
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                      errors.email ? "border-red-300" : "border-gray-300"
+                      organizationErrors.email ? "border-red-300" : "border-gray-300"
                     }`}
                     placeholder="Enter admin email address"
                   />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  {organizationErrors.email && (
+                    <p className="text-red-500 text-xs mt-1">{organizationErrors.email}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
                     This will be the admin account for your organization
                   </p>
                 </div>
 
-                {errors.submit && (
+                {organizationErrors.submit && (
                   <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    {errors.submit}
+                    {organizationErrors.submit}
                   </div>
                 )}
 
