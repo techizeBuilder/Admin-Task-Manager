@@ -63,7 +63,7 @@ export function AdminLayout({ children }) {
         <main className="min-h-screen bg-gray-50">
           <div className="h-full w-full">
             <div className="w-full h-full bg-white border-l border-gray-200">
-              <div className="h-full p-6">
+              <div className="h-full">
                 {children}
               </div>
             </div>
