@@ -14,6 +14,7 @@ import { Bell, Search, User, Settings, LogOut, Edit3 } from "lucide-react";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import RoleSwitcher from "../RoleSwitcher";
+import { useAuthStore } from "../../stores/useAuthStore";
 
 export default function Header({ user }) {
   const [, setLocation] = useLocation();
@@ -69,7 +70,7 @@ export default function Header({ user }) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const queryClient = useQueryClient();
-
+ const {  setUser, logout } = useAuthStore()
   // Get auth user first
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
@@ -83,8 +84,11 @@ export default function Header({ user }) {
     queryFn: async () => {
       if (authUser?.id) {
         const response = await fetch(`/api/users/${authUser.id}`);
+       
         if (response.ok) {
           const userData = await response.json();
+          setUser(userData)
+      
           console.log("Header fetched user data:", userData);
           return userData;
         }
@@ -100,52 +104,55 @@ export default function Header({ user }) {
   const currentUser = profileUser || authUser || user;
 
   // Debug avatar data flow in development
-  if (process.env.NODE_ENV === "development") {
-    console.log("Header Avatar Debug:", {
-      user: user
-        ? {
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            profileImageUrl: user.profileImageUrl,
-          }
-        : null,
-      authUser: authUser
-        ? {
-            email: authUser.email,
-            firstName: authUser.firstName,
-            lastName: authUser.lastName,
-            profileImageUrl: authUser.profileImageUrl,
-          }
-        : null,
-      profileUser: profileUser
-        ? {
-            email: profileUser.email,
-            firstName: profileUser.firstName,
-            lastName: profileUser.lastName,
-            profileImageUrl: profileUser.profileImageUrl,
-          }
-        : null,
-      currentUser: currentUser
-        ? {
-            email: currentUser.email,
-            firstName: currentUser.firstName,
-            lastName: currentUser.lastName,
-            profileImageUrl: currentUser.profileImageUrl,
-          }
-        : null,
-    });
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   console.log("Header Avatar Debug:", {
+  //     user: user
+  //       ? {
+  //           email: user.email,
+  //           firstName: user.firstName,
+  //           lastName: user.lastName,
+  //           profileImageUrl: user.profileImageUrl,
+  //         }
+  //       : null,
+  //     authUser: authUser
+  //       ? {
+  //           email: authUser.email,
+  //           firstName: authUser.firstName,
+  //           lastName: authUser.lastName,
+  //           profileImageUrl: authUser.profileImageUrl,
+  //         }
+  //       : null,
+  //     profileUser: profileUser
+  //       ? {
+  //           email: profileUser.email,
+  //           firstName: profileUser.firstName,
+  //           lastName: profileUser.lastName,
+  //           profileImageUrl: profileUser.profileImageUrl,
+  //         }
+  //       : null,
+  //     currentUser: currentUser
+  //       ? {
+  //           email: currentUser.email,
+  //           firstName: currentUser.firstName,
+  //           lastName: currentUser.lastName,
+  //           profileImageUrl: currentUser.profileImageUrl,
+  //         }
+  //       : null,
+  //   });
+  // }
+
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", { method: "POST" });
       localStorage.removeItem("token");
+     logout()
       queryClient.clear();
       setLocation("/login");
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout even if API call fails
       localStorage.removeItem("token");
+           logout()
       queryClient.clear();
       setLocation("/login");
     }

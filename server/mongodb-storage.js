@@ -115,7 +115,7 @@ export class MongoStorage {
       userData.passwordHash = await this.hashPassword(userData.password);
       delete userData.password;
     }
-    
+      console.log('user created....',userData)
     const user = new User(userData);
     return await user.save();
   }
@@ -1449,7 +1449,7 @@ export class MongoStorage {
     licenseId,       // ✅ added
     sendEmail = true // ✅ default true if not provided
   } = inviteData;
-  console.log('roles',roles)
+
   // Check if user already exists in this organization (active or invited)
   const existingUser = await User.findOne({ 
     email: email.toLowerCase(),
@@ -1467,8 +1467,8 @@ export class MongoStorage {
   // Create invited user record with proper status
   const invitedUser = new User({
     email,
-    role: roles.includes('admin') || roles.includes('org_admin') ? 'admin' : 'member',
-    roles: roles, 
+    role: roles,
+    roles: [], 
     organization: organizationId,
     status: 'invited', 
     isActive: false,

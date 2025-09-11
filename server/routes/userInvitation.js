@@ -31,9 +31,9 @@ router.post("/check-email-exists", authenticateToken, async (req, res) => {
 // Send user invitation - requires manager role or above  
 router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (req, res) => {
   try {
-    const { invites } = req.body;
-    const adminUser = req.user;
-
+    const { invites ,adminUser } = req.body;
+    
+    console.log('>>>>adminUser',adminUser)
     if (!invites || !Array.isArray(invites) || invites.length === 0) {
       return res.status(400).json({ message: "Invalid invitation data" });
     }
@@ -92,22 +92,22 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
         }
 
         // Get organization details for invitation
-             console.log('debugger',adminUser)
+            
         const organization = await storage.getOrganization(adminUser.organizationId);
         const organizationName = organization?.name || 'TaskSetu';
-     
+
         // Create the user invitation using the correct method
         const invitationResult = await storage.inviteUserToOrganization({
           email: invite.email,
           organizationId: adminUser.organizationId,
-          roles: [normalizedRole],
+          roles: invite.role,
           invitedBy: adminUser.id,
           invitedByName: adminUser.name || adminUser.email,
           organizationName: organizationName,
           licenseId: invite.licenseId || null,  // pass licenseId if provided
           sendEmail: invite.sendEmail !== false // default true
         });
-
+        console.log('Invitation result:', invitationResult);
         results.success.push({
           email: invite.email,
           message: 'Invitation sent successfully'

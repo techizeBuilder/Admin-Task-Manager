@@ -476,150 +476,137 @@ export async function registerRoutes(app) {
 
   // Organization registration
   app.post("/api/auth/register/organization", async (req, res) => {
-    try {
-      const { firstName, lastName, email, organizationName } = req.body;
+  try {
+    const { firstName, lastName, email, organizationName } = req.body;
 
-      console.log("Organization registration attempt:", {
-        firstName,
-        lastName,
-        email,
-        organizationName,
-      });
+    console.log("Organization registration attempt:", {
+      firstName,
+      lastName,
+      email,
+      organizationName,
+    });
 
-      // Validate required fields
-      if (!firstName || !lastName || !email || !organizationName) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      // Validate organization name length
-      if (organizationName.trim().length < 2 || organizationName.trim().length > 100) {
-        return res.status(400).json({ message: "Organization name must be 2-100 characters" });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        // If user exists but is pending verification, resend verification email
-        if (existingUser.status === 'pending' || existingUser.status === 'invited' || !existingUser.emailVerified) {
-          // Generate new verification token
-          const verificationToken = storage.generateEmailVerificationToken();
-          
-          // Update user with new verification token
-          await storage.updateUser(existingUser._id, {
-            emailVerificationToken: verificationToken,
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-          });
-
-          // Resend verification email for organization user
-          const emailSent = await emailService.sendVerificationEmail(
-            email,
-            verificationToken,
-            existingUser.firstName || firstName,
-            organizationName, // Organization registration - include org name
-          );
-
-          if (emailSent) {
-            console.log("Verification email re-sent successfully to:", email);
-          }
-
-          return res.status(200).json({
-            message: "We've re-sent your verification link.",
-            resent: true
-          });
-        }
-
-        // User is fully registered
-        return res
-          .status(400)
-          .json({ message: "This email is already registered. Please Login or Reset Password." });
-      }
-
-      // Generate slug from organization name
-      const organizationSlug = organizationName
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .trim();
-
-      // Check if organization slug is available
-      const existingOrg = await storage.getOrganizationBySlug(organizationSlug);
-      if (existingOrg) {
-        return res
-          .status(400)
-          .json({ message: "Organization name is already taken" });
-      }
-
-      // Create organization first
-      const orgData = {
-        name: organizationName.trim(),
-        slug: organizationSlug.toLowerCase().trim(),
-        licenseCount: 10,
-        isActive: true,
-      };
-
-      const organization = await storage.createOrganization(orgData);
-
-      // Create admin user for the organization
-      const userData = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.toLowerCase().trim(),
-        role: "org_admin",
-        status: "pending",
-        organizationId: organization._id,
-        accountType: "organization",
-      };
-
-      const user = await storage.createUser(userData);
-
-      console.log("Organization and admin user created:", {
-        orgId: organization._id,
-        userId: user._id,
-      });
-
-      // Generate verification token and send email
-      const verificationToken = storage.generateEmailVerificationToken();
-
-      // Update user with verification token
-      await storage.updateUser(user._id, {
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      });
-
-      // Send verification email with organization name  
-      const emailSent = await emailService.sendVerificationEmail(
-        email,
-        verificationToken,
-        firstName,
-        organizationName,
-      );
-
-      if (emailSent) {
-        console.log("Verification email sent successfully to:", email);
-      } else {
-        console.log("Failed to send verification email to:", email);
-      }
-
-      res.status(201).json({
-        message:
-          "Organization registration successful. Please check your email for verification.",
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          organizationId: organization._id,
-          organizationName: organization.name,
-        },
-      });
-    } catch (error) {
-      console.error("Organization registration error:", error);
-      res
-        .status(500)
-        .json({ message: "Registration failed. Please try again." });
+    // Validate required fields
+    if (!firstName || !lastName || !email || !organizationName) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-  });
+
+    // Validate organization name length
+    if (organizationName.trim().length < 2 || organizationName.trim().length > 100) {
+      return res.status(400).json({ message: "Organization name must be 2-100 characters" });
+    }
+
+    // Check if user already exists
+    const existingUser = await storage.getUserByEmail(email);
+    if (existingUser) {
+      if (
+        existingUser.status === "pending" ||
+        existingUser.status === "invited" ||
+        !existingUser.emailVerified
+      ) {
+        const verificationToken = storage.generateEmailVerificationToken();
+
+        await storage.updateUser(existingUser._id, {
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        });
+
+        const emailSent = await emailService.sendVerificationEmail(
+          email,
+          verificationToken,
+          existingUser.firstName || firstName,
+          organizationName
+        );
+
+        return res.status(200).json({
+          message: "We've re-sent your verification link.",
+          resent: true,
+        });
+      }
+
+      return res.status(400).json({
+        message:
+          "This email is already registered. Please Login or Reset Password.",
+      });
+    }
+
+    // Generate slug
+    const organizationSlug = organizationName
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .trim();
+
+    // Check org slug
+    const existingOrg = await storage.getOrganizationBySlug(organizationSlug);
+    if (existingOrg) {
+      return res
+        .status(400)
+        .json({ message: "Organization name is already taken" });
+    }
+
+    // Create organization
+    const orgData = {
+      name: organizationName.trim(),
+      slug: organizationSlug.toLowerCase().trim(),
+      licenseCount: 10,
+      isActive: true,
+    };
+
+    const organization = await storage.createOrganization(orgData);
+
+    // Create admin user
+    const userData = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      role: ["org_admin"],              // ✅ must be an array
+      status: "pending",
+      organization_id: organization._id,   // ✅ match schema field
+      accountType: "organization",
+    };
+
+    const user = await storage.createUser(userData);
+
+    console.log("Organization and admin user created:", {
+      orgId: organization._id,
+      userId: user._id,
+    });
+
+    // Generate verification token and send email
+    const verificationToken = storage.generateEmailVerificationToken();
+
+    await storage.updateUser(user._id, {
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    const emailSent = await emailService.sendVerificationEmail(
+      email,
+      verificationToken,
+      firstName,
+      organizationName
+    );
+
+    res.status(201).json({
+      message:
+        "Organization registration successful. Please check your email for verification.",
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        organization: organization._id, // ✅ updated
+        organizationName: organization.name,
+      },
+    });
+  } catch (error) {
+    console.error("Organization registration error:", error);
+    res.status(500).json({ message: "Registration failed. Please try again." });
+  }
+});
+
 
   // Get team members for current user's organization
   app.get("/api/team-members", authenticateToken, async (req, res) => {
@@ -698,13 +685,13 @@ export async function registerRoutes(app) {
       // Return clean user data without sensitive fields
       const userProfile = {
         _id: user._id,
-        id: user._id,
+    
         email: user.email,
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         profileImageUrl: user.profileImageUrl || null,
         role: user.role,
-        organizationId: user.organizationId,
+        organizationId: user.organization_id,
         status: user.status,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

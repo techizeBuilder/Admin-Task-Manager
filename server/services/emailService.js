@@ -305,8 +305,20 @@ www.Tasksetu.com`,
                 <h2>You're invited to join ${organizationName}!</h2>
                 <p><strong>${invitedByName}</strong> has invited you to join their team on TaskSetu.</p>
                 
-                <p>You'll be joining as: <strong>${Array.isArray(roles) ? roles.join(", ") : roles}</strong></p>
-                
+              <p>
+  You'll be joining as:{" "}
+  <strong>
+    {Array.isArray(roles)
+      ? roles
+          .map(r =>
+            r.replace(/_/g, " ")
+             .replace(/\b\w/g, c => c.toUpperCase())
+          )
+          .join(", ")
+      : roles.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    }
+  </strong>
+</p>
                 <p>Click the button below to accept the invitation and create your account:</p>
                 <a href="${inviteUrl}" class="button">Accept Invitation</a>
                 

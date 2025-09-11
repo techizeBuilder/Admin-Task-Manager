@@ -311,7 +311,7 @@ export default function Users() {
           </Button>
           <Button 
             onClick={() => setIsAddUserModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
           >
             <UserPlus className="h-4 w-4" />
             Add User

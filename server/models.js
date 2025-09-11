@@ -372,7 +372,7 @@ const userSchema = new mongoose.Schema(
     emailVerificationExpires: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
-    organization: {
+    organization_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
     },

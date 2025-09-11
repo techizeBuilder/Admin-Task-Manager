@@ -34,6 +34,7 @@ import {
   Users,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthStore } from "../stores/useAuthStore";
 
 export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   const [users, setUsers] = useState([{
@@ -53,6 +54,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore()
 
   // Get organization license info
   const { data: licenseInfo } = useQuery({
@@ -174,7 +176,7 @@ const roleOptions = [
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ invites: inviteData }),
+        body: JSON.stringify({ invites: inviteData, adminUser: user }),
       });
 
       const result = await response.json();
@@ -229,7 +231,7 @@ const roleOptions = [
     try {
       let inviteData = [];
       const newErrors = {};
-      console.log('invitied--user',users)
+   
       // Validate multiple users
       for (const user of users) {
         const userPrefix = `user_${user.id}_`;
