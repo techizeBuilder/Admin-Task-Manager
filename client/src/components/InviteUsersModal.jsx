@@ -187,38 +187,48 @@ const roleOptions = [
 
       return result;
     },
-    onSuccess: (data) => {
-      const successCount = data.success?.length || 0;
-      const errorCount = data.errors?.length || 0;
-      
-      if (successCount > 0 && errorCount === 0) {
-        toast({
-          title: "Invitations Sent Successfully!",
-          description: `${successCount} user${successCount > 1 ? 's have' : ' has'} been invited to your organization.`,
-          variant: "default",
-          duration: 5000,
-        });
-      } else if (successCount > 0 && errorCount > 0) {
-        toast({
-          title: "Partial Success",
-          description: `${successCount} invitations sent successfully, ${errorCount} failed.`,
-          variant: "default",
-          duration: 8000,
-        });
-      }
+   onSuccess: (data) => {
+  console.log(">>data", data);
 
-      onClose();
-      queryClient.invalidateQueries({ queryKey: ["/api/organization/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/organization/license"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Send Invitations",
-        description: error.message,
-        variant: "destructive",
-        duration: 8000,
-      });
-    },
+  const successCount = data.results?.success?.length || 0;
+  const errorCount = data.results?.errors?.length || 0;
+
+  if (successCount > 0 && errorCount === 0) {
+    toast({
+      title: "Invitations Sent Successfully!",
+      description: `${successCount} user${successCount > 1 ? "s have" : " has"} been invited to your organization.`,
+      variant: "default",
+      duration: 5000,
+    });
+  } else if (successCount > 0 && errorCount > 0) {
+    toast({
+      title: "Partial Success",
+      description: `${successCount} invitation${successCount > 1 ? "s" : ""} sent successfully, ${errorCount} failed.`,
+      variant: "default",
+      duration: 8000,
+    });
+  } else if (successCount === 0 && errorCount > 0) {
+    toast({
+      title: "Failed to Send Invitations",
+      description: `${errorCount} invitation${errorCount > 1 ? "s" : ""} failed.`,
+      variant: "destructive",
+      duration: 8000,
+    });
+  }
+
+  onClose();
+  queryClient.invalidateQueries({ queryKey: ["/api/organization/users"] });
+  queryClient.invalidateQueries({ queryKey: ["/api/organization/license"] });
+},
+onError: (error) => {
+  toast({
+    title: "Failed to Send Invitations",
+    description: error.message,
+    variant: "destructive",
+    duration: 8000,
+  });
+},
+
   });
 
   // Submit form
@@ -227,7 +237,7 @@ const roleOptions = [
     setIsSubmitting(true);
 
 
-
+ 
     try {
       let inviteData = [];
       const newErrors = {};

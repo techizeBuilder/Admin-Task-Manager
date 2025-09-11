@@ -93,7 +93,7 @@ router.post("/invite-users", authenticateToken, async (req, res) => {
 
         results.success.push({
           email: invite.email,
-          message: 'Invitation sent successfully'
+          message: invite.sendEmail ? 'Invitation sent successfully' : 'User created successfully'
         });
 
       } catch (error) {
