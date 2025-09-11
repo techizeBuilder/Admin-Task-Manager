@@ -1,0 +1,250 @@
+Based on the provided sources and our conversation, here's a database design structured as a mind map for Tasksetu, keeping Mongoose collection schemas in mind. This design primarily reflects **Phase I** implementation, with notes on extensibility for future phases where relevant.
+
+In Mongoose, each primary entity below would typically correspond to a **collection** in MongoDB and a **schema** in your backend. Relationships (e.g., "ref: 'User'") indicate that one document links to another document's `_id` in a different (or sometimes the same) collection.
+
+### **Tasksetu Database Design (Mongoose Collection Schemas)**
+
+*   **Users & Access**
+    *   **User Collection**
+        *   `_id`: `ObjectId` (Mongoose default primary key)
+        *   **`firstName`**: `String` (Mandatory)
+        *   `lastName`: `String` (Optional)
+        *   **`email`**: `String` (Mandatory, unique across platform)
+        *   `password`: `String` (Hashed)
+        *   `phone`: `String` (Optional)
+        *   `profilePictureUrl`: `String` (URL to a File document)
+        *   **`role`**: `String` (Enum: `'User'`, `'Manager'`, `'Admin'`, `'TasksetuSuperAdmin'`) - **A user is assigned a single primary role.**
+        *   `companyId`: `ObjectId` (ref: `'Company'`, nullable for individual users)
+        *   `licenseTier`: `String` (Read-only, derived from user or company license)
+        *   `dateJoined`: `Date` (Account creation date)
+        *   `accountState`: `String` (Enum: `'invited'`, `'pending_verification'`, `'active'`, `'suspended'`, `'deactivated'`, `'password_reset_required'`)
+        *   `lastLogin`: `Date`
+        *   `department`: `String` (Optional)
+        *   `designation`: `String` (Optional)
+        *   `location`: `String` (Optional)
+    *   **Role (Conceptual / Enum in User)**
+        *   In Phase I, roles are predefined strings. Phase II plans custom roles, which might introduce a separate `Role` collection.
+
+*   **Organizations & Licensing**
+    *   **Company Collection**
+        *   `_id`: `ObjectId`
+        *   **`orgName`**: `String` (Mandatory)
+        *   `numEmployees`: `Number` (Optional)
+        *   `primaryAdminId`: `ObjectId` (ref: `'User'`, points to the single Company Admin)
+        *   **`licenseId`**: `ObjectId` (ref: `'License'`, links to the company's purchased license)
+        *   `orgSettings`: `Object` (Embedded document for company-level configurations)
+            *   `logoUrl`: `String`
+            *   `brandColor`: `String`
+            *   `defaultTaskStatusId`: `ObjectId` (ref: `'TaskStatus'`)
+            *   `notificationDefaults`: `Object`
+            *   `defaultTimeZone`: `String`
+    *   **License Collection**
+        *   `_id`: `ObjectId`
+        *   **`licenseCode`**: `String` (Enum: `'EXPLORE'`, `'PLAN'`, `'EXECUTE'`, `'OPTIMIZE'`)
+        *   `name`: `String` (Display name)
+        *   `description`: `String`
+        *   `billingCycle`: `String` (Enum: `'MONTHLY'`, `'YEARLY'`)
+        *   `priceMonthly`: `Number`
+        *   `priceYearly`: `Number`
+        *   `maxUsers`: `Number`
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+    *   **Feature Collection**
+        *   `_id`: `ObjectId`
+        *   **`featureCode`**: `String` (Unique identifier, e.g., `TASK_BASIC`, `FORM_CREATE`)
+        *   `name`: `String` (Feature name)
+        *   `description`: `String`
+    *   **LicenseFeature Collection** (Join Table for license-feature mapping)
+        *   `_id`: `ObjectId`
+        *   **`licenseCode`**: `String` (FK to `License.licenseCode`)
+        *   **`featureCode`**: `String` (FK to `Feature.featureCode`)
+        *   `limitValue`: `Number` (Nullable, specifies limit for the feature)
+        *   `limitPeriod`: `String` (Enum: `'DAY'`, `'MONTH'`, `'YEAR'`, `'LIFETIME'`, nullable)
+
+*   **Task Management**
+    *   **Task Collection** (The core entity for all work items)
+        *   `_id`: `ObjectId`
+        *   **`taskName`**: `String` (Mandatory, max 80 chars)
+        *   `description`: `String` (Rich text)
+        *   **`assignedTo`**: `ObjectId` (ref: `'User'`)
+        *   `priority`: `String` (Enum: `'Low'`, `'Medium'`, `'High'`, `'Critical'`)
+        *   **`dueDate`**: `Date` (Mandatory)
+        *   `visibility`: `String` (Enum: `'Private'`, `'Public'`)
+        *   `labels`: `[String]` (Array of tags/labels)
+        *   `attachments`: `[ObjectId]` (ref: `'File'`)
+        *   `referenceProcessId`: `ObjectId` (ref: `'Process'`, if linked to a process)
+        *   `customFormVersionId`: `ObjectId` (ref: `'FormVersion'`, if a form is attached to a sub-task)
+        *   `dependencies`: `[ObjectId]` (ref: `'Task'`, for tasks that must be completed first)
+        *   **`taskType`**: `String` (Enum: `'Simple'`, `'Recurring'`, `'Approval'`, `'Milestone'`, `'Quick'`)
+        *   **`statusId`**: `ObjectId` (ref: `'TaskStatus'`, current state of the task)
+        *   `createdBy`: `ObjectId` (ref: `'User'`)
+        *   `startDate`: `Date`
+        *   `estimatedTime`: `Number` (e.g., in hours)
+        *   `isDeleted`: `Boolean` (For soft delete)
+        *   `deletedBy`: `ObjectId` (ref: `'User'`)
+        *   `deletedAt`: `Date`
+        *   `parentId`: `ObjectId` (ref: `'Task'`, for sub-tasks pointing to their parent)
+        *   `recurrenceMasterId`: `ObjectId` (ref: `'RecurrencePattern'`, for instances generated from a pattern)
+        *   `contributors`: `[ObjectId]` (ref: `'User'`, users tagged as contributors)
+        *   `milestoneDetails`: `Object` (Embedded, only if `taskType` is `'Milestone'`)
+            *   `milestoneType`: `String` (Enum: `'Standalone'`, `'Linked'`)
+            *   `linkedDependencies`: `[ObjectId]` (ref: `'Task'`)
+            *   `milestoneStatus`: `String` (Enum: `'Not Started'`, `'Ready to Mark'`, `'Achieved'`, `'Overdue'`)
+        *   `approvalDetails`: `Object` (Embedded, only if `taskType` is `'Approval'`)
+            *   `approvers`: `[ObjectId]` (ref: `'User'`)
+            *   `approvalMode`: `String` (Enum: `'AnyOne'`, `'AllMustApprove'`, `'Sequential'`)
+            *   `autoApproveAfterDays`: `Number` (Nullable)
+            *   `approvalStatusHistory`: `[Object]` (Embedded array for each approval action)
+                *   `approverId`: `ObjectId` (ref: `'User'`)
+                *   `decision`: `String` (Enum: `'Approved'`, `'Rejected'`)
+                *   `comment`: `String`
+                *   `timestamp`: `Date`
+    *   **TaskStatus Collection** (Company-defined custom statuses mapped to system defaults)
+        *   `_id`: `ObjectId`
+        *   **`companyId`**: `ObjectId` (ref: `'Company'`)
+        *   **`label`**: `String` (e.g., 'Pending', 'Working On', 'Blocked', 'Closed')
+        *   `color`: `String` (Hex code for UI display)
+        *   `order`: `Number`
+        *   **`systemStatus`**: `String` (Enum: `'OPEN'`, `'INPROGRESS'`, `'ONHOLD'`, `'DONE'`, `'CANCELLED'`, for consistent reporting)
+        *   `isDefault`: `Boolean` (Whether this is the default for new tasks)
+        *   `isFinal`: `Boolean` (e.g., 'Completed', 'Cancelled', requires confirmation)
+    *   **RecurrencePattern Collection** (Defines the logic for generating recurring task instances)
+        *   `_id`: `ObjectId`
+        *   **`baseTaskId`**: `ObjectId` (ref: `'Task'`, the original task template for recurrence)
+        *   `creatorUserId`: `ObjectId` (ref: `'User'`)
+        *   `assigneeUserId`: `ObjectId` (ref: `'User'`)
+        *   **`patternType`**: `String` (Enum: `'Daily'`, `'Weekly'`, `'Monthly'`, `'Yearly'`, `'Custom'`)
+        *   `intervalN`: `Number` (e.g., 'Every N days/weeks')
+        *   `weeklyDays`: `[String]` (e.g., `['Mon', 'Wed']`, if `patternType` is `'Weekly'`)
+        *   `monthlyMode`: `String` (Enum: `'ByDate'`, `'ByPosition'`, if `patternType` is `'Monthly'`)
+        *   `monthlyDays`: `[Number]` (e.g., ``, if `monthlyMode` is `'ByDate'`)
+        *   `yearlyMonths`: `[Number]` (e.g., ``, if `patternType` is `'Yearly'`)
+        *   **`startAt`**: `Date` (Start date and time for recurrence)
+        *   **`endType`**: `String` (Enum: `'Never'`, `'AfterOccurrences'`, `'ByDate'`)
+        *   `endN`: `Number` (Number of occurrences if `endType` is `'AfterOccurrences'`)
+        *   `endDate`: `Date` (End date if `endType` is `'ByDate'`)
+        *   `timezone`: `String`
+        *   `active`: `Boolean` (Whether the pattern is still generating tasks)
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+        *   `contributors`: `[ObjectId]` (ref: `'User'`, for all generated instances)
+    *   **QuickTask Collection** (Dedicated personal to-dos)
+        *   `_id`: `ObjectId`
+        *   **`title`**: `String` (Mandatory, 1-liner)
+        *   **`createdBy`**: `ObjectId` (ref: `'User'`, strictly personal)
+        *   `priority`: `String` (Enum: `'Low'`, `'Medium'`, `'High'`, `'Critical'`)
+        *   `dueDate`: `Date`
+        *   **`status`**: `String` (Enum: `'Open'`, `'Done'`, `'Archived'`)
+        *   `convertedToTaskId`: `ObjectId` (ref: `'Task'`, nullable, if converted to a full task)
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+    *   **Comment Collection**
+        *   `_id`: `ObjectId`
+        *   **`taskId`**: `ObjectId` (ref: `'Task'`)
+        *   **`content`**: `String` (Comment text, supports mentions)
+        *   **`createdBy`**: `ObjectId` (ref: `'User'`)
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+        *   `mentions`: `[ObjectId]` (ref: `'User'`, users mentioned in the comment)
+        *   `attachments`: `[ObjectId]` (ref: `'File'`)
+    *   **ActivityLog Collection** (Immutable log of all key actions)
+        *   `_id`: `ObjectId`
+        *   **`entityType`**: `String` (e.g., `'Task'`, `'User'`, `'Company'`, `'Form'`)
+        *   **`entityId`**: `ObjectId` (Reference to the specific document involved)
+        *   **`actionType`**: `String` (Enum: `'CREATED'`, `'UPDATED'`, `'DELETED'`, `'COMMENTED'`, `'ASSIGNED'`, `'STATUS_CHANGE'`, `'LICENSE_ASSIGNED'`, etc.)
+        *   `description`: `String` (Detailed human-readable log entry)
+        *   **`performedBy`**: `ObjectId` (ref: `'User'`)
+        *   **`timestamp`**: `Date`
+        *   `ipAddress`: `String` (Optional)
+        *   `oldValue`: `Mixed` (Optional, for changes)
+        *   `newValue`: `Mixed` (Optional, for changes)
+
+*   **Forms Management**
+    *   **Form Collection** (Represents a custom form template)
+        *   `_id`: `ObjectId`
+        *   `formCode`: `String` (Unique identifier for the form)
+        *   **`name`**: `String` (Form display name)
+        *   `description`: `String`
+        *   **`ownerUserId`**: `ObjectId` (ref: `'User'`)
+        *   `categoryId`: `ObjectId` (ref: `'FormCategory'`)
+        *   `tags`: `[String]`
+        *   **`status`**: `String` (Enum: `'DRAFT'`, `'PUBLISHED'`, `'ARCHIVED'`)
+        *   `currentVersionId`: `ObjectId` (ref: `'FormVersion'`, points to the latest published version)
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+        *   `visibility`: `String` (Enum: `'PUBLIC'`, `'PRIVATE'`, `'ORG'`)
+        *   `scope`: `String` (Enum: `'INTERNAL'`, `'EXTERNAL'`)
+        *   `startAt`: `Date` (Optional, availability period)
+        *   `endAt`: `Date` (Optional)
+        *   `externalSubmissionEnabled`: `Boolean` (If a public link can be generated)
+    *   **FormVersion Collection**
+        *   `_id`: `ObjectId`
+        *   **`formId`**: `ObjectId` (ref: `'Form'`)
+        *   **`versionNumber`**: `Number` (e.g., 1.0, 1.1)
+        *   **`schemaJson`**: `Mixed` (JSON object storing the full form definition: fields, validation, conditional logic)
+        *   `createdBy`: `ObjectId` (ref: `'User'`)
+        *   `createdAt`: `Date`
+        *   `releaseNotes`: `String`
+    *   **FormSubmission Collection** (Stores data submitted through a form)
+        *   `_id`: `ObjectId`
+        *   **`formId`**: `ObjectId` (ref: `'Form'`)
+        *   **`formVersionId`**: `ObjectId` (ref: `'FormVersion'`, locks to the version submitted)
+        *   `taskId`: `ObjectId` (ref: `'Task'`, nullable, if submitted for a task)
+        *   `submittedBy`: `ObjectId` (ref: `'User'`, nullable for external submissions)
+        *   **`submissionDataJson`**: `Mixed` (JSON object storing the actual submitted field data)
+        *   `attachmentsMeta`: `[ObjectId]` (ref: `'File'`, for files uploaded via the form)
+        *   `createdAt`: `Date`
+        *   `status`: `String` (Enum: `'submitted'`, `'withdrawn'`)
+    *   **File Collection** (Centralized store for all attachments)
+        *   `_id`: `ObjectId`
+        *   **`fileName`**: `String`
+        *   `fileSize`: `Number`
+        *   `mimeType`: `String`
+        *   **`storageUrl`**: `String` (URL to actual file in object storage like S3)
+        *   **`uploadedBy`**: `ObjectId` (ref: `'User'`)
+        *   `uploadedAt`: `Date`
+        *   `linkedTo`: `ObjectId` (Polymorphic reference to the entity it's attached to)
+        *   `linkedToModel`: `String` (e.g., `'Task'`, `'Comment'`, `'FormSubmission'`, `'UserProfile'`)
+    *   **FormCategory Collection** (Lookup for form categorization)
+        *   `_id`: `ObjectId`
+        *   **`name`**: `String`
+        *   `companyId`: `ObjectId` (Nullable, for org-specific categories)
+
+*   **Notifications & System**
+    *   **Notification Collection** (Stores notifications for users)
+        *   `_id`: `ObjectId`
+        *   **`userId`**: `ObjectId` (ref: `'User'`)
+        *   **`triggerEvent`**: `String` (e.g., `'TASK_ASSIGNED'`, `'TASK_OVERDUE'`, `'COMMENT_MENTION'`)
+        *   **`message`**: `String` (Content of the notification)
+        *   `priority`: `String` (Enum: `'Urgent'`, `'Normal'`)
+        *   `channelsSentTo`: `[String]` (e.g., `['IN_APP', 'EMAIL']`)
+        *   `isRead`: `Boolean`
+        *   `isDismissed`: `Boolean`
+        *   `linkedEntityId`: `ObjectId` (Reference to the entity the notification is about)
+        *   `linkedEntityType`: `String` (e.g., `'Task'`, `'Comment'`)
+        *   `createdAt`: `Date`
+    *   **UserNotificationPreference Collection** (User-configurable notification settings)
+        *   `_id`: `ObjectId`
+        *   **`userId`**: `ObjectId` (ref: `'User'`)
+        *   **`triggerEvent`**: `String` (Specific event type, e.g., `'TASK_OVERDUE'`)
+        *   `emailEnabled`: `Boolean`
+        *   `inAppEnabled`: `Boolean`
+        *   `pushEnabled`: `Boolean` (Phase II)
+        *   `frequency`: `String` (Enum: `'IMMEDIATE'`, `'DAILY_DIGEST'`, `'WEEKLY_DIGEST'`)
+    *   **SystemConfig Collection** (Global platform settings, managed by Tasksetu Super Admin)
+        *   `_id`: `ObjectId`
+        *   **`key`**: `String` (Unique identifier for the setting, e.g., `'CALENDAR_INTEGRATION_ENABLED'`)
+        *   **`value`**: `Mixed` (Can store boolean, string, number, or JSON object)
+        *   `updatedBy`: `ObjectId` (ref: `'User'`)
+        *   `updatedAt`: `Date`
+    *   **Process Collection** (Conceptual for predefined processes, referenced by tasks)
+        *   `_id`: `ObjectId`
+        *   **`name`**: `String`
+        *   `description`: `String`
+        *   `createdBy`: `ObjectId` (ref: `'User'`)
+        *   `companyId`: `ObjectId` (ref: `'Company'`)
+        *   `definitionJson`: `Mixed` (JSON object describing the process flow)
+        *   `createdAt`: `Date`
+        *   `updatedAt`: `Date`
+
+This mind map provides a comprehensive overview of the core data entities and their relationships, tailored for a Mongoose/MongoDB backend, drawing directly from the provided sources. It highlights the key attributes and relationships crucial for the platform's functionality.

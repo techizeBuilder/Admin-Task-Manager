@@ -43,9 +43,10 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
       errors: [],
       details: []
     };
-   console.log('Email validation passed forss:', invites);
+
     for (const invite of invites) {
       try {
+
         // Basic validation
         if (!invite.name || !invite.email || !invite.role) {
           results.errors.push({
@@ -65,13 +66,11 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
           continue;
         }
         
-        // Log for debugging
-        console.log('Email validation passed for:', invite);
-
+    
+    
         // Validate role format - support both frontend and backend role values
         const validRoles = ['admin', 'user', 'manager',  'employee', 'org_admin'];
-        const normalizedRole = invite.role.toLowerCase().replace(/\s+/g, '');
-        if (!validRoles.includes(normalizedRole)) {
+         if (!invite.role.every(r => validRoles.includes(r))) {
           results.errors.push({
             email: invite.email,
             error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
@@ -93,9 +92,10 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
         }
 
         // Get organization details for invitation
+             console.log('debugger',adminUser)
         const organization = await storage.getOrganization(adminUser.organizationId);
         const organizationName = organization?.name || 'TaskSetu';
-
+     
         // Create the user invitation using the correct method
         const invitationResult = await storage.inviteUserToOrganization({
           email: invite.email,
@@ -117,7 +117,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
        
         results.errors.push({
           email: invite.email,
-          error: 'Failed to process invitation'
+          error: 'Failed to process invitation old'
         });
       }
     }
@@ -128,7 +128,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
     });
   } catch (error) {
     console.error("Invite users error:", error);
-    res.status(500).json({ message: "Failed to process invitations" });
+    res.status(500).json({ message: "Failed to process invitations old" });
   }
 });
 

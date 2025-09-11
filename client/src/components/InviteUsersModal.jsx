@@ -17,7 +17,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+
 } from "@/components/ui/select";
+import MultiSelect from "@/components/ui/MultiSelect"
 import {
   Mail,
   UserPlus,
@@ -38,7 +40,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     id: 1,
     name: "",
     email: "",
-    role: "",
+    role: [], // Changed from role to roles array
     licenseId: "",
     department: "",
     designation: "",
@@ -58,6 +60,11 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     enabled: isOpen,
   });
 
+const roleOptions = [
+  { value: "employee", label: "Regular User" },
+  { value: "manager", label: "Manager" },
+  { value: "org_admin", label: "Company Admin" },
+]
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -160,6 +167,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   // Invitation mutation
   const inviteUsersMutation = useMutation({
     mutationFn: async (inviteData) => {
+     
       const response = await fetch("/api/organization/invite-users", {
         method: "POST",
         headers: {
@@ -216,16 +224,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const roleObj = {
-      'Regular User': 'employee',
-      'Manager': 'manager', 
-      'Company Admin': 'admin'
-    };
+
 
     try {
       let inviteData = [];
       const newErrors = {};
-
+      console.log('invitied--user',users)
       // Validate multiple users
       for (const user of users) {
         const userPrefix = `user_${user.id}_`;
@@ -288,15 +292,17 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
       inviteData = users.map(user => ({
         name: user.name.trim(),
         email: user.email.toLowerCase().trim(),
-        role: roleObj[user.role],
+        role: user.role,
         licenseId: user.licenseId,
-        department: user.department?.trim() || undefined,
-        designation: user.designation?.trim() || undefined,
-        location: user.location?.trim() || undefined,
-        phone: user.phone?.trim() || undefined,
+        department: user.department?.trim() || null,
+        designation: user.designation?.trim() || null,
+        location: user.location?.trim() || null,
+        phone: user.phone?.trim() || null,
         sendEmail: user.sendInvitationEmail
       }));
 
+
+   
       await inviteUsersMutation.mutateAsync(inviteData);
       setIsSubmitting(false);
 
@@ -361,31 +367,28 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
         </div>
 
         {/* Role */}
-        <div>
-          <Label htmlFor={`role_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
-            Role *
-          </Label>
-          <Select
-            key={`role_${user.id}`}
-            value={user.role}
-            onValueChange={(value) => {
-              console.log('Role onValueChange:', { userId: user.id, value });
-              handleUserChange(user.id, "role", value);
-            }}
-          >
-            <SelectTrigger className={errors[`user_${user.id}_role`] ? "border-red-300" : ""}>
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Regular User">Regular User</SelectItem>
-              <SelectItem value="Manager">Manager</SelectItem>
-              <SelectItem value="Company Admin">Company Admin</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors[`user_${user.id}_role`] && (
-            <p className="mt-1 text-sm text-red-600">{errors[`user_${user.id}_role`]}</p>
-          )}
-        </div>
+          <div>
+      <Label htmlFor={`role_${user.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+        Role *
+      </Label>
+
+      <MultiSelect
+        options={roleOptions}
+        value={user.role || []} // expecting array
+        onChange={(newRoles) => {
+          console.log("MultiSelect changed:", { userId: user.id, newRoles })
+          handleUserChange(user.id, "role", newRoles)
+        }}
+        placeholder="Select role(s)"
+        dataTestId={`user_${user.id}_role`}
+      />
+
+      {errors[`user_${user.id}_role`] && (
+        <p className="mt-1 text-sm text-red-600">
+          {errors[`user_${user.id}_role`]}
+        </p>
+      )}
+    </div>
 
         {/* License */}
         <div>

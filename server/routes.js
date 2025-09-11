@@ -967,7 +967,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  app.post("/api/organization/invite-users-test", async (req, res) => {
+  app.post("/api/organization/invite-users", async (req, res) => {
     try {
       const { invites } = req.body;
 
@@ -992,17 +992,19 @@ export async function registerRoutes(app) {
           .json({ message: "No organization found for invitations" });
       }
 
+
       for (const invite of invites) {
         try {
+       
           const inviteData = {
             email: invite.email,
             organizationId: defaultOrgId,
-            roles: invite.roles,
+            roles: invite.role,
             invitedBy: defaultOrgId, // Use org ID as placeholder
             invitedByName: "TaskSetu Admin",
             organizationName: "TaskSetu Organization",
           };
-
+console.log('debugger - inviting user:', inviteData);
           await storage.inviteUserToOrganization(inviteData);
           results.successCount++;
           results.details.push({ email: invite.email, status: "success" });

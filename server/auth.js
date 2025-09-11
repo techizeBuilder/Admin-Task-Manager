@@ -83,7 +83,7 @@ export function requireRole(roles) {
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
+      return res.status(403).json({ message: 'Insufficient permissions  debuger1' });
     }
 
     next();

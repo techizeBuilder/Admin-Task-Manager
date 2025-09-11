@@ -76,11 +76,12 @@ export const requireRole = (allowedRoles) => {
 
     const userRole = req.user.role;
 
-    if (allowedRoles.includes(userRole)) {
+
+    if (allowedRoles.includes(userRole[0])) {
       return next();
     }
 
-    return res.status(403).json({ error: "Insufficient permissions" });
+    return res.status(403).json({ error: "Insufficient permissions debuger 2" });
   };
 };
 
