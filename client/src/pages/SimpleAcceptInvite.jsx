@@ -80,7 +80,7 @@ export function SimpleAcceptInvite() {
 
       if (data.token) {
         localStorage.setItem("token", data.token);
-        setLocation("/dashboard");
+       setLocation("/login");
       } else {
         setLocation("/login");
       }

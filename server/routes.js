@@ -1131,47 +1131,47 @@ export async function registerRoutes(app) {
   // });
 
   // Accept invitation and complete registration
-  // app.post("/api/auth/accept-invite", async (req, res) => {
-  //   try {
-  //     const { token, firstName, lastName, password } = req.body;
+  app.post("/api/auth/accept-invite", async (req, res) => {
+    try {
+      const { token, firstName, lastName, password } = req.body;
 
-  //     if (!token || !firstName || !lastName || !password) {
-  //       return res.status(400).json({
-  //         message: "Token, first name, last name, and password are required",
-  //       });
-  //     }
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({
+          message: "Token, first name, last name, and password are required",
+        });
+      }
 
-  //     // Complete the invitation
-  //     const result = await storage.completeUserInvitation(token, {
-  //       firstName: firstName.trim(),
-  //       lastName: lastName.trim(),
-  //       password,
-  //     });
+      // Complete the invitation
+      const result = await storage.completeUserInvitation(token, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        password,
+      });
 
-  //     if (!result.success) {
-  //       return res.status(400).json({ message: result.message });
-  //     }
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
 
-  //     // Generate auth token for the new user
-  //     const authToken = storage.generateToken(result.user);
+      // Generate auth token for the new user
+      const authToken = storage.generateToken(result.user);
 
-  //     res.json({
-  //       message: "Account created successfully",
-  //       token: authToken,
-  //       user: {
-  //         id: result.user._id,
-  //         email: result.user.email,
-  //         firstName: result.user.firstName,
-  //         lastName: result.user.lastName,
-  //         role: result.user.role,
-  //         organizationId: result.user.organizationId,
-  //       },
-  //     });
-  //   } catch (error) {
-  //     console.error("Accept invite error:", error);
-  //     res.status(500).json({ message: "Failed to accept invitation" });
-  //   }
-  // });
+      res.json({
+        message: "Account created successfully",
+        token: authToken,
+        user: {
+          id: result.user._id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role,
+          // organizationId: result.user.organizationId,
+        },
+      });
+    } catch (error) {
+      console.error("Accept invite error:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  });
 // ...existing code...
   app.get("/api/auth/validate-invite", async (req, res) => {
     try {

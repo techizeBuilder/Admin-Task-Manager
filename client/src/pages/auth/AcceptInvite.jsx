@@ -111,7 +111,7 @@ export default function AcceptInvite() {
       });
       
       // Redirect to dashboard
-      setLocation('/dashboard');
+      setLocation('/login');
     },
     onError: (error) => {
       toast({
