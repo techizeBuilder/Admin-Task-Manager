@@ -306,9 +306,9 @@ www.Tasksetu.com`,
                 <p><strong>${invitedByName}</strong> has invited you to join their team on TaskSetu.</p>
                 
               <p>
-  You'll be joining as:{" "}
+  You'll be joining as:
   <strong>
-    {Array.isArray(roles)
+    ${Array.isArray(roles)
       ? roles
           .map(r =>
             r.replace(/_/g, " ")

@@ -190,7 +190,16 @@ export function SimpleAcceptInvite() {
             </div>
             <div>
               <Label className="text-sm text-gray-600">Role</Label>
-              <p className="font-medium capitalize">{inviteData.role}</p>
+             <div className="flex flex-wrap gap-2">
+  {inviteData.role.map((r, i) => (
+    <span 
+      key={i} 
+      className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize"
+    >
+      {r.replace("_", " ")}
+    </span>
+  ))}
+</div>
             </div>
           </CardContent>
         </Card>

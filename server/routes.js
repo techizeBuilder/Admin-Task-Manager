@@ -991,7 +991,7 @@ export async function registerRoutes(app) {
             invitedByName: "TaskSetu Admin",
             organizationName: "TaskSetu Organization",
           };
-console.log('debugger - inviting user:', inviteData);
+
           await storage.inviteUserToOrganization(inviteData);
           results.successCount++;
           results.details.push({ email: invite.email, status: "success" });
@@ -1081,6 +1081,98 @@ console.log('debugger - inviting user:', inviteData);
   });
 
   // Validate invitation token
+  // app.get("/api/auth/validate-invite", async (req, res) => {
+  //   try {
+  //     const { token } = req.query;
+
+  //     if (!token) {
+  //       return res
+  //         .status(400)
+  //         .json({ message: "Invitation token is required" });
+  //     }
+
+  //     // Get invitation details by token
+  //     const pendingUser = await storage.getUserByInviteToken(token);
+
+  //     if (!pendingUser) {
+  //       return res
+  //         .status(404)
+  //         .json({ message: "Invalid or expired invitation token" });
+  //     }
+
+  //     // Check if token is expired
+  //     if (
+  //       pendingUser.inviteExpires &&
+  //       new Date() > new Date(pendingUser.inviteExpires)
+  //     ) {
+  //       return res
+  //         .status(400)
+  //         .json({ message: "Invitation token has expired" });
+  //     }
+    
+  //     // Get organization details
+  //     const organization = await storage.getOrganization(
+  //       pendingUser.organization_id,
+  //     );
+  // console.log('Pending user found for invite token>>>:', organization);
+  //     res.json({
+  //       email: pendingUser.email,
+  //       roles: pendingUser.roles,
+  //       organization: {
+  //         name: organization?.name || "Unknown Organization",
+  //         id: organization?._id || pendingUser.organizationId,
+  //       },
+  //       invitedBy: pendingUser.invitedBy,
+  //     });
+  //   } catch (error) {
+  //     console.error("Validate invite error:", error);
+  //     res.status(500).json({ message: "Failed to validate invitation" });
+  //   }
+  // });
+
+  // Accept invitation and complete registration
+  // app.post("/api/auth/accept-invite", async (req, res) => {
+  //   try {
+  //     const { token, firstName, lastName, password } = req.body;
+
+  //     if (!token || !firstName || !lastName || !password) {
+  //       return res.status(400).json({
+  //         message: "Token, first name, last name, and password are required",
+  //       });
+  //     }
+
+  //     // Complete the invitation
+  //     const result = await storage.completeUserInvitation(token, {
+  //       firstName: firstName.trim(),
+  //       lastName: lastName.trim(),
+  //       password,
+  //     });
+
+  //     if (!result.success) {
+  //       return res.status(400).json({ message: result.message });
+  //     }
+
+  //     // Generate auth token for the new user
+  //     const authToken = storage.generateToken(result.user);
+
+  //     res.json({
+  //       message: "Account created successfully",
+  //       token: authToken,
+  //       user: {
+  //         id: result.user._id,
+  //         email: result.user.email,
+  //         firstName: result.user.firstName,
+  //         lastName: result.user.lastName,
+  //         role: result.user.role,
+  //         organizationId: result.user.organizationId,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.error("Accept invite error:", error);
+  //     res.status(500).json({ message: "Failed to accept invitation" });
+  //   }
+  // });
+// ...existing code...
   app.get("/api/auth/validate-invite", async (req, res) => {
     try {
       const { token } = req.query;
@@ -1091,16 +1183,13 @@ console.log('debugger - inviting user:', inviteData);
           .json({ message: "Invitation token is required" });
       }
 
-      // Get invitation details by token
       const pendingUser = await storage.getUserByInviteToken(token);
-
       if (!pendingUser) {
         return res
           .status(404)
           .json({ message: "Invalid or expired invitation token" });
       }
 
-      // Check if token is expired
       if (
         pendingUser.inviteExpires &&
         new Date() > new Date(pendingUser.inviteExpires)
@@ -1110,69 +1199,107 @@ console.log('debugger - inviting user:', inviteData);
           .json({ message: "Invitation token has expired" });
       }
 
-      // Get organization details
-      const organization = await storage.getOrganization(
-        pendingUser.organizationId,
-      );
+      // Unified org id extraction (handles multiple legacy field names)
+      const orgId =
+        pendingUser.organization_id ||
+        null;
 
+      let organization = null;
+      if (orgId) {
+        try {
+          organization = await storage.getOrganization(orgId);
+        } catch (_) {}
+        if (!organization) {
+          // Fallback direct model lookup
+          try {
+            const { Organization } = await import("./models.js");
+            organization = await Organization.findById(orgId).lean();
+          } catch (_) {}
+        }
+      }
+      console.log('Pending user found for invite token>>>:', pendingUser);
       res.json({
         email: pendingUser.email,
-        roles: pendingUser.roles,
+        role: pendingUser.role,
         organization: {
+          id: orgId || null,
           name: organization?.name || "Unknown Organization",
-          id: organization?._id || pendingUser.organizationId,
+          // optional extra snapshot fields if needed later
+          slug: organization?.slug || null,
         },
-        invitedBy: pendingUser.invitedBy,
+        organizationName: organization?.name || "Unknown Organization", // convenience field
+        invitedBy: pendingUser.invitedBy || null,
       });
     } catch (error) {
       console.error("Validate invite error:", error);
       res.status(500).json({ message: "Failed to validate invitation" });
     }
   });
-
-  // Accept invitation and complete registration
-  app.post("/api/auth/accept-invite", async (req, res) => {
+// ...existing code...
+  app.post("/api/auth/validate-invite-token", async (req, res) => {
     try {
-      const { token, firstName, lastName, password } = req.body;
+      const { token } = req.body;
 
-      if (!token || !firstName || !lastName || !password) {
-        return res.status(400).json({
-          message: "Token, first name, last name, and password are required",
-        });
+      if (!token) {
+        return res
+          .status(400)
+          .json({ message: "Invitation token is required" });
       }
 
-      // Complete the invitation
-      const result = await storage.completeUserInvitation(token, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        password,
-      });
-
-      if (!result.success) {
-        return res.status(400).json({ message: result.message });
+      const pendingUser = await storage.getUserByInviteToken(token);
+      if (!pendingUser) {
+        return res
+          .status(404)
+          .json({ message: "Invalid or expired invitation token" });
       }
 
-      // Generate auth token for the new user
-      const authToken = storage.generateToken(result.user);
+      if (
+        pendingUser.inviteExpires &&
+        new Date() > new Date(pendingUser.inviteExpires)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Invitation token has expired" });
+      }
+
+      const orgId =
+      pendingUser.organization_id ||
+        null;
+
+      let organization = null;
+      if (orgId) {
+        try {
+          organization = await storage.getOrganization(orgId);
+        } catch (_) {}
+        if (!organization) {
+          try {
+            const { Organization } = await import("./models.js");
+            organization = await Organization.findById(orgId).lean();
+          } catch (_) {}
+        }
+      }
 
       res.json({
-        message: "Account created successfully",
-        token: authToken,
-        user: {
-          id: result.user._id,
-          email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          role: result.user.role,
-          organizationId: result.user.organizationId,
+        email: pendingUser.email,
+        roles: Array.isArray(pendingUser.roles)
+          ? pendingUser.roles
+          : pendingUser.role
+            ? [pendingUser.role]
+            : [],
+        organization: {
+          id: orgId || null,
+          name: organization?.name || "Unknown Organization",
+          slug: organization?.slug || null,
         },
+        organizationName: organization?.name || "Unknown Organization",
+        invitedBy: pendingUser.invitedBy || null,
       });
     } catch (error) {
-      console.error("Accept invite error:", error);
-      res.status(500).json({ message: "Failed to accept invitation" });
+      console.error("Validate invite token error:", error);
+      res.status(500).json({ message: "Failed to validate invitation token" });
     }
   });
-
+// ...existing code...
   // Alternative endpoint for validate-invite-token (used by auth/AcceptInvite.jsx)
   app.post("/api/auth/validate-invite-token", async (req, res) => {
     try {

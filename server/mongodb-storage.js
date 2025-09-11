@@ -1469,7 +1469,7 @@ export class MongoStorage {
     email,
     role: roles,
     roles: [], 
-    organization: organizationId,
+    organization_id: organizationId,
     status: 'invited', 
     isActive: false,
     emailVerified: false,
@@ -1479,7 +1479,20 @@ export class MongoStorage {
     invitedAt: new Date(),
     licenseId: licenseId || null // ✅ include licenseId if provided
   });
-
+  console.log('new user',{
+    email,
+    role: roles,
+    roles: [], 
+    organization: organizationId,
+    status: 'invited', 
+    isActive: false,
+    emailVerified: false,
+    inviteToken,
+    inviteTokenExpiry,
+    invitedBy,
+    invitedAt: new Date(),
+    licenseId: licenseId || null // ✅ include licenseId if provided
+  },invitedUser)
   const savedUser = await invitedUser.save();
 
   // Send invitation email (only if sendEmail flag is true)

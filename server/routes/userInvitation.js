@@ -33,7 +33,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
   try {
     const { invites ,adminUser } = req.body;
     
-    console.log('>>>>adminUser',adminUser)
+   
     if (!invites || !Array.isArray(invites) || invites.length === 0) {
       return res.status(400).json({ message: "Invalid invitation data" });
     }
@@ -107,7 +107,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
           licenseId: invite.licenseId || null,  // pass licenseId if provided
           sendEmail: invite.sendEmail !== false // default true
         });
-        console.log('Invitation result:', invitationResult);
+        
         results.success.push({
           email: invite.email,
           message: 'Invitation sent successfully'
