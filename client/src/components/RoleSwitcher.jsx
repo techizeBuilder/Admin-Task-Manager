@@ -16,7 +16,7 @@ import {
   ChevronDown,
   RotateCcw
 } from 'lucide-react';
-
+import { useLocation } from "wouter";
 // Create context for role switching
 const RoleContext = createContext();
 
@@ -85,7 +85,7 @@ const RoleSwitcher = () => {
     queryKey: ["/api/auth/verify"],
     enabled: !!localStorage.getItem("token"),
   });
-  
+    const [, navigate] = useLocation(); // navigate function from wouter
   const { activeRole, setActiveRole } = useActiveRole();
   const queryClient = useQueryClient();
   
@@ -111,9 +111,10 @@ const RoleSwitcher = () => {
       ...oldData,
       activeRole: newRole
     }));
-    
+        // ✅ Redirect user to dashboard using wouter
+    navigate("/dashboard");
     // Refresh the page to apply new role context
-    window.location.reload();
+    
   };
 
   const CurrentRoleIcon = getRoleIcon(currentRole);

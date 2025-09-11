@@ -11,6 +11,7 @@ export function AdminLayout({ children }) {
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/verify"],
     enabled: !!localStorage.getItem("token"),
+      retry: false,
   });
 
   const toggleSidebar = () => {
@@ -28,7 +29,8 @@ export function AdminLayout({ children }) {
     // Redirect to login page
     window.location.href = "/login";
   };
-
+   const activeRole = user?.activeRole || user?.role?.[0];
+    const userRole = activeRole?.toLowerCase();
   // Show loading state while user data is being fetched
   if (isLoading) {
     return (
@@ -45,7 +47,7 @@ export function AdminLayout({ children }) {
     <div className="min-h-screen bg-gray-100 flex">
       {/* Dynamic sidebar based on user role */}
       <Sidebar 
-        role={user?.role || 'member'}
+        role={userRole}
         onLogout={handleLogout}
         defaultCollapsed={!sidebarOpen}
         showToggle={true}
