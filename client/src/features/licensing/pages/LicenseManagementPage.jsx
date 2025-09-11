@@ -32,7 +32,8 @@ export default function LicenseManagementPage() {
     upgradePlan,
     setBillingCycle,
     getSavingsPercentage,
-    hasAccess
+    hasAccess,
+    getUsageStatus 
   } = useLicensing();
   
   const { getFeatureStatus, getLimitWarnings } = usePlanLimits();
@@ -44,7 +45,9 @@ export default function LicenseManagementPage() {
   const isOnTrial = currentPlanKey === 'explore';
   const warnings = getLimitWarnings;
   const hasWarnings = warnings.length > 0;
-
+  const detailedKeys = ['tasks','forms','processes','reports'];
+  const overLimitKeys = detailedKeys.filter(k => getUsageStatus(k).isOverLimit);
+  const hasAnyOverLimit = overLimitKeys.length > 0;
   // Handle upgrade modal trigger from usage limits
   React.useEffect(() => {
     const handleShowUpgradeModal = (event) => {
@@ -201,23 +204,28 @@ export default function LicenseManagementPage() {
                 <p className="text-sm text-gray-600 mt-1">Monitor your current usage against plan limits</p>
               </div>
               
-              {/* Usage Meters Grid - Flex grow to fill remaining space */}
+               {/* Usage Meters Grid - Flex grow to fill remaining space */}
               <div className="p-6 flex-1 flex items-center">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                  {Object.entries(usage).map(([key, value]) => {
-                    const status = getFeatureStatus(key);
+                  {[
+                    { key: 'tasks', label: 'Tasks created' },
+                    { key: 'forms', label: 'Forms created' },
+                    { key: 'processes', label: 'Processes created' },
+                    { key: 'reports', label: 'Reports generated' }
+                  ].map(({ key, label }) => {
+                    const status = getUsageStatus(key);
                     return (
                       <div key={key} className="space-y-3" data-testid={`usage-meter-${key}`}>
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700">
-                            {key.charAt(0).toUpperCase() + key.slice(1)}
+                            {label}
                           </span>
                           <span className="text-sm text-gray-600">
                             {status.current}/{status.limit === -1 ? '∞' : status.limit}
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
+                          <div
                             className={cn(
                               "h-2 rounded-full transition-all",
                               status.isOverLimit ? "bg-red-500" :
@@ -230,7 +238,7 @@ export default function LicenseManagementPage() {
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>{Math.round(status.percentage)}% used</span>
                           {status.isOverLimit && (
-                            <span className="text-red-600 font-medium">Over limit</span>
+                            <span className="text-red-600 font-semibold">Over limit</span>
                           )}
                         </div>
                       </div>
@@ -251,7 +259,7 @@ export default function LicenseManagementPage() {
                     {trialDaysLeft}
                   </div>
                   <div className="text-sm text-gray-600 mb-4">
-                    days left in trial
+                    days left in trial 
                   </div>
                   <Button 
                     className="bg-orange-600 hover:bg-orange-700 text-white"

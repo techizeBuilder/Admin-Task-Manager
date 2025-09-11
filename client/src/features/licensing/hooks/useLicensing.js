@@ -10,7 +10,10 @@ const MOCK_PLANS = {
       users: 3,
       projects: 2,
       storage: '1GB',
-      tasks: 50
+      tasks: 50,
+      forms: 1,
+      processes: 30,
+      reports: 2
     },
     features: ['Basic task management', 'Email support', '7-day trial']
   },
@@ -21,7 +24,10 @@ const MOCK_PLANS = {
       users: 10,
       projects: 10,
       storage: '10GB',
-      tasks: 500
+      tasks: 500,
+      forms: 5,
+      processes: 100,
+      reports: 10
     },
     features: ['Advanced task management', 'Team collaboration', 'Priority support', 'Custom fields']
   },
@@ -32,7 +38,10 @@ const MOCK_PLANS = {
       users: 50,
       projects: 50,
       storage: '100GB',
-      tasks: 2000
+      tasks: 2000,
+      forms: 25,
+      processes: 500,
+      reports: 50
     },
     features: ['All Starter features', 'Advanced analytics', 'API access', 'Custom integrations']
   },
@@ -43,7 +52,10 @@ const MOCK_PLANS = {
       users: 'Unlimited',
       projects: 'Unlimited',
       storage: '1TB',
-      tasks: 'Unlimited'
+      tasks: 'Unlimited',
+      forms: 'Unlimited',
+      processes: 'Unlimited',
+      reports: 'Unlimited'
     },
     features: ['All Professional features', 'SSO integration', 'Dedicated support', 'Custom deployment']
   }
@@ -55,9 +67,10 @@ export default function useLicensing() {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [usage, setUsage] = useState({
     users: 2,
-    projects: 1,
-    storage: '0.5GB',
-    tasks: 25
+    tasks: 5,
+    forms: 1,
+    reports: 2,
+    processes: 20
   });
   const [trialDaysLeft, setTrialDaysLeft] = useState(5);
   const [invoices, setInvoices] = useState([]);
@@ -89,17 +102,13 @@ export default function useLicensing() {
 
   const getCurrentPlan = () => MOCK_PLANS[currentPlan];
   
-  const getUsagePercentage = (type) => {
-    const current = usage[type];
-    const limit = getCurrentPlan().limits[type];
-    
-    if (limit === 'Unlimited') return 0;
-    if (type === 'storage') {
-      const currentGB = parseFloat(current.replace('GB', ''));
-      const limitGB = parseFloat(limit.replace('GB', ''));
-      return (currentGB / limitGB) * 100;
-    }
-    return (current / limit) * 100;
+   const getUsagePercentage = (type) => {
+    const current = usage[type] ?? 0;
+    const limitRaw = getCurrentPlan().limits[type];
+    if (limitRaw === 'Unlimited' || limitRaw === -1 || limitRaw == null) return 0;
+    const limitNum = Number(limitRaw);
+    if (!Number.isFinite(limitNum) || limitNum <= 0) return 0;
+    return (current / limitNum) * 100;
   };
   
   const isOverLimit = (type) => getUsagePercentage(type) > 100;
@@ -109,7 +118,24 @@ export default function useLicensing() {
     const currentIndex = plans.indexOf(currentPlan);
     return currentIndex < plans.length - 1;
   };
-  
+    // New: full status object for a usage type
+  const getUsageStatus = (type) => {
+    const plan = getCurrentPlan();
+    const current = usage[type] ?? 0;
+    const rawLimit = plan.limits[type];
+    const unlimited = rawLimit === 'Unlimited' || rawLimit === -1;
+    const numericLimit = unlimited ? -1 : Number(rawLimit);
+    const percentage = numericLimit > 0 ? (current / numericLimit) * 100 : 0;
+    const isOverLimit = numericLimit > 0 && current > numericLimit;
+    const isNearLimit = !isOverLimit && numericLimit > 0 && percentage >= 80;
+    return {
+      current,
+      limit: unlimited ? -1 : numericLimit,
+      percentage: Number.isFinite(percentage) ? percentage : 0,
+      isOverLimit,
+      isNearLimit
+    };
+  };
   const canDowngrade = () => {
     const plans = ['explore', 'starter', 'professional', 'enterprise'];
     const currentIndex = plans.indexOf(currentPlan);
@@ -162,7 +188,7 @@ export default function useLicensing() {
     // Usage calculations
     getUsagePercentage,
     isOverLimit,
-    
+        getUsageStatus,
     // Plan management
     canUpgrade,
     canDowngrade,

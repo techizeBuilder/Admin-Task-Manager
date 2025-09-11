@@ -305,16 +305,19 @@ const handleInputChange = (formType, field, value) => {
 
         {/* Right Side - Registration Options */}
         <div className="w-96 bg-white flex items-center justify-center p-6 shadow-2xl">
+       
           <div
             className={`w-full max-w-sm transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-0 transform scale-95" : "opacity-100 transform scale-100"}`}
           >
-            <div className="text-center mb-6">
+            <div className="text-center mb-6">   
+             
               <div className="w-12 h-12 bg-[#253140] rounded-xl flex items-center justify-center mx-auto mb-4">
                 <span className="text-white font-bold text-lg">TS</span>
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">
                 Get Started
               </h2>
+           
               <p className="text-sm text-gray-600">
                 Choose your account type to begin
               </p>
