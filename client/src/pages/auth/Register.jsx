@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   User,
@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { set } from "mongoose";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -19,38 +20,76 @@ export default function Register() {
   const [selectedType, setSelectedType] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   // Separate form data
-const [individualData, setIndividualData] = useState({
-  firstName: "",
-  lastName: "",
-  email: "",
-});
+  const [individualData, setIndividualData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
 
-const [organizationData, setOrganizationData] = useState({
-  organizationName: "",
-  firstName: "",
-  lastName: "",
-  email: "",
-});
+  const [organizationData, setOrganizationData] = useState({
+    organizationName: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
-// Separate error objects
-const [individualErrors, setIndividualErrors] = useState({});
-const [organizationErrors, setOrganizationErrors] = useState({});
-const handleTypeSelection = (type) => {
-  setIsTransitioning(true);
-  setTimeout(() => {
-    setSelectedType(type);
-    setIsTransitioning(false);
+  const handleReset = () => {
+    setIndividualErrors({});
+    setOrganizationErrors({});
+    setOrganizationData({
+      organizationName: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+    });
+    setIndividualData({
+      firstName: "",
+      lastName: "",
+      email: "",
+    });
+  };
+  // Separate error objects
+  const [individualErrors, setIndividualErrors] = useState({});
+  const [organizationErrors, setOrganizationErrors] = useState({});
+  const handleTypeSelection = (type) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedType(type);
+      setIsTransitioning(false);
 
-    // Clear errors when switching forms
-    if (type === "individual") {
-      setOrganizationErrors({});
-    } else if (type === "organization") {
-      setIndividualErrors({});
-    }
-  }, 200);
+      // Clear errors when switching forms
+      if (type === "individual") {
+        setOrganizationErrors({});
+      } else if (type === "organization") {
+        setIndividualErrors({});
+      }
+    }, 200);
+  };
+
+  const validateField = (formType, field, value) => {
+    let error = "";
+const fieldLabels = {
+  firstName: "First Name",
+  lastName: "Last Name",
+  email: "Email",
+  organizationName: "Organization Name",
 };
 
+    if (!value.trim()) {
+    error = `${fieldLabels[field] || field} is required`;
+  } else {
+    if (field === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) error = "Please enter a valid email";
+    }
+  }
 
+    if (formType === "organization") {
+      setOrganizationErrors((prev) => ({ ...prev, [field]: error }));
+    } else if (formType === "individual") {
+      setIndividualErrors((prev) => ({ ...prev, [field]: error }));
+    }
+  };
   const handleBackToChoice = () => {
     setIsTransitioning(true);
     setTimeout(() => {
@@ -62,23 +101,18 @@ const handleTypeSelection = (type) => {
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
-const handleInputChange = (formType, field, value) => {
-  if (formType === "individual") {
-    setIndividualData((prev) => ({ ...prev, [field]: value }));
-    if (individualErrors[field]) {
-      setIndividualErrors((prev) => ({ ...prev, [field]: "" }));
+  const handleInputChange = (formType, field, value) => {
+    if (formType === "organization") {
+      setOrganizationData((prev) => ({ ...prev, [field]: value }));
+      validateField("organization", field, value);
+    } else {
+      setIndividualData((prev) => ({ ...prev, [field]: value }));
+      validateField("individual", field, value);
     }
-  } else if (formType === "organization") {
-    setOrganizationData((prev) => ({ ...prev, [field]: value }));
-    if (organizationErrors[field]) {
-      setOrganizationErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  }
-};
+  };
 
   const handleRegister = async (e) => {
-   
- e.preventDefault();
+  e.preventDefault();
 
   let newErrors = {};
   let payload = {};
@@ -89,27 +123,36 @@ const handleInputChange = (formType, field, value) => {
     if (!firstName.trim()) newErrors.firstName = "First name is required";
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
     if (!email) newErrors.email = "Email is required";
-    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email";
+    else if (!validateEmail(email))
+      newErrors.email = "Please enter a valid email";
 
     if (Object.keys(newErrors).length > 0) {
       setIndividualErrors(newErrors);
       return;
     }
 
-    payload = { firstName: firstName.trim(), lastName: lastName.trim(), email };
+    payload = {
+      email,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+    };
   }
 
   if (selectedType === "organization") {
     const { organizationName, firstName, lastName, email } = organizationData;
 
-    if (!organizationName.trim()) newErrors.organizationName = "Organization name is required";
-    else if (organizationName.trim().length < 2) newErrors.organizationName = "At least 2 characters";
-    else if (organizationName.trim().length > 100) newErrors.organizationName = "Max 100 characters";
+    if (!organizationName.trim())
+      newErrors.organizationName = "Organization name is required";
+    else if (organizationName.trim().length < 2)
+      newErrors.organizationName = "At least 2 characters";
+    else if (organizationName.trim().length > 100)
+      newErrors.organizationName = "Max 100 characters";
 
     if (!firstName.trim()) newErrors.firstName = "First name is required";
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
     if (!email) newErrors.email = "Email is required";
-    else if (!validateEmail(email)) newErrors.email = "Please enter a valid email";
+    else if (!validateEmail(email))
+      newErrors.email = "Please enter a valid email";
 
     if (Object.keys(newErrors).length > 0) {
       setOrganizationErrors(newErrors);
@@ -118,107 +161,90 @@ const handleInputChange = (formType, field, value) => {
 
     payload = {
       organizationName: organizationName.trim(),
+      email,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email,
     };
   }
 
-    setIsLoading(true);
+  setIsLoading(true);
   try {
-  const endpoint =
-    selectedType === "individual"
-      ? "/api/auth/register/individual"
-      : "/api/auth/register/organization";
+    const endpoint =
+      selectedType === "individual"
+        ? "/api/auth/register/individual"
+        : "/api/auth/register/organization";
 
-  const payload =
-    selectedType === "individual"
-      ? {
-          email: individualData.email,
-          firstName: individualData.firstName.trim(),
-          lastName: individualData.lastName.trim(),
-        }
-      : {
-          organizationName: organizationData.organizationName.trim(),
-          email: organizationData.email,
-          firstName: organizationData.firstName.trim(),
-          lastName: organizationData.lastName.trim(),
-        };
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+    const result = await response.json();
 
-  const result = await response.json();
+    if (response.ok) {
+      if (result.resent) {
+        toast({
+          title: "Verification Email Resent",
+          description: result.message || "We've re-sent your verification link.",
+          variant: "default",
+          className: "bg-green-50 border-green-200 text-green-800",
+        });
+        return;
+      }
 
-  if (response.ok) {
-    // Handle email resent scenario
-    if (result.resent) {
-      toast({
-        title: "Verification Email Resent",
-        description:
-          result.message || "We've re-sent your verification link.",
-        variant: "default",
-        className: "bg-green-50 border-green-200 text-green-800",
-      });
-      return; // stay on form
-    }
+      if (result.autoAuthenticated && result.token) {
+        localStorage.setItem("token", result.token);
+        toast({
+          title:
+            selectedType === "organization"
+              ? "Organization created successfully"
+              : "Registration successful",
+          description:
+            result.message ||
+            "Welcome to TaskSetu! Auto-authenticated for testing.",
+        });
+        setLocation("/dashboard");
+      } else {
+        const email =
+          selectedType === "individual"
+            ? individualData.email
+            : organizationData.email;
 
-    // Handle auto-authentication
-    if (result.autoAuthenticated && result.token) {
-      localStorage.setItem("token", result.token);
-      toast({
-        title:
-          selectedType === "organization"
-            ? "Organization created successfully"
-            : "Registration successful",
-        description:
-          result.message ||
-          "Welcome to TaskSetu! Auto-authenticated for testing.",
-      });
-      setLocation("/dashboard");
+        localStorage.setItem("verificationEmail", email);
+        localStorage.setItem("registrationEmail", email);
+        localStorage.setItem("registrationType", selectedType);
+
+        setLocation(
+          `/registration-success?email=${encodeURIComponent(
+            email
+          )}&type=${selectedType}`
+        );
+      }
     } else {
-      // Handle new registration
-      const email =
-        selectedType === "individual"
-          ? individualData.email
-          : organizationData.email;
-
-      localStorage.setItem("verificationEmail", email);
-      localStorage.setItem("registrationEmail", email);
-      localStorage.setItem("registrationType", selectedType);
-
-      setLocation(
-        `/registration-success?email=${encodeURIComponent(
-          email
-        )}&type=${selectedType}`
-      );
+      const errorMsg = result.message || "Registration failed";
+      selectedType === "individual"
+        ? setIndividualErrors({ submit: errorMsg })
+        : setOrganizationErrors({ submit: errorMsg });
     }
-  } else {
-    if (selectedType === "individual") {
-      setIndividualErrors({
-        submit: result.message || "Registration failed",
-      });
-    } else {
-      setOrganizationErrors({
-        submit: result.message || "Registration failed",
-      });
-    }
+  } catch (error) {
+    const errorMsg = "Network error. Please try again.";
+    selectedType === "individual"
+      ? setIndividualErrors({ submit: errorMsg })
+      : setOrganizationErrors({ submit: errorMsg });
+  } finally {
+    setIsLoading(false);
   }
-} catch (error) {
-  if (selectedType === "individual") {
-    setIndividualErrors({ submit: "Network error. Please try again." });
-  } else {
-    setOrganizationErrors({ submit: "Network error. Please try again." });
-  }
-} finally {
-  setIsLoading(false);
-}
+};
 
-  };
-
+  const hasOrganizationErrors = Object.values(organizationErrors).some(
+    (v) => v
+  );
+  const hasIndividualErrors = Object.values(individualErrors).some((v) => v);
+  useEffect(() => {
+    console.log("error", individualErrors, organizationErrors, selectedType);
+    handleReset();
+  }, [selectedType]);
   // Choice Selection View
   if (!selectedType) {
     return (
@@ -238,11 +264,12 @@ const handleInputChange = (formType, field, value) => {
               Welcome to TaskSetu
             </h1>
             <p className="text-2xl text-blue-100 mb-12 text-center leading-relaxed">
-              Streamline your workflow and boost productivity with our
-              comprehensive task management platform
+              {/* Streamline your workflow and boost productivity with our
+              comprehensive task management platform */}
+              Smart, Simple Task Management. Let’s set you up!
             </p>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 max-w-xl mx-auto">
               <div className="flex items-start gap-4">
                 <div className="p-3 bg-blue-400 rounded-xl">
                   <Target className="h-6 w-6" />
@@ -305,19 +332,21 @@ const handleInputChange = (formType, field, value) => {
 
         {/* Right Side - Registration Options */}
         <div className="w-96 bg-white flex items-center justify-center p-6 shadow-2xl">
-       
           <div
-            className={`w-full max-w-sm transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-0 transform scale-95" : "opacity-100 transform scale-100"}`}
+            className={`w-full max-w-sm transition-all duration-300 ease-in-out ${
+              isTransitioning
+                ? "opacity-0 transform scale-95"
+                : "opacity-100 transform scale-100"
+            }`}
           >
-            <div className="text-center mb-6">   
-             
+            <div className="text-center mb-6">
               <div className="w-12 h-12 bg-[#253140] rounded-xl flex items-center justify-center mx-auto mb-4">
                 <span className="text-white font-bold text-lg">TS</span>
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">
                 Get Started
               </h2>
-           
+
               <p className="text-sm text-gray-600">
                 Choose your account type to begin
               </p>
@@ -490,16 +519,22 @@ const handleInputChange = (formType, field, value) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name 
+                      First Name
                     </label>
                     <input
                       type="text"
                       value={individualData.firstName}
                       onChange={(e) =>
-                        handleInputChange("individual", "firstName", e.target.value)
+                        handleInputChange(
+                          "individual",
+                          "firstName",
+                          e.target.value
+                        )
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        individualErrors.firstName ? "border-red-300" : "border-gray-300"
+                        individualErrors.firstName
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       placeholder="First name"
                     />
@@ -517,10 +552,16 @@ const handleInputChange = (formType, field, value) => {
                       type="text"
                       value={individualData.lastName}
                       onChange={(e) =>
-                        handleInputChange("individual","lastName", e.target.value)
+                        handleInputChange(
+                          "individual",
+                          "lastName",
+                          e.target.value
+                        )
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                        individualErrors.lastName ? "border-red-300" : "border-gray-300"
+                        individualErrors.lastName
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       placeholder="Last name"
                     />
@@ -539,14 +580,20 @@ const handleInputChange = (formType, field, value) => {
                   <input
                     type="email"
                     value={individualData.email}
-                    onChange={(e) => handleInputChange("individual","email", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("individual", "email", e.target.value)
+                    }
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                      individualErrors.email ? "border-red-300" : "border-gray-300"
+                      individualErrors.email
+                        ? "border-red-300"
+                        : "border-gray-300"
                     }`}
                     placeholder="Email address"
                   />
                   {individualErrors.email && (
-                    <p className="text-red-500 text-xs mt-1">{individualErrors.email}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {individualErrors.email}
+                    </p>
                   )}
                 </div>
 
@@ -560,7 +607,7 @@ const handleInputChange = (formType, field, value) => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || hasIndividualErrors}
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading ? "Creating account..." : "Create Account"}
@@ -693,7 +740,11 @@ const handleInputChange = (formType, field, value) => {
                     type="text"
                     value={organizationData.organizationName}
                     onChange={(e) =>
-                      handleInputChange("organization", "organizationName", e.target.value)
+                      handleInputChange(
+                        "organization",
+                        "organizationName",
+                        e.target.value
+                      )
                     }
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                       organizationErrors.organizationName
@@ -718,10 +769,16 @@ const handleInputChange = (formType, field, value) => {
                       type="text"
                       value={organizationData.firstName}
                       onChange={(e) =>
-                        handleInputChange("organization", "firstName", e.target.value)
+                        handleInputChange(
+                          "organization",
+                          "firstName",
+                          e.target.value
+                        )
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                        organizationErrors.firstName ? "border-red-300" : "border-gray-300"
+                        organizationErrors.firstName
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       placeholder="Enter first name"
                     />
@@ -739,10 +796,16 @@ const handleInputChange = (formType, field, value) => {
                       type="text"
                       value={organizationData.lastName}
                       onChange={(e) =>
-                        handleInputChange("organization", "lastName", e.target.value)
+                        handleInputChange(
+                          "organization",
+                          "lastName",
+                          e.target.value
+                        )
                       }
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                        organizationErrors.lastName ? "border-red-300" : "border-gray-300"
+                        organizationErrors.lastName
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       placeholder="Enter last name"
                     />
@@ -761,14 +824,20 @@ const handleInputChange = (formType, field, value) => {
                   <input
                     type="email"
                     value={organizationData.email}
-                    onChange={(e) => handleInputChange("organization", "email", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("organization", "email", e.target.value)
+                    }
                     className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
-                      organizationErrors.email ? "border-red-300" : "border-gray-300"
+                      organizationErrors.email
+                        ? "border-red-300"
+                        : "border-gray-300"
                     }`}
                     placeholder="Enter admin email address"
                   />
                   {organizationErrors.email && (
-                    <p className="text-red-500 text-xs mt-1">{organizationErrors.email}</p>
+                    <p className="text-red-500 text-xs mt-1">
+                      {organizationErrors.email}
+                    </p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
                     This will be the admin account for your organization
@@ -785,7 +854,7 @@ const handleInputChange = (formType, field, value) => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || hasOrganizationErrors}
                     className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 px-4 text-sm rounded-lg hover:from-indigo-700 hover:to-indigo-800 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading
