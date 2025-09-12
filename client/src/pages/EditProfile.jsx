@@ -37,6 +37,7 @@ import {
   Bell,
   Globe,
 } from "lucide-react";
+import { useAuthStore } from "../stores/useAuthStore";
 
 export default function EditProfile() {
   const [, setLocation] = useLocation();
@@ -45,6 +46,7 @@ export default function EditProfile() {
   const fileInputRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -107,7 +109,39 @@ export default function EditProfile() {
     retry: 1,
     enabled: !!authUser?.id,
   });
+// Fetch organization details once
+const { data: organization,  } = useQuery({
+  queryKey: ["/api/organization/details"],
+  enabled: !!localStorage.getItem("token"), // Only call if token exists
+  queryFn: async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
 
+    const res = await fetch("/api/organization/details", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      // Token invalid or expired
+      localStorage.removeItem("token");
+      return null;
+    }
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+
+    return await res.json();
+  },
+  retry: false,
+  staleTime: Infinity,  // Keep cached forever
+  cacheTime: Infinity,
+});
+
+console.log('currentUser',organization)
   // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
 
@@ -121,7 +155,7 @@ export default function EditProfile() {
         department: currentUser.department || "",
         manager: currentUser.manager || "no-manager",
         organizationName:
-          currentUser.organizationName || currentUser.organization?.name || "",
+          organization?.name ,
         timeZone:
           currentUser.timeZone ||
           Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -134,7 +168,11 @@ export default function EditProfile() {
       setOriginalData(userData);
 
       // Validate phone number on load
-      if (userData.phoneNumber && userData.phoneNumber.trim() !== "" && !validatePhoneNumber(userData.phoneNumber)) {
+      if (
+        userData.phoneNumber &&
+        userData.phoneNumber.trim() !== "" &&
+        !validatePhoneNumber(userData.phoneNumber)
+      ) {
         setErrors((prev) => ({
           ...prev,
           phoneNumber: "Please enter a valid phone number (10-15 digits)",
@@ -147,12 +185,12 @@ export default function EditProfile() {
       }
     }
   }, [currentUser]);
-
+  
   // Check for changes
   useEffect(() => {
     const hasFormChanges =
       Object.keys(formData).some(
-        (key) => formData[key] !== originalData[key],
+        (key) => formData[key] !== originalData[key]
       ) || selectedFile !== null;
     setHasChanges(hasFormChanges);
   }, [formData, originalData, selectedFile]);
@@ -239,7 +277,7 @@ export default function EditProfile() {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === "checkbox" ? checked : value;
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: newValue,
@@ -509,13 +547,17 @@ export default function EditProfile() {
   const getInitials = () => {
     // Priority 1: Use first and last name initials
     if (currentUser?.firstName && currentUser?.lastName) {
-      return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(0)}`.toUpperCase();
+      return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(
+        0
+      )}`.toUpperCase();
     }
 
     // Priority 2: Use first name + email prefix if only first name exists
     if (currentUser?.firstName && currentUser?.email) {
       const emailPrefix = currentUser.email.split("@")[0];
-      return `${currentUser.firstName.charAt(0)}${emailPrefix.charAt(0)}`.toUpperCase();
+      return `${currentUser.firstName.charAt(0)}${emailPrefix.charAt(
+        0
+      )}`.toUpperCase();
     }
 
     // Priority 3: Use first two characters of email prefix as fallback
@@ -545,14 +587,8 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto p-2">
       {/* Header */}
-      <div className="mb-3">
-        <h1 className="text-lg font-bold text-gray-900">Edit Profile</h1>
-        <p className="text-gray-600 mt-1 text-sm">
-          Update your personal information and profile picture
-        </p>
-      </div>
 
       <Card>
         <CardHeader>
@@ -624,29 +660,38 @@ export default function EditProfile() {
                   Basic Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">Full Name *</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        placeholder="First name"
-                        required
-                        data-testid="input-first-name"
-                      />
-                      <Input
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        placeholder="Last name"
-                        required
-                        data-testid="input-last-name"
-                      />
-                    </div>
+                  {/* First Name */}
+                  <div className="w-full">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      placeholder="First name"
+                      required
+                      data-testid="input-first-name"
+                      className="w-full"
+                    />
                   </div>
-                  <div>
+
+                  {/* Last Name */}
+                  <div className="w-full">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      placeholder="Last name"
+                      required
+                      data-testid="input-last-name"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="w-full">
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
@@ -654,9 +699,11 @@ export default function EditProfile() {
                       value={currentUser?.email || ""}
                       disabled={true}
                       readOnly={shouldShowOrgSection()}
-                      className={
-                        shouldShowOrgSection() ? "bg-gray-100 cursor-not-allowed" : ""
-                      }
+                      className={`w-full ${
+                        shouldShowOrgSection()
+                          ? "bg-gray-100 cursor-not-allowed"
+                          : ""
+                      }`}
                       data-testid="input-email"
                     />
                     {shouldShowOrgSection() && (
@@ -665,7 +712,9 @@ export default function EditProfile() {
                       </p>
                     )}
                   </div>
-                  <div>
+
+                  {/* Phone Number */}
+                  <div className="w-full">
                     <Label htmlFor="phoneNumber">Phone Number</Label>
                     <Input
                       id="phoneNumber"
@@ -674,103 +723,119 @@ export default function EditProfile() {
                       onChange={handleInputChange}
                       placeholder="10-15 digits"
                       data-testid="input-phone"
-                      className={errors.phoneNumber ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                      className={`w-full ${
+                        errors.phoneNumber
+                          ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                          : ""
+                      }`}
                     />
                     {errors.phoneNumber ? (
                       <p className="text-xs text-red-500 mt-1">
                         {errors.phoneNumber}
                       </p>
-                    ) : (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Optional • 10-15 digits
-                      </p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
-                    {shouldShowOrgSection() &&
-                 <>   
-              {/* Organization Information */}
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                  <Shield className="h-5 w-5" />
-                  Organization Information
-                </h3>
-                {isAdminWithReadOnlyOrg() && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-blue-700">
-                      <strong>Note:</strong> Organization information is read-only for administrators to maintain data integrity.
-                    </p>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="organizationName">Organization Name</Label>
-                    <Input
-                      id="organizationName"
-                      name="organizationName"
-                      value={formData.organizationName}
-                      onChange={handleInputChange}
-                      disabled={isOrgUser() || isAdminWithReadOnlyOrg()}
-                      className={
-                        (isOrgUser() || isAdminWithReadOnlyOrg()) ? "bg-gray-100 cursor-not-allowed" : ""
-                      }
-                      placeholder={
-                        (!isOrgUser() && !isAdminWithReadOnlyOrg()) ? "Enter organization name" : ""
-                      }
-                      data-testid="input-organization"
-                    />
+
+              {shouldShowOrgSection() && (
+                <>
+                  {/* Organization Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                      <Shield className="h-5 w-5" />
+                      Organization Information
+                    </h3>
                     {isAdminWithReadOnlyOrg() && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Organization information is read-only for administrators
-                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                        <p className="text-sm text-blue-700">
+                          <strong>Note:</strong> Organization information is
+                          read-only for administrators to maintain data
+                          integrity.
+                        </p>
+                      </div>
                     )}
-                    {isOrgUser() && !isAdminWithReadOnlyOrg() && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Organization name is managed by administrators
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="department">Department/Team</Label>
-                    <Input
-                      id="department"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleInputChange}
-                      placeholder="e.g., Engineering, Marketing"
-                      data-testid="input-department"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Optional</p>
-                  </div>
-                  {shouldShowOrgSection() && (
-                    <div>
-                      <Label htmlFor="manager">Manager/Supervisor</Label>
-                      <Select
-                        name="manager"
-                        value={formData.manager}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, manager: value }))
-                        }
-                      >
-                        <SelectTrigger data-testid="select-manager" >
-                          <SelectValue placeholder="Select manager" />
-                        </SelectTrigger>
-                        <SelectContent className='bg-white'>
-                          <SelectItem value="no-manager">No manager assigned</SelectItem>
-                          <SelectItem value="john-doe">John Doe</SelectItem>
-                          <SelectItem value="jane-smith">Jane Smith</SelectItem>
-                          <SelectItem value="mike-wilson">
-                            Mike Wilson
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-gray-500 mt-1">Optional</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="organizationName">
+                          Organization Name
+                        </Label>
+                        <Input
+                          id="organizationName"
+                          name="organizationName"
+                          value={formData.organizationName}
+                          onChange={handleInputChange}
+                          disabled={isOrgUser() || isAdminWithReadOnlyOrg()}
+                          className={
+                            isOrgUser() || isAdminWithReadOnlyOrg()
+                              ? "bg-gray-100 cursor-not-allowed"
+                              : ""
+                          }
+                          placeholder={
+                            !isOrgUser() && !isAdminWithReadOnlyOrg()
+                              ? "Enter organization name"
+                              : ""
+                          }
+                          data-testid="input-organization"
+                        />
+                        {isAdminWithReadOnlyOrg() && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Organization information is read-only for
+                            administrators
+                          </p>
+                        )}
+                        {isOrgUser() && !isAdminWithReadOnlyOrg() && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Organization name is managed by administrators
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="department">Department/Team</Label>
+                        <Input
+                          id="department"
+                          name="department"
+                          value={formData.department}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Engineering, Marketing"
+                          data-testid="input-department"
+                        />
+                      </div>
+                      {shouldShowOrgSection() && (
+                        <div>
+                          <Label htmlFor="manager">Manager/Supervisor</Label>
+                          <Select
+                            name="manager"
+                            value={formData.manager}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                manager: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger data-testid="select-manager">
+                              <SelectValue placeholder="Select manager" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                              <SelectItem value="no-manager">
+                                No manager assigned
+                              </SelectItem>
+                              <SelectItem value="john-doe">John Doe</SelectItem>
+                              <SelectItem value="jane-smith">
+                                Jane Smith
+                              </SelectItem>
+                              <SelectItem value="mike-wilson">
+                                Mike Wilson
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div></>
-                    }
+                  </div>
+                </>
+              )}
 
               {/* Access & Roles (Read-only) */}
               <div className="border-b pb-4">
@@ -795,7 +860,7 @@ export default function EditProfile() {
                     <div className="mt-2">
                       <Badge variant="outline" data-testid="badge-license">
                         {getLicenseDisplayName(
-                          currentUser?.license || "explore_free",
+                          currentUser?.license || "explore_free"
                         )}
                       </Badge>
                     </div>
@@ -1056,7 +1121,9 @@ export default function EditProfile() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={updateProfile.isPending || !hasChanges || errors.phoneNumber}
+                disabled={
+                  updateProfile.isPending || !hasChanges || errors.phoneNumber
+                }
                 className="bg-blue-800 hover:bg-blue-700 text-white cursor-pointer text-xs"
               >
                 {updateProfile.isPending ? (

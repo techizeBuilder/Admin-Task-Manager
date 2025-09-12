@@ -17,6 +17,7 @@ import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
 import { taskRoutes } from "./routes/taskRoutes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
+import rateLimit from 'express-rate-limit';
 
 export async function registerRoutes(app) {
   // Configure CORS
@@ -34,7 +35,14 @@ export async function registerRoutes(app) {
       ],
     }),
   );
-
+// Register rate limiter (10 requests/minute per IP)
+const registerLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many registrations. Please wait a minute." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -88,7 +96,7 @@ export async function registerRoutes(app) {
   });
 
   // Registration endpoint
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register",registerLimiter, async (req, res) => {
     try {
       const { firstName, lastName, email, password, confirmPassword, userType } = req.body;
       
@@ -607,6 +615,26 @@ export async function registerRoutes(app) {
   }
 });
 
+app.get("/api/organization/details", authenticateToken, async (req, res) => {
+  try {
+    console.log('user<><><>',req.user)
+    if (!req.user.organizationId) {
+      return res.status(400).json({ message: "User not associated with any organization" });
+    }
+
+    const organization = await storage.getOrganization(req.user.organizationId);
+
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+
+    // Return complete organization object
+    res.json(organization);
+  } catch (error) {
+    console.error("Get organization details error:", error);
+    res.status(500).json({ message: "Failed to fetch organization details" });
+  }
+});
 
   // Get team members for current user's organization
   app.get("/api/team-members", authenticateToken, async (req, res) => {

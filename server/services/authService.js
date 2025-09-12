@@ -25,12 +25,13 @@ export class AuthService {
 
   // Generate JWT token
   generateToken(user) {
+    console.log("Generating token for user:", user.organization_id );
     return jwt.sign(
       { 
         id: user._id, 
         email: user.email, 
         role: user.role,
-        organizationId: user.organization || user.organizationId || null
+        organizationId: user.organization_id 
       },
       this.JWT_SECRET,
       { expiresIn: this.JWT_EXPIRES_IN }

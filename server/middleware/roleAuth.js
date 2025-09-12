@@ -41,7 +41,7 @@ export const authenticateToken = async (req, res, next) => {
             id: user._id,
             email: user.email,
             role: user.role,
-            organization: user.organization,
+            organization: user.organizationId,
             isActive: user.isActive,
           }
         : "User not found",
@@ -51,12 +51,12 @@ export const authenticateToken = async (req, res, next) => {
       console.log("Auth middleware - User invalid or inactive");
       return res.status(401).json({ error: "Invalid or inactive user" });
     }
-
+    console.log('l;l;l;',user)
     req.user = {
       id: user._id,
       email: user.email,
       role: user.role,
-      organizationId: user.organization || user.organizationId,
+      organizationId: user.organization_id,
       permissions: user.permissions || [],
     };
 

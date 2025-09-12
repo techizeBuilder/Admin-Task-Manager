@@ -44,7 +44,7 @@ export async function authenticateToken(req, res, next) {
       return res.status(403).json({ message: 'User not found' });
     }
 
-    console.log('User found:', { id: user._id, email: user.email, organization: user.organization });
+    console.log('User found:', { id: user._id, email: user.email, organization: user.organizationId });
 
     // Get organization details if user has one
     let organizationName = null;
