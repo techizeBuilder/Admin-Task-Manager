@@ -79,14 +79,14 @@ class EmailService {
                 <p>To complete the setup and define your password, click below:</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${this.baseUrl}/verify?token=${verificationCode}" class="button">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
                     Verify & Set Password
                   </a>
                 </div>
                 
                 <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10B981;">
                   <p style="margin: 0; color: #166534; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
-                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}</p>
+                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
                 </div>
                 
                 <p>Once verified, you can invite your team, configure access levels, and start collaborating.</p>
@@ -128,14 +128,14 @@ class EmailService {
                 <p>To activate your account and set your password, please click the link below:</p>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${this.baseUrl}/verify?token=${verificationCode}" class="button">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
                     👉 Verify Email & Set My Password
                   </a>
                 </div>
                 
                 <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3B82F6;">
                   <p style="margin: 0; color: #4a5568; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
-                  <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}</p>
+                  <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
                 </div>
                 
                 <p>This link is <strong style="color: #e53e3e;">valid for 24 hours</strong>.</p>

@@ -17,12 +17,11 @@ export default function VerifyEmail() {
   const [isLoading, setIsLoading] = useState(false);
   const [verificationToken, setVerificationToken] = useState('');
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    // Get token from URL parameters
+  const [userName, setUserName] = useState('');
+    useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    
+    const name = urlParams.get('name');
     if (!token) {
       toast({
         title: "Invalid Link",
@@ -32,17 +31,24 @@ export default function VerifyEmail() {
       setLocation('/login');
       return;
     }
-    
     setVerificationToken(token);
+    if (name) setUserName(name);
   }, [setLocation, toast]);
+  const passwordCriteria = {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    digit: /[0-9]/.test(password),
+  };
+    const isPasswordValid = Object.values(passwordCriteria).every(Boolean);
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!password) {
       newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+    } else if (!isPasswordValid) {
+      newErrors.password = "Password does not meet all requirements";
     }
 
     if (!confirmPassword) {
@@ -54,7 +60,6 @@ export default function VerifyEmail() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleVerification = async (e) => {
     e.preventDefault();
     
@@ -120,14 +125,14 @@ export default function VerifyEmail() {
           <CardTitle className="text-2xl font-bold text-slate-900">
             Verify Your Email
           </CardTitle>
-          <CardDescription className="text-slate-600">
-            Set your password to complete account verification
+        <CardDescription className="text-slate-600">
+            Welcome{userName ? `, ${userName}` : ''} ! Let’s finish setting up your account.
           </CardDescription>
         </CardHeader>
         
         <CardContent>
           <form onSubmit={handleVerification} className="space-y-4">
-            <div className="space-y-2">
+               <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
@@ -151,6 +156,51 @@ export default function VerifyEmail() {
                     <Eye className="h-4 w-4 text-slate-500" />
                   )}
                 </Button>
+              </div>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-medium text-slate-600">Password must include:</p>
+                <ul className="space-y-1 text-xs">
+                  <li className="flex items-center gap-2">
+                    {passwordCriteria.length ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                    <span className={passwordCriteria.length ? "text-green-700" : "text-slate-600"}>
+                      Minimum 8 characters
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {passwordCriteria.upper ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                    <span className={passwordCriteria.upper ? "text-green-700" : "text-slate-600"}>
+                      At least 1 uppercase letter
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {passwordCriteria.lower ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                    <span className={passwordCriteria.lower ? "text-green-700" : "text-slate-600"}>
+                      At least 1 lowercase letter
+                    </span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    {passwordCriteria.digit ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 text-red-500" />
+                    )}
+                    <span className={passwordCriteria.digit ? "text-green-700" : "text-slate-600"}>
+                      At least 1 digit
+                    </span>
+                  </li>
+                </ul>
               </div>
               {errors.password && (
                 <p className="text-sm text-red-600">{errors.password}</p>
