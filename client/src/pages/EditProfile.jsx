@@ -153,7 +153,7 @@ const { data: organization,  } = useQuery({
   cacheTime: Infinity,
 });
 
-console.log('currentUser',organization)
+console.log('currentUser',user)
   // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
 
@@ -782,26 +782,26 @@ const getRoleBadgeVariant = (role) => {
                           name="organizationName"
                           value={formData.organizationName}
                           onChange={handleInputChange}
-                          disabled={isOrgUser() || isAdminWithReadOnlyOrg()}
+                          disabled={!user.isPrimaryAdmin}
                           className={
-                            isOrgUser() || isAdminWithReadOnlyOrg()
+                         !user.isPrimaryAdmin
                               ? "bg-gray-100 cursor-not-allowed"
                               : ""
                           }
                           placeholder={
-                            !isOrgUser() && !isAdminWithReadOnlyOrg()
+                          !user.isPrimaryAdmin
                               ? "Enter organization name"
                               : ""
                           }
                           data-testid="input-organization"
                         />
-                        {isAdminWithReadOnlyOrg() && (
+                        {/* {isAdminWithReadOnlyOrg() && (
                           <p className="text-xs text-gray-500 mt-1">
                             Organization information is read-only for
                             administrators
                           </p>
-                        )}
-                        {isOrgUser() && !isAdminWithReadOnlyOrg() && (
+                        )} */}
+                        {!user.isPrimaryAdmin && (
                           <p className="text-xs text-gray-500 mt-1">
                             Organization name is managed by administrators
                           </p>

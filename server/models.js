@@ -1,40 +1,43 @@
 import mongoose from "mongoose";
 
 // Login Attempt Schema for tracking failed login attempts
-const loginAttemptSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    index: true
+const loginAttemptSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    attemptCount: {
+      type: Number,
+      default: 1,
+    },
+    firstAttemptAt: {
+      type: Date,
+      default: Date.now,
+    },
+    lastAttemptAt: {
+      type: Date,
+      default: Date.now,
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
+    },
+    lockoutExpiresAt: {
+      type: Date,
+    },
+    ipAddress: {
+      type: String,
+    },
+    userAgent: {
+      type: String,
+    },
   },
-  attemptCount: {
-    type: Number,
-    default: 1
-  },
-  firstAttemptAt: {
-    type: Date,
-    default: Date.now
-  },
-  lastAttemptAt: {
-    type: Date,
-    default: Date.now
-  },
-  isLocked: {
-    type: Boolean,
-    default: false
-  },
-  lockoutExpiresAt: {
-    type: Date
-  },
-  ipAddress: {
-    type: String
-  },
-  userAgent: {
-    type: String
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true
-});
+);
 
 // TTL index to automatically delete records after 24 hours
 loginAttemptSchema.index({ lastAttemptAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hours
@@ -84,8 +87,6 @@ const organizationSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
-
 
 // Project Schema
 const projectSchema = new mongoose.Schema(
@@ -229,48 +230,80 @@ const taskSchema = new mongoose.Schema(
     estimatedHours: Number,
     actualHours: Number,
     // Advanced task fields for comprehensive task management
-    taskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' },
-    mainTaskType: { type: String, enum: ['regular', 'recurring', 'milestone', 'approval'], default: 'regular' }, // Clear task category identification
-    taskTypeAdvanced: { type: String, enum: ['simple', 'complex', 'recurring', 'milestone', 'approval'], default: 'simple' }, // Task complexity classification
-    category: { type: String, default: '' },
-    visibility: { type: String, enum: ['private', 'team', 'organization'], default: 'private' },
-    collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    taskType: {
+      type: String,
+      enum: ["regular", "recurring", "milestone", "approval"],
+      default: "regular",
+    },
+    mainTaskType: {
+      type: String,
+      enum: ["regular", "recurring", "milestone", "approval"],
+      default: "regular",
+    }, // Clear task category identification
+    taskTypeAdvanced: {
+      type: String,
+      enum: ["simple", "complex", "recurring", "milestone", "approval"],
+      default: "simple",
+    }, // Task complexity classification
+    category: { type: String, default: "" },
+    visibility: {
+      type: String,
+      enum: ["private", "team", "organization"],
+      default: "private",
+    },
+    collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     dependencies: [{ type: String }], // Store as strings for now, can be converted to ObjectIds later when tasks exist
-    attachments: [{
-      id: { type: String },
-      name: { type: String },
-      filename: { type: String },
-      size: { type: Number },
-      type: { type: String },
-      url: { type: String }
-    }],
+    attachments: [
+      {
+        id: { type: String },
+        name: { type: String },
+        filename: { type: String },
+        size: { type: Number },
+        type: { type: String },
+        url: { type: String },
+      },
+    ],
     customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
-    
+
     // Advanced options fields - always available regardless of task type
     referenceProcess: { type: String, default: null }, // Links to existing process/workflow
     customForm: { type: String, default: null }, // Links to predefined form for data collection
-    
+
     // Milestone fields
     isMilestone: { type: Boolean, default: false },
-    milestoneType: { type: String, enum: ['standalone', 'project'], default: 'standalone' },
+    milestoneType: {
+      type: String,
+      enum: ["standalone", "project"],
+      default: "standalone",
+    },
     milestoneData: {
       type: { type: String },
-      linkedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
-      completionCriteria: [{ type: String }]
+      linkedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
+      completionCriteria: [{ type: String }],
     },
-    linkedTasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
-    
+    linkedTasks: [{ type: mongoose.Schema.Types.ObjectId, ref: "Task" }],
+
     // Approval task fields
     isApprovalTask: { type: Boolean, default: false },
-    approvalMode: { type: String, enum: ['any', 'all', 'majority'], default: 'any' },
-    approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    approvers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    approvalDecisions: [{
-      approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      decision: { type: String, enum: ['approved', 'rejected'] },
-      comment: { type: String },
-      timestamp: { type: Date, default: Date.now }
-    }],
+    approvalMode: {
+      type: String,
+      enum: ["any", "all", "majority"],
+      default: "any",
+    },
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    approvers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    approvalDecisions: [
+      {
+        approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        decision: { type: String, enum: ["approved", "rejected"] },
+        comment: { type: String },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
     autoApproveEnabled: { type: Boolean, default: false },
     autoApproveAfter: { type: Number }, // hours
   },
@@ -376,19 +409,16 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
     },
-  role: {
-  type: [String],
-  enum: [
-    "super_admin",
-    "org_admin",
-    "manager",
-    "individual",
-    "employee",
-  ],
-  default: ["employee"],
-  required: true,
-}
-,
+    role: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
+    isPrimaryAdmin: {
+      type: Boolean,
+      default: false,
+    },
     permissions: {
       type: [String],
       default: [],
@@ -402,21 +432,21 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-  
+
     department: {
-      type: String, 
+      type: String,
       trim: true,
-      maxlength: 50
+      maxlength: 50,
     },
     designation: {
       type: String,
       trim: true,
-      maxlength: 50
+      maxlength: 50,
     },
     location: {
       type: String,
       trim: true,
-      maxlength: 50
+      maxlength: 50,
     },
     inviteToken: String,
     inviteTokenExpiry: Date,
@@ -868,6 +898,32 @@ const processInstanceSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+// Pending User Schema for email verification during registration
+const pendingUserSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  type: { type: String, enum: ["individual", "organization"], required: true },
+  organizationName: { type: String }, // Only for organization type
+  organizationSlug: { type: String }, // Only for organization type
+  licenseId: {
+    type: String,
+    enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
+    required: function () {
+      // Only require license when user is active
+      return this.status !== "invited";
+    },
+    default: "Explore (Free)",
+  },
+  department: { type: String, maxlength: 50 },
+  designation: { type: String, maxlength: 50 },
+  location: { type: String, maxlength: 50 },
+  verificationCode: { type: String },
+  verificationExpires: { type: Date },
+  isVerified: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
+});
 
 export const LoginAttempt = mongoose.model("LoginAttempt", loginAttemptSchema);
 export const Organization = mongoose.model("Organization", organizationSchema);
@@ -895,32 +951,4 @@ export const ProcessInstance = mongoose.model(
   "ProcessInstance",
   processInstanceSchema
 );
-
-// Pending User Schema for email verification during registration
-const pendingUserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  type: { type: String, enum: ["individual", "organization"], required: true },
-  organizationName: { type: String }, // Only for organization type
-  organizationSlug: { type: String }, // Only for organization type
-  licenseId: { 
-    type: String, 
-    enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
-    required: function () {
-    // Only require license when user is active
-    return this.status !== 'invited';
-  },
-  default: "Explore (Free)"   
-  },
-  department: { type: String, maxlength: 50 },
-  designation: { type: String, maxlength: 50 },
-  location: { type: String, maxlength: 50 },
-  verificationCode: { type: String },
-  verificationExpires: { type: Date },
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
-});
-
 export const PendingUser = mongoose.model("PendingUser", pendingUserSchema);

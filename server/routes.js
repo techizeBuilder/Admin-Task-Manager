@@ -485,14 +485,9 @@ const registerLimiter = rateLimit({
   // Organization registration
   app.post("/api/auth/register/organization", async (req, res) => {
   try {
-    const { firstName, lastName, email, organizationName } = req.body;
+    const { firstName, lastName, email, organizationName, isPrimaryAdmin } = req.body;
 
-    console.log("Organization registration attempt:", {
-      firstName,
-      lastName,
-      email,
-      organizationName,
-    });
+  
 
     // Validate required fields
     if (!firstName || !lastName || !email || !organizationName) {
@@ -573,6 +568,7 @@ const registerLimiter = rateLimit({
       status: "pending",
       organization_id: organization._id,   // ✅ match schema field
       accountType: "organization",
+      isPrimaryAdmin: isPrimaryAdmin === true,
     };
 
     const user = await storage.createUser(userData);
@@ -721,6 +717,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         role: user.role,
         organizationId: user.organization_id,
         status: user.status,
+        isPrimaryAdmin: user.isPrimaryAdmin || false,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };

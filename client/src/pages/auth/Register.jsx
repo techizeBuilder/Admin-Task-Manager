@@ -68,21 +68,21 @@ export default function Register() {
 
   const validateField = (formType, field, value) => {
     let error = "";
-const fieldLabels = {
-  firstName: "First Name",
-  lastName: "Last Name",
-  email: "Email",
-  organizationName: "Organization Name",
-};
+    const fieldLabels = {
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      organizationName: "Organization Name",
+    };
 
     if (!value.trim()) {
-    error = `${fieldLabels[field] || field} is required`;
-  } else {
-    if (field === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(value)) error = "Please enter a valid email";
+      error = `${fieldLabels[field] || field} is required`;
+    } else {
+      if (field === "email") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) error = "Please enter a valid email";
+      }
     }
-  }
 
     if (formType === "organization") {
       setOrganizationErrors((prev) => ({ ...prev, [field]: error }));
@@ -112,130 +112,133 @@ const fieldLabels = {
   };
 
   const handleRegister = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  let newErrors = {};
-  let payload = {};
+    let newErrors = {};
+    let payload = {};
 
-  if (selectedType === "individual") {
-    const { firstName, lastName, email } = individualData;
+    if (selectedType === "individual") {
+      const { firstName, lastName, email } = individualData;
 
-    if (!firstName.trim()) newErrors.firstName = "First name is required";
-    if (!lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!email) newErrors.email = "Email is required";
-    else if (!validateEmail(email))
-      newErrors.email = "Please enter a valid email";
+      if (!firstName.trim()) newErrors.firstName = "First name is required";
+      if (!lastName.trim()) newErrors.lastName = "Last name is required";
+      if (!email) newErrors.email = "Email is required";
+      else if (!validateEmail(email))
+        newErrors.email = "Please enter a valid email";
 
-    if (Object.keys(newErrors).length > 0) {
-      setIndividualErrors(newErrors);
-      return;
-    }
-
-    payload = {
-      email,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-    };
-  }
-
-  if (selectedType === "organization") {
-    const { organizationName, firstName, lastName, email } = organizationData;
-
-    if (!organizationName.trim())
-      newErrors.organizationName = "Organization name is required";
-    else if (organizationName.trim().length < 2)
-      newErrors.organizationName = "At least 2 characters";
-    else if (organizationName.trim().length > 100)
-      newErrors.organizationName = "Max 100 characters";
-
-    if (!firstName.trim()) newErrors.firstName = "First name is required";
-    if (!lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!email) newErrors.email = "Email is required";
-    else if (!validateEmail(email))
-      newErrors.email = "Please enter a valid email";
-
-    if (Object.keys(newErrors).length > 0) {
-      setOrganizationErrors(newErrors);
-      return;
-    }
-
-    payload = {
-      organizationName: organizationName.trim(),
-      email,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-    };
-  }
-
-  setIsLoading(true);
-  try {
-    const endpoint =
-      selectedType === "individual"
-        ? "/api/auth/register/individual"
-        : "/api/auth/register/organization";
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      if (result.resent) {
-        toast({
-          title: "Verification Email Resent",
-          description: result.message || "We've re-sent your verification link.",
-          variant: "default",
-          className: "bg-green-50 border-green-200 text-green-800",
-        });
+      if (Object.keys(newErrors).length > 0) {
+        setIndividualErrors(newErrors);
         return;
       }
 
-      if (result.autoAuthenticated && result.token) {
-        localStorage.setItem("token", result.token);
-        toast({
-          title:
-            selectedType === "organization"
-              ? "Organization created successfully"
-              : "Registration successful",
-          description:
-            result.message ||
-            "Welcome to TaskSetu! Auto-authenticated for testing.",
-        });
-        setLocation("/dashboard");
-      } else {
-        const email =
-          selectedType === "individual"
-            ? individualData.email
-            : organizationData.email;
+      payload = {
+        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      };
+    }
 
-        localStorage.setItem("verificationEmail", email);
-        localStorage.setItem("registrationEmail", email);
-        localStorage.setItem("registrationType", selectedType);
+    if (selectedType === "organization") {
+      const { organizationName, firstName, lastName, email } = organizationData;
 
-        setLocation(
-          `/registration-success?email=${encodeURIComponent(
-            email
-          )}&type=${selectedType}`
-        );
+      if (!organizationName.trim())
+        newErrors.organizationName = "Organization name is required";
+      else if (organizationName.trim().length < 2)
+        newErrors.organizationName = "At least 2 characters";
+      else if (organizationName.trim().length > 100)
+        newErrors.organizationName = "Max 100 characters";
+
+      if (!firstName.trim()) newErrors.firstName = "First name is required";
+      if (!lastName.trim()) newErrors.lastName = "Last name is required";
+      if (!email) newErrors.email = "Email is required";
+      else if (!validateEmail(email))
+        newErrors.email = "Please enter a valid email";
+
+      if (Object.keys(newErrors).length > 0) {
+        setOrganizationErrors(newErrors);
+        return;
       }
-    } else {
-      const errorMsg = result.message || "Registration failed";
+
+      payload = {
+        organizationName: organizationName.trim(),
+        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+
+        isPrimaryAdmin: selectedType === "organization" ? true : false,
+      };
+    }
+
+    setIsLoading(true);
+    try {
+      const endpoint =
+        selectedType === "individual"
+          ? "/api/auth/register/individual"
+          : "/api/auth/register/organization";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.resent) {
+          toast({
+            title: "Verification Email Resent",
+            description:
+              result.message || "We've re-sent your verification link.",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          return;
+        }
+
+        if (result.autoAuthenticated && result.token) {
+          localStorage.setItem("token", result.token);
+          toast({
+            title:
+              selectedType === "organization"
+                ? "Organization created successfully"
+                : "Registration successful",
+            description:
+              result.message ||
+              "Welcome to TaskSetu! Auto-authenticated for testing.",
+          });
+          setLocation("/dashboard");
+        } else {
+          const email =
+            selectedType === "individual"
+              ? individualData.email
+              : organizationData.email;
+
+          localStorage.setItem("verificationEmail", email);
+          localStorage.setItem("registrationEmail", email);
+          localStorage.setItem("registrationType", selectedType);
+
+          setLocation(
+            `/registration-success?email=${encodeURIComponent(
+              email
+            )}&type=${selectedType}`
+          );
+        }
+      } else {
+        const errorMsg = result.message || "Registration failed";
+        selectedType === "individual"
+          ? setIndividualErrors({ submit: errorMsg })
+          : setOrganizationErrors({ submit: errorMsg });
+      }
+    } catch (error) {
+      const errorMsg = "Network error. Please try again.";
       selectedType === "individual"
         ? setIndividualErrors({ submit: errorMsg })
         : setOrganizationErrors({ submit: errorMsg });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    const errorMsg = "Network error. Please try again.";
-    selectedType === "individual"
-      ? setIndividualErrors({ submit: errorMsg })
-      : setOrganizationErrors({ submit: errorMsg });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const hasOrganizationErrors = Object.values(organizationErrors).some(
     (v) => v
