@@ -101,7 +101,7 @@ const registerLimiter = rateLimit({
       const { firstName, lastName, email, password, confirmPassword, userType } = req.body;
       
       // Basic validation
-      if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      if (!firstName  || !email || !password || !confirmPassword) {
         return res.status(400).json({
           success: false,
           message: "All fields are required"
@@ -385,7 +385,7 @@ const registerLimiter = rateLimit({
 
     
       // Validate required fields
-      if (!firstName || !lastName || !email) {
+      if (!firstName  || !email) {
         return res.status(400).json({ message: "All fields are required" });
       }
 
@@ -490,7 +490,7 @@ const registerLimiter = rateLimit({
   
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !organizationName) {
+    if (!firstName  || !email || !organizationName) {
       return res.status(400).json({ message: "All fields are required" });
     }
 

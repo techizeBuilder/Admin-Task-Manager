@@ -515,7 +515,7 @@ export default function Users() {
 
       {/* Remove User Confirmation Dialog */}
       <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className='bg-white'>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-red-500" />

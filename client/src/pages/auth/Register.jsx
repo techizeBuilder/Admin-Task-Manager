@@ -70,7 +70,7 @@ export default function Register() {
     let error = "";
     const fieldLabels = {
       firstName: "First Name",
-      lastName: "Last Name",
+  
       email: "Email",
       organizationName: "Organization Name",
     };
@@ -121,7 +121,7 @@ export default function Register() {
       const { firstName, lastName, email } = individualData;
 
       if (!firstName.trim()) newErrors.firstName = "First name is required";
-      if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    
       if (!email) newErrors.email = "Email is required";
       else if (!validateEmail(email))
         newErrors.email = "Please enter a valid email";
@@ -149,7 +149,7 @@ export default function Register() {
         newErrors.organizationName = "Max 100 characters";
 
       if (!firstName.trim()) newErrors.firstName = "First name is required";
-      if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    
       if (!email) newErrors.email = "Email is required";
       else if (!validateEmail(email))
         newErrors.email = "Please enter a valid email";
