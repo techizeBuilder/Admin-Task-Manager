@@ -87,8 +87,10 @@ export default function EditProfile() {
     confirmPassword: "",
   });
   const [hasChanges, setHasChanges] = useState(false);
-  const [errors, setErrors] = useState({
+ const [errors, setErrors] = useState({
     phoneNumber: "",
+    firstName: "",
+    lastName: "",
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
  
@@ -296,24 +298,23 @@ console.log('currentUser',user)
       [name]: newValue,
     }));
 
-    // Real-time phone number validation
+    if (name === "firstName" || name === "lastName") {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: value.trim() ? "" : "This field is required",
+      }));
+    }
+
     if (name === "phoneNumber") {
       if (value.trim() === "") {
-        // Clear error when field is empty (since it's optional)
-        setErrors((prev) => ({
-          ...prev,
-          phoneNumber: "",
-        }));
+        setErrors((prev) => ({ ...prev, phoneNumber: "" }));
       } else if (!validatePhoneNumber(value)) {
         setErrors((prev) => ({
           ...prev,
           phoneNumber: "Please enter a valid phone number (10-15 digits)",
         }));
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          phoneNumber: "",
-        }));
+        setErrors((prev) => ({ ...prev, phoneNumber: "" }));
       }
     }
   };
@@ -441,7 +442,7 @@ console.log('currentUser',user)
       fileInputRef.current.value = "";
     }
   };
-
+  console.log("Current image preview URL:", errors);
   // Cleanup effect for object URLs
   useEffect(() => {
     return () => {
@@ -452,40 +453,35 @@ console.log('currentUser',user)
     };
   }, [imagePreview]);
 
-  const handleSubmit = (e) => {
+   const handleSubmit = (e) => {
     e.preventDefault();
+    const newErrors = {};
 
-    // Basic validation
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "First name and last name are required",
-        variant: "destructive",
-      });
-      return;
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
     }
-
-    // Check for validation errors
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
     if (errors.phoneNumber) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the phone number error before submitting",
-        variant: "destructive",
-      });
+      newErrors.phoneNumber =
+        "Please fix the phone number error before submitting";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }));
       return;
     }
 
-    // Prepare data to send - exclude organization name for admins
+    setErrors((prev) => ({
+      ...prev,
+      firstName: "",
+      lastName: "",
+    }));
+
     const dataToSend = { ...formData };
-    if (isAdminWithReadOnlyOrg()) {
-      delete dataToSend.organizationName;
-    }
-
-    // Convert "no-manager" back to empty string for backend
-    if (dataToSend.manager === "no-manager") {
-      dataToSend.manager = "";
-    }
-
+    if (isAdminWithReadOnlyOrg()) delete dataToSend.organizationName;
+    if (dataToSend.manager === "no-manager") dataToSend.manager = "";
     updateProfile.mutate(dataToSend);
   };
 
@@ -678,21 +674,34 @@ const getRoleBadgeVariant = (role) => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
-                  <div className="w-full">
+                <div className="w-full">
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
+                      onBlur={(e) =>
+                        setErrors((p) => ({
+                          ...p,
+                          firstName: e.target.value.trim()
+                            ? ""
+                            : "First name is required",
+                        }))
+                      }
                       placeholder="First name"
-                      required
                       data-testid="input-first-name"
-                      className="w-full"
+                      className={`w-full  p-2  ${
+                        errors.firstName ? "border-red-500" : ""
+                      }`}
                     />
+                    {errors.firstName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.firstName}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Last Name */}
                   <div className="w-full">
                     <Label htmlFor="lastName">Last Name *</Label>
                     <Input
@@ -700,13 +709,26 @@ const getRoleBadgeVariant = (role) => {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
+                      onBlur={(e) =>
+                        setErrors((p) => ({
+                          ...p,
+                          lastName: e.target.value.trim()
+                            ? ""
+                            : "Last name is required",
+                        }))
+                      }
                       placeholder="Last name"
-                      required
                       data-testid="input-last-name"
-                      className="w-full"
+                      className={`w-full  p-2  ${
+                        errors.lastName ? "border-red-500" : ""
+                      }`}
                     />
+                    {errors.lastName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.lastName}
+                      </p>
+                    )}
                   </div>
-
                   {/* Email */}
                   <div className="w-full">
                     <Label htmlFor="email">Email Address</Label>
@@ -905,7 +927,7 @@ const getRoleBadgeVariant = (role) => {
                       {formatDate(currentUser?.createdAt)}
                     </p>
                   </div>
-                  {currentUser?.licenseExpiresAt && (
+                  {/* {currentUser?.licenseExpiresAt && ( */}
                     <div>
                       <Label>License Expiring On</Label>
                       <p
@@ -915,7 +937,7 @@ const getRoleBadgeVariant = (role) => {
                         {formatDate(currentUser.licenseExpiresAt)}
                       </p>
                     </div>
-                  )}
+                  {/* // )} */}
                 </div>
               </div>
 
