@@ -37,6 +37,15 @@ import {
   Bell,
   Globe,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useAuthStore } from "../stores/useAuthStore";
 
 export default function EditProfile() {
@@ -71,7 +80,7 @@ export default function EditProfile() {
     inAppNotifications: true,
     pushNotifications: false,
   });
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -81,7 +90,10 @@ export default function EditProfile() {
   const [errors, setErrors] = useState({
     phoneNumber: "",
   });
-
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+ 
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const firstPasswordFieldRef = useRef(null);
   // Fetch current user profile - try auth/verify first as fallback
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
@@ -156,10 +168,7 @@ console.log('currentUser',organization)
         manager: currentUser.manager || "no-manager",
         organizationName:
           organization?.name ,
-        timeZone:
-          currentUser.timeZone ||
-          Intl.DateTimeFormat().resolvedOptions().timeZone ||
-          "Asia/Kolkata",
+        timeZone:"Asia/Kolkata",
         emailNotifications: currentUser.emailNotifications !== false,
         inAppNotifications: currentUser.inAppNotifications !== false,
         pushNotifications: currentUser.pushNotifications === true,
@@ -185,7 +194,11 @@ console.log('currentUser',organization)
       }
     }
   }, [currentUser]);
-  
+    useEffect(() => {
+    if (showPasswordModal && firstPasswordFieldRef.current) {
+      setTimeout(() => firstPasswordFieldRef.current?.focus(), 50);
+    }
+  }, [showPasswordModal]);
   // Check for changes
   useEffect(() => {
     const hasFormChanges =
@@ -309,8 +322,7 @@ console.log('currentUser',organization)
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
-
-  const handlePasswordSubmit = async (e) => {
+ const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -346,6 +358,7 @@ console.log('currentUser',organization)
     }
 
     try {
+      setPasswordSubmitting(true);
       const response = await fetch("/api/auth/change-password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -362,7 +375,7 @@ console.log('currentUser',organization)
           newPassword: "",
           confirmPassword: "",
         });
-        setShowPasswordSection(false);
+        setShowPasswordModal(false);
       } else {
         const error = await response.text();
         throw new Error(error);
@@ -373,6 +386,8 @@ console.log('currentUser',organization)
         description: error.message || "Failed to change password",
         variant: "destructive",
       });
+    } finally {
+      setPasswordSubmitting(false);
     }
   };
 
@@ -505,25 +520,27 @@ console.log('currentUser',organization)
     return isOrgUser() || isAdminWithReadOnlyOrg();
   };
 
-  const getRoleBadgeVariant = (role) => {
-    const variants = {
-      admin: "default",
-      manager: "secondary",
-      employee: "outline",
-      individual: "outline",
-    };
-    return variants[role] || "outline";
+const getRoleBadgeVariant = (role) => {
+  const variants = {
+    org_admin: "secondary",
+    admin: "secondary",
+    manager: "outline",
+    employee: "destructive",
+    individual: "success",
   };
+  return variants[role] || "default";
+};
 
-  const getRoleDisplayName = (role) => {
-    const names = {
-      admin: "Company Admin",
-      manager: "Manager",
-      employee: "Regular User",
-      individual: "Individual",
-    };
-    return names[role] || role;
+ const getRoleDisplayName = (role) => {
+  const names = {
+    org_admin: "Organization Admin",
+    admin: "Company Admin",
+    manager: "Manager",
+    employee: "Regular User",
+    individual: "Individual",
   };
+  return names[role] || role;
+};
 
   const getLicenseDisplayName = (license) => {
     const names = {
@@ -790,7 +807,7 @@ console.log('currentUser',organization)
                           </p>
                         )}
                       </div>
-                      <div>
+                      {/* <div>
                         <Label htmlFor="department">Department/Team</Label>
                         <Input
                           id="department"
@@ -831,7 +848,7 @@ console.log('currentUser',organization)
                             </SelectContent>
                           </Select>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </>
@@ -846,14 +863,28 @@ console.log('currentUser',organization)
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Assigned Role</Label>
-                    <div className="mt-2">
-                      <Badge
-                        variant={getRoleBadgeVariant(currentUser?.role)}
-                        data-testid="badge-role"
-                      >
-                        {getRoleDisplayName(currentUser?.role)}
-                      </Badge>
-                    </div>
+                   <div className="mt-2 flex flex-wrap gap-2">
+  {Array.isArray(currentUser?.role) ? (
+    currentUser.role.map((role) => (
+      <Badge
+        key={role}
+        // variant={getRoleBadgeVariant(role)}
+        data-testid={`badge-role-${role}`}
+        variant="outline"
+      >
+        {getRoleDisplayName(role)}
+      </Badge>
+    ))
+  ) : (
+    <Badge
+      // variant={getRoleBadgeVariant(currentUser?.role)}
+      variant="outline"
+      data-testid="badge-role"
+    >
+      {getRoleDisplayName(currentUser?.role)}
+    </Badge>
+  )}
+</div>
                   </div>
                   <div>
                     <Label>License Tier</Label>
@@ -911,76 +942,103 @@ console.log('currentUser',organization)
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          setShowPasswordSection(!showPasswordSection)
-                        }
+                        onClick={() => setShowPasswordModal(true)}
                         data-testid="button-change-password"
                       >
-                        {showPasswordSection ? "Cancel" : "Change Password"}
-                      </Button>
+                        Change Password
+                    </Button>
                     </div>
                   </div>
                 </div>
 
                 {/* Password Change Section */}
-                {showPasswordSection && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="currentPassword">
-                          Current Password *
-                        </Label>
-                        <Input
-                          id="currentPassword"
-                          name="currentPassword"
-                          type="password"
-                          value={passwordData.currentPassword}
-                          onChange={handlePasswordChange}
-                          required
-                          data-testid="input-current-password"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="newPassword">New Password *</Label>
-                        <Input
-                          id="newPassword"
-                          name="newPassword"
-                          type="password"
-                          value={passwordData.newPassword}
-                          onChange={handlePasswordChange}
-                          required
-                          data-testid="input-new-password"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Must be 8+ characters with uppercase, lowercase, and
-                          numbers
-                        </p>
-                      </div>
-                      <div>
-                        <Label htmlFor="confirmPassword">
-                          Confirm New Password *
-                        </Label>
-                        <Input
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          type="password"
-                          value={passwordData.confirmPassword}
-                          onChange={handlePasswordChange}
-                          required
-                          data-testid="input-confirm-password"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handlePasswordSubmit}
-                        data-testid="button-save-password"
-                      >
-                        Update Password
-                      </Button>
-                    </div>
+                  <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-change-password">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Update your account password. Make sure to use a strong one.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handlePasswordSubmit}
+            className="space-y-4"
+            data-testid="form-change-password"
+          >
+            <div>
+              <Label htmlFor="currentPassword">Current Password *</Label>
+              <Input
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                ref={firstPasswordFieldRef}
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                required
+                data-testid="input-current-password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password *</Label>
+              <Input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+                data-testid="input-new-password"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Must be 8+ chars with uppercase, lowercase, and numbers
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+                data-testid="input-confirm-password"
+              />
+            </div>
+            <DialogFooter >
+              <div className="flex w-full justify-between gap-2">
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={passwordSubmitting}
+                  data-testid="button-cancel-password"
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-blue-500 text-white"
+                disabled={passwordSubmitting}
+                data-testid="button-save-password"
+              >
+                {passwordSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                    Updating...
                   </div>
+                ) : (
+                  "Update Password"
                 )}
+              </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
               </div>
 
               {/* Preferences Section */}
@@ -1108,7 +1166,7 @@ console.log('currentUser',organization)
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-2 pt-2">
+            <div className="flex justify-between space-x-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
