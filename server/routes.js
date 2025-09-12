@@ -1015,8 +1015,9 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
             invitedBy: defaultOrgId, // Use org ID as placeholder
             invitedByName: "TaskSetu Admin",
             organizationName: "TaskSetu Organization",
+            name: invite.name || '',
           };
-
+          console.log("Processing invitation for:", invite.name, invite);
           await storage.inviteUserToOrganization(inviteData);
           results.successCount++;
           results.details.push({ email: invite.email, status: "success" });

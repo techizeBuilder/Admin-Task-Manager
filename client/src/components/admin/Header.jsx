@@ -221,7 +221,7 @@ export default function Header({ user }) {
         <div className="flex items-center space-x-3">
           {/* Role Switcher */}
           {
-            !profileUser.role.includes("individual") &&
+            !profileUser?.role?.includes("individual") &&
           <RoleSwitcher />
           }
           

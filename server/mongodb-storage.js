@@ -1446,8 +1446,9 @@ export class MongoStorage {
     invitedBy, 
     invitedByName, 
     organizationName,
+    name,
     licenseId,       // ✅ added
-    sendEmail = true // ✅ default true if not provided
+    sendEmail = true, // ✅ default true if not provided
   } = inviteData;
 
   // Check if user already exists in this organization (active or invited)
@@ -1479,25 +1480,12 @@ export class MongoStorage {
     invitedAt: new Date(),
     licenseId: licenseId || null // ✅ include licenseId if provided
   });
-  console.log('new user',{
-    email,
-    role: roles,
-    roles: [], 
-    organization: organizationId,
-    status: 'invited', 
-    isActive: false,
-    emailVerified: false,
-    inviteToken,
-    inviteTokenExpiry,
-    invitedBy,
-    invitedAt: new Date(),
-    licenseId: licenseId || null // ✅ include licenseId if provided
-  },invitedUser)
-  const savedUser = await invitedUser.save();
 
+  const savedUser = await invitedUser.save();
+  console.log('>>new invitied',name)
   // Send invitation email (only if sendEmail flag is true)
   if (sendEmail) {
-    await this.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName);
+    await this.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName,name);
   }
 
   return savedUser;
@@ -1623,8 +1611,8 @@ export class MongoStorage {
 
 
   // Send user invitation email
-  async sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName) {
-    return await emailService.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName);
+  async sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName,name) {
+    return await emailService.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName,name);
   }
 
   // Get all pending users

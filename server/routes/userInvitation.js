@@ -95,7 +95,7 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
             
         const organization = await storage.getOrganization(adminUser.organizationId);
         const organizationName = organization?.name || 'TaskSetu';
-
+        console.log('>>>>name', invite.name);
         // Create the user invitation using the correct method
         const invitationResult = await storage.inviteUserToOrganization({
           email: invite.email,
@@ -105,7 +105,8 @@ router.post("/invite-users", authenticateToken, requireOrgAdminOrAbove, async (r
           invitedByName: adminUser.name || adminUser.email,
           organizationName: organizationName,
           licenseId: invite.licenseId || null,  // pass licenseId if provided
-          sendEmail: invite.sendEmail !== false // default true
+          sendEmail: invite.sendEmail !== false, // default true,
+          name: invite.name
         });
         
         results.success.push({

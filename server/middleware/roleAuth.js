@@ -16,9 +16,7 @@ export const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
 
-    console.log("Auth middleware - Request URL:", req.url);
-    console.log("Auth middleware - Auth header exists:", !!authHeader);
-    console.log("Auth middleware - Token extracted:", !!token);
+    
 
     if (!token) {
       console.log("Auth middleware - No token provided");
@@ -26,32 +24,16 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("Auth middleware - Token decoded successfully:", {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role,
-    });
+ 
 
     // Get fresh user data to ensure role/organization info is current
     const user = await storage.getUser(decoded.id);
-    console.log(
-      "Auth middleware - User from DB:",
-      user
-        ? {
-            id: user._id,
-            email: user.email,
-            role: user.role,
-            organization: user.organizationId,
-            isActive: user.isActive,
-          }
-        : "User not found",
-    );
 
     if (!user || !user.isActive) {
       console.log("Auth middleware - User invalid or inactive");
       return res.status(401).json({ error: "Invalid or inactive user" });
     }
-    console.log('l;l;l;',user)
+ 
     req.user = {
       id: user._id,
       email: user.email,
