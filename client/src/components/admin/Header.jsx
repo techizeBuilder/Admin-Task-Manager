@@ -220,7 +220,10 @@ export default function Header({ user }) {
 
         <div className="flex items-center space-x-3">
           {/* Role Switcher */}
+          {
+            !profileUser.role.includes("individual") &&
           <RoleSwitcher />
+          }
           
           {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
             <Bell className="h-3 w-3" />
