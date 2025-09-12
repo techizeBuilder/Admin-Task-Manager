@@ -129,32 +129,7 @@ export default function Users() {
     }
   };
 
-  // Confirm role change
-  const confirmRoleChange = () => {
-    if (roleChangeData) {
-      try {
-        const updatedUser = userDataManager.updateUser(roleChangeData.updatedUser.id, roleChangeData.updatedUser);
-        setUsers(userDataManager.getAllUsers());
-        setLicensePool(userDataManager.getLicensePool());
 
-        toast({
-          title: "Role Changed Successfully!",
-          description: `${updatedUser.name}'s role has been changed from ${roleChangeData.oldRole} to ${updatedUser.role}. Access rights have been updated.`,
-          variant: "default",
-          duration: 5000,
-        });
-      } catch (error) {
-        toast({
-          title: "Error Changing Role",
-          description: error.message,
-          variant: "destructive",
-          duration: 5000,
-        });
-      }
-    }
-    setRoleChangeData(null);
-    setIsRoleChangeDialogOpen(false);
-  };
 
   // Deactivate/Reactivate user using UserDataManager
   const toggleUserStatus = (user) => {
@@ -536,39 +511,7 @@ export default function Users() {
         />
       )}
 
-      {/* Role Change Confirmation Dialog */}
-      <AlertDialog open={isRoleChangeDialogOpen} onOpenChange={setIsRoleChangeDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Confirm Role Change
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {roleChangeData && (
-                <>
-                  You are changing <strong>{roleChangeData.updatedUser.name}</strong>&apos;s role from{' '}
-                  <strong>{roleChangeData.oldRole}</strong> to{' '}
-                  <strong>{roleChangeData.updatedUser.role}</strong>.
-                  <br /><br />
-                  This will immediately update their access rights and permissions. Are you sure you want to continue?
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setRoleChangeData(null);
-              setIsRoleChangeDialogOpen(false);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRoleChange} className="bg-amber-600 hover:bg-amber-700">
-              Confirm Role Change
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+ 
 
       {/* Remove User Confirmation Dialog */}
       <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
