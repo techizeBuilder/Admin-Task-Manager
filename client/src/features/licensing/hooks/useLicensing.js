@@ -13,7 +13,7 @@ const MOCK_PLANS = {
       tasks: 50,
       forms: 1,
       processes: 30,
-      reports: 2
+      reports: 1
     },
     features: ['Basic task management', 'Email support', '7-day trial']
   },
