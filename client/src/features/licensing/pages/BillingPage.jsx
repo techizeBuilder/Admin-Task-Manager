@@ -295,15 +295,15 @@ export default function BillingPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <CreditCard className="h-5 w-5" />
-                  <span>Billing Summary</span>
+                  <span className='text-md'>Billing Summary</span>
                 </CardTitle>
                 <CardDescription>
                   Your active plan and billing information
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4">
                 {/* Plan Info */}
-               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+               <div className="flex items-center justify-between p-2 px-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div>
                     <div className="font-semibold text-lg text-blue-900" data-testid="current-plan-name">
                       {displayPlanName}
@@ -322,11 +322,11 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <Separator />
+             
 
                 {/* Billing Details Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="text-sm font-medium text-gray-700">
                       Next Billing Date
                     </div>
@@ -337,7 +337,7 @@ export default function BillingPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="text-sm font-medium text-gray-700">
                      Expiry Date
                     </div>
@@ -348,7 +348,7 @@ export default function BillingPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="text-sm font-medium text-gray-700">
                       Payment Status
                     </div>
@@ -397,7 +397,15 @@ export default function BillingPage() {
             {/* Payment Method */}
             <Card data-testid="payment-method-card">
               <CardHeader>
-                <CardTitle className="text-lg">Billing Details</CardTitle>
+               
+                  <CardTitle className="flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5" />
+                  <span className='text-md'>Billing Details</span>
+
+                </CardTitle>
+                     <CardDescription>
+                  Edit your payment method, tax information and billing details.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 border rounded-lg">
