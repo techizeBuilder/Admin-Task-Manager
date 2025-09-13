@@ -19,7 +19,14 @@ import {
   Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
 /**
  * Purchase/Upgrade Page - Upgrade plan with payment integration
  */
@@ -30,12 +37,23 @@ export default function PurchaseUpgradePage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
+ const [showPlanLimitDialog, setShowPlanLimitDialog] = useState(false);
+   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
   // Handle URL parameters for plan pre-selection
-  useEffect(() => {
+   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const actionParam = urlParams.get('action');
     const planParam = urlParams.get('plan');
-    if (planParam && plans[planParam]) {
+
+    if (actionParam === 'renew') {
+      // If renewing, pick the most popular plan
+      const popularEntry = Object.entries(plans).find(([, p]) => p.popular);
+      if (popularEntry) {
+        setSelectedPlan(popularEntry[0]);
+      }
+    } else if (planParam && plans[planParam]) {
+      // If plan is passed, select it
       setSelectedPlan(planParam);
     }
   }, [location]);
@@ -49,7 +67,31 @@ export default function PurchaseUpgradePage() {
     isOnTrial: true,
     daysLeft: 5
   };
-
+  const currentUsage = {
+    tasksPerMonth: 1200,
+    customForms: 80,
+    processes: 40,
+    reports: 50
+  };
+  const planLimits = {
+    plan: { tasksPerMonth: 100, customForms: 10, processes: 5, reports: Infinity },
+    execute: { tasksPerMonth: 500, customForms: 50, processes: 25, reports: Infinity },
+    optimize: { tasksPerMonth: Infinity, customForms: Infinity, processes: Infinity, reports: Infinity }
+  };
+  const formatLimit = (val) => (val === Infinity ? 'Unlimited' : val.toLocaleString());
+  const isOver = (usage, limit) => limit !== Infinity && usage > limit;
+  const comparisonRows = [
+    { key: 'tasksPerMonth', label: 'Tasks / month' },
+    { key: 'customForms', label: 'Custom forms' },
+    { key: 'processes', label: 'Processes' },
+    { key: 'reports', label: 'Reports' }
+  ].map(row => ({
+    ...row,
+    usage: currentUsage[row.key],
+    executeLimit: planLimits.execute[row.key],
+    optimizeLimit: planLimits.optimize[row.key],
+    executeOver: isOver(currentUsage[row.key], planLimits.execute[row.key])
+  }));
   // Mock plans data
   const plans = {
     plan: {
@@ -80,7 +122,7 @@ export default function PurchaseUpgradePage() {
         'Team collaboration',
         'Custom workflows'
       ],
-      popular: true
+      popular: false
     },
     optimize: {
       name: 'Optimize',
@@ -98,7 +140,7 @@ export default function PurchaseUpgradePage() {
         'Custom integrations',
         'White-label options'
       ],
-      popular: false
+      popular: true
     }
   };
 
@@ -184,7 +226,7 @@ export default function PurchaseUpgradePage() {
               <Shield className="h-5 w-5 text-green-600" />
               <div>
                 <div className="font-medium text-gray-900">
-                  ${currentPlan.price[billingCycle]}/{billingCycle === 'yearly' ? 'year' : 'month'}
+                  ₹{currentPlan.price[billingCycle]}/{billingCycle === 'yearly' ? 'year' : 'month'}
                 </div>
                 <div className="text-sm text-gray-600">Current billing</div>
               </div>
@@ -252,7 +294,19 @@ export default function PurchaseUpgradePage() {
                   {Object.entries(plans).map(([planKey, plan]) => (
                     <div 
                       key={planKey}
-                      onClick={() => setSelectedPlan(planKey)}
+              onClick={() => {
+                        if (planKey === 'plan') {
+                          setShowPlanLimitDialog(true);
+                          return;
+                        }
+                        // NEW: show comparison dialog when moving Optimize -> Execute
+                        if (selectedPlan === 'optimize' && planKey === 'execute') {
+                          setPendingPlan('execute');
+                          setShowComparisonDialog(true);
+                          return;
+                        }
+                        setSelectedPlan(planKey);
+                      }}
                       className={cn(
                         "border rounded-lg p-6 cursor-pointer transition-all hover:shadow-md relative",
                         selectedPlan === planKey 
@@ -276,14 +330,14 @@ export default function PurchaseUpgradePage() {
                       
                       <div className="text-center mb-6">
                         <div className="text-3xl font-bold text-gray-900 mb-1">
-                          ${plan.price[billingCycle]}
+                          ₹{plan.price[billingCycle]}
                         </div>
                         <div className="text-sm text-gray-600">
                           per {billingCycle === 'yearly' ? 'year' : 'month'}
                         </div>
                         {billingCycle === 'yearly' && (
                           <div className="text-sm text-green-600 font-medium">
-                            Save ${(plan.price.monthly * 12) - plan.price.yearly}/year
+                            Save ₹{(plan.price.monthly * 12) - plan.price.yearly}/year
                           </div>
                         )}
                       </div>
@@ -336,7 +390,7 @@ export default function PurchaseUpgradePage() {
                 {billingCycle === 'yearly' && (
                   <div className="flex justify-between items-center text-green-600">
                     <span>Yearly Discount</span>
-                    <span>-${(plans[selectedPlan]?.price.monthly * 12) - plans[selectedPlan]?.price.yearly}</span>
+                    <span>-₹{(plans[selectedPlan]?.price.monthly * 12) - plans[selectedPlan]?.price.yearly}</span>
                   </div>
                 )}
                 
@@ -344,13 +398,13 @@ export default function PurchaseUpgradePage() {
                 
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total</span>
-                  <span>${getSelectedPlanPrice()}</span>
+                  <span>₹{getSelectedPlanPrice()}</span>
                 </div>
               </div>
             </div>
 
             {/* Coupon Code Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Gift className="h-5 w-5 mr-2" />
                 Promo Code
@@ -385,7 +439,7 @@ export default function PurchaseUpgradePage() {
                   Apply Code
                 </Button>
               </div>
-            </div>
+            </div> */}
 
             {/* Upgrade Action Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -456,6 +510,126 @@ export default function PurchaseUpgradePage() {
           </div>
         </div>
       </div>
+          {/* Plan limit dialog */}
+      <Dialog open={showPlanLimitDialog} onOpenChange={setShowPlanLimitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Can’t switch to Plan</DialogTitle>
+            <DialogDescription>
+              You currently have 500 tasks. Plan allows 100 tasks. Please reduce tasks or choose a higher plan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter >
+            <div className='flex justify-between w-full'>
+
+            <Button variant="outline" onClick={() => setShowPlanLimitDialog(false)}>
+              Close
+            </Button>
+          
+            <Button
+              variant="secondary"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+        
+                setShowPlanLimitDialog(false);
+              }}
+            >
+              Choose Other
+            </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+          <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Crown className="h-5 w-5 text-purple-600 mr-2" />
+              Thinking about switching to Execute?
+            </DialogTitle>
+            <DialogDescription>
+              Based on your current usage, Execute may limit your team in these areas. Optimize keeps everything unlimited.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 space-y-4">
+            <div className="grid grid-cols-3 gap-2 text-xs font-medium text-gray-500">
+              <div>Your usage</div>
+              <div className="text-center">Execute limits</div>
+              <div className="text-center">Optimize limits</div>
+            </div>
+
+            <div className="space-y-3">
+              {comparisonRows.map((row) => (
+                <div key={row.key} className="grid grid-cols-3 gap-2 items-center">
+                  <div className="text-sm text-gray-800">
+                    {row.label}
+                    <div className="text-gray-500">{row.usage.toLocaleString()}</div>
+                  </div>
+
+                  <div className="text-sm">
+                    <div
+                      className={cn(
+                        "w-full text-center px-2 py-1 rounded-md",
+                        row.executeOver
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : "bg-green-50 text-green-700 border border-green-200"
+                      )}
+                    >
+                      {formatLimit(row.executeLimit)}
+                    </div>
+                    {row.executeOver && (
+                      <div className="mt-1 flex items-center justify-center text-xs text-red-600">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Over current usage
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-sm">
+                    <div className="w-full text-center px-2 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                      {formatLimit(row.optimizeLimit)}
+                    </div>
+                    <div className="mt-1 flex items-center justify-center text-xs text-purple-600">
+                      <Check className="h-3 w-3 mr-1" />
+                      Room to grow
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+              Tip: Optimize includes unlimited tasks, forms, and processes with priority support.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <div className="flex justify-between w-full">
+              <Button
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                onClick={() => {
+                  setShowComparisonDialog(false);
+                  setPendingPlan(null);
+                  setSelectedPlan('optimize');
+                }}
+              >
+                Stay with Optimize
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowComparisonDialog(false);
+                  if (pendingPlan) setSelectedPlan(pendingPlan);
+                  setPendingPlan(null);
+                }}
+              >
+                Switch to Execute anyway
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

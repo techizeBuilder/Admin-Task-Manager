@@ -708,7 +708,7 @@ function App() {
         </Route>
         <Route path="/admin/upgrade">
           <AdminLayout>
-            <ProtectedRoute component={PurchaseUpgradePage} allowedRoles={["org_admin", "manager","individual","employee"]} />
+            <ProtectedRoute component={PurchaseUpgradePage} allowedRoles={["org_admin", "individual"]} />
           </AdminLayout>
         </Route>
         <Route path="/pricing">

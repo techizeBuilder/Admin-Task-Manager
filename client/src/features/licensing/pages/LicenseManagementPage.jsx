@@ -135,22 +135,26 @@ import { useUserRole } from "../../../utils/auth";
         </tr>
 
         {/* CTA Row */}
-        <tr className="bg-gray-50">
+       <tr className="bg-gray-50">
           {Object.entries(plans).map(([planKey, plan]) => (
             <td
               key={planKey + "cta"}
               className="p-6 text-center border-l border-gray-200 first:border-l-0"
             >
-              <button
-                disabled={planKey === "explore"} // Example: current plan
-                className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition ${
-                  planKey === "explore"
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
-              >
-                {planKey === "explore" ? "Your Current Plan" : "I want this"}
-              </button>
+              {planKey === "explore" ? (
+                <button
+                  disabled
+                  className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
+                >
+                  Your Current Plan
+                </button>
+              ) : (
+                <Link to={`/admin/upgrade?plan=${encodeURIComponent(planKey)}`}>
+                  <button className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition">
+                    I want this
+                  </button>
+                </Link>
+              )}
             </td>
           ))}
         </tr>
@@ -386,7 +390,7 @@ export default function LicenseManagementPage() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Link to="/admin/billing">
+                <Link to="/admin/upgrade?action=renew">
                   <Button
                     size="sm"
                     className="h-7 px-3 bg-amber-600 hover:bg-amber-700 text-white"
@@ -560,9 +564,12 @@ export default function LicenseManagementPage() {
     </div>
     {
       isAdmin && (
+         <Link to="/admin/upgrade?action=renew">
+                
         <button className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1.5 px-3 rounded-md transition">
         Renew
       </button>
+      </Link>
       )
     }
 
@@ -720,17 +727,17 @@ export default function LicenseManagementPage() {
                         </div>
 
                         {/* Content above CTA */}
-                        <div className="space-y-3 mb-6">
+                        {/* <div className="space-y-3 mb-6">
                           {plan.features.map((feature, index) => (
                             <div key={index} className="flex items-center space-x-2">
                               <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                               <span className="text-sm text-gray-600">{feature}</span>
                             </div>
                           ))}
-                        </div>
+                        </div> */}
 
                         {/* CTA pinned to bottom */}
-                        <div className="mt-auto">
+                    <div className="mt-auto">
                           {plan.name === "Explore (Free)" ? (
                             <button
                               disabled
@@ -739,9 +746,11 @@ export default function LicenseManagementPage() {
                               Your Current Plan
                             </button>
                           ) : (
-                            <button className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition">
-                              Upgrade
-                            </button>
+                            <Link to={`/admin/upgrade?plan=${encodeURIComponent(planKey)}`}>
+                              <button className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition">
+                                Upgrade
+                              </button>
+                            </Link>
                           )}
                         </div>
 

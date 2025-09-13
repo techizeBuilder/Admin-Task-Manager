@@ -61,7 +61,8 @@ export const useUserRole = () => {
   });
 
   const user = query.data;
-  const isAdmin = user?.activeRole === "org_admin";
+  
+  const isAdmin = user?.activeRole === "org_admin" || user?.role[0] === "individual";
 
   return { ...query, user, isAdmin };
 };
