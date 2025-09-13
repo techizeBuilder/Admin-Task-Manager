@@ -36,6 +36,8 @@ import {
   Settings,
   Bell,
   Globe,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import {
   Dialog,
@@ -80,7 +82,11 @@ export default function EditProfile() {
     inAppNotifications: true,
     pushNotifications: false,
   });
-
+const [showPasswords, setShowPasswords] = useState({
+  current: false,
+  new: false,
+  confirm: false,
+});
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -96,6 +102,15 @@ export default function EditProfile() {
  
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const firstPasswordFieldRef = useRef(null);
+    // Inline errors for password form
+  const [passwordErrors, setPasswordErrors] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  // Inline server error for password update
+  const [passwordFormError, setPasswordFormError] = useState("");
+
   // Fetch current user profile - try auth/verify first as fallback
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
@@ -158,6 +173,39 @@ const { data: organization,  } = useQuery({
 console.log('currentUser',user)
   // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
+ // Helper to validate password fields and return errors
+ function validatePasswordFields({ currentPassword, newPassword, confirmPassword }) {
+  const errors = {};
+
+  if (!currentPassword) {
+    errors.currentPassword = "Current password is required";
+  }
+  if (!newPassword) {
+    errors.newPassword = "New password is required";
+  }
+  if (!confirmPassword) {
+    errors.confirmPassword = "Confirm password is required";
+  }
+  // Strength check for new password
+  if (newPassword && !validatePasswordStrength(newPassword)) {
+    errors.newPassword =
+      "Password must be at least 8 characters and include uppercase, lowercase, and a number";
+  }
+  // New password must be different from current password
+  if (
+    currentPassword &&
+    newPassword &&
+    validatePasswordStrength(newPassword) &&
+    newPassword === currentPassword
+  ) {
+    errors.newPassword = "New password must be different from current password";
+  }
+  if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+    errors.confirmPassword = "Passwords do not match";
+  }
+
+  return { isValid: Object.keys(errors).length === 0, errors };
+}
 
   // Update form data when user data is loaded
   useEffect(() => {
@@ -196,7 +244,8 @@ console.log('currentUser',user)
       }
     }
   }, [currentUser]);
-    useEffect(() => {
+   
+  useEffect(() => {
     if (showPasswordModal && firstPasswordFieldRef.current) {
       setTimeout(() => firstPasswordFieldRef.current?.focus(), 50);
     }
@@ -319,44 +368,25 @@ console.log('currentUser',user)
     }
   };
 
-  const handlePasswordChange = (e) => {
+ const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData((prev) => ({ ...prev, [name]: value }));
+    const next = { ...passwordData, [name]: value };
+    setPasswordData(next);
+
+    // Re-validate on each change to show inline errors
+    const { errors: nextErrors } = validatePasswordFields(next);
+    setPasswordErrors(nextErrors);
+    // Clear any previous server error as user edits
+    setPasswordFormError("");
   };
- const handlePasswordSubmit = async (e) => {
+const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    if (
-      !passwordData.currentPassword ||
-      !passwordData.newPassword ||
-      !passwordData.confirmPassword
-    ) {
-      toast({
-        title: "Validation Error",
-        description: "All password fields are required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast({
-        title: "Validation Error",
-        description: "New passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!validatePasswordStrength(passwordData.newPassword)) {
-      toast({
-        title: "Validation Error",
-        description:
-          "Password must be at least 8 characters with uppercase, lowercase, and numbers",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Inline validation
+    const { isValid, errors: nextErrors } = validatePasswordFields(passwordData);
+    setPasswordErrors(nextErrors);
+    setPasswordFormError("");
+    if (!isValid) return;
 
     try {
       setPasswordSubmitting(true);
@@ -376,22 +406,24 @@ console.log('currentUser',user)
           newPassword: "",
           confirmPassword: "",
         });
+        setPasswordErrors({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        setPasswordFormError("");
         setShowPasswordModal(false);
       } else {
         const error = await response.text();
-        throw new Error(error);
+        // Show server error inline
+        setPasswordFormError(error || "Failed to change password");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to change password",
-        variant: "destructive",
-      });
+      setPasswordFormError(error.message || "Failed to change password");
     } finally {
       setPasswordSubmitting(false);
     }
   };
-
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -442,7 +474,18 @@ console.log('currentUser',user)
       fileInputRef.current.value = "";
     }
   };
-  console.log("Current image preview URL:", errors);
+  const handlePasswordModalOpenChange = (open) => {
+    setShowPasswordModal(open);
+    if (open) {
+      // Reset errors when opening
+      setPasswordErrors({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordFormError("");
+    }
+  };
   // Cleanup effect for object URLs
   useEffect(() => {
     return () => {
@@ -499,6 +542,15 @@ console.log('currentUser',user)
       /[0-9]/.test(password)
     );
   };
+
+  // Derived validity for enabling the password submit button
+  const isPasswordFormValid =
+    !!passwordData.currentPassword &&
+    !!passwordData.newPassword &&
+    !!passwordData.confirmPassword &&
+    validatePasswordStrength(passwordData.newPassword) &&
+    passwordData.newPassword === passwordData.confirmPassword &&
+    passwordData.newPassword !== passwordData.currentPassword;
 
   // Helper functions
   const isOrgUser = () => {
@@ -973,94 +1025,7 @@ const getRoleBadgeVariant = (role) => {
                   </div>
                 </div>
 
-                {/* Password Change Section */}
-                  <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
-        <DialogContent className="sm:max-w-md" data-testid="dialog-change-password">
-          <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Update your account password. Make sure to use a strong one.
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={handlePasswordSubmit}
-            className="space-y-4"
-            data-testid="form-change-password"
-          >
-            <div>
-              <Label htmlFor="currentPassword">Current Password *</Label>
-              <Input
-                id="currentPassword"
-                name="currentPassword"
-                type="password"
-                ref={firstPasswordFieldRef}
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-                required
-                data-testid="input-current-password"
-              />
-            </div>
-            <div>
-              <Label htmlFor="newPassword">New Password *</Label>
-              <Input
-                id="newPassword"
-                name="newPassword"
-                type="password"
-                value={passwordData.newPassword}
-                onChange={handlePasswordChange}
-                required
-                data-testid="input-new-password"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Must be 8+ chars with uppercase, lowercase, and numbers
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-                data-testid="input-confirm-password"
-              />
-            </div>
-            <DialogFooter >
-              <div className="flex w-full justify-between gap-2">
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={passwordSubmitting}
-                  data-testid="button-cancel-password"
-                >
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-blue-500 text-white"
-                disabled={passwordSubmitting}
-                data-testid="button-save-password"
-              >
-                {passwordSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                    Updating...
-                  </div>
-                ) : (
-                  "Update Password"
-                )}
-              </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              
               </div>
 
               {/* Preferences Section */}
@@ -1220,6 +1185,153 @@ const getRoleBadgeVariant = (role) => {
               </Button>
             </div>
           </form>
+            {/* Password Change Section */}
+                  <Dialog open={showPasswordModal} onOpenChange={handlePasswordModalOpenChange}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-change-password">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Update your account password. Make sure to use a strong one.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handlePasswordSubmit}
+            className="space-y-4"
+            data-testid="form-change-password"
+          >{passwordFormError ? (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+                {passwordFormError}
+              </div>
+          ) : null}
+            <div>
+              <Label htmlFor="currentPassword">Current Password *</Label>
+              <div className="relative">
+              <Input
+                id="currentPassword"
+                name="currentPassword"
+            type={showPasswords.current ? "text" : "password"}
+                ref={firstPasswordFieldRef}
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                className="pl-8"
+          
+                data-testid="input-current-password"
+              />
+                 <span
+    type="button"
+    onClick={() =>
+      setShowPasswords((prev) => ({ ...prev, current: !prev.current }))
+    }
+    className="absolute inset-y-0 left-2 flex items-center text-gray-500 hover:text-gray-700"
+  >
+    {showPasswords.current ? (
+      <EyeOff className="h-4 w-4" />
+    ) : (
+      <Eye className="h-4 w-4" />
+    )}
+    
+  </span>
+      </div>
+            {passwordErrors.currentPassword ? (
+                 <p className="text-xs text-red-600 mt-1">{passwordErrors.currentPassword}</p>
+               ) : null}
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password *</Label>
+              <div className="relative">
+              <Input
+                id="newPassword"
+                name="newPassword"
+          type={showPasswords.new ? "text" : "password"}
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                className="pl-8"
+         
+                data-testid="input-new-password"
+              />   
+                <span
+    type="button"
+    onClick={() =>
+      setShowPasswords((prev) => ({ ...prev, new: !prev.new }))
+    }
+    className="absolute inset-y-0 left-2 flex items-center text-gray-500 hover:text-gray-700"
+  >
+    {showPasswords.new ? (
+      <EyeOff className="h-4 w-4" />
+    ) : (
+      <Eye className="h-4 w-4" />
+    )}
+  </span>
+            
+      </div>
+              {passwordErrors.newPassword ? (
+                <p className="text-xs text-red-600 mt-1">{passwordErrors.newPassword}</p>
+              ) : null}
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password *</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange}
+                  className="pl-8"
+                  data-testid="input-confirm-password"
+                />
+                <span
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({ ...prev, confirm: !prev.confirm }))
+                  }
+                  className="absolute inset-y-0 left-2 flex items-center text-gray-500 hover:text-gray-700"
+                >
+                  {showPasswords.confirm ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </span>
+              </div>
+                {passwordErrors.confirmPassword ? (
+            <p className="text-xs text-red-600 mt-1">{passwordErrors.confirmPassword}</p>
+              ) : null}
+            </div>
+            <DialogFooter >
+              <div className="flex w-full justify-between gap-2">
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={passwordSubmitting}
+                  data-testid="button-cancel-password"
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-blue-500 text-white"
+                disabled={passwordSubmitting || !isPasswordFormValid}
+                data-testid="button-save-password"
+              >
+                {passwordSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                    Updating...
+                  </div>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
         </CardContent>
       </Card>
     </div>
