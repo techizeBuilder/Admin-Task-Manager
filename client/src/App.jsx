@@ -100,6 +100,7 @@ import MemberDashboard from "./layout/sidebar/MemberDashboard";
 import CurrentUserSidebar from "./pages/CurrentUserSidebar";
 import DynamicDashboard from "./pages/Dashboard";
 import QuickAddBar from "./components/tasks/QuickAddBar";
+import { useUserRole } from "./utils/auth";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,42 +112,6 @@ const queryClient = new QueryClient({
 });
 
 // User Role Check Component
-function useUserRole() {
-  const token = localStorage.getItem("token");
-
-  return useQuery({
-    queryKey: ["/api/auth/verify"],
-    enabled: !!token, // Only run query if token exists
-    queryFn: async ({ queryKey }) => {
-      const token = localStorage.getItem("token");
-      if (!token) return null;
-
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      };
-
-      const res = await fetch(queryKey[0], {
-        headers,
-        credentials: "include",
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        // Clear invalid token
-        localStorage.removeItem("token");
-        return null;
-      }
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      return await res.json();
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-}
 
 // Route protection wrapper
 function ProtectedRoute({
@@ -158,7 +123,7 @@ function ProtectedRoute({
   const { data: user, isLoading, error } = useUserRole();
   const [, setLocation] = useLocation();
   const token = localStorage.getItem("token");
-  console.log('debugger ',user)
+  
   useEffect(() => {
     // Only redirect if we have no token at all
     if (!token) {
@@ -732,17 +697,18 @@ function App() {
         {/* Licensing & Subscription Routes */}
         <Route path="/admin/subscription">
           <AdminLayout>
-            <ProtectedRoute component={LicenseManagementPage} requiredRole="org_admin" />
+            <ProtectedRoute component={LicenseManagementPage}        
+             allowedRoles={["org_admin", "manager","individual","employee"]} />
           </AdminLayout>
         </Route>
         <Route path="/admin/billing">
           <AdminLayout>
-            <ProtectedRoute component={BillingPage} requiredRole="org_admin" />
+            <ProtectedRoute component={BillingPage} allowedRoles={["org_admin", "manager","individual","employee"]} />
           </AdminLayout>
         </Route>
         <Route path="/admin/upgrade">
           <AdminLayout>
-            <ProtectedRoute component={PurchaseUpgradePage} requiredRole="org_admin" />
+            <ProtectedRoute component={PurchaseUpgradePage} allowedRoles={["org_admin", "manager","individual","employee"]} />
           </AdminLayout>
         </Route>
         <Route path="/pricing">

@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+
 // Authentication utilities for the frontend
 export const setAuthToken = (token, user) => {
   localStorage.setItem('token', token);
@@ -23,6 +25,47 @@ export const isAuthenticated = () => {
   const user = getAuthUser();
   return !!(token && user);
 };
+export const useUserRole = () => {
+  const token = localStorage.getItem("token");
+
+  const query = useQuery({
+    queryKey: ["/api/auth/verify"],
+    enabled: !!token, // Only run query if token exists
+    queryFn: async ({ queryKey }) => {
+      const token = localStorage.getItem("token");
+      if (!token) return null;
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
+      const res = await fetch(queryKey[0], {
+        headers,
+        credentials: "include",
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem("token");
+        return null;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      return await res.json();
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const user = query.data;
+  const isAdmin = user?.activeRole === "org_admin";
+
+  return { ...query, user, isAdmin };
+};
+
 
 // Login function to authenticate with real user credentials
 export const login = async (email, password) => {

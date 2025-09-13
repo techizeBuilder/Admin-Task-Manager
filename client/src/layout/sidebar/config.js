@@ -87,6 +87,18 @@ export const sidebarMenus = {
           icon: User,
           path: '/profile'
         },
+           {
+          id: 'license-subscription',
+          label: 'License Management',
+          icon: Key,
+          path: '/admin/subscription'
+        },
+          {
+          id: 'billing_invoice',
+          label: 'Billing & Invoices',
+          icon: Key,
+          path: '/admin/billing'
+        },
         {
           id: 'notifications',
           label: 'Notifications',
@@ -194,6 +206,18 @@ export const sidebarMenus = {
           label: 'Profile',
           icon: User,
           path: '/profile'
+        },
+           {
+          id: 'license-subscription',
+          label: 'License Management',
+          icon: Key,
+          path: '/admin/subscription'
+        },
+          {
+          id: 'billing_invoice',
+          label: 'Billing & Invoices',
+          icon: Key,
+          path: '/admin/billing'
         },
         {
           id: 'notifications',
@@ -461,12 +485,24 @@ export const sidebarMenus = {
       id: 'settings',
       label: 'Settings',
       icon: Settings,
-      children: [
+       children: [
         {
           id: 'profile',
           label: 'Profile',
           icon: User,
           path: '/profile'
+        },
+           {
+          id: 'license-subscription',
+          label: 'License Management',
+          icon: Key,
+          path: '/admin/subscription'
+        },
+          {
+          id: 'billing_invoice',
+          label: 'Billing & Invoices',
+          icon: Key,
+          path: '/admin/billing'
         },
         {
           id: 'notifications',
@@ -564,12 +600,24 @@ export const sidebarMenus = {
       id: 'settings',
       label: 'Settings',
       icon: Settings,
-      children: [
+       children: [
         {
           id: 'profile',
           label: 'Profile',
           icon: User,
           path: '/profile'
+        },
+           {
+          id: 'license-subscription',
+          label: 'License Management',
+          icon: Key,
+          path: '/admin/subscription'
+        },
+          {
+          id: 'billing_invoice',
+          label: 'Billing & Invoices',
+          icon: Key,
+          path: '/admin/billing'
         },
         {
           id: 'notifications',

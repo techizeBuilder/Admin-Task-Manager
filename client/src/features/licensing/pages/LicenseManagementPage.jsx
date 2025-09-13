@@ -38,8 +38,8 @@ import { Input } from "@/components/ui/input";
 
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils"; // if you already use cn helper
-import { useAuthStore } from "../../../stores/useAuthStore";
-import { useQuery } from "@tanstack/react-query";
+
+import { useUserRole } from "../../../utils/auth";
 /**
  * License Management Page - In-app summary with usage meters, trial countdown, plan comparison cards
  */ function ComparisonTable({ plans }) {
@@ -190,43 +190,8 @@ export default function LicenseManagementPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  function useUserRole() {
-    const token = localStorage.getItem("token");
-  
-    return useQuery({
-      queryKey: ["/api/auth/verify"],
-      enabled: !!token, // Only run query if token exists
-      queryFn: async ({ queryKey }) => {
-        const token = localStorage.getItem("token");
-        if (!token) return null;
-  
-        const headers = {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        };
-  
-        const res = await fetch(queryKey[0], {
-          headers,
-          credentials: "include",
-        });
-  
-        if (res.status === 401 || res.status === 403) {
-          // Clear invalid token
-          localStorage.removeItem("token");
-          return null;
-        }
-  
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-  
-        return await res.json();
-      },
-      retry: false,
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    });
-  }
-  const { data: user } = useUserRole();
+ 
+  const { data: user,isAdmin } = useUserRole();
   const currentPlan = getCurrentPlan();
   const isOnTrial = currentPlanKey === "explore";
   const warnings = getLimitWarnings;
@@ -235,7 +200,7 @@ export default function LicenseManagementPage() {
   const overLimitKeys = detailedKeys.filter(
     (k) => getUsageStatus(k).isOverLimit
   );
-  console.log('>>>',user)
+
   const hasAnyOverLimit = overLimitKeys.length > 0;
   const plans = {
     explore: {
@@ -593,9 +558,14 @@ export default function LicenseManagementPage() {
     <div className="text-xs text-gray-600 mt-1">
       <span className="font-medium text-red-600">2 days</span> left
     </div>
-    <button className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1.5 px-3 rounded-md transition">
-      Renew
-    </button>
+    {
+      isAdmin && (
+        <button className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1.5 px-3 rounded-md transition">
+        Renew
+      </button>
+      )
+    }
+
     </div>
   </div>
 
@@ -649,8 +619,10 @@ export default function LicenseManagementPage() {
 </div>
 
         </div>
+{
+  isAdmin && (
 
-
+    <>
         {/* Added: Plan Selection + Order Summary (top) */}
         <div className="grid grid-cols-1">
           {/* Plan Selection - Left 8 columns */}
@@ -793,7 +765,8 @@ export default function LicenseManagementPage() {
           {/* Collapsible comparison table → expands to show detailed feature breakdown.
            */}
            <ComparisonTable plans={plans}/>
-     
+     </>)
+}
       </div>
     </div>
   );
