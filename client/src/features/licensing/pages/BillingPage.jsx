@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocation } from "wouter";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -30,6 +31,7 @@ import {
 import useLicensing from '../hooks/useLicensing';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useUserRole } from '../../../utils/auth';
 
 /**
  * Billing & Invoices Page - Billing summary card, payment history table with Download Invoice
@@ -44,7 +46,8 @@ export default function BillingPage() {
   const [updateErrors, setUpdateErrors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  
+    const { isAdmin } = useUserRole();
+      const [, setLocation] = useLocation();
   const {
     currentPlan: currentPlanKey,
     billingCycle,
@@ -52,7 +55,7 @@ export default function BillingPage() {
     getCurrentPlan,
     hasAccess
   } = useLicensing();
-
+  
   const currentPlan = getCurrentPlan();
   const currentPrice = currentPlan.price[billingCycle];
   const nextBillingDate = new Date();
@@ -241,7 +244,12 @@ export default function BillingPage() {
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentPageInvoices = sortedAllInvoices.slice(startIndex, startIndex + itemsPerPage);
-
+  useEffect(()=>{
+    if (!isAdmin) {
+      // Redirect non-admin users away from this page
+      setLocation("/dashboard");
+    }
+  },[isAdmin])
   // Check access - only admins should see billing details
   if (!hasAccess('billing')) {
     return (

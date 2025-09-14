@@ -112,7 +112,7 @@ const RoleSwitcher = () => {
       activeRole: newRole
     }));
         // ✅ Redirect user to dashboard using wouter
-    navigate("/dashboard");
+    // navigate("/dashboard");
     // Refresh the page to apply new role context
     
   };
