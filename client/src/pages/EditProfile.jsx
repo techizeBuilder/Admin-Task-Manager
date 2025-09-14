@@ -170,7 +170,7 @@ export default function EditProfile() {
     cacheTime: Infinity,
   });
 
-  console.log("currentUser", user);
+  console.log("organization..................................", organization);
   // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
   // Helper to validate password fields and return errors
@@ -247,7 +247,7 @@ export default function EditProfile() {
         }));
       }
     }
-  }, [currentUser]);
+  }, [currentUser, organization]);
 
   useEffect(() => {
     if (showPasswordModal && firstPasswordFieldRef.current) {
