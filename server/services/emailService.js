@@ -31,7 +31,7 @@ class EmailService {
 
 this.baseUrl = isLocal
   ? process.env.LOCAL_BASE_URL
-  : process.env.PRODUCTION_BASE_URL;it
+  : process.env.PRODUCTION_BASE_URL;
   }
 
   async sendVerificationEmail(
