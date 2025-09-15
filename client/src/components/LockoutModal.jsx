@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, Clock } from "lucide-react";
-
+import { Button } from '@/components/ui/button';
 const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
   const [remainingTime, setRemainingTime] = useState(timeLeft);
 
@@ -85,6 +85,11 @@ const LockoutModal = ({ isOpen, timeLeft, onClose }) => {
             before trying to log in again. Make sure you're using the correct
             email and password.
           </p>
+        </div>
+        <div>
+          <Button className="w-full bg-blue-500 text-white mt-6" onClick={onClose}>
+            Login Again
+          </Button>
         </div>
       </div>
     </div>

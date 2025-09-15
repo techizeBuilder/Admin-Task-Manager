@@ -70,7 +70,7 @@ export default function Register() {
     let error = "";
     const fieldLabels = {
       firstName: "First Name",
-  
+
       email: "Email",
       organizationName: "Organization Name",
     };
@@ -121,7 +121,7 @@ export default function Register() {
       const { firstName, lastName, email } = individualData;
 
       if (!firstName.trim()) newErrors.firstName = "First name is required";
-    
+
       if (!email) newErrors.email = "Email is required";
       else if (!validateEmail(email))
         newErrors.email = "Please enter a valid email";
@@ -149,7 +149,7 @@ export default function Register() {
         newErrors.organizationName = "Max 100 characters";
 
       if (!firstName.trim()) newErrors.firstName = "First name is required";
-    
+
       if (!email) newErrors.email = "Email is required";
       else if (!validateEmail(email))
         newErrors.email = "Please enter a valid email";
@@ -554,13 +554,12 @@ export default function Register() {
                     <input
                       type="text"
                       value={individualData.lastName}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "individual",
-                          "lastName",
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => {
+                        setIndividualData((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }));
+                      }}
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         individualErrors.lastName
                           ? "border-red-300"
@@ -568,11 +567,6 @@ export default function Register() {
                       }`}
                       placeholder="Last name"
                     />
-                    {individualErrors.lastName && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {individualErrors.lastName}
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -798,13 +792,12 @@ export default function Register() {
                     <input
                       type="text"
                       value={organizationData.lastName}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "organization",
-                          "lastName",
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => {
+                        setOrganizationData((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }));
+                      }}
                       className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                         organizationErrors.lastName
                           ? "border-red-300"
@@ -812,11 +805,6 @@ export default function Register() {
                       }`}
                       placeholder="Enter last name"
                     />
-                    {organizationErrors.lastName && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {organizationErrors.lastName}
-                      </p>
-                    )}
                   </div>
                 </div>
 
