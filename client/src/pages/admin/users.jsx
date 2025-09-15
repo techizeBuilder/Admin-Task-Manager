@@ -597,19 +597,11 @@ useEffect(()=>{
           <AlertDialogFooter className='flex justify-between'>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
          <AlertDialogAction
-  onClick={() => {
-    if (selectedUser) {
-      toggleUserStatus(selectedUser, statusAction); // statusAction = "deactivate" | "activate"
-    }
-    setIsStatusDialogOpen(false);
-  }}
-  className={
-    statusAction === "deactivate"
-      ? "bg-red-600 text-white hover:bg-red-700"
-      : "bg-green-600 text-white hover:bg-green-700"
+
+  className={"bg-red-600 text-white hover:bg-red-700"
   }
 >
-  {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+ Remove User
 </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
