@@ -99,6 +99,37 @@ export default function AllTasks({
 
   // Get tasks from Zustand store
   const { tasks: storeTasks } = useTasksStore();
+ // Lock body scroll while any modal/drawer is open
+  useEffect(() => {
+    const anyOpen =
+      showCreateTaskDrawer ||
+      showApprovalTaskModal ||
+      showMilestoneModal ||
+      showCalendarModal ||
+      showEditModal ||
+      !!showStatusConfirmation ||
+      !!showDeleteConfirmation ||
+      !!showDeleteSubtaskConfirmation ||
+      !!showSubtaskCreator ||
+      !!selectedApprovalTask;
+
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = anyOpen ? "hidden" : prev || "";
+    return () => {
+      document.body.style.overflow = prev || "";
+    };
+  }, [
+    showCreateTaskDrawer,
+    showApprovalTaskModal,
+    showMilestoneModal,
+    showCalendarModal,
+    showEditModal,
+    showStatusConfirmation,
+    showDeleteConfirmation,
+    showDeleteSubtaskConfirmation,
+    showSubtaskCreator,
+    selectedApprovalTask,
+  ]);
 
   // Handle initial due date filter from props
   useEffect(() => {
@@ -1903,20 +1934,24 @@ export default function AllTasks({
       </div>
 
       {/* Slide-in Drawer */}
-      {showCreateTaskDrawer && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
-          <div
-            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowCreateTaskDrawer(false)}
-          ></div>
-          <div
-            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
-            style={{
-              width: "min(90vw, 900px)",
-              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-              borderLeft: "1px solid rgba(255,255,255,0.2)",
-            }}
-          >
+     {showCreateTaskDrawer && (
+    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+      <div
+        className=" absolute inset-0 bg-black/40 "
+        onClick={() => setShowCreateTaskDrawer(false)}
+      ></div>
+      <div
+        className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
+        style={{
+          width: "min(90vw, 900px)",
+          boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+          borderLeft: "1px solid rgba(255,255,255,0.2)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
                 Create New Task
@@ -1950,16 +1985,16 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body">
-              <CreateTask
-                onClose={() => {
-                  setShowCreateTaskDrawer(false);
-                  setSelectedDateForTask(null);
-                }}
-                initialTaskType={selectedTaskType}
-                preFilledDate={selectedDateForTask}
-              />
-            </div>
+              <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+          <CreateTask
+            onClose={() => {
+              setShowCreateTaskDrawer(false);
+              setSelectedDateForTask(null);
+            }}
+            initialTaskType={selectedTaskType}
+            preFilledDate={selectedDateForTask}
+          />
+        </div>
           </div>
         </div>
       )}
@@ -2020,18 +2055,22 @@ export default function AllTasks({
 
       {/* Approval Task Creator Modal */}
       {showApprovalTaskModal && !selectedApprovalTask && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
-          <div
-            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+    <div
+            className="absolute inset-0 bg-black/40 "
             onClick={() => setShowApprovalTaskModal(false)}
           ></div>
           <div
-            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
             style={{
               width: "min(90vw, 600px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
+                onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
@@ -2066,17 +2105,17 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body">
-              <ApprovalTaskCreator
-                onClose={() => {
-                  setShowApprovalTaskModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateApprovalTask}
-                preFilledDate={selectedDateForTask}
-                selectedDate={selectedDateForTask}
-              />
-            </div>
+           <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+          <ApprovalTaskCreator
+            onClose={() => {
+              setShowApprovalTaskModal(false);
+              setSelectedDateForTask(null);
+            }}
+            onSubmit={handleCreateApprovalTask}
+            preFilledDate={selectedDateForTask}
+            selectedDate={selectedDateForTask}
+          />
+        </div>
           </div>
         </div>
       )}
@@ -2094,19 +2133,23 @@ export default function AllTasks({
       )}
 
       {/* Milestone Creation Modal */}
-      {showMilestoneModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0">
-          <div
-            className="drawer-overlay absolute inset-0 bg-black/40 backdrop-blur-sm"
+    {showMilestoneModal && (
+    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+       <div
+            className="absolute inset-0 bg-black/40 "
             onClick={() => setShowMilestoneModal(false)}
           ></div>
           <div
-            className="absolute right-0 top-0 h-full bg-white/95 backdrop-blur-sm flex flex-col modal-animate-slide-right"
+            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
             style={{
               width: "min(90vw, 800px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
+               onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
@@ -2141,17 +2184,17 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body">
-              <MilestoneCreator
-                onClose={() => {
-                  setShowMilestoneModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateMilestone}
-                preFilledDate={selectedDateForTask}
-                selectedDate={selectedDateForTask}
-              />
-            </div>
+             <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+          <MilestoneCreator
+            onClose={() => {
+              setShowMilestoneModal(false);
+              setSelectedDateForTask(null);
+            }}
+            onSubmit={handleCreateMilestone}
+            preFilledDate={selectedDateForTask}
+            selectedDate={selectedDateForTask}
+          />
+        </div>
           </div>
         </div>
       )}

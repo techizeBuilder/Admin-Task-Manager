@@ -70,12 +70,12 @@ export default function CreateTask({
   const taskTypes = getAvailableTaskTypes();
 
   return (
-    <div className="flex flex-col h-full p-6 bg-gray-50">
+    <div className="flex flex-col h-full p-6 bg-gray-50 z-50" >
       {/* Task Type Selection Section */}
       <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Task Type
+            Task Type 
           </h3>
           <p className="text-gray-600 text-sm">
             Choose the type of task you want to create
