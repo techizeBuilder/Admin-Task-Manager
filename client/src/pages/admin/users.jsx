@@ -61,6 +61,8 @@ export default function Users() {
     setUsers(userDataManager.getAllUsers());
     setLicensePool(userDataManager.getLicensePool());
   }, []);
+const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+const [statusAction, setStatusAction] = useState(null); // "deactivate" or "activate"
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
@@ -140,36 +142,45 @@ const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
 
 
   // Deactivate/Reactivate user using UserDataManager
-  const toggleUserStatus = (user) => {
-    try {
-      let updatedUser;
-      let action;
-      
-      if (user.status === 'Active') {
-        updatedUser = userDataManager.deactivateUser(user.id);
-        action = 'deactivated';
-      } else {
-        updatedUser = userDataManager.reactivateUser(user.id);
-        action = 'reactivated';
-      }
-      
-      setUsers(userDataManager.getAllUsers());
+const toggleUserStatus = (user, action='activate') => {
+  try {
+    let updatedUser;
 
-      toast({
-        title: `User ${action.charAt(0).toUpperCase() + action.slice(1)}!`,
-        description: `${user.name} has been ${action}. ${updatedUser.status === 'Inactive' ? 'They cannot log in and assigned tasks will show Owner Inactive label.' : 'They can now log in normally.'}`,
-        variant: updatedUser.status === 'Inactive' ? 'destructive' : 'default',
-        duration: 5000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error Updating User Status",
-        description: error.message,
-        variant: "destructive",
-        duration: 5000,
-      });
+    if (action === "deactivate") {
+      updatedUser = userDataManager.deactivateUser(user.id);
+    } else if (action === "activate") {
+      updatedUser = userDataManager.reactivateUser(user.id);
+    } else {
+      throw new Error("Invalid action type");
     }
-  };
+
+    // Refresh user list
+    setUsers(userDataManager.getAllUsers());
+
+    // Toast message
+    toast({
+      title: `User ${action === "deactivate" ? "Deactivated" : "Reactivated"}!`,
+      description: `${
+        user.name
+      } has been ${action === "deactivate" ? "deactivated" : "reactivated"}.
+      ${
+        updatedUser.status === "Inactive"
+          ? "They cannot log in and assigned tasks will show Owner Inactive label."
+          : "They can now log in normally."
+      }`,
+      variant: updatedUser.status === "Inactive" ? "destructive" : "default",
+      duration: 5000,
+    });
+  } catch (error) {
+    toast({
+      title: "Error Updating User Status",
+      description: error.message,
+      variant: "destructive",
+      duration: 5000,
+    });
+  }
+};
+
 
   // Remove user
   const handleRemoveUser = (user) => {
@@ -473,7 +484,11 @@ const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
                           <Edit3 className="h-4 w-4 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleUserStatus(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
+                        <DropdownMenuItem  onClick={() => {
+    setSelectedUser(user);
+    setStatusAction(user.status === "Active" ? "deactivate" : "activate");
+    setIsStatusDialogOpen(true);
+  }} className="bg-white hover:bg-gray-100 cursor-pointer">
                           {user.status === 'Active' ? (
                             <>
                               <UserX className="h-4 w-4 mr-2" />
@@ -571,18 +586,87 @@ const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className='flex justify-between'>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmRemoveUser} 
-              className="bg-red-600 hover:bg-red-700"
-              disabled={selectedUser?.activeProcesses > 0}
-            >
-              {selectedUser?.activeProcesses > 0 ? 'Cannot Remove' : 'Remove User'}
-            </AlertDialogAction>
+         <AlertDialogAction
+  onClick={() => {
+    if (selectedUser) {
+      toggleUserStatus(selectedUser, statusAction); // statusAction = "deactivate" | "activate"
+    }
+    setIsStatusDialogOpen(false);
+  }}
+  className={
+    statusAction === "deactivate"
+      ? "bg-red-600 text-white hover:bg-red-700"
+      : "bg-green-600 text-white hover:bg-green-700"
+  }
+>
+  {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Deactivate/Activate Confirmation Dialog */}
+<AlertDialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+  <AlertDialogContent className="bg-white">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2">
+        {statusAction === "deactivate" ? (
+          <>
+            <UserX className="h-5 w-5 text-red-500" />
+            Deactivate User
+          </>
+        ) : (
+          <>
+            <RefreshCw className="h-5 w-5 text-green-500" />
+            Reactivate User
+          </>
+        )}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {selectedUser && (
+          <>
+            Are you sure you want to{" "}
+            <strong>
+              {statusAction === "deactivate" ? "deactivate" : "reactivate"}
+            </strong>{" "}
+            <strong>{selectedUser.name}</strong>?
+            <br />
+            <br />
+            {statusAction === "deactivate" ? (
+              <span className="text-red-600 font-medium">
+                They will lose access to the system and all assigned tasks will
+                show "Owner Inactive".
+              </span>
+            ) : (
+              "They will regain access and can log in normally."
+            )}
+          </>
+        )}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction
+        onClick={() => {
+          if (selectedUser) {
+            toggleUserStatus(selectedUser,statusAction === "deactivate" ? "deactivate" : "activate"); // Pass action type
+          }
+          setIsStatusDialogOpen(false);
+        }}
+        className={
+          statusAction === "deactivate"
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-green-600 text-white hover:bg-green-700"
+        }
+      >
+        {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
   );
 }
