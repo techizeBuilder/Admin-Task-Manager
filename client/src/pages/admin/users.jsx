@@ -51,14 +51,11 @@ import { EditUserModal } from "@/components/EditUserModal";
 import { ViewUserActivityModal } from "@/components/ViewUserActivityModal";
 import { useToast } from "@/hooks/use-toast";
 import Pagination from "../../components/common/Pagination";
-import { useUserRole } from "../../utils/auth";
-import { useLocation } from "wouter";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-    const { isAdmin } = useUserRole();
-        const [, setLocation] = useLocation();
+
   // Load data from UserDataManager on component mount
   useEffect(() => {
     setUsers(userDataManager.getAllUsers());
@@ -283,12 +280,7 @@ const toggleUserStatus = (user, action='activate') => {
   const activeUsers = users.filter(user => user.status === 'Active').length;
   const inactiveUsers = users.filter(user => user.status === 'Inactive').length;
   const pendingUsers = users.filter(user => user.status === 'Pending').length;
-useEffect(()=>{
-    if (!isAdmin) {
-      // Redirect non-admin users away from this page
-      setLocation("/dashboard");
-    }
-  },[isAdmin])
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Page Header */}
@@ -597,11 +589,19 @@ useEffect(()=>{
           <AlertDialogFooter className='flex justify-between'>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
          <AlertDialogAction
-
-  className={"bg-red-600 text-white hover:bg-red-700"
+  onClick={() => {
+    if (selectedUser) {
+      toggleUserStatus(selectedUser, statusAction); // statusAction = "deactivate" | "activate"
+    }
+    setIsStatusDialogOpen(false);
+  }}
+  className={
+    statusAction === "deactivate"
+      ? "bg-red-600 text-white hover:bg-red-700"
+      : "bg-green-600 text-white hover:bg-green-700"
   }
 >
- Remove User
+  {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
 </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
