@@ -16,7 +16,8 @@ import {
   Crown,
   User,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ import { AddUserModal } from "@/components/InviteUsersModal";
 import { EditUserModal } from "@/components/EditUserModal";
 import { ViewUserActivityModal } from "@/components/ViewUserActivityModal";
 import { useToast } from "@/hooks/use-toast";
+import Pagination from "../../components/common/Pagination";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -59,6 +61,8 @@ export default function Users() {
     setUsers(userDataManager.getAllUsers());
     setLicensePool(userDataManager.getLicensePool());
   }, []);
+const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+const [statusAction, setStatusAction] = useState(null); // "deactivate" or "activate"
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
@@ -67,7 +71,13 @@ export default function Users() {
   const [isRoleChangeDialogOpen, setIsRoleChangeDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleChangeData, setRoleChangeData] = useState(null);
-
+const [searchQuery, setSearchQuery] = useState("");
+const [currentPage, setCurrentPage] = useState(1);
+const itemsPerPage = 5; // change as needed
+// Pagination
+const totalPages = Math.ceil(users.length / itemsPerPage);
+const startIndex = (currentPage - 1) * itemsPerPage;
+const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
   const { toast } = useToast();
 
   // Add new user using UserDataManager
@@ -132,36 +142,45 @@ export default function Users() {
 
 
   // Deactivate/Reactivate user using UserDataManager
-  const toggleUserStatus = (user) => {
-    try {
-      let updatedUser;
-      let action;
-      
-      if (user.status === 'Active') {
-        updatedUser = userDataManager.deactivateUser(user.id);
-        action = 'deactivated';
-      } else {
-        updatedUser = userDataManager.reactivateUser(user.id);
-        action = 'reactivated';
-      }
-      
-      setUsers(userDataManager.getAllUsers());
+const toggleUserStatus = (user, action='activate') => {
+  try {
+    let updatedUser;
 
-      toast({
-        title: `User ${action.charAt(0).toUpperCase() + action.slice(1)}!`,
-        description: `${user.name} has been ${action}. ${updatedUser.status === 'Inactive' ? 'They cannot log in and assigned tasks will show Owner Inactive label.' : 'They can now log in normally.'}`,
-        variant: updatedUser.status === 'Inactive' ? 'destructive' : 'default',
-        duration: 5000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error Updating User Status",
-        description: error.message,
-        variant: "destructive",
-        duration: 5000,
-      });
+    if (action === "deactivate") {
+      updatedUser = userDataManager.deactivateUser(user.id);
+    } else if (action === "activate") {
+      updatedUser = userDataManager.reactivateUser(user.id);
+    } else {
+      throw new Error("Invalid action type");
     }
-  };
+
+    // Refresh user list
+    setUsers(userDataManager.getAllUsers());
+
+    // Toast message
+    toast({
+      title: `User ${action === "deactivate" ? "Deactivated" : "Reactivated"}!`,
+      description: `${
+        user.name
+      } has been ${action === "deactivate" ? "deactivated" : "reactivated"}.
+      ${
+        updatedUser.status === "Inactive"
+          ? "They cannot log in and assigned tasks will show Owner Inactive label."
+          : "They can now log in normally."
+      }`,
+      variant: updatedUser.status === "Inactive" ? "destructive" : "default",
+      duration: 5000,
+    });
+  } catch (error) {
+    toast({
+      title: "Error Updating User Status",
+      description: error.message,
+      variant: "destructive",
+      duration: 5000,
+    });
+  }
+};
+
 
   // Remove user
   const handleRemoveUser = (user) => {
@@ -370,12 +389,28 @@ export default function Users() {
 
       {/* Users Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            Complete list of users in your organization with their details and status
-          </CardDescription>
-        </CardHeader>
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div>
+    <CardTitle>All Users</CardTitle>
+    <CardDescription>
+      Complete list of users in your organization with their details and status
+    </CardDescription>
+  </div>
+  <div className="relative w-full sm:w-64">
+    <input
+      type="text"
+      placeholder="Search users..."
+      // value={searchQuery}
+      // onChange={(e) => {
+      //   setSearchQuery(e.target.value);
+      //   setCurrentPage(1); // reset to first page
+      // }}
+      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+  </div>
+</CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
@@ -391,7 +426,7 @@ export default function Users() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+           {paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
@@ -449,7 +484,11 @@ export default function Users() {
                           <Edit3 className="h-4 w-4 mr-2" />
                           Edit Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleUserStatus(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
+                        <DropdownMenuItem  onClick={() => {
+    setSelectedUser(user);
+    setStatusAction(user.status === "Active" ? "deactivate" : "activate");
+    setIsStatusDialogOpen(true);
+  }} className="bg-white hover:bg-gray-100 cursor-pointer">
                           {user.status === 'Active' ? (
                             <>
                               <UserX className="h-4 w-4 mr-2" />
@@ -476,6 +515,14 @@ export default function Users() {
               ))}
             </TableBody>
           </Table>
+               {/* Pagination */}
+                             <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={paginatedUsers.length}
+                  onPageChange={setCurrentPage}
+                />
         </CardContent>
       </Card>
 
@@ -539,18 +586,87 @@ export default function Users() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className='flex justify-between'>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmRemoveUser} 
-              className="bg-red-600 hover:bg-red-700"
-              disabled={selectedUser?.activeProcesses > 0}
-            >
-              {selectedUser?.activeProcesses > 0 ? 'Cannot Remove' : 'Remove User'}
-            </AlertDialogAction>
+         <AlertDialogAction
+  onClick={() => {
+    if (selectedUser) {
+      toggleUserStatus(selectedUser, statusAction); // statusAction = "deactivate" | "activate"
+    }
+    setIsStatusDialogOpen(false);
+  }}
+  className={
+    statusAction === "deactivate"
+      ? "bg-red-600 text-white hover:bg-red-700"
+      : "bg-green-600 text-white hover:bg-green-700"
+  }
+>
+  {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Deactivate/Activate Confirmation Dialog */}
+<AlertDialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+  <AlertDialogContent className="bg-white">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2">
+        {statusAction === "deactivate" ? (
+          <>
+            <UserX className="h-5 w-5 text-red-500" />
+            Deactivate User
+          </>
+        ) : (
+          <>
+            <RefreshCw className="h-5 w-5 text-green-500" />
+            Reactivate User
+          </>
+        )}
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        {selectedUser && (
+          <>
+            Are you sure you want to{" "}
+            <strong>
+              {statusAction === "deactivate" ? "deactivate" : "reactivate"}
+            </strong>{" "}
+            <strong>{selectedUser.name}</strong>?
+            <br />
+            <br />
+            {statusAction === "deactivate" ? (
+              <span className="text-red-600 font-medium">
+                They will lose access to the system and all assigned tasks will
+                show "Owner Inactive".
+              </span>
+            ) : (
+              "They will regain access and can log in normally."
+            )}
+          </>
+        )}
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction
+        onClick={() => {
+          if (selectedUser) {
+            toggleUserStatus(selectedUser,statusAction === "deactivate" ? "deactivate" : "activate"); // Pass action type
+          }
+          setIsStatusDialogOpen(false);
+        }}
+        className={
+          statusAction === "deactivate"
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-green-600 text-white hover:bg-green-700"
+        }
+      >
+        {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+
     </div>
   );
 }
