@@ -481,14 +481,8 @@ export default function EditProfile() {
   };
   const handlePasswordModalOpenChange = (open) => {
     setShowPasswordModal(open);
-    if (open) {
-      // Reset errors when opening
-      setPasswordErrors({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setPasswordFormError("");
+    if (!open) {
+      handleCancelPasschange();
     }
   };
   const handleCancelPasschange = () => {
@@ -1208,10 +1202,12 @@ export default function EditProfile() {
           <Dialog
             open={showPasswordModal}
             onOpenChange={handlePasswordModalOpenChange}
+      
           >
             <DialogContent
               className="sm:max-w-md"
               data-testid="dialog-change-password"
+
             >
               <DialogHeader>
                 <DialogTitle>Change Password</DialogTitle>

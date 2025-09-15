@@ -169,6 +169,7 @@ export default function useLicensing() {
     // Role-based access control
     if (user?.role.includes('org_admin')) return true;
     if (user?.role.includes('super_admin')) return true;
+        if (user?.role.includes('individual')) return true;
     return false; // Regular users and managers have read-only access
   };
 

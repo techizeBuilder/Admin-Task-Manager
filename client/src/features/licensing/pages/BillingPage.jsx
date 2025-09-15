@@ -32,7 +32,7 @@ import useLicensing from '../hooks/useLicensing';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useUserRole } from '../../../utils/auth';
-
+import jsPDF from "jspdf";
 /**
  * Billing & Invoices Page - Billing summary card, payment history table with Download Invoice
  */
@@ -152,26 +152,82 @@ export default function BillingPage() {
       <ChevronDown className="h-4 w-4 ml-1" />;
   };
 
-  const handleDownloadInvoice = (invoiceId) => {
-    setDownloadError('');
+  // const handleDownloadInvoice = (invoiceId) => {
+  //   setDownloadError('');
     
-    // Mock download with error handling
-    const shouldFail = Math.random() < 0.2; // 20% chance of failure for demo
+  //   // Mock download with error handling
+  //   const shouldFail = Math.random() < 0.2; // 20% chance of failure for demo
     
-    if (shouldFail) {
-      setDownloadError('Unable to download invoice, please try again later.');
-      return;
-    }
+  //   if (shouldFail) {
+  //     setDownloadError('Unable to download invoice, please try again later.');
+  //     return;
+  //   }
     
-    console.log(`Downloading invoice ${invoiceId}`);
-    // Simulate file download
-    const link = document.createElement('a');
-    link.href = `#`; // In real app: `/api/invoices/${invoiceId}/download`
-    link.download = `invoice-${invoiceId}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  //   console.log(`Downloading invoice ${invoiceId}`);
+  //   // Simulate file download
+  //   const link = document.createElement('a');
+  //   link.href = `#`; // In real app: `/api/invoices/${invoiceId}/download`
+  //   link.download = `invoice-${invoiceId}.pdf`;
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
+
+
+const handleDownloadInvoice = (invoiceId) => {
+  setDownloadError("");
+
+  try {
+    const doc = new jsPDF();
+
+    // Invoice header
+    doc.setFontSize(18);
+    doc.text("Invoice", 14, 22);
+
+    doc.setFontSize(12);
+    doc.text(`Invoice ID: ${invoiceId}`, 14, 32);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 40);
+
+    // Client info
+    doc.text("Bill To:", 14, 50);
+    doc.text("Client Name: John Doe", 14, 58);
+    doc.text("Email: john@example.com", 14, 66);
+    doc.text("Address: 123 Main St, City, Country", 14, 74);
+
+    // Table header
+    doc.text("Item", 14, 90);
+    doc.text("Quantity", 100, 90);
+    doc.text("Price", 140, 90);
+    doc.text("Total", 180, 90);
+
+    // Sample items
+    const items = [
+      { name: "Product A", qty: 2, price: 50 },
+      { name: "Product B", qty: 1, price: 30 },
+    ];
+
+    let y = 100;
+    let grandTotal = 0;
+    items.forEach((item) => {
+      const total = item.qty * item.price;
+      grandTotal += total;
+      doc.text(item.name, 14, y);
+      doc.text(item.qty.toString(), 100, y);
+      doc.text(`$${item.price}`, 140, y);
+      doc.text(`$${total}`, 180, y);
+      y += 8;
+    });
+
+    // Total
+    doc.text(`Grand Total: $${grandTotal}`, 14, y + 10);
+
+    // Save PDF
+    doc.save(`invoice-${invoiceId}.pdf`);
+  } catch (err) {
+    console.error(err);
+    setDownloadError("Unable to generate invoice, please try again.");
+  }
+};
 
   const validateBillingDetails = (formData) => {
     const errors = {};
