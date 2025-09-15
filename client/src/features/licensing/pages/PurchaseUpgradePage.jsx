@@ -27,11 +27,12 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+
 /**
  * Purchase/Upgrade Page - Upgrade plan with payment integration
  */
 export default function PurchaseUpgradePage() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState('execute');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [couponCode, setCouponCode] = useState('');
@@ -170,6 +171,7 @@ export default function PurchaseUpgradePage() {
     // Mock payment processing
     setTimeout(() => {
       setIsProcessing(false);
+          setLocation(`/admin/upgrade-success?plan=${plans[selectedPlan]?.name}`);
       // Redirect to success page or show success state
     }, 2000);
   };

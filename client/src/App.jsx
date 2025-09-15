@@ -101,6 +101,7 @@ import CurrentUserSidebar from "./pages/CurrentUserSidebar";
 import DynamicDashboard from "./pages/Dashboard";
 import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
+import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -407,6 +408,11 @@ function App() {
         <Route path="/analytics">
           <AdminLayout>
             <ProtectedRoute component={TaskAnalytics} />
+          </AdminLayout>
+        </Route>
+           <Route path="/admin/upgrade-success">
+          <AdminLayout>
+            <ProtectedRoute component={UpgradeSuccessPage} />
           </AdminLayout>
         </Route>
         <Route path="/deadlines">
