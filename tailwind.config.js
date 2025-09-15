@@ -1,8 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./client/src/**/*.{js,ts,jsx,tsx}",
+   content: [
     "./client/index.html",
+    "./client/src/**/*.{js,jsx,ts,tsx}",
   ],
   safelist: [
     'from-blue-500', 'to-blue-600',
