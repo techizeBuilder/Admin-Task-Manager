@@ -59,9 +59,9 @@ export class MongoStorage {
     return await Organization.findById(id);
   }
 
-  async getOrganizationBySlug(slug) {
-    return await Organization.findOne({ slug });
-  }
+  // async getOrganizationBySlug(slug) {
+  //   return await Organization.findOne({ slug });
+  // }
 
   async updateOrganization(id, orgData) {
     return await Organization.findByIdAndUpdate(id, orgData, { new: true });
@@ -1648,10 +1648,10 @@ export class MongoStorage {
   }
 
   // Task operations
-  async createTask(taskData) {
-    const task = new Task(taskData);
-    return await task.save();
-  }
+  // async createTask(taskData) {
+  //   const task = new Task(taskData);
+  //   return await task.save();
+  // }
 
   async getTaskById(id) {
     return await Task.findById(id)
@@ -1674,13 +1674,13 @@ export class MongoStorage {
       .limit(limit);
   }
 
-  async updateTask(id, updateData) {
-    return await Task.findByIdAndUpdate(id, updateData, { new: true });
-  }
+  // async updateTask(id, updateData) {
+  //   return await Task.findByIdAndUpdate(id, updateData, { new: true });
+  // }
 
-  async deleteTask(id) {
-    return await Task.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
-  }
+  // async deleteTask(id) {
+  //   return await Task.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+  // }
 
   // Task approval operations
   async createTaskApproval(approvalData) {
@@ -1741,9 +1741,9 @@ export class MongoStorage {
     }).sort({ createdAt: -1 });
   }
 
-  async getProject(id) {
-    return await Project.findById(id);
-  }
+  // async getProject(id) {
+  //   return await Project.findById(id);
+  // }
 }
 
 export const storage = new MongoStorage();

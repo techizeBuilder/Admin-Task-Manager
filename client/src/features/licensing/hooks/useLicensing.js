@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@features-shared/hooks/useAuth';
+import { useAuth } from '../../shared/hooks/useAuth.js';
 
 // Mock data for development - replace with API calls later
 const MOCK_PLANS = {
