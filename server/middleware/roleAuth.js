@@ -58,8 +58,8 @@ export const requireRole = (allowedRoles) => {
 
     const userRole = req.user.role;
 
-
-    if (allowedRoles.includes(userRole[0])) {
+    console.log('allowed role',userRole,allowedRoles)
+    if (userRole.some(role => allowedRoles.includes(role))){
       return next();
     }
 

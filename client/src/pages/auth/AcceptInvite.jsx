@@ -12,6 +12,7 @@ import {
   CheckSquare
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getPasswordRequirements, validatePassword } from "../../utils/passwordUtils";
 
 export default function AcceptInvite() {
   const [, setLocation] = useLocation();
@@ -27,6 +28,7 @@ export default function AcceptInvite() {
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const { toast } = useToast();
+  const passwordRequirements = getPasswordRequirements(formData.password);
 
   // Get token from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -124,7 +126,15 @@ export default function AcceptInvite() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+ const { valid, failed } = validatePassword(formData.password);
+    if (!valid) {
+      toast({
+        title: "Password requirements not met",
+        description: failed.join(', '),
+        variant: "destructive",
+      });
+      return;
+    }
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -287,6 +297,17 @@ export default function AcceptInvite() {
                   )}
                 </button>
               </div>
+               <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
             </div>
 
             <div>

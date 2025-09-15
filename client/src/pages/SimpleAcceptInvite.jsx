@@ -11,8 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getPasswordRequirements, validatePassword } from "../utils/passwordUtils";
 
 export function SimpleAcceptInvite() {
   const [, setLocation] = useLocation();
@@ -31,6 +32,10 @@ export function SimpleAcceptInvite() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+
+
+  // Password requirement checks
+ const passwordRequirements = getPasswordRequirements(formData.password);
 
   // Validate invitation token
   const {
@@ -96,7 +101,15 @@ export function SimpleAcceptInvite() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+ const { valid, failed } = validatePassword(formData.password);
+    if (!valid) {
+      toast({
+        title: "Password requirements not met",
+        description: failed.join(', '),
+        variant: "destructive",
+      });
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Password mismatch",
@@ -246,65 +259,80 @@ export function SimpleAcceptInvite() {
                 </div>
               </div>
 
-              {/* Password */}
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        password: e.target.value,
-                      }))
-                    }
-                    placeholder="Create a secure password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
-              </div>
+             <div className="space-y-4">
+      {/* Password */}
+      <div>
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                password: e.target.value,
+              }))
+            }
+            placeholder="Create a secure password"
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
+        </div>
+         <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
-              {/* Confirm Password */}
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        confirmPassword: e.target.value,
-                      }))
-                    }
-                    placeholder="Confirm your password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </div>
-              </div>
+      {/* Confirm Password */}
+      <div>
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                confirmPassword: e.target.value,
+              }))
+            }
+            placeholder="Confirm your password"
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
+        </div>
+      </div>
+
+    
+    </div>
 
               <Button
                 type="submit"

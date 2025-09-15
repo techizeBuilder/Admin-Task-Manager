@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, XCircle, Eye, EyeOff, Shield, PartyPopper } from 'lucide-react';
+import { getPasswordRequirements, validatePassword } from '../../utils/passwordUtils';
 
 const passwordSchema = z.object({
   password: z.string()
@@ -47,6 +48,7 @@ export default function VerifyAndSetPassword() {
   });
 
   const password = watch('password', '');
+  const passwordRequirements = getPasswordRequirements(password);
 
   // Extract token from URL
   useEffect(() => {
@@ -101,17 +103,19 @@ export default function VerifyAndSetPassword() {
   });
 
   const onSubmit = (data) => {
+      const { valid, failed } = validatePassword(data.password);
+    if (!valid) {
+      toast({
+        title: "Password requirements not met",
+        description: failed.join(', '),
+        variant: "destructive",
+      });
+      return;
+    }
     setPasswordMutation.mutate(data);
   };
 
-  // Password strength indicators
-  const passwordRequirements = [
-    { test: password.length >= 8, text: 'At least 8 characters' },
-    { test: /[0-9]/.test(password), text: 'Contains a number' },
-    { test: /[a-z]/.test(password), text: 'Contains lowercase letter' },
-    { test: /[A-Z]/.test(password), text: 'Contains uppercase letter' },
-    { test: /[!@#$%^&*(),.?":{}|<>]/.test(password), text: 'Contains special character' }
-  ];
+
 
   if (verificationError && !userInfo) {
     return (
@@ -210,6 +214,17 @@ export default function VerifyAndSetPassword() {
               {errors.password && (
                 <p className="text-sm text-red-600">{errors.password.message}</p>
               )}
+               <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
             </div>
 
             {/* Confirm Password Field */}
@@ -235,26 +250,7 @@ export default function VerifyAndSetPassword() {
               )}
             </div>
 
-            {/* Password Requirements */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password Requirements:
-              </p>
-              <ul className="space-y-1">
-                {passwordRequirements.map((req, index) => (
-                  <li key={index} className="flex items-center text-sm">
-                    {req.test ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-500 mr-2" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-gray-300 mr-2" />
-                    )}
-                    <span className={req.test ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}>
-                      {req.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            
 
             {/* Error Display */}
             {verificationError && (

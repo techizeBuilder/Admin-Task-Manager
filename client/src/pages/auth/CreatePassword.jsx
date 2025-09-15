@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, PartyPopper } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getPasswordRequirements, validatePassword } from "../../utils/passwordUtils";
 
 export default function CreatePassword() {
   const [, setLocation] = useLocation();
@@ -16,6 +17,7 @@ export default function CreatePassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+const passwordRequirements = getPasswordRequirements(formData.password);
 
   useEffect(() => {
     // Get email from URL params or localStorage
@@ -39,21 +41,7 @@ export default function CreatePassword() {
     }
   }, [setLocation, toast]);
 
-  const validatePassword = (password) => {
-    return password.length >= 8 && 
-           /[A-Z]/.test(password) && 
-           /[a-z]/.test(password) && 
-           /[0-9]/.test(password) &&
-           /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  };
 
-  const getPasswordStrengthText = () => [
-    { test: formData.password.length >= 8, text: 'At least 8 characters' },
-    { test: /[A-Z]/.test(formData.password), text: 'Contains uppercase letter' },
-    { test: /[a-z]/.test(formData.password), text: 'Contains lowercase letter' },
-    { test: /[0-9]/.test(formData.password), text: 'Contains a number' },
-    { test: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password), text: 'Contains special character' }
-  ];
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -69,14 +57,21 @@ export default function CreatePassword() {
       setErrors({ submit: "Email verification required" });
       return;
     }
+  const { valid, failed } = validatePassword(formData.password);
+    if (!valid) {
+      toast({
+        title: "Password requirements not met",
+        description: failed.join(', '),
+        variant: "destructive",
+      });
+      return;
+    }
 
     const newErrors = {};
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, and number";
-    }
+    } 
 
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
@@ -187,19 +182,17 @@ export default function CreatePassword() {
               {errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password}</p>
               )}
-              <div className="mt-2">
-                <p className="text-xs text-gray-600 mb-1">Password requirements:</p>
-                <div className="space-y-1">
-                  {getPasswordStrengthText().map((req, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${req.test ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                      <span className={`text-xs ${req.test ? 'text-green-600' : 'text-gray-500'}`}>
-                        {req.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
             </div>
 
             <div>

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { getPasswordRequirements, validatePassword } from '../../utils/passwordUtils';
 
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
@@ -18,6 +19,8 @@ export default function VerifyEmail() {
   const [verificationToken, setVerificationToken] = useState('');
   const [errors, setErrors] = useState({});
   const [userName, setUserName] = useState('');
+  const passwordRequirements = getPasswordRequirements(password);
+
     useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -34,32 +37,29 @@ export default function VerifyEmail() {
     setVerificationToken(token);
     if (name) setUserName(name);
   }, [setLocation, toast]);
-  const passwordCriteria = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    lower: /[a-z]/.test(password),
-    digit: /[0-9]/.test(password),
-  };
-    const isPasswordValid = Object.values(passwordCriteria).every(Boolean);
 
   const validateForm = () => {
-    const newErrors = {};
+  const newErrors = {};
 
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (!isPasswordValid) {
-      newErrors.password = "Password does not meet all requirements";
+  if (!password) {
+    newErrors.password = "Password is required";
+  } else {
+    const { valid, failed } = validatePassword(password);
+    if (!valid) {
+      newErrors.password = `Password requirements not met: ${failed.join(', ')}`;
     }
+  }
 
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
+  if (!confirmPassword) {
+    newErrors.confirmPassword = "Please confirm your password";
+  } else if (password !== confirmPassword) {
+    newErrors.confirmPassword = "Passwords do not match";
+  }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
   const handleVerification = async (e) => {
     e.preventDefault();
     
@@ -157,54 +157,21 @@ export default function VerifyEmail() {
                   )}
                 </Button>
               </div>
-              <div className="mt-2 space-y-1">
-                <p className="text-xs font-medium text-slate-600">Password must include:</p>
-                <ul className="space-y-1 text-xs">
-                  <li className="flex items-center gap-2">
-                    {passwordCriteria.length ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-red-500" />
-                    )}
-                    <span className={passwordCriteria.length ? "text-green-700" : "text-slate-600"}>
-                      Minimum 8 characters
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordCriteria.upper ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-red-500" />
-                    )}
-                    <span className={passwordCriteria.upper ? "text-green-700" : "text-slate-600"}>
-                      At least 1 uppercase letter
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordCriteria.lower ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-red-500" />
-                    )}
-                    <span className={passwordCriteria.lower ? "text-green-700" : "text-slate-600"}>
-                      At least 1 lowercase letter
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    {passwordCriteria.digit ? (
-                      <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 text-red-500" />
-                    )}
-                    <span className={passwordCriteria.digit ? "text-green-700" : "text-slate-600"}>
-                      At least 1 digit
-                    </span>
-                  </li>
-                </ul>
-              </div>
+              
               {errors.password && (
                 <p className="text-sm text-red-600">{errors.password}</p>
-              )}
+              )}  
+              <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
             </div>
 
             <div className="space-y-2">

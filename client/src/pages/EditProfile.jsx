@@ -49,6 +49,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useAuthStore } from "../stores/useAuthStore";
+import { getPasswordRequirements } from "../utils/passwordUtils";
 
 export default function EditProfile() {
   const [, setLocation] = useLocation();
@@ -110,6 +111,7 @@ export default function EditProfile() {
   });
   // Inline server error for password update
   const [passwordFormError, setPasswordFormError] = useState("");
+ const passwordRequirements = getPasswordRequirements(passwordData.newPassword);
 
   // Fetch current user profile - try auth/verify first as fallback
   const { data: authUser } = useQuery({
@@ -190,11 +192,10 @@ export default function EditProfile() {
     if (!confirmPassword) {
       errors.confirmPassword = "Confirm password is required";
     }
-    // Strength check for new password
-    if (newPassword && !validatePasswordStrength(newPassword)) {
-      errors.newPassword =
-        "Password must be at least 8 characters and include uppercase, lowercase, and a number";
-    }
+    const { valid, failed } = validatePassword(password);
+     if (!valid) {
+       errors.password = `Password requirements not met: ${failed.join(', ')}`;
+     }
     // New password must be different from current password
     if (
       currentPassword &&
@@ -481,8 +482,14 @@ export default function EditProfile() {
   };
   const handlePasswordModalOpenChange = (open) => {
     setShowPasswordModal(open);
-    if (!open) {
-      handleCancelPasschange();
+    if (open) {
+      // Reset errors when opening
+      setPasswordErrors({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordFormError("");
     }
   };
   const handleCancelPasschange = () => {
@@ -1202,12 +1209,10 @@ export default function EditProfile() {
           <Dialog
             open={showPasswordModal}
             onOpenChange={handlePasswordModalOpenChange}
-      
           >
             <DialogContent
               className="sm:max-w-md"
               data-testid="dialog-change-password"
-
             >
               <DialogHeader>
                 <DialogTitle>Change Password</DialogTitle>
@@ -1293,6 +1298,18 @@ export default function EditProfile() {
                       {passwordErrors.newPassword}
                     </p>
                   )}
+
+                   <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+          <ul className="text-sm text-gray-600 space-y-1">
+            {passwordRequirements.map((req) => (
+              <li key={req.id} className="flex items-center">
+                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
                 </div>
 
                 <div>
