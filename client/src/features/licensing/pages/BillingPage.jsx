@@ -26,13 +26,15 @@ import {
   Receipt,
   ChevronUp,
   ChevronDown,
-  X
+  X,
+  Search
 } from 'lucide-react';
 import useLicensing from '../hooks/useLicensing';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useUserRole } from '../../../utils/auth';
 import jsPDF from "jspdf";
+import Pagination from '../../../components/common/Pagination';
 /**
  * Billing & Invoices Page - Billing summary card, payment history table with Download Invoice
  */
@@ -744,35 +746,51 @@ const handleDownloadInvoice = (invoiceId) => {
         </div>
            {/* Billing History */}
             <Card data-testid="billing-history-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5" />
-                      <span>Payment History</span>
-                    </CardTitle>
-                    <CardDescription>
-                      View and download your past invoices
-                    </CardDescription>
-                  </div>
-                  {invoices.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRetryInvoices}
-                      disabled={isRetrying}
-                      data-testid="retry-invoices-button"
-                    >
-                      {isRetrying ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                      )}
-                      Refresh
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
+          
+<CardHeader>
+  <div className="flex items-center justify-between w-full">
+    <div>
+      <CardTitle className="flex items-center space-x-2">
+        <FileText className="h-5 w-5" />
+        <span>Payment History</span>
+      </CardTitle>
+      <CardDescription>
+        View and download your past invoices
+      </CardDescription>
+    </div>
+
+    <div className="flex items-center space-x-2">
+      {/* Search Input with Magnify Icon */}
+      <div className="relative">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search invoices..."
+          className="pl-8 pr-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Refresh Button */}
+      {invoices.length > 0 && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRetryInvoices}
+          disabled={isRetrying}
+          data-testid="retry-invoices-button"
+        >
+          {isRetrying ? (
+            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Refresh
+        </Button>
+      )}
+    </div>
+  </div>
+</CardHeader>
+
               <CardContent>
                 {/* Download Error Alert */}
                 {downloadError && (
@@ -912,34 +930,14 @@ const handleDownloadInvoice = (invoiceId) => {
                     </div>
 
                     {/* Pagination */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="text-sm text-gray-500">
-                          Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, displayInvoices.length)} of {displayInvoices.length} invoices
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                          >
-                            Previous
-                          </Button>
-                          <span className="flex items-center px-3 py-1 text-sm">
-                            Page {currentPage} of {totalPages}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                          >
-                            Next
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                   <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={invoices.length}
+        onPageChange={setCurrentPage}
+      />
+      
                   </>
                 )}
               </CardContent>

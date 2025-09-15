@@ -16,7 +16,8 @@ import {
   Crown,
   User,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ import { AddUserModal } from "@/components/InviteUsersModal";
 import { EditUserModal } from "@/components/EditUserModal";
 import { ViewUserActivityModal } from "@/components/ViewUserActivityModal";
 import { useToast } from "@/hooks/use-toast";
+import Pagination from "../../components/common/Pagination";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -67,7 +69,13 @@ export default function Users() {
   const [isRoleChangeDialogOpen, setIsRoleChangeDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [roleChangeData, setRoleChangeData] = useState(null);
-
+const [searchQuery, setSearchQuery] = useState("");
+const [currentPage, setCurrentPage] = useState(1);
+const itemsPerPage = 5; // change as needed
+// Pagination
+const totalPages = Math.ceil(users.length / itemsPerPage);
+const startIndex = (currentPage - 1) * itemsPerPage;
+const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
   const { toast } = useToast();
 
   // Add new user using UserDataManager
@@ -370,12 +378,28 @@ export default function Users() {
 
       {/* Users Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            Complete list of users in your organization with their details and status
-          </CardDescription>
-        </CardHeader>
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div>
+    <CardTitle>All Users</CardTitle>
+    <CardDescription>
+      Complete list of users in your organization with their details and status
+    </CardDescription>
+  </div>
+  <div className="relative w-full sm:w-64">
+    <input
+      type="text"
+      placeholder="Search users..."
+      // value={searchQuery}
+      // onChange={(e) => {
+      //   setSearchQuery(e.target.value);
+      //   setCurrentPage(1); // reset to first page
+      // }}
+      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+  </div>
+</CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
@@ -391,7 +415,7 @@ export default function Users() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+           {paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
@@ -476,6 +500,14 @@ export default function Users() {
               ))}
             </TableBody>
           </Table>
+               {/* Pagination */}
+                             <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={paginatedUsers.length}
+                  onPageChange={setCurrentPage}
+                />
         </CardContent>
       </Card>
 
