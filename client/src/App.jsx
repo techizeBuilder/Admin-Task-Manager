@@ -122,6 +122,8 @@ function ProtectedRoute({
   ...props
 }) {
   const { data: user, isLoading, error } = useUserRole();
+
+  
   const [, setLocation] = useLocation();
   const token = localStorage.getItem("token");
   

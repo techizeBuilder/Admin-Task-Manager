@@ -99,7 +99,7 @@ export default function Header({ user }) {
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
-
+ 
   // Use profile data primarily (which has the correct profileImageUrl), fallback to auth data
   const currentUser = profileUser || authUser || user;
 

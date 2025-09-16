@@ -3,6 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import CustomEditor from '../components/common/CustomEditor';
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
+import { hasAccess } from "../utils/auth";
 
 // Advanced Fields Modal Component
 const AdvancedFieldsModal = ({
@@ -237,7 +238,7 @@ export const RegularTaskForm = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
   const [advancedData, setAdvancedData] = useState({});
-
+const isIndividual = hasAccess(["individual"]);
   const watchedTaskName = watch("taskName");
   const watchedPriority = watch("priority");
 
@@ -283,7 +284,7 @@ export const RegularTaskForm = ({
   ];
 
   // Assignment options (for org users)
-  const assignmentOptions = isOrgUser
+  const assignmentOptions = !isIndividual
     ? [
         { value: "self", label: "Self" },
         { value: "john_doe", label: "John Doe" },
@@ -432,8 +433,8 @@ export const RegularTaskForm = ({
                 <Select
                   {...field}
                   options={assignmentOptions}
-                  isSearchable={isOrgUser}
-                  isDisabled={!isOrgUser}
+                  isSearchable={isIndividual}
+                  isDisabled={isIndividual}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select assignee"
@@ -441,6 +442,9 @@ export const RegularTaskForm = ({
                 />
               )}
             />
+            {
+              console.log('isIndividual:', isIndividual)
+            }
             {errors.assignedTo && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.assignedTo.message}
@@ -499,36 +503,37 @@ export const RegularTaskForm = ({
           </div>
         </div>
 
-        {/* Visibility */}
-        {isOrgUser && (
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
-              Visibility <span className="text-red-500">*</span>
-            </label>
-            <div className="flex space-x-4">
-              <label className="flex items-center">
-                <input
-                  {...register("visibility")}
-                  type="radio"
-                  value="private"
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  data-testid="radio-private"
-                />
-                <span className="ml-2 text-sm text-gray-900">Private</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  {...register("visibility")}
-                  type="radio"
-                  value="public"
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  data-testid="radio-public"
-                />
-                <span className="ml-2 text-sm text-gray-900">Public</span>
-              </label>
-            </div>
-          </div>
-        )}
+    <div>
+  <label className="block text-sm font-medium text-gray-900 mb-2">
+    Visibility <span className="text-red-500">*</span>
+  </label>
+  <div className="flex space-x-4">
+    <label className="flex items-center">
+      <input
+        {...register("visibility")}
+        type="radio"
+        value="private"
+        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+        data-testid="radio-private"
+        disabled={isIndividual} // locked for individual
+      />
+      <span className="ml-2 text-sm text-gray-900">Private</span>
+    </label>
+
+    {!isIndividual && ( // completely hide Public if individual
+      <label className="flex items-center">
+        <input
+          {...register("visibility")}
+          type="radio"
+          value="public"
+          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+          data-testid="radio-public"
+        />
+        <span className="ml-2 text-sm text-gray-900">Public</span>
+      </label>
+    )}
+  </div>
+</div>
 
         {/* Tags */}
         <div>

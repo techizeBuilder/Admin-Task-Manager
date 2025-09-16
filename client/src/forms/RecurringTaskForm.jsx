@@ -26,7 +26,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
     { value: "yearly", label: "Yearly" },
-    { value: "custom", label: "Custom (Ad-hoc Dates)" },
+    { value: "custom", label: "Custom" },
   ];
 
   // Weekday options
@@ -155,6 +155,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           Recurrence Settings
         </h3>
       </div>
+    <div className="grid grid-cols-3 gap-6">
 
       {/* Pattern Type */}
       <div>
@@ -211,6 +212,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </p>
         )}
       </div>
+    </div>
 
       {/* Pattern-specific controls */}
       {watchedPattern?.value === "weekly" && (
@@ -394,7 +396,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       )}
 
       {watchedPattern?.value === "yearly" && (
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
               Month(s) <span className="text-red-500">*</span>
@@ -801,7 +803,7 @@ export const RecurringTaskForm = ({
           )}
         />
       </div>
-
+          <div className="grid grid-cols-3 gap-6">
       {/* Assigned To - Single assignee only for recurring tasks */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-2">
@@ -859,6 +861,34 @@ export const RecurringTaskForm = ({
         )}
       </div>
 
+        {/* Contributors */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-2">
+          Contributors
+        </label>
+        <Controller
+          name="contributors"
+          control={control}
+          render={({ field }) => (
+            <Select
+              {...field}
+              isMulti
+              options={assignmentOptions.filter((opt) => opt.value !== "self")}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Select contributors"
+              data-testid="select-contributors"
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Contributors will receive notifications and can view/comment on the
+          task
+        </p>
+      </div>
+</div>
+
+
       {/* Visibility */}
       {isOrgUser && (
         <div>
@@ -889,8 +919,7 @@ export const RecurringTaskForm = ({
           </div>
         </div>
       )}
-
-      {/* Tags */}
+ {/* Tags */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-2">
           Labels / Tags
@@ -922,32 +951,9 @@ export const RecurringTaskForm = ({
           Type tag name and press Enter or comma to create new tags
         </p>
       </div>
+     
 
-      {/* Contributors */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Contributors
-        </label>
-        <Controller
-          name="contributors"
-          control={control}
-          render={({ field }) => (
-            <Select
-              {...field}
-              isMulti
-              options={assignmentOptions.filter((opt) => opt.value !== "self")}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select contributors for visibility & notifications..."
-              data-testid="select-contributors"
-            />
-          )}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Contributors will receive notifications and can view/comment on the
-          task
-        </p>
-      </div>
+    
 
       {/* Notes / Instructions */}
       <div>

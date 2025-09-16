@@ -25,7 +25,8 @@ export const isAuthenticated = () => {
   const user = getAuthUser();
   return !!(token && user);
 };
-export const useUserRole = () => {
+// abhittac :activeRole and roles
+export const useUserRole = () => { 
   const token = localStorage.getItem("token");
 
   const query = useQuery({
@@ -61,10 +62,28 @@ export const useUserRole = () => {
   });
 
   const user = query.data;
-
+  console.log('user data', user);
   const isAdmin = user?.activeRole === "org_admin" || user?.role[0] === "individual" || user?.role[0] === "org_admin";
 
   return { ...query, user, isAdmin };
+};
+// Check if the user has a specific role
+export const hasAccess = (requiredRoles = []) => {
+  const {user} = useUserRole();
+
+  if (!user) return false;
+
+  // Case 1: User has multiple roles → check activeRole 
+  if (Array.isArray(user.role) && user.role.length > 1) {
+    return requiredRoles.includes(user.activeRole);
+  }
+
+  // Case 2: User has exactly one role
+  if (Array.isArray(user.role) && user.role.length === 1) {
+    return requiredRoles.includes(user.role[0]);
+  }
+
+  return false;
 };
 
 

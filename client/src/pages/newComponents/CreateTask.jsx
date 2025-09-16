@@ -6,6 +6,7 @@ import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 import { useRole } from "../../features/shared/hooks/useRole";
 import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
+import { hasAccess } from "../../utils/auth";
 
 export default function CreateTask({
   onClose,
@@ -29,6 +30,7 @@ export default function CreateTask({
   } = useAssignmentOptions();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
 
+  console.log('hasaccess...............', hasAccess(["manager", "org_admin", "employee"]));
   // Filter available task types based on role permissions
   const getAvailableTaskTypes = () => {
     const taskTypes = [
@@ -50,7 +52,7 @@ export default function CreateTask({
         id: "milestone",
         label: "Milestone",
         description: "Project checkpoint",
-        available: canCreateMilestones,
+        available: hasAccess(["org_admin"]),
         color: "red",
         restrictedMessage: "Only Managers and Admins can create milestones",
       },
@@ -58,7 +60,7 @@ export default function CreateTask({
         id: "approval",
         label: "Approval Task",
         description: "Requires approval workflow",
-        available: canCreateApprovals,
+        available: hasAccess(["org_admin"]),
         color: "green",
         restrictedMessage: "Only Managers and Admins can create approval tasks",
       },
