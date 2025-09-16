@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export default function TaskStatusDropdown({
   task,
@@ -8,9 +9,17 @@ export default function TaskStatusDropdown({
   canEdit,
   canMarkCompleted,
 }) {
+  // Notes:
+  // - The dropdown menu is rendered into document.body via createPortal and positioned using
+  //   fixed coordinates derived from the trigger's getBoundingClientRect(). This avoids clipping
+  //   inside table cells or overflow-hidden containers.
+  // - Position updates on scroll and resize to keep the menu aligned with the trigger.
+  // - Keep tooltip rendering inline (not portaled) as it's small and anchored to the trigger.
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [validTransitions, setValidTransitions] = useState([]);
+  const buttonRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 176 });
 
   const currentStatusObj = statuses.find(
     (s) => s.code === currentStatus && s.active,
@@ -55,6 +64,33 @@ export default function TaskStatusDropdown({
     }
   }, [isOpen, currentStatusObj, task.subtasks, statuses]);
 
+  // Update floating menu position when open, on scroll/resize
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const baseWidth = 176; // matches w-44 (11rem)
+      const minWidth = Math.max(baseWidth, rect.width);
+      const vw = window.innerWidth;
+      const left = Math.min(Math.max(8, rect.left), vw - minWidth - 8);
+      const top = rect.bottom + 4;
+      setPos({ top, left, width: minWidth });
+    };
+
+    updatePosition();
+    const onScroll = () => updatePosition();
+    const onResize = () => updatePosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen]);
+
   if (!canEdit) {
     return (
       <div className="relative">
@@ -89,6 +125,7 @@ export default function TaskStatusDropdown({
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium hover:opacity-80 transition-opacity"
         style={badgeStyle}
         onClick={() => setIsOpen(!isOpen)}
@@ -112,65 +149,75 @@ export default function TaskStatusDropdown({
         </div>
       )}
 
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute top-full left-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-            {/* Valid Transitions */}
-            {validTransitions.length > 0 ? (
-              <div>
-                {validTransitions.map((transitionCode) => {
-                  const targetStatus = statuses.find(
-                    (s) => s.code === transitionCode && s.active,
-                  );
-                  if (!targetStatus) return null;
+      {isOpen &&
+        createPortal(
+          <>
+            {/* Backdrop to capture outside clicks */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+              aria-hidden="true"
+            />
+            {/* Floating menu rendered in portal */}
+            <div
+              className="fixed z-50 bg-white rounded-md shadow-lg border border-gray-200 py-1"
+              style={{ top: pos.top, left: pos.left, minWidth: pos.width }}
+              role="menu"
+              aria-orientation="vertical"
+            >
+              {/* Valid Transitions */}
+              {validTransitions.length > 0 ? (
+                <div>
+                  {validTransitions.map((transitionCode) => {
+                    const targetStatus = statuses.find(
+                      (s) => s.code === transitionCode && s.active,
+                    );
+                    if (!targetStatus) return null;
 
-                  return (
-                    <button
-                      key={transitionCode}
-                      className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
-                      onClick={() => {
-                        onStatusChange(transitionCode);
-                        setIsOpen(false);
-                      }}
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: targetStatus.color }}
-                      />
-                      <span className="font-medium text-gray-900 flex-1">
-                        {targetStatus.label}
-                      </span>
-                      {targetStatus.isFinal && (
-                        <span className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded">
-                          Final
+                    return (
+                      <button
+                        key={transitionCode}
+                        className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
+                        onClick={() => {
+                          onStatusChange(transitionCode);
+                          setIsOpen(false);
+                        }}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: targetStatus.color }}
+                        />
+                        <span className="font-medium text-gray-900 flex-1">
+                          {targetStatus.label}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="px-3 py-4 text-center">
-                <div className="text-sm text-gray-500">
-                  No valid transitions available
+                        {targetStatus.isFinal && (
+                          <span className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded">
+                            Final
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {task.subtasks?.length > 0 &&
-                  task.subtasks.some(
-                    (s) => s.status !== "DONE" && s.status !== "CANCELLED",
-                  )
-                    ? "Complete all sub-tasks first"
-                    : "This status cannot be changed further"}
+              ) : (
+                <div className="px-3 py-4 text-center">
+                  <div className="text-sm text-gray-500">
+                    No valid transitions available
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {task.subtasks?.length > 0 &&
+                    task.subtasks.some(
+                      (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+                    )
+                      ? "Complete all sub-tasks first"
+                      : "This status cannot be changed further"}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+              )}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
