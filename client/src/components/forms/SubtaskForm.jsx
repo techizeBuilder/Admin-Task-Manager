@@ -265,7 +265,7 @@ function SubtaskForm({
                 files={formData.attachments}
                 onFilesChange={(files) => setFormData({...formData, attachments: files})}
                 maxSize={5 * 1024 * 1024}
-                maxFiles={5}
+                maxFiles={1}
                 className="w-full"
               />
             </div>
