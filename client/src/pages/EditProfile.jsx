@@ -172,40 +172,43 @@ export default function EditProfile() {
     cacheTime: Infinity,
   });
 
-  console.log("organization..................................", organization);
-  // Use profile data primarily, fallback to auth data
+ // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
   // Helper to validate password fields and return errors
-  function validatePasswordFields({
+   function validatePasswordFields({
     currentPassword,
     newPassword,
     confirmPassword,
   }) {
     const errors = {};
 
-    if (!currentPassword) {
+    // Required checks
+    if (!currentPassword?.trim()) {
       errors.currentPassword = "Current password is required";
     }
-    if (!newPassword) {
+    if (!newPassword?.trim()) {
       errors.newPassword = "New password is required";
     }
-    if (!confirmPassword) {
+    if (!confirmPassword?.trim()) {
       errors.confirmPassword = "Confirm password is required";
     }
-    const { valid, failed } = validatePassword(password);
-     if (!valid) {
-       errors.password = `Password requirements not met: ${failed.join(', ')}`;
-     }
-    // New password must be different from current password
-    if (
-      currentPassword &&
-      newPassword &&
-      validatePasswordStrength(newPassword) &&
-      newPassword === currentPassword
-    ) {
-      errors.newPassword =
-        "New password must be different from current password";
+
+    // Only run further checks when newPassword provided
+    if (newPassword?.trim()) {
+      // Check requirements using helper
+      const reqs = getPasswordRequirements(newPassword);
+      const failed = reqs.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        errors.newPassword = "Password does not meet all requirements";
+      }
+
+      // New password must differ from current
+      if (currentPassword && newPassword === currentPassword) {
+        errors.newPassword = "New password must be different from current password";
+      }
     }
+
+    // Confirm must match
     if (newPassword && confirmPassword && newPassword !== confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
     }
@@ -566,14 +569,10 @@ export default function EditProfile() {
   };
 
   // Derived validity for enabling the password submit button
-  const isPasswordFormValid =
-    !!passwordData.currentPassword &&
-    !!passwordData.newPassword &&
-    !!passwordData.confirmPassword &&
-    validatePasswordStrength(passwordData.newPassword) &&
-    passwordData.newPassword === passwordData.confirmPassword &&
-    passwordData.newPassword !== passwordData.currentPassword;
-
+  const isPasswordFormValid = (() => {
+    const { isValid } = validatePasswordFields(passwordData);
+    return isValid;
+  })();
   // Helper functions
   const isOrgUser = () => {
     return currentUser?.role !== "individual" && currentUser?.organizationId;
@@ -1368,7 +1367,7 @@ export default function EditProfile() {
                       type="submit"
                       size="sm"
                       className="w-full bg-blue-500 text-white"
-                      disabled={passwordSubmitting || !isPasswordFormValid}
+                      // disabled={passwordSubmitting || !isPasswordFormValid}
                       data-testid="button-save-password"
                     >
                       {passwordSubmitting ? (
