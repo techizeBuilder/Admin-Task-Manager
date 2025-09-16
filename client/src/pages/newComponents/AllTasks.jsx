@@ -15,7 +15,14 @@ import Toast from "./Toast";
 import MilestoneCreator from "../MilestoneCreator";
 import CreateTask from "./CreateTask";
 import ApprovalTaskCreator from "./ApprovalTaskCreator";
-
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table" 
 import { getTaskTypeInfo, getTaskPriorityColor } from "../TaskTypeUtils";
 import {
   CheckCircle,
@@ -1040,7 +1047,8 @@ export default function AllTasks({
 
   return (
     <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden">
-      {/* Header */}
+     
+{/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">All Tasks</h1>
@@ -1454,58 +1462,61 @@ export default function AllTasks({
         <button className="btn btn-secondary btn-md">Export as Excel</button>
       </div>
 
+
+
       {/* Tasks Table */}
-      <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedTasks.length === tasks.length && tasks.length > 0
-                    }
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Task
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Assignee
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Priority
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Due Date
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Progress
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Tags
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Task Type
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Color Code
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+   <div className="card p-0">
+  <div className="w-full overflow-x-auto">
+    <Table wrapperClassName="max-w-[80rem]" className="w-full"> 
+           <TableHeader>
+             <TableRow>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
+                 <input
+                   type="checkbox"
+                   checked={
+                     selectedTasks.length === tasks.length && tasks.length > 0
+                   }
+                   onChange={(e) => handleSelectAll(e.target.checked)}
+                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                 />
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Task
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Assignee
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Status
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Priority
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Due Date
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Progress
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Tags
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Task Type
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Color Code
+               </TableHead>
+               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                 Actions
+               </TableHead>
+             </TableRow>
+           </TableHeader>
+        
+             <TableBody>
               {filteredTasks.map((task) => (
                 <React.Fragment key={task.id}>
-                  <tr
+                  <TableRow
                     className={`hover:bg-gray-50 transition-colors ${
                       selectedTasks.includes(task.id) ? "bg-blue-50" : ""
                     }`}
@@ -1513,7 +1524,7 @@ export default function AllTasks({
                       borderLeft: `4px solid ${getTaskColorCode(task)}`,
                     }}
                   >
-                    <td className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedTasks.includes(task.id)}
@@ -1522,8 +1533,8 @@ export default function AllTasks({
                         }
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div>
                         <div className="font-medium text-gray-900">
                           <div className="flex items-center gap-2">
@@ -1547,48 +1558,14 @@ export default function AllTasks({
                                   fill="none"
                                   xmlns="http://www.w3.org/2000/svg"
                                 >
-                                  <circle
-                                    cx="5"
-                                    cy="5"
-                                    r="2"
-                                    fill="currentColor"
-                                  />
-                                  <circle
-                                    cx="5"
-                                    cy="12"
-                                    r="2"
-                                    fill="currentColor"
-                                  />
-                                  <circle
-                                    cx="5"
-                                    cy="19"
-                                    r="2"
-                                    fill="currentColor"
-                                  />
-
-                                  <path
-                                    d="M5 7V10"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  />
-                                  <path
-                                    d="M5 14V17"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  />
-
-                                  <path
-                                    d="M7 12H14"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  />
-                                  <path
-                                    d="M7 19H14"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  />
+                                  <circle cx="5" cy="5" r="2" fill="currentColor" />
+                                  <circle cx="5" cy="12" r="2" fill="currentColor" />
+                                  <circle cx="5" cy="19" r="2" fill="currentColor" />
+                                  <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
+                                  <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
+                                  <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
+                                  <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
                                 </svg>
-
                                 {task.subtasks.length}
                               </button>
                             )}
@@ -1676,8 +1653,8 @@ export default function AllTasks({
                           </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
                           <span className="text-xs font-medium text-gray-600">
@@ -1691,8 +1668,8 @@ export default function AllTasks({
                           {task.assignee}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap text-left">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap text-left">
                       <TaskStatusDropdown
                         task={task}
                         currentStatus={task.status}
@@ -1703,23 +1680,23 @@ export default function AllTasks({
                         canEdit={canEditTaskStatus(task)}
                         canMarkCompleted={canMarkAsCompleted(task)}
                       />
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <span className={getTaskPriorityColor(task.priority)}>
                         {task.priority}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
                       {task.dueDate}
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div className="flex items-center">
                         <span className="text-xs text-gray-600 min-w-[3rem]">
                           {task.progress}%
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div className="flex flex-wrap gap-1">
                         {task.tags &&
                           task.tags.map((tag, index) => (
@@ -1731,22 +1708,22 @@ export default function AllTasks({
                             </span>
                           ))}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div className="flex items-center">
                         <span className="text-sm text-gray-900">
                           {getTaskType(task)}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div
                         className="w-6 h-6 rounded-full shadow-md"
                         style={{ backgroundColor: getTaskColorCode(task) }}
                         title={getTaskColorCode(task)}
                       ></div>
-                    </td>
-                    <td className="px-6 py-4 text-nowrap">
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-nowrap">
                       <div className="flex items-center justify-center">
                         <TaskActionsDropdown
                           task={task}
@@ -1758,19 +1735,19 @@ export default function AllTasks({
                           onDelete={() => handleDeleteTask(task.id)}
                         />
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
 
                   {/* Subtask Rows */}
                   {expandedTasks.has(task.id) &&
                     task.subtasks &&
                     task.subtasks.map((subtask) => (
-                      <tr
+                      <TableRow
                         key={`subtask-${subtask.id}`}
                         className="bg-gray-50 hover:bg-gray-100 transition-colors"
                       >
-                        <td className="px-6 py-3"></td>
-                        <td className="px-6 py-3">
+                        <TableCell className="px-6 py-3"></TableCell>
+                        <TableCell className="px-6 py-3">
                           <div className="flex items-center gap-2 pl-8">
                             <span className="text-blue-500">↳</span>
                             {editingSubtaskId === subtask.id ? (
@@ -1809,8 +1786,8 @@ export default function AllTasks({
                           <div className="text-xs text-gray-500 pl-7">
                             Sub-task of "{task.title}"
                           </div>
-                        </td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
                           <div className="flex items-center">
                             <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
                               <span className="text-xs font-medium text-gray-600">
@@ -1824,8 +1801,8 @@ export default function AllTasks({
                               {subtask.assignee}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-3 text-left">
+                        </TableCell>
+                        <TableCell className="px-6 py-3 text-left">
                           <TaskStatusDropdown
                             task={subtask}
                             currentStatus={subtask.status}
@@ -1840,31 +1817,31 @@ export default function AllTasks({
                             canEdit={canEditTaskStatus(subtask)}
                             canMarkCompleted={true}
                           />
-                        </td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
                           <span className={getPriorityBadge(subtask.priority)}>
                             {subtask.priority}
                           </span>
-                        </td>
-                        <td className="px-6 py-3 text-sm text-gray-700">
+                        </TableCell>
+                        <TableCell className="px-6 py-3 text-sm text-gray-700">
                           {subtask.dueDate}
-                        </td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
                           <div className="flex items-center">
                             <span className="text-xs text-gray-600 min-w-[3rem]">
                               {subtask.progress}%
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-3"></td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3"></TableCell>
+                        <TableCell className="px-6 py-3">
                           <div className="flex items-center">
                             <span className="text-sm text-gray-700">
                               {getTaskType(subtask)}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
                           <div
                             className="w-6 h-6 rounded-full shadow-md"
                             style={{
@@ -1872,8 +1849,8 @@ export default function AllTasks({
                             }}
                             title={getTaskColorCode(subtask)}
                           ></div>
-                        </td>
-                        <td className="px-6 py-3">
+                        </TableCell>
+                        <TableCell className="px-6 py-3">
                           <div className="flex items-center justify-center">
                             <button
                               className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
@@ -1901,38 +1878,19 @@ export default function AllTasks({
                               </svg>
                             </button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
                 </React.Fragment>
               ))}
-            </tbody>
-          </table>
+           </TableBody>
+        
+          </Table>
         </div>
       </div>
 
       {/* Pagination */}
-      <div className="flex bg-white rounded-md shadow-md p-3 items-center justify-between">
-        <div className="text-sm  text-gray-700">
-          Showing <span className="font-medium">1</span> to{" "}
-          <span className="font-medium">4</span> of{" "}
-          <span className="font-medium">97</span> results
-        </div>
-        <div className="flex items-center space-x-2">
-          <button className="btn btn-secondary btn-sm">Previous</button>
-          <button className="px-3 py-1 text-sm bg-primary-600 text-white rounded">
-            1
-          </button>
-          <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-            2
-          </button>
-          <button className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded">
-            3
-          </button>
-          <button className="btn btn-secondary btn-sm">Next</button>
-        </div>
-      </div>
-
+     
       {/* Slide-in Drawer */}
      {showCreateTaskDrawer && (
     <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">

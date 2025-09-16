@@ -253,7 +253,7 @@ export function TaskList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Tasks Management
+            Tasks Management 
           </h1>
           <p className="text-slate-600 dark:text-slate-300 font-medium mt-1">
             Create, manage and track all your tasks
