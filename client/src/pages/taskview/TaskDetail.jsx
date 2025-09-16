@@ -57,8 +57,19 @@ import './DetailedView.css';
 
 export default function TaskDetail({ taskId, onClose }) {
   const { openSubtaskDrawer } = useSubtask();
-  const [activeTab, setActiveTab] = useState("core-info");
-  const [, setLocation] = useLocation();
+  // Initialize active tab from query string to avoid first paint on Core Info
+  const initialTab = (() => {
+    try {
+      const search = typeof window !== 'undefined' ? window.location?.search || '' : '';
+      const params = new URLSearchParams(search);
+      const tab = params.get('tab');
+      const validTabs = new Set(["core-info", "subtasks", "comments", "activity", "files", "linked"]);
+      if (tab && validTabs.has(tab)) return tab;
+    } catch {}
+    return "core-info";
+  })();
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [location, setLocation] = useLocation();
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [showRiskModal, setShowRiskModal] = useState(false);
@@ -313,6 +324,22 @@ export default function TaskDetail({ taskId, onClose }) {
   const handleExportTask = () => {
     console.log("Exporting task:", task);
   };
+
+  // Sync tab selection from query string, e.g. ?tab=subtasks
+  useEffect(() => {
+    // Wouter's location doesn't include the query string, so use window.location.search
+    const search = window.location?.search || "";
+    if (!search) return;
+    const params = new URLSearchParams(search);
+    const tab = params.get("tab");
+    if (tab) {
+      // allow only known tabs
+      const validTabs = new Set(["core-info", "subtasks", "comments", "activity", "files", "linked"]);
+      if (validTabs.has(tab)) {
+        setActiveTab(tab);
+      }
+    }
+  }, [location]);
 
   return (
     <div className="task-view-container">

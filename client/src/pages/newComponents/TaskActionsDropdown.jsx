@@ -94,6 +94,19 @@ export default function TaskActionsDropdown({
             <span className="font-medium">Create Sub-task</span>
           </button>
 
+          {/* View Sub-task option navigates to Task Detail with Subtasks tab pre-selected */}
+          <button
+            className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              navigate(`/tasks/${task.id}?tab=subtasks`);
+            }}
+          >
+            <Eye size={16} className="text-gray-600" />
+            <span className="font-medium">View Sub-task</span>
+          </button>
+
           <button
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
