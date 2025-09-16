@@ -78,7 +78,7 @@ export default function CalendarDatePicker({
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overlay-animate">
+    <div className="fixed -top-[16px] inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overlay-animate">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full modal-animate-slide-up">
         {/* Header */}
         <div

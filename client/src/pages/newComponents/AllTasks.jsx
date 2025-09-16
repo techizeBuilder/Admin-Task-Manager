@@ -1893,7 +1893,7 @@ export default function AllTasks({
      
       {/* Slide-in Drawer */}
      {showCreateTaskDrawer && (
-    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0 -top-[16px]" role="dialog" aria-modal="true">
       <div
         className=" absolute inset-0 bg-black/40 "
         onClick={() => setShowCreateTaskDrawer(false)}
