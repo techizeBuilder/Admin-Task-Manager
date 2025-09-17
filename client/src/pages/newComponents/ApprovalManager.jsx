@@ -17,10 +17,19 @@ import {
   MessageSquare,
   Users,
   Workflow,
-  X
+  X,
+  MoreVerticalIcon,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import CreateTask from './CreateTask';
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Link } from 'wouter';
 export default function ApprovalManager() {
   const [currentUser] = useState({ id: 1, name: 'Current User', role: 'manager' });
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -232,13 +241,14 @@ export default function ApprovalManager() {
                 <p className="text-sm text-gray-600">Manage approval workflows and tasks</p>
               </div>
             </div>
+              <Link href="/tasks/create?type=approval">
             <button
-              onClick={() => setShowCreateModal(true)}
+           
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Approval Task
-            </button>
+              Add Approval Task
+            </button></Link>
           </div>
         </div>
       </div>
@@ -392,50 +402,20 @@ export default function ApprovalManager() {
             <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No approval tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first approval task.</p>
+         <Link href="/tasks/create?type=approval">
             <button
-              onClick={() => setShowCreateModal(true)}
+       
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Approval Task
             </button>
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Approval Task Creation Modal */}
-      {showCreateModal && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-container max-w-4xl">
-            <div className="modal-header" style={{ background: '#3b82f6' }}>
-              <div className="modal-title-section">
-                <div className="modal-icon">
-                  <CheckCircle size={20} />
-                </div>
-                <div>
-                  <h3>Create Approval Task</h3>
-                  <p>Set up a new approval workflow</p>
-                </div>
-              </div>
-              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <CreateTask
-                onClose={() => setShowCreateModal(false)}
-                onSubmit={(approvalData) => {
-                  handleCreateApprovalTask(approvalData);
-                  setShowCreateModal(false);
-                }}
-                initialTaskType="approval"
-              />
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+    
     </div>
   );
 }
@@ -482,7 +462,23 @@ function ApprovalTaskCard({ task, currentUser, onApproval, getApprovalStatus, ca
               </div>
             </div>
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                 {/* Actions - now in 3-dot menu */}
+        <DropdownMenu className='bg-white'>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-white">
+        
+            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
             </button>
           </div>
 
@@ -686,100 +682,3 @@ function ApprovalTaskListItem({ task, currentUser, onApproval, getApprovalStatus
   );
 }
 
-function ApprovalModal({ task, approver, onApproval, onClose }) {
-  const [comment, setComment] = useState('');
-
-  const handleSubmit = (selectedAction) => {
-    if (!comment.trim() && selectedAction === 'rejected') {
-      alert('Please provide a comment for rejection');
-      return;
-    }
-    
-    onApproval(task.id, approver.id, selectedAction, comment);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Review Approval</h3>
-                <p className="text-sm text-gray-600">{task.title}</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Description</label>
-              <p className="mt-1 text-sm text-gray-900">{task.description}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Mode</label>
-              <p className="mt-1 text-sm text-gray-900 capitalize">{task.mode}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Due Date</label>
-              <p className="mt-1 text-sm text-gray-900">{task.dueDate}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Creator</label>
-              <p className="mt-1 text-sm text-gray-900">{task.creator}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Comment {comment.trim() ? '(optional)' : '(required for rejection)'}
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Add your review comment..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={4}
-            />
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-end space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={() => handleSubmit('rejected')}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-          >
-            <XCircle className="h-4 w-4 mr-1 inline" />
-            Reject
-          </button>
-          <button 
-            onClick={() => handleSubmit('approved')}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
-          >
-            <CheckCircle className="h-4 w-4 mr-1 inline" />
-            Approve
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

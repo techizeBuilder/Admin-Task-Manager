@@ -17,10 +17,17 @@ import {
   Edit3,
   Trash2,
   Share2,
-  X
+  X,
+  MoreVerticalIcon
 } from "lucide-react";
 import CreateTask from "./CreateTask";
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "wouter";
 // Helper functions moved outside component
 const getStatusColor = (status) => {
   const colors = {
@@ -146,7 +153,7 @@ export default function MilestoneManager() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 rounded-xl bg-purple-500 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-xl bg-yellow-500 flex items-center justify-center">
                 <Target className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -154,13 +161,14 @@ export default function MilestoneManager() {
                 <p className="text-sm text-gray-600">Track and manage project milestones</p>
               </div>
             </div>
+              <Link href="/tasks/create?type=milestone">
             <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              
+              className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Milestone
-            </button>
+            </button></Link>
           </div>
         </div>
       </div>
@@ -227,7 +235,7 @@ export default function MilestoneManager() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="not_started">Not Started</option>
@@ -239,7 +247,7 @@ export default function MilestoneManager() {
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
               >
                 <option value="all">All Priority</option>
                 <option value="low">Low</option>
@@ -254,7 +262,7 @@ export default function MilestoneManager() {
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md transition-colors ${
-                    viewMode === "grid" ? "bg-white shadow-sm text-purple-600" : "text-gray-600 hover:text-gray-900"
+                    viewMode === "grid" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -262,7 +270,7 @@ export default function MilestoneManager() {
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white shadow-sm text-purple-600" : "text-gray-600 hover:text-gray-900"
+                    viewMode === "list" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -284,8 +292,8 @@ export default function MilestoneManager() {
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Target className="h-5 w-5 text-purple-600" />
+                      <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <Target className="h-5 w-5 text-yellow-600" />
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{milestone.taskName}</h3>
@@ -293,7 +301,23 @@ export default function MilestoneManager() {
                       </div>
                     </div>
                     <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                       {/* Actions - now in 3-dot menu */}
+        <DropdownMenu className='bg-white'>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-white">
+        
+            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
                     </button>
                   </div>
 
@@ -308,7 +332,7 @@ export default function MilestoneManager() {
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(milestone.priority)}`}>
                       {milestone.priority.toUpperCase()}
                     </span>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
                       <Target className="h-3 w-3 mr-1" />
                       MILESTONE
                     </span>
@@ -322,7 +346,7 @@ export default function MilestoneManager() {
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${milestone.progress}%` }}
                       ></div>
                     </div>
@@ -400,12 +424,9 @@ export default function MilestoneManager() {
                         <Edit3 className="h-4 w-4 mr-1" />
                         Edit
                       </button>
-                      <button className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Share
-                      </button>
+                    
                     </div>
-                    <button className="inline-flex items-center px-4 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors">
+                    <button className="inline-flex items-center px-4 py-1.5 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700 transition-colors">
                       View Details
                     </button>
                   </div>
@@ -421,8 +442,8 @@ export default function MilestoneManager() {
                 <div key={milestone.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
-                      <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Target className="h-6 w-6 text-purple-600" />
+                      <div className="h-12 w-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <Target className="h-6 w-6 text-yellow-600" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -457,7 +478,7 @@ export default function MilestoneManager() {
                         <div className="text-2xl font-bold text-gray-900">{milestone.progress}%</div>
                         <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
                           <div
-                            className="bg-purple-600 h-2 rounded-full"
+                            className="bg-yellow-600 h-2 rounded-full"
                             style={{ width: `${milestone.progress}%` }}
                           ></div>
                         </div>
@@ -466,10 +487,8 @@ export default function MilestoneManager() {
                         <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                           <Edit3 className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                          <Share2 className="h-4 w-4 text-gray-500" />
-                        </button>
-                        <button className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+                      
+                        <button className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors">
                           View Details
                         </button>
                       </div>
@@ -486,50 +505,20 @@ export default function MilestoneManager() {
             <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No milestones found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first milestone.</p>
+          <Link href="/tasks/create?type=milestone">
             <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+            
+              className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Milestone
             </button>
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Milestone Creation Modal */}
-      {showAddForm && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-container max-w-4xl">
-            <div className="modal-header" style={{ background: '#8b5cf6' }}>
-              <div className="modal-title-section">
-                <div className="modal-icon">
-                  <Target size={20} />
-                </div>
-                <div>
-                  <h3>Create Milestone</h3>
-                  <p>Create a new milestone to track project progress</p>
-                </div>
-              </div>
-              <button className="modal-close" onClick={() => setShowAddForm(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <CreateTask
-                onClose={() => setShowAddForm(false)}
-                onSubmit={(milestoneData) => {
-                  console.log('Creating milestone:', milestoneData);
-                  setShowAddForm(false);
-                }}
-                initialTaskType="milestone"
-              />
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+   
     </div>
   );
 }

@@ -11,12 +11,19 @@ import {
   Trash2,
   Calendar,
   Clock,
-  Tag
+  Tag,
+  MoreVertical,
+  MoreVerticalIcon,
 } from 'lucide-react';
 import { RecurringTaskIcon } from '../../components/common/TaskIcons';
 // If your icon lives elsewhere, adjust this path.
 
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 const RecurringTaskManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all | active | paused
@@ -321,61 +328,77 @@ const RecurringTaskManager = () => {
                 data-testid={`recurring-task-card-${task.id}`}
               >
                 {/* Card Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <RecurringTaskIcon className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                        <p className="text-sm text-gray-600">{getFrequencyLabel(task.frequency)}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleToggleActive(task.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title={task.isActive ? 'Pause' : 'Resume'}
-                        data-testid={`button-toggle-${task.id}`}
-                      >
-                        {task.isActive ? <Pause className="h-4 w-4 text-gray-600" /> : <Play className="h-4 w-4 text-green-600" />}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(task.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Edit"
-                        data-testid={`button-edit-${task.id}`}
-                      >
-                        <Edit3 className="h-4 w-4 text-gray-600" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(task.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Delete"
-                        data-testid={`button-delete-${task.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
+               <div className="p-6 border-b border-gray-200">
+      <div className="flex items-start justify-between mb-3">
+        {/* Left section */}
+        <div className="flex items-center space-x-3">
+          <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+            <RecurringTaskIcon className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {task.title}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {getFrequencyLabel(task.frequency)}
+            </p>
+          </div>
+        </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{task.description}</p>
+        {/* Actions - now in 3-dot menu */}
+        <DropdownMenu className='bg-white'>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-white">
+            <DropdownMenuItem onClick={() => handleToggleActive(task.id)}>
+              {task.isActive ? (
+                <>
+                  <Pause className="h-4 w-4 mr-2 text-gray-600" /> Pause
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2 text-green-600" /> Resume
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-                  {/* Status and Priority */}
-                  <div className="flex items-center flex-wrap gap-2">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusPill(task.isActive)}`}>
-                      {task.isActive ? 'ACTIVE' : 'PAUSED'}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-                      {task.priority?.toUpperCase() || 'N/A'}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                      <Tag className="h-3 w-3 mr-1" />
-                      {getFrequencyLabel(task.frequency)}
-                    </span>
-                  </div>
-                </div>
+      {/* Description */}
+      <p className="text-sm text-gray-600 mb-4">{task.description}</p>
+
+      {/* Status + Priority */}
+      <div className="flex items-center flex-wrap gap-2">
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusPill(
+            task.isActive
+          )}`}
+        >
+          {task.isActive ? "ACTIVE" : "PAUSED"}
+        </span>
+        <span
+          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+            task.priority
+          )}`}
+        >
+          {task.priority?.toUpperCase() || "N/A"}
+        </span>
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+          <Tag className="h-3 w-3 mr-1" />
+          {getFrequencyLabel(task.frequency)}
+        </span>
+      </div>
+    </div>
 
                 {/* Card Body */}
                 <div className="p-6 space-y-4">
