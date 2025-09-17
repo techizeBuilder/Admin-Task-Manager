@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import "quill/dist/quill.snow.css";  
 import "../styles/quill-custom.css";
 import Select from "react-select";
 import { Star, Calendar, Users, Info, AlertCircle } from "lucide-react";

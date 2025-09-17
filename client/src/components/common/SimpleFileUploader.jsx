@@ -1,14 +1,16 @@
 import React, { useState, useRef } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, AlertCircle } from "lucide-react";
 
 const SimpleFileUploader = ({
   files = [],
   onFilesChange,
   maxSize = 5 * 1024 * 1024, // 5MB
-  maxFiles = 10,
+ 
   className = "",
+  error = null,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [validationError, setValidationError] = useState(error);
   const fileInputRef = useRef(null);
 
   const formatFileSize = (bytes) => {
@@ -49,38 +51,51 @@ const SimpleFileUploader = ({
   const handleFileInputChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
     handleFileAdd(selectedFiles);
-  };const handleFileAdd = (newFiles) => {
-  const validFiles = newFiles.filter(file => {
-    if (file.size > maxSize) {
-      alert(`File ${file.name} is too large. Maximum size is ${formatFileSize(maxSize)}.`);
-      return false;
+  };
+
+  const handleFileAdd = (newFiles) => {
+    setValidationError(null);
+    
+    
+    
+    const validFiles = newFiles.filter(file => {
+      if (file.size > maxSize) {
+        setValidationError(`File ${file.name} is too large. Maximum size is ${formatFileSize(maxSize)}.`);
+        return false;
+      }
+      return true;
+    });
+
+    // Check total size after adding
+    const totalSize = getTotalSize() + validFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > maxSize) {
+      setValidationError(`Total file size cannot exceed ${formatFileSize(maxSize)}.`);
+      return;
     }
-    return true;
-  });
 
-  // Check total size after adding
-  const totalSize = getTotalSize() + validFiles.reduce((sum, file) => sum + file.size, 0);
-  if (totalSize > maxSize) {
-    alert(`Total file size cannot exceed ${formatFileSize(maxSize)}.`);
-    return;
-  }
+    const filesWithIds = validFiles.map(file => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      file: file
+    }));
 
-  const filesWithIds = validFiles.map(file => ({
-    id: Date.now() + Math.random(),
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    file: file
-  }));
-
-  onFilesChange([...files, ...filesWithIds]);
-};
-
+    onFilesChange([...files, ...filesWithIds]);
+  };
 
   const removeFile = (fileId) => {
     const updatedFiles = files.filter((file) => file.id !== fileId);
     onFilesChange(updatedFiles);
+    
+    // Clear error when removing files
+    if (validationError) {
+      setValidationError(null);
+    }
   };
+
+  // Use external error if provided, otherwise use internal validation error
+  const displayError = error || validationError;
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -88,11 +103,9 @@ const SimpleFileUploader = ({
       <div
         className={`
           border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 cursor-pointer
-          ${
-            isDragging
-              ? "border-blue-500 bg-blue-50"
-              : "border-gray-300 hover:border-blue-400 hover:bg-gray-50"
-          }
+          ${isDragging ? "border-blue-500 bg-blue-50" : 
+            displayError ? "border-red-500" :
+            "border-gray-300 hover:border-blue-400 hover:bg-gray-50"}
         `}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragEvents}
@@ -110,17 +123,25 @@ const SimpleFileUploader = ({
         />
 
         <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <Plus size={24} className="text-blue-600" />
+          <div className={`w-12 h-12 ${displayError ? 'bg-red-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
+            <Plus size={24} className={displayError ? "text-red-600" : "text-blue-600"} />
           </div>
           <div>
-            <p className="text-blue-600 font-medium">Click to upload files</p>
+            <p className={displayError ? "text-red-600 font-medium" : "text-blue-600 font-medium"}>Click to upload files</p>
             <p className="text-sm text-gray-500 mt-1">
               PDF, DOC, images supported
             </p>
           </div>
         </div>
       </div>
+
+      {/* Error message */}
+      {displayError && (
+        <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+          <AlertCircle size={16} />
+          <span>{displayError}</span>
+        </div>
+      )}
 
       {/* File List */}
       {files.length > 0 && (
@@ -148,6 +169,7 @@ const SimpleFileUploader = ({
               <button
                 onClick={() => removeFile(file.id)}
                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                type="button"
               >
                 <X size={16} />
               </button>
@@ -157,7 +179,7 @@ const SimpleFileUploader = ({
           {/* Total Size */}
           <div className="text-xs text-gray-500 text-right">
             Total size: {formatFileSize(getTotalSize())} /{" "}
-            {formatFileSize(maxSize * maxFiles)}
+            {formatFileSize(maxSize)}
           </div>
         </div>
       )}

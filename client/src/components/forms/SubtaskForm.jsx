@@ -23,9 +23,9 @@ function SubtaskForm({
     description: '',
     attachments: []
   });
-
+  const [errors, setErrors] = useState({}); 
   // Populate form when editing or reset with parent data
-  useEffect(() => {
+    useEffect(() => {
     if (editData && mode === 'edit') {
       setFormData({
         title: editData.title || '',
@@ -51,49 +51,54 @@ function SubtaskForm({
     }
   }, [editData, mode, parentTask]);
 
-  const handleSubmit = (e) => {
+ const handleSubmit = (e) => {
     e.preventDefault();
-    const errors = validateForm();
-    
-    if (errors.length > 0) {
-      alert('Please fix the following errors:\n' + errors.join('\n'));
-      return;
-    }
-    
+    const newErrors = validateForm();
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
     onSubmit(formData);
     handleCancel();
-  };
+  };  
 
   const validateForm = () => {
-    const errors = [];
-    
+    const newErrors = {};
+
     if (!formData.title.trim()) {
-      errors.push('Sub-task name is required');
+      newErrors.title = 'Sub-task name is required';
+    } else if (formData.title.length > 60) {
+      newErrors.title = 'Sub-task name cannot exceed 60 characters';
     }
-    
-    if (formData.title.length > 60) {
-      errors.push('Sub-task name cannot exceed 60 characters');
-    }
-    
+
     if (!formData.assignee) {
-      errors.push('Assignee is required');
+      newErrors.assignee = 'Assignee is required';
     }
-    
+
     if (!formData.dueDate) {
-      errors.push('Due date is required');
-    }
-    
-    if (parentTask?.dueDate && formData.dueDate) {
+      newErrors.dueDate = 'Due date is required';
+    } else if (parentTask?.dueDate) {
       const selectedDate = new Date(formData.dueDate);
       const parentDueDate = new Date(parentTask.dueDate);
       if (selectedDate > parentDueDate) {
-        errors.push('Due date cannot exceed parent task due date');
+        newErrors.dueDate = 'Due date cannot exceed parent task due date';
       }
     }
-    
-    return errors;
-  };
 
+    return newErrors;
+  };
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+
+    // Clear error dynamically when user types/selects
+    if (errors[field]) {
+      setErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
+  };
   const handleCancel = () => {
     setFormData({
       title: 'New Sub-task',
@@ -104,9 +109,9 @@ function SubtaskForm({
       visibility: parentTask?.visibility || 'Internal',
       description: ''
     });
+    setErrors({});
     onClose();
   };
-
   // Control body scroll when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -145,19 +150,29 @@ function SubtaskForm({
               <form onSubmit={handleSubmit}>
             {/* Task Title */}
             <div className="form-group">
-              <label className="form-label">
+              <label className="form-label flex justify-between">
+                <div>
+
                 <Tag size={16} />
                 Task Title
+                </div><span className="text-gray-500">{formData.title.length}/60</span>
               </label>
               <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="Sub-task title (required)"
-                className="form-input"
-                required
-                autoFocus
-              />
+    type="text"
+    value={formData.title}
+    onChange={(e) => handleChange('title', e.target.value)}
+    placeholder="Sub-task title (required)"
+    className={`form-input ${errors.title ? 'border-red-500 focus:border-red-500' : ''}`}
+    maxLength={60}
+ 
+    autoFocus
+  />
+  {errors.title && (
+    <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+      <AlertCircle size={16} />
+      <span>{errors.title}</span>
+    </div>
+  )}
             </div>
 
             {/* Row 1: Assignee & Priority */}
@@ -168,18 +183,25 @@ function SubtaskForm({
                   Assignee
                 </label>
                 <SearchableSelect
-                  options={[
-                    { value: '', name: 'Self', email: 'self@current.user' },
-                    { value: 'john-smith', name: 'John Smith', email: 'john@company.com' },
-                    { value: 'sarah-wilson', name: 'Sarah Wilson', email: 'sarah@company.com' },
-                    { value: 'mike-johnson', name: 'Mike Johnson', email: 'mike@company.com' },
-                    { value: 'emily-davis', name: 'Emily Davis', email: 'emily@company.com' }
-                  ]}
-                  value={formData.assignee}
-                  onChange={(value) => setFormData({...formData, assignee: value})}
-                  placeholder="Select assignee..."
-                  searchPlaceholder="Search team members..."
-                />
+      options={[
+        { value: '', name: 'Self', email: 'self@current.user' },
+        { value: 'john-smith', name: 'John Smith', email: 'john@company.com' },
+        { value: 'sarah-wilson', name: 'Sarah Wilson', email: 'sarah@company.com' },
+        { value: 'mike-johnson', name: 'Mike Johnson', email: 'mike@company.com' },
+        { value: 'emily-davis', name: 'Emily Davis', email: 'emily@company.com' }
+      ]}
+      value={formData.assignee}
+      onChange={(value) => handleChange('assignee', value)}
+      placeholder="Select assignee..."
+      searchPlaceholder="Search team members..."
+      className={errors.assignee ? 'error-select' : ''}
+    />
+    {errors.assignee && (
+      <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+        <AlertCircle size={16} />
+        <span>{errors.assignee}</span>
+      </div>
+    )}
               </div>
               <div className="form-group">
                 <label className="form-label">
@@ -206,12 +228,18 @@ function SubtaskForm({
                   <Calendar size={16} />
                   Due Date
                 </label>
-                <input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                  className="form-input"
-                />
+                   <input
+      type="date"
+      value={formData.dueDate}
+      onChange={(e) => handleChange('dueDate', e.target.value)}
+      className={`form-input ${errors.dueDate ? 'border-red-500 focus:border-red-500' : ''}`}
+    />
+    {errors.dueDate && (
+      <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+        <AlertCircle size={16} />
+        <span>{errors.dueDate}</span>
+      </div>
+    )}
               </div>
               <div className="form-group">
                 <label className="form-label">Status</label>
@@ -261,38 +289,26 @@ function SubtaskForm({
                 <Paperclip size={16} />
                 Attachments (Max 5MB total)
               </label>
-              <SimpleFileUploader
-                files={formData.attachments}
-                onFilesChange={(files) => setFormData({...formData, attachments: files})}
-                maxSize={5 * 1024 * 1024}
-                maxFiles={1}
-                className="w-full"
-              />
+               <SimpleFileUploader
+    files={formData.attachments}
+    onFilesChange={(files) => setFormData({...formData, attachments: files})}
+    maxSize={5 * 1024 * 1024}
+  
+    className="w-full"
+    error={errors.attachments}
+  />
             </div>
 
-            {/* Inheritance Rules Info */}
-            <div className="info-section">
-              <h4>
-                <AlertCircle size={16} />
-                Inheritance Rules
-              </h4>
-              <div className="inheritance-info">
-                <p>Visibility: Inherits "Private" (can override)</p>
-                <p>Priority Impact: Changes due date automatically</p>
-                <p>Suggested Due: 2024-01-25</p>
-                <p>Max Length: Title 60 chars</p>
-              </div>
-            </div>
 
             {/* Actions */}
-            <div className="form-actions">
-              <button type="button" onClick={handleCancel} className="btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary">
-                {mode === 'edit' ? 'Update Sub-task' : 'Create Sub-task'}
-              </button>
-            </div>
+           <div className="form-actions flex justify-between">
+                <button type="button" onClick={handleCancel} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  {mode === 'edit' ? 'Update Sub-task' : 'Create Sub-task'}
+                </button>
+              </div>
               </form>
             </div>
           </div>
