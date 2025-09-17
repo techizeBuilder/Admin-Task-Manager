@@ -480,6 +480,39 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+const activitySchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+    },
+    relatedId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    relatedType: {
+      type: String, // e.g., 'task', 'project', 'user'
+    },
+    metadata: {
+      type: Object,
+      default: {},
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 // Task Assignment Schema
 const taskAssignmentSchema = new mongoose.Schema({
   task: {
@@ -922,6 +955,7 @@ export const User = mongoose.model("User", userSchema);
 export const Project = mongoose.model("Project", projectSchema);
 export const TaskStatus = mongoose.model("TaskStatus", taskStatusSchema);
 export const Task = mongoose.model("Task", taskSchema);
+export const Activity = mongoose.model("Activity", activitySchema);
 export const TaskComment = mongoose.model("TaskComment", taskCommentSchema);
 export const TaskAssignment = mongoose.model(
   "TaskAssignment",

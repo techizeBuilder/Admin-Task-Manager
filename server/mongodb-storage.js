@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { emailService } from './services/emailService.js';
 import { 
   Organization, 
@@ -186,34 +187,42 @@ export class MongoStorage {
       type: 'task_created',
       description: `Task "${taskData.title}" was created`,
       relatedId: savedTask._id,
-      relatedType: 'task'
+      relatedType: 'task',
+      user: taskData.createdBy,
+      organization: taskData.organization,
     });
     
     return savedTask;
   }
 
-  async updateTask(id, taskData) {
+  async updateTask(id, taskData, userId) {
     const task = await Task.findByIdAndUpdate(id, taskData, { new: true });
     
     // Create activity log
-    await this.createActivity({
-      type: 'task_updated',
-      description: `Task "${task.title}" was updated`,
-      relatedId: task._id,
-      relatedType: 'task'
-    });
+    if (userId) {
+      await this.createActivity({
+        type: 'task_updated',
+        description: `Task "${task.title}" was updated`,
+        relatedId: task._id,
+        relatedType: 'task',
+        user: userId,
+        organization: task.organization,
+      });
+    }
     
     return task;
   }
 
-  async deleteTask(id) {
+  async deleteTask(id, userId) {
     const task = await Task.findById(id);
     if (task) {
       await this.createActivity({
         type: 'task_deleted',
         description: `Task "${task.title}" was deleted`,
         relatedId: id,
-        relatedType: 'task'
+        relatedType: 'task',
+        user: userId,
+        organization: task.organization,
       });
     }
     return await Task.findByIdAndDelete(id);
@@ -231,11 +240,13 @@ export class MongoStorage {
 
   // Activity operations
   async createActivity(activityData) {
+    const Activity = mongoose.model('Activity');
     const activity = new Activity(activityData);
     return await activity.save();
   }
 
   async getRecentActivities(limit = 10) {
+    const Activity = mongoose.model('Activity');
     return await Activity.find()
       .sort({ createdAt: -1 })
       .limit(limit);

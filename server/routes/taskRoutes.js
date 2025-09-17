@@ -324,7 +324,7 @@ router.put("/tasks/:id", authenticateToken, async (req, res) => {
     if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
     if (updates.startDate) updateData.startDate = new Date(updates.startDate);
 
-    const updatedTask = await storage.updateTask(id, updateData);
+    const updatedTask = await storage.updateTask(id, updateData, user.id);
 
     res.json({
       success: true,
@@ -377,7 +377,7 @@ router.patch("/tasks/:id/status", authenticateToken, async (req, res) => {
     const updatedTask = await storage.updateTask(id, { 
       status: status,
       updatedAt: new Date() 
-    });
+    }, user.id);
 
     res.json({
       success: true,
@@ -422,7 +422,7 @@ router.delete("/tasks/:id", authenticateToken, async (req, res) => {
     await storage.updateTask(id, { 
       isDeleted: true, 
       updatedAt: new Date() 
-    });
+    }, user.id);
 
     res.json({
       success: true,
