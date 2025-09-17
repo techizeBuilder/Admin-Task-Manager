@@ -102,6 +102,7 @@ import DynamicDashboard from "./pages/Dashboard";
 import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
+import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,10 +124,9 @@ function ProtectedRoute({
 }) {
   const { data: user, isLoading, error } = useUserRole();
 
-  
   const [, setLocation] = useLocation();
   const token = localStorage.getItem("token");
-  
+
   useEffect(() => {
     // Only redirect if we have no token at all
     if (!token) {
@@ -167,12 +167,15 @@ function ProtectedRoute({
     // Get the current active role or default to first role
     const activeRole = user.activeRole || user.role?.[0];
     const userRoles = user.role || [];
-    
+
     if (requiredRole) {
       return userRoles.includes(requiredRole) || activeRole === requiredRole;
     }
     if (allowedRoles.length > 0) {
-      return allowedRoles.some((role) => userRoles.includes(role)) || allowedRoles.includes(activeRole);
+      return (
+        allowedRoles.some((role) => userRoles.includes(role)) ||
+        allowedRoles.includes(activeRole)
+      );
     }
     return true; // No role requirement
   };
@@ -250,503 +253,581 @@ function App() {
         <SubtaskProvider>
           <ViewProvider>
             <Switch>
-        {/* Root Route - Role-based redirect */}
-        <Route path="/" component={RoleBasedRedirect} />
+              {/* Root Route - Role-based redirect */}
+              <Route path="/" component={RoleBasedRedirect} />
 
-        {/* Public Authentication Routes - No Layout */}
-        <Route path="/register" component={Register} />
+              {/* Public Authentication Routes - No Layout */}
+              <Route path="/register" component={Register} />
 
-        <Route path="/login" component={Login} />
-        <Route path="/super-admin/login" component={SuperAdminLogin} />
+              <Route path="/login" component={Login} />
+              <Route path="/super-admin/login" component={SuperAdminLogin} />
 
-        <Route path="/verify" component={VerifyEmail} />
-        <Route path="/registration-success" component={RegistrationSuccess} />
-        <Route path="/create-password" component={CreatePassword} />
-        <Route path="/reset-password" component={ResetPassword} />
-        <Route path="/accept-invitation" component={SimpleAcceptInvite} />
-        <Route path="/accept-invite" component={SimpleAcceptInvite} />
-        <Route path="/register/invite/:token" component={SimpleAcceptInvite} />
-        <Route path="/forbidden" component={ForbiddenPage} />
+              <Route path="/verify" component={VerifyEmail} />
+              <Route
+                path="/registration-success"
+                component={RegistrationSuccess}
+              />
+              <Route path="/create-password" component={CreatePassword} />
+              <Route path="/reset-password" component={ResetPassword} />
+              <Route path="/accept-invitation" component={SimpleAcceptInvite} />
+              <Route path="/accept-invite" component={SimpleAcceptInvite} />
+              <Route
+                path="/register/invite/:token"
+                component={SimpleAcceptInvite}
+              />
+              <Route path="/forbidden" component={ForbiddenPage} />
 
-        {/* Role-based Dashboard Routes */}
-        <Route path="/superadmin">
-          <RequireSuperAdmin>
-            <SuperAdminDashboard />
-          </RequireSuperAdmin>
-        </Route>
+              {/* Role-based Dashboard Routes */}
+              <Route path="/superadmin">
+                <RequireSuperAdmin>
+                  <SuperAdminDashboard />
+                </RequireSuperAdmin>
+              </Route>
 
-        {/* Legacy Super Admin Routes */}
-        <Route path="/super-admin">
-          <ProtectedRoute
-            component={LegacySuperAdminDashboard}
-            requiredRole="super_admin"
-          />
-        </Route>
-        <Route path="/super-admin/companies">
-          <ProtectedRoute
-            component={CompaniesManagement}
-            requiredRole="super_admin"
-          />
-        </Route>
-        <Route path="/super-admin/users">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={UsersManagement}
-              requiredRole="super_admin"
-            />
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/logs">
-          <SuperAdminLayout>
-            <ProtectedRoute component={SystemLogs} requiredRole="super_admin" />
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/admins">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={AdminManagement}
-              requiredRole="super_admin"
-            />
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/analytics">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={TaskAnalytics}
-              requiredRole="super_admin"
-            />
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/settings">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={AdminSettings}
-              requiredRole="super_admin"
-            ></ProtectedRoute>
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/login-customization">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={LoginCustomization}
-              requiredRole="super_admin"
-            />
-          </SuperAdminLayout>
-        </Route>
-        <Route path="/super-admin/edit-profile">
-          <SuperAdminLayout>
-            <ProtectedRoute
-              component={EditProfile}
-              requiredRole="super_admin"
-            />
-          </SuperAdminLayout>
-        </Route>
+              {/* Legacy Super Admin Routes */}
+              <Route path="/super-admin">
+                <ProtectedRoute
+                  component={LegacySuperAdminDashboard}
+                  requiredRole="super_admin"
+                />
+              </Route>
+              <Route path="/super-admin/companies">
+                <ProtectedRoute
+                  component={CompaniesManagement}
+                  requiredRole="super_admin"
+                />
+              </Route>
+              <Route path="/super-admin/users">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={UsersManagement}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/logs">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={SystemLogs}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/admins">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={AdminManagement}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/analytics">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={TaskAnalytics}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/settings">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={AdminSettings}
+                    requiredRole="super_admin"
+                  ></ProtectedRoute>
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/login-customization">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={LoginCustomization}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
+              <Route path="/super-admin/edit-profile">
+                <SuperAdminLayout>
+                  <ProtectedRoute
+                    component={EditProfile}
+                    requiredRole="super_admin"
+                  />
+                </SuperAdminLayout>
+              </Route>
 
-        {/* Main Dashboard Route - Home Dashboard with Sidebar */}
-        <Route path="/dashboard">
-          <AdminLayout>
-            <ProtectedRoute
-              component={DynamicDashboard}
-              allowedRoles={["org_admin", "employee", "individual"]}
-            />
-          </AdminLayout>
-        </Route>
+              {/* Main Dashboard Route - Home Dashboard with Sidebar */}
+              <Route path="/dashboard">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={DynamicDashboard}
+                    allowedRoles={["org_admin", "employee", "individual"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        {/* Individual User Task Pages */}
-        <Route path="/recurring">
-          <AdminLayout>
-            <ProtectedRoute
-              component={RecurringTasks}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              {/* Individual User Task Pages */}
+              <Route path="/recurring">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={RecurringTasks}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/create">
-          <AdminLayout>
-            <ProtectedRoute
-              component={CreateTask}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/create">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={CreateTask}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/quick-tasks">
-          <AdminLayout>
-            <ProtectedRoute
-              component={QuickAddBar}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/quick-tasks">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={QuickAddBar}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/milestones">
-          <AdminLayout>
-            <ProtectedRoute
-              component={MilestoneManager}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/milestones">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={MilestoneManager}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/regular-tasks">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={RegularTaskManager}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/approvals">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={ApprovalManager}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/approvals">
-          <AdminLayout>
-            <ProtectedRoute
-              component={ApprovalManager}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/calendar">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={CalendarView}
+                    allowedRoles={["individual", "employee", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/calendar">
-          <AdminLayout>
-            <ProtectedRoute
-              component={CalendarView}
-              allowedRoles={["individual", "employee", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/analytics">
+                <AdminLayout>
+                  <ProtectedRoute component={TaskAnalytics} />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/upgrade-success">
+                <AdminLayout>
+                  <ProtectedRoute component={UpgradeSuccessPage} />
+                </AdminLayout>
+              </Route>
+              <Route path="/deadlines">
+                <AdminLayout>
+                  <ProtectedRoute component={Deadlines} />
+                </AdminLayout>
+              </Route>
+              <Route path="/overdue-tasks">
+                <AdminLayout>
+                  <ProtectedRoute component={OverdueTasks} />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/analytics">
-          <AdminLayout>
-            <ProtectedRoute component={TaskAnalytics} />
-          </AdminLayout>
-        </Route>
-           <Route path="/admin/upgrade-success">
-          <AdminLayout>
-            <ProtectedRoute component={UpgradeSuccessPage} />
-          </AdminLayout>
-        </Route>
-        <Route path="/deadlines">
-          <AdminLayout>
-            <ProtectedRoute component={Deadlines} />
-          </AdminLayout>
-        </Route>
-        <Route path="/overdue-tasks">
-          <AdminLayout>
-            <ProtectedRoute component={OverdueTasks} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks">
+                <AdminLayout>
+                  <ProtectedRoute component={AllTasks} />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks">
-          <AdminLayout>
-            <ProtectedRoute component={AllTasks} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId">
+                <AdminLayout>
+                  <ProtectedRoute component={TaskDetail} />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId">
-          <AdminLayout>
-            <ProtectedRoute component={TaskDetail} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId/snooze">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={() => (
+                      <div className="p-6">
+                        <h1 className="text-2xl font-bold">Snooze Task</h1>
+                        <p>Configure when to resume this task</p>
+                      </div>
+                    )}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId/snooze">
-          <AdminLayout>
-            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Snooze Task</h1><p>Configure when to resume this task</p></div>} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId/mark-risk">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={() => (
+                      <div className="p-6">
+                        <h1 className="text-2xl font-bold">Mark as Risk</h1>
+                        <p>Mark this task as at risk and provide details</p>
+                      </div>
+                    )}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId/mark-risk">
-          <AdminLayout>
-            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Mark as Risk</h1><p>Mark this task as at risk and provide details</p></div>} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId/mark-done">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={() => (
+                      <div className="p-6">
+                        <h1 className="text-2xl font-bold">Mark as Done</h1>
+                        <p>Complete this task and update status</p>
+                      </div>
+                    )}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId/mark-done">
-          <AdminLayout>
-            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Mark as Done</h1><p>Complete this task and update status</p></div>} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId/delete">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={() => (
+                      <div className="p-6">
+                        <h1 className="text-2xl font-bold">Delete Task</h1>
+                        <p>Permanently remove this task</p>
+                      </div>
+                    )}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId/delete">
-          <AdminLayout>
-            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Delete Task</h1><p>Permanently remove this task</p></div>} />
-          </AdminLayout>
-        </Route>
+              <Route path="/tasks/:taskId/subtasks/create">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={() => (
+                      <div className="p-6">
+                        <h1 className="text-2xl font-bold">Create Subtask</h1>
+                        <p>Add a new subtask to this task</p>
+                      </div>
+                    )}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/setting">
+                <AdminLayout>
+                  <ProtectedRoute component={AdminSettings} />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/tasks/:taskId/subtasks/create">
-          <AdminLayout>
-            <ProtectedRoute component={() => <div className="p-6"><h1 className="text-2xl font-bold">Create Subtask</h1><p>Add a new subtask to this task</p></div>} />
-          </AdminLayout>
-        </Route>
-        <Route path="/setting">
-          <AdminLayout>
-            <ProtectedRoute component={AdminSettings} />
-          </AdminLayout>
-        </Route>
+              <Route path="/task/view/:taskId?">
+                <AdminLayout>
+                  <ProtectedRoute component={TaskDetail} />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/task/view/:taskId?">
-          <AdminLayout>
-            <ProtectedRoute component={TaskDetail} />
-          </AdminLayout>
-        </Route>
+              <Route path="/users">
+                <AdminLayout>
+                  <ProtectedRoute component={Users} />
+                </AdminLayout>
+              </Route>
+              <Route path="/user-management">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={UserManagement}
+                    allowedRoles={["org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/team-members">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={TeamMembers}
+                    allowedRoles={["org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/team-members">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={TeamMembers}
+                    allowedRoles={["org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/edit-profile">
+                <AdminLayout>
+                  <ProtectedRoute component={EditProfile} />
+                </AdminLayout>
+              </Route>
+              <Route path="/profile">
+                <AdminLayout>
+                  <ProtectedRoute component={EditProfile} />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/users">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={Users}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/plans">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={PlansLicenses}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/roles">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={RoleManagement}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/role-management">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={RoleManagement}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/recurring">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={RecurringTaskManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/users">
-          <AdminLayout>
-            <ProtectedRoute component={Users} />
-          </AdminLayout>
-        </Route>
-        <Route path="/user-management">
-          <AdminLayout>
-            <ProtectedRoute
-              component={UserManagement}
-              allowedRoles={["org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/team-members">
-          <AdminLayout>
-            <ProtectedRoute
-              component={TeamMembers}
-              allowedRoles={["org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/team-members">
-          <AdminLayout>
-            <ProtectedRoute
-              component={TeamMembers}
-              allowedRoles={["org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/edit-profile">
-          <AdminLayout>
-            <ProtectedRoute component={EditProfile} />
-          </AdminLayout>
-        </Route>
-        <Route path="/profile">
-          <AdminLayout>
-            <ProtectedRoute component={EditProfile} />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/users">
-          <AdminLayout>
-            <ProtectedRoute
-              component={Users}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/plans">
-          <AdminLayout>
-            <ProtectedRoute
-              component={PlansLicenses}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/roles">
-          <AdminLayout>
-            <ProtectedRoute
-              component={RoleManagement}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/role-management">
-          <AdminLayout>
-            <ProtectedRoute
-              component={RoleManagement}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/recurring">
-          <AdminLayout>
-            <ProtectedRoute
-              component={RecurringTaskManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/admin/approval">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={ApprovalManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/milestone">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={MilestoneManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/StatusManager">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={StatusManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/PriorityManager">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={PriorityManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/status">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={StatusManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/priority">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={PriorityManager}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/activity-feed">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={ActivityFeed}
+                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
 
-        <Route path="/admin/approval">
-          <AdminLayout>
-            <ProtectedRoute
-              component={ApprovalManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/milestone">
-          <AdminLayout>
-            <ProtectedRoute
-              component={MilestoneManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/StatusManager">
-          <AdminLayout>
-            <ProtectedRoute
-              component={StatusManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/PriorityManager">
-          <AdminLayout>
-            <ProtectedRoute
-              component={PriorityManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/status">
-          <AdminLayout>
-            <ProtectedRoute
-              component={StatusManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/priority">
-          <AdminLayout>
-            <ProtectedRoute
-              component={PriorityManager}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/activity-feed">
-          <AdminLayout>
-            <ProtectedRoute
-              component={ActivityFeed}
-              allowedRoles={["superadmin", "org_admin", "org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
+              <Route path="/projects">
+                <AdminLayout>
+                  <ProtectedRoute component={Projects} />
+                </AdminLayout>
+              </Route>
+              <Route path="/forms">
+                <AdminLayout>
+                  <ProtectedRoute component={FormBuilder} />
+                </AdminLayout>
+              </Route>
+              <Route path="/integrations">
+                <AdminLayout>
+                  <ProtectedRoute component={Integrations} />
+                </AdminLayout>
+              </Route>
+              <Route path="/roles">
+                <AdminLayout>
+                  <ProtectedRoute component={Roles} />
+                </AdminLayout>
+              </Route>
+              <Route path="/reports">
+                <AdminLayout>
+                  <ProtectedRoute component={Reports} />
+                </AdminLayout>
+              </Route>
+              <Route path="/notification-center">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={NotificationCenter}
+                    allowedRoles={["org_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/notifications">
+                <AdminLayout>
+                  <ProtectedRoute component={NotificationCenter} />
+                </AdminLayout>
+              </Route>
+              <Route path="/notification">
+                <AdminLayout>
+                  <ProtectedRoute component={AdminNotification} />
+                </AdminLayout>
+              </Route>
+              <Route path="/sidebar-demo">
+                <SidebarDemo />
+              </Route>
+              <Route path="/member-dashboard">
+                <MemberDashboard />
+              </Route>
+              <Route path="/current-user-sidebar">
+                <CurrentUserSidebar />
+              </Route>
+              {/* Settings Routes */}
+              <Route path="/settings">
+                <SettingsLayout>
+                  <ProtectedRoute requiredRole="org_admin">
+                    <div className="p-6">
+                      <script>
+                        window.location.href = '/settings/user-management';
+                      </script>
+                      <p>Redirecting to User Management...</p>
+                    </div>
+                  </ProtectedRoute>
+                </SettingsLayout>
+              </Route>
+              <Route path="/settings/general">
+                <SettingsLayout>
+                  <ProtectedRoute
+                    component={GeneralSettings}
+                    requiredRole="org_admin"
+                  />
+                </SettingsLayout>
+              </Route>
+              <Route path="/settings/user-management">
+                <SettingsLayout>
+                  <ProtectedRoute
+                    component={SettingsUserManagement}
+                    allowedRoles={["org_admin", "org_admin"]}
+                  />
+                </SettingsLayout>
+              </Route>
+              <Route path="/settings/subscription">
+                <SettingsLayout>
+                  <ProtectedRoute
+                    component={Subscription}
+                    requiredRole="org_admin"
+                  />
+                </SettingsLayout>
+              </Route>
 
-        <Route path="/projects">
-          <AdminLayout>
-            <ProtectedRoute component={Projects} />
-          </AdminLayout>
-        </Route>
-        <Route path="/forms">
-          <AdminLayout>
-            <ProtectedRoute component={FormBuilder} />
-          </AdminLayout>
-        </Route>
-        <Route path="/integrations">
-          <AdminLayout>
-            <ProtectedRoute component={Integrations} />
-          </AdminLayout>
-        </Route>
-        <Route path="/roles">
-          <AdminLayout>
-            <ProtectedRoute component={Roles} />
-          </AdminLayout>
-        </Route>
-        <Route path="/reports">
-          <AdminLayout>
-            <ProtectedRoute component={Reports} />
-          </AdminLayout>
-        </Route>
-        <Route path="/notification-center">
-          <AdminLayout>
-            <ProtectedRoute
-              component={NotificationCenter}
-              allowedRoles={["org_admin"]}
-            />
-          </AdminLayout>
-        </Route>
-        <Route path="/notifications">
-          <AdminLayout>
-            <ProtectedRoute component={NotificationCenter} />
-          </AdminLayout>
-        </Route>
-        <Route path="/notification">
-          <AdminLayout>
-            <ProtectedRoute component={AdminNotification} />
-          </AdminLayout>
-        </Route>
-        <Route path="/sidebar-demo">
-          <SidebarDemo />
-        </Route>
-        <Route path="/member-dashboard">
-          <MemberDashboard />
-        </Route>
-        <Route path="/current-user-sidebar">
-          <CurrentUserSidebar />
-        </Route>
-        {/* Settings Routes */}
-        <Route path="/settings">
-          <SettingsLayout>
-            <ProtectedRoute requiredRole="org_admin">
-              <div className="p-6">
-                <script>
-                  window.location.href = '/settings/user-management';
-                </script>
-                <p>Redirecting to User Management...</p>
-              </div>
-            </ProtectedRoute>
-          </SettingsLayout>
-        </Route>
-        <Route path="/settings/general">
-          <SettingsLayout>
-            <ProtectedRoute component={GeneralSettings} requiredRole="org_admin" />
-          </SettingsLayout>
-        </Route>
-        <Route path="/settings/user-management">
-          <SettingsLayout>
-            <ProtectedRoute
-              component={SettingsUserManagement}
-              allowedRoles={["org_admin", "org_admin"]}
-            />
-          </SettingsLayout>
-        </Route>
-        <Route path="/settings/subscription">
-          <SettingsLayout>
-            <ProtectedRoute component={Subscription} requiredRole="org_admin" />
-          </SettingsLayout>
-        </Route>
-        
-        {/* Licensing & Subscription Routes */}
-        <Route path="/admin/subscription">
-          <AdminLayout>
-            <ProtectedRoute component={LicenseManagementPage}        
-             allowedRoles={["org_admin", "manager","individual","employee"]} />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/billing">
-          <AdminLayout>
-            <ProtectedRoute component={BillingPage} allowedRoles={["org_admin", "manager","individual","employee"]} />
-          </AdminLayout>
-        </Route>
-        <Route path="/admin/upgrade">
-          <AdminLayout>
-            <ProtectedRoute component={PurchaseUpgradePage} allowedRoles={["org_admin", "individual"]} />
-          </AdminLayout>
-        </Route>
-        <Route path="/pricing">
-          <PricingPage />
-        </Route>
-        <Route path="/settings/roles">
-          <SettingsLayout>
-            <ProtectedRoute component={SettingsRoles} requiredRole="org_admin" />
-          </SettingsLayout>
-        </Route>
+              {/* Licensing & Subscription Routes */}
+              <Route path="/admin/subscription">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={LicenseManagementPage}
+                    allowedRoles={[
+                      "org_admin",
+                      "manager",
+                      "individual",
+                      "employee",
+                    ]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/billing">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={BillingPage}
+                    allowedRoles={[
+                      "org_admin",
+                      "manager",
+                      "individual",
+                      "employee",
+                    ]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/admin/upgrade">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={PurchaseUpgradePage}
+                    allowedRoles={["org_admin", "individual"]}
+                  />
+                </AdminLayout>
+              </Route>
+              <Route path="/pricing">
+                <PricingPage />
+              </Route>
+              <Route path="/settings/roles">
+                <SettingsLayout>
+                  <ProtectedRoute
+                    component={SettingsRoles}
+                    requiredRole="org_admin"
+                  />
+                </SettingsLayout>
+              </Route>
 
-        {/* 404 Not Found */}
-        <Route>
-          <div className="flex items-center justify-center h-screen">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Page Not Found
-              </h2>
-              <p className="text-gray-600">
-                The page you're looking for doesn't exist.
-              </p>
-            </div>
-          </div>
-        </Route>
-      </Switch>
-      <Toaster />
-      <GlobalSubtaskDrawer />
-      <GlobalViewModal />
-      </ViewProvider>
-      </SubtaskProvider>
+              {/* 404 Not Found */}
+              <Route>
+                <div className="flex items-center justify-center h-screen">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      Page Not Found
+                    </h2>
+                    <p className="text-gray-600">
+                      The page you're looking for doesn't exist.
+                    </p>
+                  </div>
+                </div>
+              </Route>
+            </Switch>
+            <Toaster />
+            <GlobalSubtaskDrawer />
+            <GlobalViewModal />
+          </ViewProvider>
+        </SubtaskProvider>
       </RoleProvider>
     </QueryClientProvider>
   );
