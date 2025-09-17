@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { 
+import {
   Plus,
   Target,
   Calendar,
@@ -15,14 +15,31 @@ import {
   List,
   MoreHorizontal,
   Edit3,
-  Trash2,
   Share2,
   X,
-  File
+  File,
+  Tag,
+  Paperclip
 } from "lucide-react";
-import CreateTask from "./CreateTask";
+import { RegularTaskIcon } from "../../components/common/TaskIcons";
+import { Link } from "wouter";
 
-// Helper functions moved outside component
+// THEME: Regular Task uses teal; Milestone uses purple
+const RT = {
+  // base
+  primary: "teal",
+  // color utility classes
+  btn: "bg-teal-600 hover:bg-teal-700 text-white",
+  chip: {
+    primary: "bg-teal-100 text-teal-800 border border-teal-200",
+  },
+  icon: "text-teal-600",
+  panelHeader: "border-b border-gray-200",
+  headerBg: "bg-white",
+  headerBorder: "border-b border-gray-200",
+};
+
+// Helpers
 const getStatusColor = (status) => {
   const colors = {
     not_started: "bg-gray-100 text-gray-800 border-gray-200",
@@ -45,123 +62,248 @@ const getPriorityColor = (priority) => {
 
 const getStatusIcon = (status) => {
   switch (status) {
-    case 'completed':
+    case "completed":
       return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-    case 'in_progress':
+    case "in_progress":
       return <Clock className="h-4 w-4 text-blue-600" />;
-    case 'overdue':
+    case "overdue":
       return <AlertCircle className="h-4 w-4 text-red-600" />;
     default:
       return <Clock className="h-4 w-4 text-gray-600" />;
   }
 };
 
+// Auto due date based on priority (can be tweaked/plugged to backend logic)
+const dueDateFromPriority = (priority) => {
+  const base = new Date();
+  const addDays = (d) => {
+    const dt = new Date(base);
+    dt.setDate(dt.getDate() + d);
+    return dt.toISOString().slice(0, 10);
+  };
+  switch (priority) {
+    case "low":
+      return addDays(7);
+    case "medium":
+      return addDays(3);
+    case "high":
+      return addDays(1);
+    case "critical":
+      return addDays(0);
+    default:
+      return addDays(7);
+  }
+};
+
 export default function RegularTaskManager() {
-  const [milestones, setMilestones] = useState([
+  // Sample tasks (regular tasks, not milestones)
+  const [tasks, setTasks] = useState([
     {
       id: 1,
-      taskName: "Project Alpha Launch",
-      isMilestone: true,
-      milestoneType: "standalone",
-      linkedTasks: [1, 2, 3, 4],
-      dueDate: "2024-02-15",
-      assignedTo: "John Smith",
-      description: "Complete launch of the new project management system",
-      visibility: "public",
-      priority: "high",
-      collaborators: ["Sarah Wilson", "Mike Johnson"],
+      taskName: "Prepare Report",
+      description: "Compile weekly sales metrics and insights.",
+      assignedTo: "Self",
+      priority: "medium",
+      dueDate: "2025-09-20",
+      visibility: "private",
+      labels: ["report", "sales"],
+      attachments: [],
       status: "in_progress",
-      progress: 75,
-      tasks: [
-        { id: 1, title: "UI Design Complete", completed: true },
-        { id: 2, title: "Backend API Development", completed: true },
-        { id: 3, title: "Testing Phase", completed: false },
-        { id: 4, title: "Deployment", completed: false },
-      ],
+      taskType: "simple",
+      progress: 50,
     },
     {
       id: 2,
-      taskName: "Q1 Marketing Campaign",
-      isMilestone: true,
-      milestoneType: "linked",
-      linkedTasks: [5, 6, 7],
-      dueDate: "2024-03-31",
-      assignedTo: "Emily Davis",
-      description: "Launch comprehensive marketing campaign for Q1",
-      visibility: "private",
-      priority: "medium",
-      collaborators: ["Current User"],
+      taskName: "Team Standup",
+      description: "Daily sync with the product team.",
+      assignedTo: "Team",
+      priority: "low",
+      dueDate: "2025-09-21",
+      visibility: "public",
+      labels: ["meeting"],
+      attachments: [],
       status: "not_started",
+      taskType: "recurring",
       progress: 0,
-      tasks: [
-        { id: 5, title: "Content Strategy", completed: false },
-        { id: 6, title: "Creative Assets", completed: false },
-        { id: 7, title: "Campaign Launch", completed: false },
-      ],
     },
     {
       id: 3,
-      taskName: "Database Migration",
-      isMilestone: true,
-      milestoneType: "standalone",
-      linkedTasks: [8, 9],
-      dueDate: "2024-01-20",
-      assignedTo: "Tech Team",
-      description: "Migrate existing database to new infrastructure",
-      visibility: "public",
-      priority: "critical",
-      collaborators: ["Dev Team", "QA Team"],
+      taskName: "Budget Approval",
+      description: "Get approval from finance for Q4 budget.",
+      assignedTo: "Emily Davis",
+      priority: "high",
+      dueDate: "2025-09-18",
+      visibility: "private",
+      labels: ["finance", "approval"],
+      attachments: [],
       status: "completed",
+      taskType: "approval",
       progress: 100,
-      tasks: [
-        { id: 8, title: "Data Backup", completed: true },
-        { id: 9, title: "Schema Migration", completed: true },
-      ],
     },
   ]);
 
-  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [viewMode, setViewMode] = useState("grid"); // grid or list
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  // Filter milestones
-  const filteredMilestones = milestones.filter(milestone => {
-    const statusMatch = statusFilter === "all" || milestone.status === statusFilter;
-    const priorityMatch = priorityFilter === "all" || milestone.priority === priorityFilter;
+  // Form state
+  const [form, setForm] = useState({
+    taskName: "",
+    description: "",
+    assignedTo: "Self", // default Self
+    priority: "low", // default Low
+    dueDate: dueDateFromPriority("low"), // auto-filled
+    visibility: "private", // default Private
+    labels: [],
+    labelInput: "",
+    attachments: [],  
+    taskType: "simple", // default Simple
+    // Advanced
+    referenceProcess: "",
+    customForm: "",
+    dependencies: [],
+  });
+  const [attachmentsBytes, setAttachmentsBytes] = useState(0);
+  const maxBytes = 5 * 1024 * 1024; // 5MB
+
+  const resetForm = () => {
+    setForm({
+      taskName: "",
+      description: "",
+      assignedTo: "Self",
+      priority: "low",
+      dueDate: dueDateFromPriority("low"),
+      visibility: "private",
+      labels: [],
+      labelInput: "",
+      attachments: [],
+      taskType: "simple",
+      referenceProcess: "",
+      customForm: "",
+      dependencies: [],
+    });
+    setAttachmentsBytes(0);
+  };
+
+  // Filtering
+  const filteredTasks = tasks.filter((task) => {
+    const statusMatch = statusFilter === "all" || task.status === statusFilter;
+    const priorityMatch = priorityFilter === "all" || task.priority === priorityFilter;
     return statusMatch && priorityMatch;
   });
 
   const stats = {
-    total: milestones.length,
-    completed: milestones.filter(m => m.status === 'completed').length,
-    inProgress: milestones.filter(m => m.status === 'in_progress').length,
-    notStarted: milestones.filter(m => m.status === 'not_started').length,
-    overdue: milestones.filter(m => m.status === 'overdue').length,
+    total: tasks.length,
+    completed: tasks.filter((t) => t.status === "completed").length,
+    inProgress: tasks.filter((t) => t.status === "in_progress").length,
+    notStarted: tasks.filter((t) => t.status === "not_started").length,
+    overdue: tasks.filter((t) => t.status === "overdue").length,
+  };
+
+  // Form handlers
+  const onPriorityChange = (priority) => {
+    setForm((f) => ({
+      ...f,
+      priority,
+      dueDate: dueDateFromPriority(priority), // auto-set; user can edit later
+    }));
+  };
+
+  const onLabelsKeyDown = (e) => {
+    if (e.key === "Enter" && form.labelInput.trim()) {
+      e.preventDefault();
+      const val = form.labelInput.trim();
+      if (!form.labels.includes(val)) {
+        setForm((f) => ({ ...f, labels: [...f.labels, val], labelInput: "" }));
+      } else {
+        setForm((f) => ({ ...f, labelInput: "" }));
+      }
+    }
+  };
+
+  const removeLabel = (label) => {
+    setForm((f) => ({ ...f, labels: f.labels.filter((l) => l !== label) }));
+  };
+
+  const onFilesSelected = (files) => {
+    const arr = Array.from(files);
+    const total = arr.reduce((sum, f) => sum + f.size, 0);
+    if (total > maxBytes) {
+      alert("Attachments exceed 5 MB total limit.");
+      return;
+    }
+    setForm((f) => ({ ...f, attachments: arr }));
+    setAttachmentsBytes(total);
+  };
+
+  const validateForm = () => {
+    if (!form.taskName.trim()) return "Task Name is required.";
+    if (form.taskName.length > 20) return "Task Name must be <= 20 characters.";
+    if (!form.assignedTo) return "Assigned To is required.";
+    if (!form.priority) return "Priority is required.";
+    if (!form.dueDate) return "Due Date is required.";
+    if (!form.taskType) return "Task Type is required.";
+    if (attachmentsBytes > maxBytes) return "Attachments exceed 5 MB total limit.";
+    return null;
+    // Visibility rules (solo vs org) can be applied here if needed.
+  };
+
+  const onSave = () => {
+    const err = validateForm();
+    if (err) {
+      alert(err);
+      return;
+    }
+    const newTask = {
+      id: Date.now(),
+      taskName: form.taskName.trim(),
+      description: form.description,
+      assignedTo: form.assignedTo,
+      priority: form.priority,
+      dueDate: form.dueDate,
+      visibility: form.visibility,
+      labels: form.labels,
+      attachments: form.attachments.map((f) => ({ name: f.name, size: f.size })),
+      status: "not_started",
+      taskType: form.taskType,
+      progress: 0,
+      // Advanced (stored for future use)
+      referenceProcess: form.referenceProcess,
+      customForm: form.customForm,
+      dependencies: form.dependencies,
+    };
+    setTasks((prev) => [newTask, ...prev]);
+
+    setShowAdvanced(false);
+    resetForm();
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className={`${RT.headerBg} ${RT.headerBorder}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 rounded-xl bg-purple-500 flex items-center justify-center">
-                <File className="h-6 w-6 text-white" />
+              <div className="h-12 w-12 rounded-xl bg-teal-600 flex items-center justify-center">
+                <RegularTaskIcon className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Regular Task</h1>
-                <p className="text-sm text-gray-600">Track and manage simple task</p>
+                <p className="text-sm text-gray-600">Track and manage simple tasks</p>
               </div>
             </div>
+            <Link href="/tasks/create?type=regular">
             <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+
+              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Regular Task
             </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -224,11 +366,11 @@ export default function RegularTaskManager() {
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Filters:</span>
               </div>
-              
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="not_started">Not Started</option>
@@ -240,7 +382,7 @@ export default function RegularTaskManager() {
               <select
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Priority</option>
                 <option value="low">Low</option>
@@ -255,7 +397,7 @@ export default function RegularTaskManager() {
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md transition-colors ${
-                    viewMode === "grid" ? "bg-white shadow-sm text-purple-600" : "text-gray-600 hover:text-gray-900"
+                    viewMode === "grid" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -263,7 +405,7 @@ export default function RegularTaskManager() {
                 <button
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white shadow-sm text-purple-600" : "text-gray-600 hover:text-gray-900"
+                    viewMode === "list" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   <List className="h-4 w-4" />
@@ -273,24 +415,24 @@ export default function RegularTaskManager() {
           </div>
         </div>
 
-        {/* Milestones Grid/List */}
+        {/* Tasks Grid/List */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredMilestones.map((milestone) => (
+            {filteredTasks.map((task) => (
               <div
-                key={milestone.id}
+                key={task.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Card Header */}
-                <div className="p-6 border-b border-gray-200">
+                <div className={`p-6 ${RT.panelHeader}`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Target className="h-5 w-5 text-purple-600" />
+                      <div className="h-10 w-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                        <File className={`h-5 w-5 ${RT.icon}`} />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{milestone.taskName}</h3>
-                        <p className="text-sm text-gray-600">{milestone.milestoneType}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">{task.taskName}</h3>
+                        <p className="text-sm text-gray-600 capitalize">{task.taskType}</p>
                       </div>
                     </div>
                     <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
@@ -298,34 +440,42 @@ export default function RegularTaskManager() {
                     </button>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{milestone.description}</p>
+                  <p className="text-sm text-gray-600 mb-4">{task.description}</p>
 
                   {/* Status and Priority */}
-                  <div className="flex items-center space-x-2 mb-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(milestone.status)}`}>
-                      {getStatusIcon(milestone.status)}
-                      <span className="ml-1">{milestone.status.replace("_", " ").toUpperCase()}</span>
+                  <div className="flex items-center flex-wrap gap-2 mb-4">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                        task.status
+                      )}`}
+                    >
+                      {getStatusIcon(task.status)}
+                      <span className="ml-1">{task.status.replace("_", " ").toUpperCase()}</span>
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(milestone.priority)}`}>
-                      {milestone.priority.toUpperCase()}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                        task.priority
+                      )}`}
+                    >
+                      {task.priority.toUpperCase()}
                     </span>
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                      <Target className="h-3 w-3 mr-1" />
-                      MILESTONE
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${RT.chip.primary}`}>
+                      <File className="h-3 w-3 mr-1" />
+                      REGULAR
                     </span>
                   </div>
 
-                  {/* Progress */}
+                  {/* Progress (derived/optional) */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className="text-sm text-gray-500">{milestone.progress}%</span>
+                      <span className="text-sm text-gray-500">{task.progress}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${milestone.progress}%` }}
-                      ></div>
+                        className="bg-teal-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${task.progress}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -336,61 +486,48 @@ export default function RegularTaskManager() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">Due: {new Date(milestone.dueDate).toLocaleDateString()}</span>
+                      <span className="text-gray-600">
+                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">{milestone.assignedTo}</span>
+                      <span className="text-gray-600">{task.assignedTo}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {milestone.visibility === 'public' ? (
+                      {task.visibility === "public" ? (
                         <Eye className="h-4 w-4 text-gray-400" />
                       ) : (
                         <EyeOff className="h-4 w-4 text-gray-400" />
                       )}
-                      <span className="text-gray-600 capitalize">{milestone.visibility}</span>
+                      <span className="text-gray-600 capitalize">{task.visibility}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <CheckCircle2 className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">{milestone.tasks.filter(t => t.completed).length}/{milestone.tasks.length} Tasks</span>
+                      <Paperclip className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-600">
+                        {task.attachments?.length || 0} Attachment
+                        {task.attachments?.length === 1 ? "" : "s"}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Collaborators */}
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Collaborators</h4>
-                    <div className="flex items-center space-x-2">
-                      {milestone.collaborators.map((collaborator, index) => (
-                        <div
-                          key={index}
-                          className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
-                        >
-                          {collaborator.charAt(0).toUpperCase()}
-                        </div>
-                      ))}
-                      <button className="h-8 w-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors">
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Associated Tasks Preview */}
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Tasks</h4>
-                    <div className="space-y-1">
-                      {milestone.tasks.slice(0, 2).map((task) => (
-                        <div key={task.id} className="flex items-center space-x-2">
-                          <CheckCircle2 className={`h-4 w-4 ${task.completed ? 'text-green-500' : 'text-gray-300'}`} />
-                          <span className={`text-sm ${task.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                            {task.title}
+                  {/* Labels */}
+                  {task.labels?.length ? (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Labels</h4>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {task.labels.map((label, index) => (
+                          <span
+                            key={`${label}-${index}`}
+                            className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700"
+                          >
+                            <Tag className="h-3 w-3 mr-1 text-gray-500" />
+                            {label}
                           </span>
-                        </div>
-                      ))}
-                      {milestone.tasks.length > 2 && (
-                        <p className="text-xs text-gray-500 ml-6">+{milestone.tasks.length - 2} more tasks</p>
-                      )}
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
 
                 {/* Card Footer */}
@@ -406,7 +543,7 @@ export default function RegularTaskManager() {
                         Share
                       </button>
                     </div>
-                    <button className="inline-flex items-center px-4 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition-colors">
+                    <button className="inline-flex items-center px-4 py-1.5 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors">
                       View Details
                     </button>
                   </div>
@@ -418,49 +555,65 @@ export default function RegularTaskManager() {
           // List View
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {filteredMilestones.map((milestone) => (
-                <div key={milestone.id} className="p-6 hover:bg-gray-50 transition-colors">
+              {filteredTasks.map((task) => (
+                <div key={task.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
-                      <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Target className="h-6 w-6 text-purple-600" />
+                      <div className="h-12 w-12 rounded-lg bg-teal-100 flex items-center justify-center">
+                        <File className="h-6 w-6 text-teal-600" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{milestone.taskName}</h3>
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(milestone.status)}`}>
-                            {getStatusIcon(milestone.status)}
-                            <span className="ml-1">{milestone.status.replace("_", " ").toUpperCase()}</span>
+                          <h3 className="text-lg font-semibold text-gray-900">{task.taskName}</h3>
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                              task.status
+                            )}`}
+                          >
+                            {getStatusIcon(task.status)}
+                            <span className="ml-1">{task.status.replace("_", " ").toUpperCase()}</span>
                           </span>
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(milestone.priority)}`}>
-                            {milestone.priority.toUpperCase()}
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority.toUpperCase()}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                            {task.taskType.toUpperCase()}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
+                        <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                         <div className="flex items-center space-x-6 text-sm text-gray-500">
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-4 w-4" />
-                            <span>Due: {new Date(milestone.dueDate).toLocaleDateString()}</span>
+                            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
                           </span>
                           <span className="flex items-center space-x-1">
                             <Users className="h-4 w-4" />
-                            <span>{milestone.assignedTo}</span>
+                            <span>{task.assignedTo}</span>
                           </span>
                           <span className="flex items-center space-x-1">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>{milestone.tasks.filter(t => t.completed).length}/{milestone.tasks.length} Tasks</span>
+                            {task.visibility === "public" ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                            <span className="capitalize">{task.visibility}</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <Paperclip className="h-4 w-4" />
+                            <span>{task.attachments?.length || 0} file(s)</span>
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">{milestone.progress}%</div>
+                        <div className="text-2xl font-bold text-gray-900">{task.progress}%</div>
                         <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                          <div
-                            className="bg-purple-600 h-2 rounded-full"
-                            style={{ width: `${milestone.progress}%` }}
-                          ></div>
+                          <div className="bg-teal-600 h-2 rounded-full" style={{ width: `${task.progress}%` }} />
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -470,7 +623,7 @@ export default function RegularTaskManager() {
                         <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                           <Share2 className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
+                        <button className="inline-flex items-center px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors">
                           View Details
                         </button>
                       </div>
@@ -482,55 +635,24 @@ export default function RegularTaskManager() {
           </div>
         )}
 
-        {filteredMilestones.length === 0 && (
+        {filteredTasks.length === 0 && (
           <div className="text-center py-12">
-            <Target className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No milestones found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first milestone.</p>
+            <File className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No regular tasks found</h3>
+            <p className="text-gray-600 mb-4">Get started by creating your first regular task.</p>
+             <Link href="/tasks/create?type=regular">
             <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+
+              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Milestone
-            </button>
+              Add Regular Task
+            </button></Link>
           </div>
         )}
       </div>
 
-      {/* Milestone Creation Modal */}
-      {showAddForm && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-container max-w-4xl">
-            <div className="modal-header" style={{ background: '#8b5cf6' }}>
-              <div className="modal-title-section">
-                <div className="modal-icon">
-                  <Target size={20} />
-                </div>
-                <div>
-                  <h3>Create Milestone</h3>
-                  <p>Create a new milestone to track project progress</p>
-                </div>
-              </div>
-              <button className="modal-close" onClick={() => setShowAddForm(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
-              <CreateTask
-                onClose={() => setShowAddForm(false)}
-                onSubmit={(milestoneData) => {
-                  console.log('Creating milestone:', milestoneData);
-                  setShowAddForm(false);
-                }}
-                initialTaskType="milestone"
-              />
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+   
     </div>
   );
 }

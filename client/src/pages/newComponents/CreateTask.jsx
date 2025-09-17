@@ -7,7 +7,8 @@ import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 import { useRole } from "../../features/shared/hooks/useRole";
 import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
 import { hasAccess } from "../../utils/auth";
-
+import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
+import { useLocation } from "wouter";
 export default function CreateTask({
   onClose,
   onSubmit,
@@ -28,9 +29,15 @@ export default function CreateTask({
     canAssignToOthers,
     restrictions,
   } = useAssignmentOptions();
-  const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
+ const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
+  const [location, setLocation] = useLocation();
 
-  console.log('hasaccess...............', hasAccess(["manager", "org_admin", "employee"]));
+  // Extract query params
+useEffect(() => {
+  const searchParams = new URLSearchParams(window.location.search);
+  const type = searchParams.get("type") || "recurring";
+  setSelectedTaskType(type);
+}, [location]); 
   // Filter available task types based on role permissions
   const getAvailableTaskTypes = () => {
     const taskTypes = [
@@ -138,47 +145,21 @@ export default function CreateTask({
               switch (taskType.id) {
                 case "regular":
                   return (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
+                    <RegularTaskIcon size={25} className="text-white" />
                   );
                 case "recurring":
                   return (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
+                    <RecurringTaskIcon size={25} className="text-white" />
                   );
                 case "milestone":
                   return (
                     <>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
+                      <MilestoneTaskIcon size={25} className="text-white" />
                     </>
                   );
                 case "approval":
                   return (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                    <ApprovalTaskIcon size={25} className="text-white" />
                   );
                 default:
                   return null;

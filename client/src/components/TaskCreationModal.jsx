@@ -71,7 +71,7 @@ export function TaskCreationModal({ isOpen, onClose, onSubmit }) {
           {/* Task Type Selection */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Task Type</h3>
-            <p className="text-sm text-gray-600 mb-4">Choose the type of task you want to create</p>
+            <p className="text-sm text-gray-600 mb-4">Choose the type of task you want to create  </p>
             
             <div className="grid grid-cols-2 gap-3">
               {taskTypes.map((type) => (

@@ -80,7 +80,7 @@ import TaskDetail from "./pages/taskview/TaskDetail";
 import AdminSettings from "./pages/admin/Admin-settings";
 import AdminNotification from "./pages/admin/AdminNotification";
 import RecurringTaskManager from "./pages/newComponents/RecurringTaskManager";
-import RecurringTasks from "./features/tasks/pages/RecurringTasks";
+
 import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
@@ -368,7 +368,7 @@ function App() {
               <Route path="/recurring">
                 <AdminLayout>
                   <ProtectedRoute
-                    component={RecurringTasks}
+                    component={RecurringTaskManager}
                     allowedRoles={["individual", "employee", "org_admin"]}
                   />
                 </AdminLayout>

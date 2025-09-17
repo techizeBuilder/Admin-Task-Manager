@@ -37,6 +37,7 @@ import {
   Flag,
   File,
 } from "lucide-react";
+import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
 // ✅ Define atomic reusable menu items
 const baseItems = {
   dashboard: {
@@ -66,13 +67,13 @@ const baseItems = {
   regularTasks: {
     id: "regular-tasks",
     label: "Regular Tasks",
-    icon: File,
+    icon: RegularTaskIcon,
     path: "/regular-tasks",
   },
   recurring: {
     id: "recurring",
     label: "Recurring",
-    icon: Clock,
+    icon: RecurringTaskIcon,
     path: "/recurring",
   },
   calendar: {
@@ -84,13 +85,13 @@ const baseItems = {
   approvals: {
     id: "approvals",
     label: "Approvals",
-    icon: ClipboardCheck,
+    icon: ApprovalTaskIcon,
     path: "/approvals",
   },
   milestones: {
     id: "milestones",
     label: "Milestones",
-    icon: Target,
+    icon: MilestoneTaskIcon,
     path: "/milestones",
   },
 
