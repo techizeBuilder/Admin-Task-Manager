@@ -1,11 +1,76 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
+import swagger from "swagger-jsdoc";
+import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 
 const app = express();
+
+// Swagger configuration
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "TaskSetu API Documentation",
+      version: "1.0.0",
+      description: "API documentation for TaskSetu task management system",
+      contact: {
+        name: "API Support",
+        email: "support@tasksetu.com"
+      },
+    },
+    servers: [
+      {
+        url: process.env.API_URL || "http://localhost:5000",
+        description: "API Server"
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
+  },
+  apis: [
+    "./server/routes/*.js",
+    "./server/models/*.js"
+  ],
+  failOnErrors: true, // Whether or not to throw when parsing errors
+  encoding: 'utf8', // Encoding for reading files
+  verbose: true, // Include errors in the console
+};
+
+const swaggerSpec = swagger(swaggerOptions);
+
+// Serve Swagger documentation with custom options
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: "TaskSetu API Documentation",
+  customfavIcon: "/favicon.ico",
+  swaggerOptions: {
+    persistAuthorization: true,
+    filter: true,
+    displayRequestDuration: true,
+    docExpansion: 'none'
+  }
+}));
+
+// Serve Swagger spec as JSON for third-party tools
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 // Add error handling for uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -26,20 +91,20 @@ const connectToMongoDB = async () => {
   try {
     const mongoUri =
       "mongodb+srv://jeeturadicalloop:Mjvesqnj8gY3t0zP@cluster0.by2xy6x.mongodb.net/TaskSetu";
-    
+
     // Add MongoDB connection options
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    
+
     console.log("Connected to MongoDB TaskSetu database");
-    
+
     // Register routes with error handling
     try {
       await registerRoutes(app);
       console.log("Main routes registered");
-      
+
       registerUserInvitationRoutes(app);
       console.log("User invitation routes registered");
     } catch (routeError) {

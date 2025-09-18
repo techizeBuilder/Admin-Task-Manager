@@ -77,10 +77,10 @@ const IndividualDashboard = ({
     pinnedTasks.length > 0
       ? pinnedTasks
       : [
-          { id: 1, title: "Weekly planning session", priority: "high" },
-          { id: 2, title: "Client feedback review", priority: "medium" },
-          { id: 3, title: "Sprint retrospective", priority: "low" },
-        ];
+        { id: 1, title: "Weekly planning session", priority: "high" },
+        { id: 2, title: "Client feedback review", priority: "medium" },
+        { id: 3, title: "Sprint retrospective", priority: "low" },
+      ];
 
   const handleQuickTaskSubmit = () => {
     if (quickTaskInput.trim()) {
@@ -343,7 +343,7 @@ const IndividualDashboard = ({
         {/* Middle Column - Tasks Grid */}
         <div className="lg:col-span-2">
           <div
-            className="bg-white rounded-lg shadow-sm border"
+            className="h-full bg-white rounded-lg shadow-sm border"
             data-testid="card-tasks-grid"
           >
             <div className="p-6 border-b border-gray-200">
@@ -384,11 +384,10 @@ const IndividualDashboard = ({
                         <button
                           key={filter}
                           onClick={() => setSelectedFilter(filter)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                            selectedFilter === filter
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedFilter === filter
                               ? "bg-blue-100 text-blue-700"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
+                            }`}
                           data-testid={`filter-${filter}`}
                         >
                           {filter.replace("_", " ")}
@@ -519,7 +518,7 @@ const IndividualDashboard = ({
             </div>
 
             {filteredTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 ">
                 <CheckSquare className="mx-auto mb-2" size={48} />
                 <p>No tasks found matching your search criteria</p>
               </div>
