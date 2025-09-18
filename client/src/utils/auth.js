@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import jwtDecode from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 // Authentication utilities for the frontend
 export const setAuthToken = (token, user) => {
   localStorage.setItem('token', token);
