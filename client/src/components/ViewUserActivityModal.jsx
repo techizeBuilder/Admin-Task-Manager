@@ -24,6 +24,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getInitials } from "../lib/utils";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
   const { toast } = useToast();
@@ -88,13 +89,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
     }
   };
 
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2);
-  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

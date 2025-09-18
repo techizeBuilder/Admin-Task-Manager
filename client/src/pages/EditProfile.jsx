@@ -630,30 +630,7 @@ export default function EditProfile() {
     });
   };
 
-  const getInitials = () => {
-    // Priority 1: Use first and last name initials
-    if (currentUser?.firstName && currentUser?.lastName) {
-      return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(
-        0
-      )}`.toUpperCase();
-    }
 
-    // Priority 2: Use first name + email prefix if only first name exists
-    if (currentUser?.firstName && currentUser?.email) {
-      const emailPrefix = currentUser.email.split("@")[0];
-      return `${currentUser.firstName.charAt(0)}${emailPrefix.charAt(
-        0
-      )}`.toUpperCase();
-    }
-
-    // Priority 3: Use first two characters of email prefix as fallback
-    if (currentUser?.email) {
-      const emailPrefix = currentUser.email.split("@")[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-
-    return "U";
-  };
 
   const getCurrentProfileImage = () => {
     if (imagePreview) return imagePreview;
