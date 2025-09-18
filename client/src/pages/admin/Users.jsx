@@ -206,6 +206,7 @@ const renderRoles = (roles) =>
 
   // Edit user
 const handleEditUser = (user) => {
+  
   setSelectedUser({
     ...user,
     name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),

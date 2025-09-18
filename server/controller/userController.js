@@ -27,7 +27,7 @@ export const getUsersByOrg = async (req, res) => {
       search ? searchQuery : { organization_id: orgId }
     )
       .select(
-        "firstName lastName role department designation status lastLoginAt assignedTasks completedTasks email"
+        "firstName lastName role department designation location status lastLoginAt assignedTasks completedTasks email createdAt"
       )
       .skip(skip)
       .limit(limit)
