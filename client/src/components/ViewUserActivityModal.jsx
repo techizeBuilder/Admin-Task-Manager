@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getInitials, } from "../lib/utils";
-import { renderRoles } from "../utils/roleBadge";
+import { renderRoles, roleLabels } from "../utils/roleBadge";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
   const { toast } = useToast();
@@ -126,8 +126,8 @@ console.log('user in modal.........',user)
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm flex">
-                    <strong className="mx-2">Role:</strong> {renderRoles(user.role)}
+                  <span className="text-sm ">
+                    <strong >Role:</strong> {user.role.map(r => roleLabels[r]).join(', ')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

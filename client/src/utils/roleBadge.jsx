@@ -1,6 +1,6 @@
 
 import { Badge } from "@/components/ui/badge";
-const roleLabels = {
+export const roleLabels = {
   org_admin: "Organization Admin",
   manager: "Manager",
   employee: "Employee",
