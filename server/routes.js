@@ -14,7 +14,7 @@ import {
   deleteOldProfileImage,
 } from "./middleware/upload.js";
 import userRoutes from "./routes/userRoutes.js";
-
+import superAdminRoutes from "./routes/superAdminRoutes.js";
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
 import { taskRoutes } from "./routes/taskRoutes.js";
@@ -51,6 +51,7 @@ export async function registerRoutes(app) {
   // Serve static files for uploaded images
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
   app.use("/api", userRoutes);
+  app.use("/api/super-admin", superAdminRoutes);
   // Register user invitation routes
   try {
     registerUserInvitationRoutes(app);
@@ -185,7 +186,6 @@ export async function registerRoutes(app) {
     try {
       console.log("req user in backend : ", req.user);
       res.json(req.user);
-      
     } catch (error) {
       console.error("Auth verify error:", error);
       res.status(401).json({ message: "Invalid token" });
@@ -451,12 +451,10 @@ export async function registerRoutes(app) {
         }
 
         // User is fully registered
-        return res
-          .status(400)
-          .json({
-            message:
-              "This email is already registered. Please Login or Reset Password.",
-          });
+        return res.status(400).json({
+          message:
+            "This email is already registered. Please Login or Reset Password.",
+        });
       }
 
       // Create pending user
@@ -795,7 +793,6 @@ export async function registerRoutes(app) {
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
         }
-       
 
         // Build update object
         const updateData = {
@@ -917,7 +914,6 @@ export async function registerRoutes(app) {
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
         }
-       
 
         // Build update object with only allowed fields
         const updateData = {
@@ -1023,7 +1019,7 @@ export async function registerRoutes(app) {
   app.post("/api/organization/invite-users", async (req, res) => {
     try {
       const { invites } = req.body;
-  console.log("Processing invitation for:",  invites);
+      console.log("Processing invitation for:", invites);
       if (!invites || !Array.isArray(invites) || invites.length === 0) {
         return res.status(400).json({ message: "Invalid invitation data" });
       }
@@ -1062,8 +1058,7 @@ export async function registerRoutes(app) {
             phone: invite.phone || null,
             sendEmail: invite.sendEmail !== false, // default true
           };
-        
-          
+
           await storage.inviteUserToOrganization(inviteData);
           results.successCount++;
           results.details.push({ email: invite.email, status: "success" });
@@ -1279,7 +1274,9 @@ export async function registerRoutes(app) {
         if (!organization) {
           // Fallback direct model lookup
           try {
-            const { Organization } = await import("./modals/organizationModal.js");
+            const { Organization } = await import(
+              "./modals/organizationModal.js"
+            );
             organization = await Organization.findById(orgId).lean();
           } catch (_) {}
         }
@@ -1338,7 +1335,9 @@ export async function registerRoutes(app) {
         } catch (_) {}
         if (!organization) {
           try {
-            const { Organization } = await import("./modals/organizationModal.js");
+            const { Organization } = await import(
+              "./modals/organizationModal.js"
+            );
             organization = await Organization.findById(orgId).lean();
           } catch (_) {}
         }
@@ -1488,11 +1487,9 @@ export async function registerRoutes(app) {
         adminUser.organizationId
       );
       if (licenseInfo.availableSlots <= 0) {
-        return res
-          .status(400)
-          .json({
-            message: "No available licenses. Please upgrade your plan.",
-          });
+        return res.status(400).json({
+          message: "No available licenses. Please upgrade your plan.",
+        });
       }
 
       // Check if user already exists
@@ -1905,408 +1902,6 @@ export async function registerRoutes(app) {
       } catch (error) {
         console.error("Get user activities error:", error);
         res.status(500).json({ message: "Failed to fetch user activities" });
-        
-      }
-    }
-  );
-
-  // Super Admin Routes - Add debug endpoint and sample data creation
-  app.get("/api/super-admin/test", async (req, res) => {
-    try {
-      const { Organization } = await import("./modals/organizationModal.js");
-      const { User } = await import("./modals/userModal.js");
-      const totalOrgs = (await Organization.countDocuments()) || 0;
-      const totalUsers = (await User.countDocuments()) || 0;
-      res.json({
-        message: "Test endpoint working",
-        totalOrgs,
-        totalUsers,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      res.json({ error: error.message, timestamp: new Date().toISOString() });
-    }
-  });
-
-  app.post("/api/super-admin/create-sample-data", async (req, res) => {
-    try {
-      const { Project, Task } = await import("./models.js");
-    const { Organization } = await import("./modals/organizationModal.js");
-      const { User } = await import("./modals/userModal.js");
-      // Clear existing data if force flag is set
-      if (req.body.force) {
-        await Promise.all([
-          Task.deleteMany({}),
-          Project.deleteMany({}),
-          User.deleteMany({ role: { $ne: "super_admin" } }),
-          Organization.deleteMany({}),
-        ]);
-        console.log("Cleared existing sample data");
-      }
-
-      // Create sample organizations
-      const org1 = await Organization.create({
-        name: "TechCorp Solutions",
-        slug: "techcorp-solutions",
-        description: "Leading technology solutions provider",
-        industry: "Technology",
-        size: "medium",
-        website: "https://techcorp.example.com",
-        status: "active",
-      });
-
-      const org2 = await Organization.create({
-        name: "Design Studio Pro",
-        slug: "design-studio-pro",
-        description: "Creative design and branding agency",
-        industry: "Design",
-        size: "small",
-        website: "https://designstudio.example.com",
-        status: "active",
-      });
-
-      const org3 = await Organization.create({
-        name: "Global Marketing Inc",
-        slug: "global-marketing-inc",
-        description: "International marketing and advertising firm",
-        industry: "Marketing",
-        size: "large",
-        status: "pending",
-      });
-
-      // Create sample users
-      const users = await User.create([
-        {
-          firstName: "John",
-          lastName: "Smith",
-          email: "john.smith@techcorp.example.com",
-          role: "admin",
-          organization: org1._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-        {
-          firstName: "Sarah",
-          lastName: "Johnson",
-          email: "sarah.johnson@techcorp.example.com",
-          role: "member",
-          organization: org1._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-        {
-          firstName: "Mike",
-          lastName: "Davis",
-          email: "mike.davis@designstudio.example.com",
-          role: "admin",
-          organization: org2._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-        {
-          firstName: "Emily",
-          lastName: "Wilson",
-          email: "emily.wilson@designstudio.example.com",
-          role: "member",
-          organization: org2._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-        {
-          firstName: "David",
-          lastName: "Brown",
-          email: "david.brown@globalmarketing.example.com",
-          role: "admin",
-          organization: org3._id,
-          status: "pending",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-        {
-          firstName: "Lisa",
-          lastName: "Taylor",
-          email: "lisa.taylor@individual.example.com",
-          role: "member",
-          status: "active",
-          passwordHash: await storage.hashPassword("password123"),
-        },
-      ]);
-
-      // Create sample projects
-      const projects = await Project.create([
-        {
-          name: "Website Redesign",
-          description: "Complete redesign of company website",
-          organization: org1._id,
-          status: "active",
-        },
-        {
-          name: "Mobile App Development",
-          description: "iOS and Android mobile application",
-          organization: org1._id,
-          status: "active",
-        },
-        {
-          name: "Brand Identity Project",
-          description: "New brand identity and logo design",
-          organization: org2._id,
-          status: "completed",
-        },
-      ]);
-
-      // Create sample tasks
-      await Task.create([
-        {
-          title: "Design Homepage Mockup",
-          description: "Create initial homepage design mockup",
-          project: projects[0]._id,
-          organization: org1._id,
-          assignedTo: users[1]._id,
-          status: "in-progress",
-        },
-        {
-          title: "Develop User Authentication",
-          description: "Implement user login and registration",
-          project: projects[1]._id,
-          organization: org1._id,
-          assignedTo: users[0]._id,
-          status: "completed",
-        },
-        {
-          title: "Create Logo Concepts",
-          description: "Design multiple logo concept variations",
-          project: projects[2]._id,
-          organization: org2._id,
-          assignedTo: users[2]._id,
-          status: "completed",
-        },
-      ]);
-
-      const finalCounts = {
-        organizations: await Organization.countDocuments(),
-        users: await User.countDocuments(),
-        projects: await Project.countDocuments(),
-        tasks: await Task.countDocuments(),
-      };
-
-      res.json({
-        message: "Sample data created successfully",
-        counts: finalCounts,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error("Sample data creation error:", error);
-      res
-        .status(500)
-        .json({ error: error.message, timestamp: new Date().toISOString() });
-    }
-  });
-
-  app.get(
-    "/api/super-admin/analytics",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        console.log("Fetching analytics for super admin...");
-        const stats = await storage.getPlatformAnalytics();
-        console.log("Analytics fetched successfully");
-        res.json(stats);
-      } catch (error) {
-        console.error("Platform analytics error:", error);
-        res.status(500).json({ message: "Failed to fetch platform analytics" });
-      }
-    }
-  );
-
-  // Temporary bypass for debugging - remove auth temporarily
-  app.get("/api/super-admin/companies", async (req, res) => {
-    try {
-      console.log("=== COMPANIES ENDPOINT DEBUG ===");
-      const { Project, Task, Form } = await import(
-        "./models.js"
-      );
-          const { Organization } = await import("./modals/organizationModal.js");
-      const { User } = await import("./modals/userModal.js");
-
-      const companies = await Organization.find({}).sort({ createdAt: -1 });
-      console.log("Raw companies from DB:", companies.length);
-
-      const companiesWithStats = await Promise.all(
-        companies.map(async (company) => {
-          const userCount = await User.countDocuments({
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id },
-            ],
-          });
-          const projectCount = await Project.countDocuments({
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id },
-            ],
-          });
-          const taskCount = await Task.countDocuments({
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id },
-            ],
-          });
-          const formCount = await Form.countDocuments({
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id },
-            ],
-          });
-
-          return {
-            ...company.toObject(),
-            userCount,
-            projectCount,
-            taskCount,
-            formCount,
-            stats: {
-              users: userCount,
-              projects: projectCount,
-              tasks: taskCount,
-              forms: formCount,
-            },
-          };
-        })
-      );
-
-      console.log("Companies with stats:", companiesWithStats.length);
-      res.json(companiesWithStats);
-    } catch (error) {
-      console.error("Get companies error:", error);
-      res
-        .status(500)
-        .json({ message: "Failed to fetch companies", error: error.message });
-    }
-  });
-
-  // Temporary bypass for debugging - remove auth temporarily
-  app.get("/api/super-admin/users", async (req, res) => {
-    try {
-      console.log("=== USERS ENDPOINT DEBUG ===");
-       const { Organization } = await import("./modals/organizationModal.js");
-      const { User } = await import("./modals/userModal.js");
-
-      const users = await User.find({})
-        .populate("organization", "name slug")
-        .sort({ createdAt: -1 });
-
-      console.log("Raw users from DB:", users.length);
-
-      const transformedUsers = users.map((user) => {
-        const userObj = user.toObject();
-
-        let organizationName = "Individual User";
-        if (userObj.organizationId?.name) {
-          organizationName = userObj.organizationId.name;
-        } else if (userObj.organization?.name) {
-          organizationName = userObj.organization.name;
-        }
-
-        return {
-          ...userObj,
-          organizationName,
-          status: userObj.status || (userObj.isActive ? "active" : "inactive"),
-        };
-      });
-
-      console.log("Transformed users:", transformedUsers.length);
-      res.json(transformedUsers);
-    } catch (error) {
-      console.error("Get all users error:", error);
-      res
-        .status(500)
-        .json({ message: "Failed to fetch users", error: error.message });
-    }
-  });
-
-  app.post(
-    "/api/super-admin/create-super-admin",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { firstName, lastName, email, password } = req.body;
-
-        if (!firstName || !lastName || !email || !password) {
-          return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const superAdmin = await storage.createSuperAdmin({
-          firstName,
-          lastName,
-          email,
-          password,
-        });
-
-        res.json({
-          message: "Super admin created successfully",
-          user: {
-            id: superAdmin._id,
-            email: superAdmin.email,
-            firstName: superAdmin.firstName,
-            lastName: superAdmin.lastName,
-            role: superAdmin.role,
-          },
-        });
-      } catch (error) {
-        console.error("Create super admin error:", error);
-        res
-          .status(500)
-          .json({ message: error.message || "Failed to create super admin" });
-      }
-    }
-  );
-
-  app.get(
-    "/api/super-admin/logs",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { limit = 100 } = req.query;
-        const logs = await storage.getSystemLogs(parseInt(limit));
-        res.json(logs);
-      } catch (error) {
-        console.error("Get system logs error:", error);
-        res.status(500).json({ message: "Failed to fetch system logs" });
-      }
-    }
-  );
-
-  app.post(
-    "/api/super-admin/assign-admin",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { companyId, userId } = req.body;
-        await storage.assignCompanyAdmin(companyId, userId);
-        res.json({ message: "Company admin assigned successfully" });
-      } catch (error) {
-        console.error("Assign admin error:", error);
-        res.status(500).json({ message: "Failed to assign company admin" });
-      }
-    }
-  );
-
-  app.patch(
-    "/api/super-admin/companies/:id/status",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { id } = req.params;
-        const { status } = req.body;
-        await storage.updateCompanyStatus(id, status);
-        res.json({ message: "Company status updated successfully" });
-      } catch (error) {
-        console.error("Update company status error:", error);
-        res.status(500).json({ message: "Failed to update company status" });
       }
     }
   );
