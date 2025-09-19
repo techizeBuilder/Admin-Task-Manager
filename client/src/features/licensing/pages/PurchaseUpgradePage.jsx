@@ -3,20 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Link, useLocation } from 'wouter';
-import { 
-  ArrowLeft, 
-  Crown, 
-  Check, 
-  AlertTriangle, 
-  CreditCard,
-  Shield,
-  Zap,
-  Users,
-  Database,
-  FolderOpen,
-  CheckSquare,
-  Star,
-  Gift
+import {
+  ArrowLeft, Crown, Check, AlertTriangle, CreditCard, Shield, Zap,
+  Users, Database, FolderOpen, CheckSquare, Star, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -38,11 +27,11 @@ export default function PurchaseUpgradePage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
- const [showPlanLimitDialog, setShowPlanLimitDialog] = useState(false);
-   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [showPlanLimitDialog, setShowPlanLimitDialog] = useState(false);
+  const [showComparisonDialog, setShowComparisonDialog] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   // Handle URL parameters for plan pre-selection
-   useEffect(() => {
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const actionParam = urlParams.get('action');
     const planParam = urlParams.get('plan');
@@ -171,7 +160,7 @@ export default function PurchaseUpgradePage() {
     // Mock payment processing
     setTimeout(() => {
       setIsProcessing(false);
-          setLocation(`/admin/upgrade-success?plan=${plans[selectedPlan]?.name}`);
+      setLocation(`/admin/upgrade-success?plan=${plans[selectedPlan]?.name}`);
       // Redirect to success page or show success state
     }, 2000);
   };
@@ -180,16 +169,16 @@ export default function PurchaseUpgradePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header Section */}
-           <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/subscription">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to License
-              </Link>
-            </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/subscription">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to License
+          </Link>
+        </Button>
         <div className="flex items-center justify-between">
 
           <div className="flex items-center space-x-4">
-         
+
             <div className="p-3 bg-blue-100 rounded-xl">
               <CreditCard className="h-8 w-8 text-blue-600" />
             </div>
@@ -214,7 +203,7 @@ export default function PurchaseUpgradePage() {
               </Badge>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-center space-x-3">
               <Crown className="h-5 w-5 text-blue-600" />
@@ -223,7 +212,7 @@ export default function PurchaseUpgradePage() {
                 <div className="text-sm text-gray-600">Current plan</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Shield className="h-5 w-5 text-green-600" />
               <div>
@@ -233,7 +222,7 @@ export default function PurchaseUpgradePage() {
                 <div className="text-sm text-gray-600">Current billing</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
               <div>
@@ -263,8 +252,8 @@ export default function PurchaseUpgradePage() {
                       onClick={() => setBillingCycle('monthly')}
                       className={cn(
                         "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'monthly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
+                        billingCycle === 'monthly'
+                          ? "bg-white text-gray-900 shadow-sm"
                           : "text-gray-600 hover:text-gray-900"
                       )}
                     >
@@ -274,8 +263,8 @@ export default function PurchaseUpgradePage() {
                       onClick={() => setBillingCycle('yearly')}
                       className={cn(
                         "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'yearly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
+                        billingCycle === 'yearly'
+                          ? "bg-white text-gray-900 shadow-sm"
                           : "text-gray-600 hover:text-gray-900"
                       )}
                     >
@@ -289,14 +278,14 @@ export default function PurchaseUpgradePage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Plan Cards */}
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {Object.entries(plans).map(([planKey, plan]) => (
-                    <div 
+                    <div
                       key={planKey}
-              onClick={() => {
+                      onClick={() => {
                         if (planKey === 'plan') {
                           setShowPlanLimitDialog(true);
                           return;
@@ -311,8 +300,8 @@ export default function PurchaseUpgradePage() {
                       }}
                       className={cn(
                         "border rounded-lg p-6 cursor-pointer transition-all hover:shadow-md relative",
-                        selectedPlan === planKey 
-                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200" 
+                        selectedPlan === planKey
+                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
                           : "border-gray-200 hover:border-gray-300"
                       )}
                     >
@@ -324,12 +313,12 @@ export default function PurchaseUpgradePage() {
                           </Badge>
                         </div>
                       )}
-                      
+
                       <div className="text-center mb-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
                         <p className="text-sm text-gray-600">{plan.description}</p>
                       </div>
-                      
+
                       <div className="text-center mb-6">
                         <div className="text-3xl font-bold text-gray-900 mb-1">
                           ₹{plan.price[billingCycle]}
@@ -372,32 +361,32 @@ export default function PurchaseUpgradePage() {
             {/* Order Summary Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Plan</span>
                   <span className="font-medium">{plans[selectedPlan]?.name}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Billing</span>
                   <span className="font-medium capitalize">{billingCycle}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Price</span>
                   <span className="font-medium">${getSelectedPlanPrice()}</span>
                 </div>
-                
+
                 {billingCycle === 'yearly' && (
                   <div className="flex justify-between items-center text-green-600">
                     <span>Yearly Discount</span>
                     <span>-₹{(plans[selectedPlan]?.price.monthly * 12) - plans[selectedPlan]?.price.yearly}</span>
                   </div>
                 )}
-                
+
                 <hr className="border-gray-200" />
-                
+
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total</span>
                   <span>₹{getSelectedPlanPrice()}</span>
@@ -445,7 +434,7 @@ export default function PurchaseUpgradePage() {
 
             {/* Upgrade Action Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <Button 
+              <Button
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg font-semibold"
                 onClick={handleUpgrade}
                 disabled={isProcessing}
@@ -462,7 +451,7 @@ export default function PurchaseUpgradePage() {
                   </>
                 )}
               </Button>
-              
+
               <div className="mt-4 text-center">
                 <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
                   <Shield className="h-4 w-4" />
@@ -478,7 +467,7 @@ export default function PurchaseUpgradePage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">
             Why Upgrade to {plans[selectedPlan]?.name}?
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="p-3 bg-blue-100 rounded-xl w-fit mx-auto mb-4">
@@ -489,7 +478,7 @@ export default function PurchaseUpgradePage() {
                 Get faster processing, better reliability, and improved user experience.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="p-3 bg-green-100 rounded-xl w-fit mx-auto mb-4">
                 <Users className="h-8 w-8 text-green-600" />
@@ -499,7 +488,7 @@ export default function PurchaseUpgradePage() {
                 Advanced team features, real-time collaboration, and role-based permissions.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="p-3 bg-purple-100 rounded-xl w-fit mx-auto mb-4">
                 <Shield className="h-8 w-8 text-purple-600" />
@@ -512,7 +501,7 @@ export default function PurchaseUpgradePage() {
           </div>
         </div>
       </div>
-          {/* Plan limit dialog */}
+      {/* Plan limit dialog */}
       <Dialog open={showPlanLimitDialog} onOpenChange={setShowPlanLimitDialog}>
         <DialogContent>
           <DialogHeader>
@@ -524,25 +513,25 @@ export default function PurchaseUpgradePage() {
           <DialogFooter >
             <div className='flex justify-between w-full'>
 
-            <Button variant="outline" onClick={() => setShowPlanLimitDialog(false)}>
-              Close
-            </Button>
-          
-            <Button
-              variant="secondary"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => {
-        
-                setShowPlanLimitDialog(false);
-              }}
-            >
-              Choose Other
-            </Button>
+              <Button variant="outline" onClick={() => setShowPlanLimitDialog(false)}>
+                Close
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+
+                  setShowPlanLimitDialog(false);
+                }}
+              >
+                Choose Other
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-          <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
+      <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">

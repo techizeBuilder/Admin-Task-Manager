@@ -161,7 +161,7 @@ const IndividualDashboard = ({
         </div>
         <button
           onClick={handleCreateTask}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center gap-2 transition-colors"
           data-testid="button-create-task"
         >
           <Plus size={18} />
@@ -179,7 +179,7 @@ const IndividualDashboard = ({
             <div className="bg-green-100 p-2 rounded-lg">
               <CheckSquare className="text-green-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Completed Today</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.completedTasks}
@@ -196,7 +196,7 @@ const IndividualDashboard = ({
             <div className="bg-blue-100 p-2 rounded-lg">
               <Clock className="text-blue-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Before Due Date</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.totalTasks}
@@ -213,7 +213,7 @@ const IndividualDashboard = ({
             <div className="bg-purple-100 p-2 rounded-lg">
               <Target className="text-purple-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Milestones</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.inProgressTasks}
@@ -230,7 +230,7 @@ const IndividualDashboard = ({
             <div className="bg-orange-100 p-2 rounded-lg">
               <Users className="text-orange-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Collaborator</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.upcomingDeadlines}
@@ -247,7 +247,7 @@ const IndividualDashboard = ({
             <div className="bg-red-100 p-2 rounded-lg">
               <AlertTriangle className="text-red-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Past Due</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.overdueTasks}
@@ -264,7 +264,7 @@ const IndividualDashboard = ({
             <div className="bg-yellow-100 p-2 rounded-lg">
               <Bell className="text-yellow-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Approvals</p>
               <p className="text-xl font-bold text-gray-900">
                 {currentStats.tasksByPriority?.urgent || 0}
@@ -385,8 +385,8 @@ const IndividualDashboard = ({
                           key={filter}
                           onClick={() => setSelectedFilter(filter)}
                           className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedFilter === filter
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                             }`}
                           data-testid={`filter-${filter}`}
                         >
