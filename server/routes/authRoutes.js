@@ -95,17 +95,6 @@ router.post("/register/organization", authController.registerOrganization);
  */
 router.post("/login", authController.login);
 
-/**
- * @swagger
- * /api/auth/logout:
- *   post:
- *     summary: Logout user
- *     tags: [Auth]
- *     responses:
- *       200:
- *         description: Logged out successfully
- */
-router.post("/logout", authController.logout);
 
 /**
  * @swagger
