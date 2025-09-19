@@ -53,15 +53,18 @@ import { useToast } from "@/hooks/use-toast";
 import Pagination from "../../components/common/Pagination";
 import { useUserRole } from "../../utils/auth";
 import { useLocation } from "wouter";
-
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { set } from "mongoose";
 export default function Users() {
+    const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-    const { isAdmin } = useUserRole();
+    const {user, isAdmin, orgId } = useUserRole();
+    
         const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
   useEffect(() => {
-    setUsers(userDataManager.getAllUsers());
+    // setUsers(userDataManager.getAllUsers());
     setLicensePool(userDataManager.getLicensePool());
   }, []);
 const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -76,13 +79,108 @@ const [statusAction, setStatusAction] = useState(null); // "deactivate" or "acti
   const [roleChangeData, setRoleChangeData] = useState(null);
 const [searchQuery, setSearchQuery] = useState("");
 const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5; // change as needed
+const itemsPerPage = 10; // change as needed
 // Pagination
 const totalPages = Math.ceil(users.length / itemsPerPage);
 const startIndex = (currentPage - 1) * itemsPerPage;
 const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
   const { toast } = useToast();
+  console.log('User',user)
+// Fetch users with react-query
+const {
+  data,
+  isLoading,
+  isError,
+  error,
+  refetch,
+} = useQuery({
+  queryKey: ["users", currentPage, searchQuery],
+  queryFn: async () => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      `/api/organization/${orgId}/users?page=${currentPage}&search=${encodeURIComponent(
+        searchQuery
+      )}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
+    if (!res.ok) {
+      throw new Error(`Error: ${res.status} ${res.statusText}`);
+    }
+
+    return res.json();
+  },
+  keepPreviousData: true,
+  staleTime: 1000 * 60 * 5,
+});
+
+
+
+// Prefetch next page for smoother UX
+  useEffect(() => {
+  if (data?.page < data?.pages) {
+    queryClient.prefetchQuery({
+      queryKey: ["users", currentPage + 1, searchQuery],
+      queryFn: async () => {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          `/api/organization/68c7b212e70a5ea02a4b0abe/users?page=${
+            currentPage + 1
+          }&search=${encodeURIComponent(searchQuery)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`Error: ${res.status} ${res.statusText}`);
+        }
+
+        return res.json();
+      },
+    });
+  }
+}, [data, currentPage, searchQuery, queryClient]);
+
+
+ // Helper for null/empty fields
+  const safe = (val) => (val === null || val === undefined || val === "" ? "-" : val);
+const roleLabels = {
+  org_admin: "Organization Admin",
+  manager: "Manager",
+  employee: "Employee",
+};
+
+const renderRoles = (roles) =>
+  Array.isArray(roles) && roles.length > 0 ? (
+    <div className="flex flex-col gap-1">
+      {roles.map((role, index) => (
+        <Badge
+          key={role + index}
+          variant="outline"
+          className={`${
+            role === "org_admin"
+              ? "bg-purple-100 text-purple-800 border-purple-200"
+              : role === "manager"
+              ? "bg-blue-100 text-blue-800 border-blue-200"
+              : "bg-gray-100 text-gray-800 border-gray-200"
+          }`}
+        >
+          {roleLabels[role] || role}
+        </Badge>
+      ))}
+    </div>
+  ) : (
+    <Badge variant="outline">-</Badge>
+  );
   // Add new user using UserDataManager
   const handleAddUser = (newUserData) => {
     try {
@@ -107,11 +205,14 @@ const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
   };
 
   // Edit user
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setIsEditUserModalOpen(true);
-  };
-
+const handleEditUser = (user) => {
+  
+  setSelectedUser({
+    ...user,
+    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+  });
+  setIsEditUserModalOpen(true);
+};
   const handleUpdateUser = (updatedUserData, oldRole = null) => {
     // If role changed, show confirmation dialog
     if (oldRole && updatedUserData.role !== oldRole) {
@@ -186,10 +287,13 @@ const toggleUserStatus = (user, action='activate') => {
 
 
   // Remove user
-  const handleRemoveUser = (user) => {
-    setSelectedUser(user);
-    setIsRemoveDialogOpen(true);
-  };
+ const handleRemoveUser = (user) => {
+  setSelectedUser({
+    ...user,
+    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+  });
+  setIsRemoveDialogOpen(true);
+};
 
   const confirmRemoveUser = () => {
     if (selectedUser) {
@@ -219,9 +323,12 @@ const toggleUserStatus = (user, action='activate') => {
 
   // View user activity
   const handleViewActivity = (user) => {
-    setSelectedUser(user);
-    setIsViewActivityModalOpen(true);
-  };
+  setSelectedUser({
+    ...user,
+    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+  });
+  setIsViewActivityModalOpen(true);
+};
 
   // Export user data using UserDataManager
   const exportUserData = () => {
@@ -250,12 +357,14 @@ const toggleUserStatus = (user, action='activate') => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Active':
+      case 'active':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'Inactive':
+      case 'inactive':
         return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200"><UserX className="h-3 w-3 mr-1" />Inactive</Badge>;
-      case 'Pending':
+      case 'pending':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'invited':
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Invited</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -272,23 +381,19 @@ const toggleUserStatus = (user, action='activate') => {
     }
   };
 
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2);
-  };
 
-  const activeUsers = users.filter(user => user.status === 'Active').length;
-  const inactiveUsers = users.filter(user => user.status === 'Inactive').length;
-  const pendingUsers = users.filter(user => user.status === 'Pending').length;
-useEffect(()=>{
+  const totalUsers = data?.user_stats?.total || 0;
+  const activeUsers = data?.user_stats?.active || 0;
+  const inactiveUsers = data?.user_stats?.inactive || 0;
+  const pendingUsers = data?.user_stats?.pending || 0;
+useEffect(()=>{ 
     if (!isAdmin) {
       // Redirect non-admin users away from this page
       setLocation("/dashboard");
     }
   },[isAdmin])
+  const usersData = data?.users || [];
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Page Header */}
@@ -360,7 +465,7 @@ useEffect(()=>{
             <UsersIcon className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
         
@@ -408,11 +513,11 @@ useEffect(()=>{
     <input
       type="text"
       placeholder="Search users..."
-      // value={searchQuery}
-      // onChange={(e) => {
-      //   setSearchQuery(e.target.value);
-      //   setCurrentPage(1); // reset to first page
-      // }}
+         value={searchQuery}
+      onChange={(e) => {
+        setSearchQuery(e.target.value);
+        setCurrentPage(1); // reset to first page
+      }}
       className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
@@ -420,7 +525,7 @@ useEffect(()=>{
 </CardHeader>
 
         <CardContent>
-          <Table>
+          <Table  className="w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
@@ -433,104 +538,115 @@ useEffect(()=>{
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-           {paginatedUsers.map((user) => (
-                <TableRow key={user.id}>
+              <TableBody>
+              {usersData.map((user) => (
+                <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                        {getInitials(user.name)}
+                        {(user.firstName || user.lastName)
+                          ? `${(user.firstName || "").charAt(0)}${(user.lastName || "").charAt(0)}`.toUpperCase()
+                          : (user.email || "-").charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="font-medium">
+                          {user.firstName || user.lastName
+                            ? `${safe(user.firstName)} ${safe(user.lastName)}`
+                            : "-"}
+                        </div>
+                        <div className="text-sm text-gray-500">{safe(user.email)}</div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      {getRoleIcon(user.role)}
-                      <span>{user.role}</span>
+                    <div className="flex flex-wrap items-center space-x-1">
+                      {renderRoles(user.role)}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono text-xs">
-                      {user.licenseId}
+                      {safe(user.licenseId)}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{user.department || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{user.designation || ''}</div>
+                      <div className="font-medium">{safe(user.department)}</div>
+                      <div className="text-sm text-gray-500">{safe(user.designation)}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
+                  <TableCell>
+             
+                      {getStatusBadge(user.status)}
+                  </TableCell>
                   <TableCell className="text-sm text-gray-500">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    {user.lastLoginAt
+                      ? new Date(user.lastLoginAt).toLocaleDateString()
+                      : "-"}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>{user.tasksCompleted}/{user.tasksAssigned} completed</div>
-                      {user.activeProcesses > 0 && (
-                        <div className="text-blue-600">{user.activeProcesses} active</div>
-                      )}
+                      <div>
+                        {safe(user.completedTasks)}/{safe(user.assignedTasks)} completed
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg z-50">
-                        <DropdownMenuItem onClick={() => handleViewActivity(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Activity
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)} className="bg-white hover:bg-gray-100 cursor-pointer">
-                          <Edit3 className="h-4 w-4 mr-2" />
-                          Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem  onClick={() => {
-    setSelectedUser(user);
-    setStatusAction(user.status === "Active" ? "deactivate" : "activate");
-    setIsStatusDialogOpen(true);
-  }} className="bg-white hover:bg-gray-100 cursor-pointer">
-                          {user.status === 'Active' ? (
-                            <>
-                              <UserX className="h-4 w-4 mr-2" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              Reactivate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleRemoveUser(user)}
-                          className="bg-white hover:bg-red-50 text-red-600 focus:text-red-600 cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove User
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                   <TableCell className="text-right">
+        {/* 3. 3-DOT ACTIONS MENU */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className='bg-white' align="end">
+            <DropdownMenuItem onClick={() => handleEditUser(user)}>
+              <Edit3 className="h-4 w-4 mr-2" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleViewActivity(user)}>
+              <Eye className="h-4 w-4 mr-2" /> View Activity
+            </DropdownMenuItem>
+            {user.status === "Active" ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setStatusAction("deactivate");
+                  setIsStatusDialogOpen(true);
+                }}
+              >
+                <UserX className="h-4 w-4 mr-2 text-red-600" /> Deactivate
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={() => {
+                  setSelectedUser(user);
+                  setStatusAction("activate");
+                  setIsStatusDialogOpen(true);
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2 text-green-600" /> Reactivate
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={() => handleRemoveUser(user)}
+              className="text-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Remove
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
                {/* Pagination */}
-                             <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={paginatedUsers.length}
-                  onPageChange={setCurrentPage}
-                />
+            <Pagination
+  currentPage={currentPage}
+  totalPages={data?.pages || 1}
+  itemsPerPage={itemsPerPage}
+  totalItems={data?.total || usersData.length}
+  onPageChange={setCurrentPage}
+/>
         </CardContent>
       </Card>
 

@@ -1,6 +1,6 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-
+import { Badge } from "@/components/ui/badge";
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
@@ -82,9 +82,14 @@ export function formatRelativeTime(date) {
   if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   return 'Just now';
-}
+} 
 
 export function getInitials(firstName, lastName, email) {
+    // Priority 0: Use first  name initials
+  if (firstName && !lastName && !email) {
+    return `${firstName.charAt(0)}`.toUpperCase();
+  }
+  
   // Priority 1: Use first and last name initials
   if (firstName && lastName) {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -105,6 +110,8 @@ export function getInitials(firstName, lastName, email) {
   // Final fallback
   return 'U';
 }
+
+
 
 export function capitalize(str) {
   if (!str) return '';

@@ -522,7 +522,7 @@ export default function Register() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
+                    <span className='text-red-500'>*</span>  First Name
                     </label>
                     <input
                       type="text"
@@ -572,7 +572,7 @@ export default function Register() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    <span className='text-red-500'>*</span> Email Address
                   </label>
                   <input
                     type="email"
@@ -731,7 +731,7 @@ export default function Register() {
               <form onSubmit={handleRegister} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Organization Name
+                    <span className="text-red-500">*</span> Organization Name
                   </label>
                   <input
                     type="text"
@@ -760,7 +760,7 @@ export default function Register() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
+                    <span className="text-red-500">*</span>  First Name
                     </label>
                     <input
                       type="text"
@@ -810,7 +810,7 @@ export default function Register() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Admin Email Address
+                   <span className="text-red-500">*</span> Admin Email Address
                   </label>
                   <input
                     type="email"

@@ -1458,49 +1458,72 @@ export class MongoStorage {
     invitedByName, 
     organizationName,
     name,
-    licenseId,       // ✅ added
-    sendEmail = true, // ✅ default true if not provided
+    licenseId,
+    department,
+    designation,
+    location,
+    phone,
+    sendEmail = true,
   } = inviteData;
 
-  // Check if user already exists in this organization (active or invited)
+  // ✅ Correct field for organization check
   const existingUser = await User.findOne({ 
     email: email.toLowerCase(),
-    organization: organizationId 
+    organization_id: organizationId 
   });
   
   if (existingUser) {
     throw new Error(`${email} is already invited to your organization.`);
   }
 
-  // Generate invitation token (48 hours expiry as requested)
-  const inviteToken = crypto.randomBytes(32).toString('hex');
+  // ✅ Generate token
+  const inviteToken = crypto.randomBytes(32).toString("hex");
   const inviteTokenExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
 
-  // Create invited user record with proper status
+  // ✅ Split name into firstName & lastName
+  const [firstName = "", ...lastParts] = (name || "").trim().split(" ");
+  const lastName = lastParts.join(" ");
+
+  // ✅ Create invited user
   const invitedUser = new User({
     email,
     role: roles,
-    roles: [], 
+    roles: [],
     organization_id: organizationId,
-    status: 'invited', 
+    status: "invited",
     isActive: false,
     emailVerified: false,
     inviteToken,
     inviteTokenExpiry,
     invitedBy,
     invitedAt: new Date(),
-    licenseId: licenseId || null // ✅ include licenseId if provided
+    licenseId: licenseId || null,
+    department: department || null,
+    designation: designation || null,
+    location: location || null,
+    phone: phone || null,
+    firstName,
+    lastName,
   });
 
   const savedUser = await invitedUser.save();
-  console.log('>>new invitied',name)
-  // Send invitation email (only if sendEmail flag is true)
+  console.log(">> New invited:", savedUser.email);
+
+  // ✅ Send email if allowed
   if (sendEmail) {
-    await this.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName,name);
+    await this.sendInvitationEmail(
+      email,
+      inviteToken,
+      organizationName,
+      roles,
+      invitedByName,
+      name
+    );
   }
 
   return savedUser;
 }
+
 
   // async inviteUserToOrganization(inviteData) {
   //   const { email, organizationId, roles, invitedBy, invitedByName, organizationName } = inviteData;

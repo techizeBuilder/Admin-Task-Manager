@@ -24,6 +24,8 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getInitials, } from "../lib/utils";
+import { renderRoles, roleLabels } from "../utils/roleBadge";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
   const { toast } = useToast();
@@ -41,8 +43,8 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
       'Designation': user.designation || 'N/A',
       'Location': user.location || 'N/A',
       'Status': user.status,
-      'Date Joined': new Date(user.dateCreated).toLocaleDateString(),
-      'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
+      'Date Joined': new Date(user.createdAt).toLocaleDateString(),
+      'Last Login': user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(): 'Never',
       'Tasks Assigned': user.tasksAssigned,
       'Tasks Completed': user.tasksCompleted,
       'Forms Created': user.formsCreated,
@@ -77,24 +79,18 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Active':
+      case 'active':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'Inactive':
+      case 'inactive':
         return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">Inactive</Badge>;
-      case 'Pending':
+      case 'invited':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getInitials = (name) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
-      .slice(0, 2);
-  };
+console.log('user in modal.........',user)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -130,8 +126,8 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">
-                    <strong>Role:</strong> {user.role}
+                  <span className="text-sm ">
+                    <strong >Role:</strong> {user.role.map(r => roleLabels[r]).join(', ')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -174,10 +170,10 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-bold">
-                  {new Date(user.dateCreated).toLocaleDateString()}
+                  {new Date(user.createdAt).toLocaleDateString()}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {Math.floor((new Date() - new Date(user.dateCreated)) / (1000 * 60 * 60 * 24))} days ago
+                  {Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24))} days ago
                 </p>
               </CardContent>
             </Card>
@@ -189,11 +185,11 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-bold">
-                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {user.lastLogin 
-                    ? `${Math.floor((new Date() - new Date(user.lastLogin)) / (1000 * 60 * 60 * 24))} days ago`
+                  {user.lastLoginAt 
+                    ? `${Math.floor((new Date() - new Date(user.lastLoginAt)) / (1000 * 60 * 60 * 24))} days ago`
                     : 'No login recorded'
                   }
                 </p>
@@ -206,7 +202,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
                 <CheckCircle className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.tasksAssigned}</div>
+                <div className="text-2xl font-bold">{user.tasksAssigned || 0}</div>
                 <p className="text-xs text-gray-500">
                   Total assigned tasks
                 </p>
@@ -221,7 +217,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{completionRate}%</div>
                 <p className="text-xs text-gray-500">
-                  {user.tasksCompleted}/{user.tasksAssigned} completed
+                  {user.tasksCompleted || 0}/{user.tasksAssigned || 0} completed
                 </p>
               </CardContent>
             </Card>
@@ -235,7 +231,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
                 <FileText className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.formsCreated}</div>
+                <div className="text-2xl font-bold">{user.formsCreated || 0}</div>
                 <p className="text-xs text-gray-500">
                   Total forms created
                 </p>
@@ -248,7 +244,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
                 <Settings className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{user.activeProcesses}</div>
+                <div className="text-2xl font-bold text-orange-600">{user.activeProcesses || 0}</div>
                 <p className="text-xs text-gray-500">
                   Currently running
                 </p>
@@ -266,7 +262,7 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
                 </div>
                 <p className="text-xs text-gray-500">
                   {user.tasksAssigned > 0 
-                    ? `${completionRate}% completion rate`
+                    ? `${completionRate|| 0}% completion rate`
                     : 'No tasks assigned yet'
                   }
                 </p>

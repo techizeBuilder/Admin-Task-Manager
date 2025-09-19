@@ -42,14 +42,29 @@ export const authenticateToken = async (req, res, next) => {
       permissions: user.permissions || [],
     };
 
-    console.log("Auth middleware - Final user object:", req.user);
-    next();
+   next();
   } catch (error) {
     console.log("Auth middleware - Error:", error.message);
     return res.status(403).json({ error: "Invalid token" });
   }
 };
-
+export const roleAuth = (allowedRoles) => (req, res, next) => {
+    const userRole = req.user?.role;
+    if (!userRole) {
+        return res.status(403).json({ message: 'Forbidden' });
+    }
+    // Support both string and array roles
+    if (Array.isArray(userRole)) {
+        if (!userRole.some(role => allowedRoles.includes(role))) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+    } else {
+        if (!allowedRoles.includes(userRole)) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+    }
+    next();
+};
 export const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {

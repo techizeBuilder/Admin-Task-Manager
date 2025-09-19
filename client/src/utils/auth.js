@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-
+import {jwtDecode} from "jwt-decode";
 // Authentication utilities for the frontend
 export const setAuthToken = (token, user) => {
   localStorage.setItem('token', token);
@@ -25,10 +25,11 @@ export const isAuthenticated = () => {
   const user = getAuthUser();
   return !!(token && user);
 };
-// abhittac :activeRole and roles
+// activeRole and roles
 export const useUserRole = () => { 
   const token = localStorage.getItem("token");
-
+  const decoded = jwtDecode(token);
+  const orgId = decoded?.organizationId;
   const query = useQuery({
     queryKey: ["/api/auth/verify"],
     enabled: !!token, // Only run query if token exists
@@ -65,7 +66,7 @@ export const useUserRole = () => {
 
   const isAdmin = user?.activeRole === "org_admin" || user?.role[0] === "individual" || user?.role[0] === "org_admin";
 
-  return { ...query, user, isAdmin };
+  return { ...query, user, isAdmin, orgId };
 };
 // Check if the user has a specific role
 export const hasAccess = (requiredRoles = []) => {

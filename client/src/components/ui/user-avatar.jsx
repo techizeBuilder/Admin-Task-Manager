@@ -1,5 +1,6 @@
 import React from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "./avatar";
+import { getInitials } from "../../lib/utils";
 
 /**
  * UserAvatar Component
@@ -18,25 +19,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "./avatar";
  * @param {string} size - Size preset: 'xs', 'sm', 'md', 'lg', 'xl'
  */
 export function UserAvatar({ user, className = "", size = "md", ...props }) {
-  const getInitials = () => {
-    // Always prioritize first name + last name initials
-    if (user?.firstName && user?.lastName) {
-      return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
-    }
-
-    // If only first name exists, use first character twice
-    if (user?.firstName) {
-      return `${user.firstName.charAt(0)}${user.firstName.charAt(0)}`.toUpperCase();
-    }
-
-    // Fallback to email prefix only if no name is available
-    if (user?.email) {
-      const emailPrefix = user.email.split("@")[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-
-    return "U";
-  };
+ 
 
   const getSizeClasses = () => {
     const sizeMap = {
@@ -92,7 +75,7 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
       imageUrl: imageUrl,
       firstName: user?.firstName,
       lastName: user?.lastName,
-      initials: getInitials(),
+      initials: getInitials(user?.firstName, user?.lastName, user?.email),
     });
   }
 
@@ -118,7 +101,7 @@ export function UserAvatar({ user, className = "", size = "md", ...props }) {
       <AvatarFallback
         className={`bg-blue-600 text-white ${getFontSizeClass()} font-semibold`}
       >
-        {getInitials()}
+        {getInitials(user?.firstName, user?.lastName, user?.email)}
       </AvatarFallback>
     </Avatar>
   );

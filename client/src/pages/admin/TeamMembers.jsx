@@ -59,6 +59,8 @@ import {
   Crown,
   User,
 } from "lucide-react";
+import { get } from "mongoose";
+import { getInitials } from "../../lib/utils";
 
 export default function TeamMembers() {
   const { toast } = useToast();
@@ -292,26 +294,7 @@ export default function TeamMembers() {
     return user.email?.split("@")[0] || "Unknown User";
   };
 
-  const getInitials = (user) => {
-    // Priority 1: Use first and last name initials
-    if (user.firstName && user.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-    }
 
-    // Priority 2: Use first name + email prefix if only first name exists
-    if (user.firstName && user.email) {
-      const emailPrefix = user.email.split("@")[0];
-      return `${user.firstName[0]}${emailPrefix[0]}`.toUpperCase();
-    }
-
-    // Priority 3: Use first two characters of email prefix as fallback
-    if (user.email) {
-      const emailPrefix = user.email.split("@")[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-
-    return "U";
-  };
 
   const getRoleIcon = (roles) => {
     const roleList = Array.isArray(roles) ? roles : [roles];
@@ -732,7 +715,7 @@ export default function TeamMembers() {
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                               <span className="text-white text-xs font-semibold">
-                                {getInitials(user)}
+                                {getInitials(user?.firstName, user?.lastName, user?.email)}
                               </span>
                             </div>
                             <div>
