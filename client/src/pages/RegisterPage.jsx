@@ -234,8 +234,8 @@ export default function RegisterPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="individual-first-name">
-                        <span className='text-red-500'>*</span>
-                         First Name</Label>
+                    
+                         First Name     <span className='text-red-500'>*</span></Label>
                       <Input
                         key={`individual-fname-${formKey}`}
                         id="individual-first-name"
@@ -265,7 +265,7 @@ export default function RegisterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="individual-email">Email Address</Label>
+                    <Label htmlFor="individual-email">Email Address     <span className='text-red-500'>*</span></Label>
                     <SimpleEmailInput
                       key={`individual-email-${formKey}`}
                       id="individual-email"

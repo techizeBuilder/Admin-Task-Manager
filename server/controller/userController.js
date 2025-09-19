@@ -1,4 +1,4 @@
-import { User } from "../models.js";
+import { User } from "../modals/userModal.js";
 import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
 

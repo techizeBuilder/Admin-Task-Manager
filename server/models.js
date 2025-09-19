@@ -1,92 +1,7 @@
 import mongoose from "mongoose";
 
-// Login Attempt Schema for tracking failed login attempts
-const loginAttemptSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    attemptCount: {
-      type: Number,
-      default: 1,
-    },
-    firstAttemptAt: {
-      type: Date,
-      default: Date.now,
-    },
-    lastAttemptAt: {
-      type: Date,
-      default: Date.now,
-    },
-    isLocked: {
-      type: Boolean,
-      default: false,
-    },
-    lockoutExpiresAt: {
-      type: Date,
-    },
-    ipAddress: {
-      type: String,
-    },
-    userAgent: {
-      type: String,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
-// TTL index to automatically delete records after 24 hours
-loginAttemptSchema.index({ lastAttemptAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hours
 
-// Organization Schema
-const organizationSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-    },
-    description: String,
-    logo: String,
-    maxUsers: {
-      type: Number,
-      default: 10,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    settings: {
-      type: Object,
-      default: {},
-    },
-    industry: String,
-    size: {
-      type: String,
-      enum: ["small", "medium", "large"],
-      default: "medium",
-    },
-    website: String,
-    status: {
-      type: String,
-      enum: ["active", "inactive", "pending"],
-      default: "active",
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
 // Project Schema
 const projectSchema = new mongoose.Schema(
@@ -353,133 +268,7 @@ const taskCommentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-const userSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    firstName: {
-      type: String,
-      trim: true,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    lastName: {
-      type: String,
-      trim: true,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    profileImageUrl: String,
-    phone: {
-      type: String,
-      trim: true,
-    },
-    address: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-    },
-    bio: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    passwordHash: {
-      type: String,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    emailVerificationToken: String,
-    emailVerificationExpires: Date,
-    passwordResetToken: String,
-    passwordResetExpires: Date,
-    organization_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
-    },
-    role: {
-      type: [String],
-      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
-      default: ["employee"],
-      required: true,
-    },
-    isPrimaryAdmin: {
-      type: Boolean,
-      default: false,
-    },
-    permissions: {
-      type: [String],
-      default: [],
-    },
-    status: {
-      type: String,
-      enum: ["pending", "invited", "active", "inactive", "suspended"],
-      default: "pending",
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
 
-    department: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    designation: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    location: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    inviteToken: String,
-    inviteTokenExpiry: Date,
-    invitedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    invitedAt: Date,
-    lastLoginAt: Date,
-    preferences: {
-      type: Object,
-      default: {},
-    },
-  
- 
-    assignedTasks: {
-      type: Number,
-      default: 0,
-    },
-    completedTasks: {
-      type: Number,
-      default: 0,
-    },
-    // Legacy fields for backward compatibility
-    roles: {
-      type: [String],
-      default: [],
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 const activitySchema = new mongoose.Schema(
   {
     type: {
@@ -641,9 +430,8 @@ const usageTrackingSchema = new mongoose.Schema(
 );
 
 // Create indexes
-organizationSchema.index({ slug: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ organization: 1 });
+
+
 taskSchema.index({ organization: 1 });
 taskSchema.index({ assignedTo: 1 });
 taskSchema.index({ createdBy: 1 });
@@ -920,37 +708,10 @@ const processInstanceSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-// Pending User Schema for email verification during registration
-const pendingUserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  type: { type: String, enum: ["individual", "organization"], required: true },
-  organizationName: { type: String }, // Only for organization type
-  organizationSlug: { type: String }, // Only for organization type
-  licenseId: {
-    type: String,
-    enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
-    required: function () {
-      // Only require license when user is active
-      return this.status !== "invited";
-    },
-    default: "Explore (Free)",
-  },
-  department: { type: String, maxlength: 50 },
-  designation: { type: String, maxlength: 50 },
-  location: { type: String, maxlength: 50 },
-  verificationCode: { type: String },
-  verificationExpires: { type: Date },
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
-});
 
-export const LoginAttempt = mongoose.model("LoginAttempt", loginAttemptSchema);
-export const Organization = mongoose.model("Organization", organizationSchema);
-// User Schema
-export const User = mongoose.model("User", userSchema);
+
+
+
 
 export const Project = mongoose.model("Project", projectSchema);
 export const TaskStatus = mongoose.model("TaskStatus", taskStatusSchema);
@@ -974,4 +735,4 @@ export const ProcessInstance = mongoose.model(
   "ProcessInstance",
   processInstanceSchema
 );
-export const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
+

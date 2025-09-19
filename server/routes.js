@@ -335,7 +335,7 @@ export async function registerRoutes(app) {
       }
 
       // Debug: Check if any user has this token
-      const { User } = await import("./models.js");
+      const { User } = await import("./modals/userModal.js");
       const userWithToken = await User.findOne({
         emailVerificationToken: token,
       });
@@ -795,9 +795,7 @@ export async function registerRoutes(app) {
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
         }
-        if (!lastName || !lastName.trim()) {
-          return res.status(400).json({ message: "Last name is required" });
-        }
+       
 
         // Build update object
         const updateData = {
@@ -919,9 +917,7 @@ export async function registerRoutes(app) {
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
         }
-        if (!lastName || !lastName.trim()) {
-          return res.status(400).json({ message: "Last name is required" });
-        }
+       
 
         // Build update object with only allowed fields
         const updateData = {
@@ -1283,7 +1279,7 @@ export async function registerRoutes(app) {
         if (!organization) {
           // Fallback direct model lookup
           try {
-            const { Organization } = await import("./models.js");
+            const { Organization } = await import("./modals/organizationModal.js");
             organization = await Organization.findById(orgId).lean();
           } catch (_) {}
         }
@@ -1342,7 +1338,7 @@ export async function registerRoutes(app) {
         } catch (_) {}
         if (!organization) {
           try {
-            const { Organization } = await import("./models.js");
+            const { Organization } = await import("./modals/organizationModal.js");
             organization = await Organization.findById(orgId).lean();
           } catch (_) {}
         }
@@ -1909,6 +1905,7 @@ export async function registerRoutes(app) {
       } catch (error) {
         console.error("Get user activities error:", error);
         res.status(500).json({ message: "Failed to fetch user activities" });
+        
       }
     }
   );
@@ -1916,7 +1913,8 @@ export async function registerRoutes(app) {
   // Super Admin Routes - Add debug endpoint and sample data creation
   app.get("/api/super-admin/test", async (req, res) => {
     try {
-      const { Organization, User } = await import("./models.js");
+      const { Organization } = await import("./modals/organizationModal.js");
+      const { User } = await import("./modals/userModal.js");
       const totalOrgs = (await Organization.countDocuments()) || 0;
       const totalUsers = (await User.countDocuments()) || 0;
       res.json({
@@ -1932,8 +1930,9 @@ export async function registerRoutes(app) {
 
   app.post("/api/super-admin/create-sample-data", async (req, res) => {
     try {
-      const { Organization, User, Project, Task } = await import("./models.js");
-
+      const { Project, Task } = await import("./models.js");
+    const { Organization } = await import("./modals/organizationModal.js");
+      const { User } = await import("./modals/userModal.js");
       // Clear existing data if force flag is set
       if (req.body.force) {
         await Promise.all([
@@ -2123,9 +2122,11 @@ export async function registerRoutes(app) {
   app.get("/api/super-admin/companies", async (req, res) => {
     try {
       console.log("=== COMPANIES ENDPOINT DEBUG ===");
-      const { Organization, User, Project, Task, Form } = await import(
+      const { Project, Task, Form } = await import(
         "./models.js"
       );
+          const { Organization } = await import("./modals/organizationModal.js");
+      const { User } = await import("./modals/userModal.js");
 
       const companies = await Organization.find({}).sort({ createdAt: -1 });
       console.log("Raw companies from DB:", companies.length);
@@ -2187,7 +2188,8 @@ export async function registerRoutes(app) {
   app.get("/api/super-admin/users", async (req, res) => {
     try {
       console.log("=== USERS ENDPOINT DEBUG ===");
-      const { User, Organization } = await import("./models.js");
+       const { Organization } = await import("./modals/organizationModal.js");
+      const { User } = await import("./modals/userModal.js");
 
       const users = await User.find({})
         .populate("organization", "name slug")

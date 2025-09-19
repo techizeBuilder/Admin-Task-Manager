@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticateToken, requireOrgAdminOrAbove } from "../middleware/roleAuth.js";
 import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
-import { User } from "../models.js";
+import { User } from "../modals/userModal.js";
 const router = express.Router();
 
 // Check if email exists

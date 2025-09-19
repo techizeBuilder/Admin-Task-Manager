@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { MongoStorage } from "../mongodb-storage.js";
 import { emailService } from "./emailService.js";
-import { LoginAttempt } from "../models.js";
+import { LoginAttempt } from "../modals/lastAttemptModal.js";
 
 const storage = new MongoStorage();
 

@@ -19,52 +19,55 @@ const swaggerOptions = {
       description: "API documentation for TaskSetu task management system",
       contact: {
         name: "API Support",
-        email: "support@tasksetu.com"
+        email: "support@tasksetu.com",
       },
     },
     servers: [
       {
         url: process.env.API_URL || "http://localhost:5000",
-        description: "API Server"
-      }
+        description: "API Server",
+      },
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
           type: "http",
           scheme: "bearer",
-          bearerFormat: "JWT"
-        }
-      }
+          bearerFormat: "JWT",
+        },
+      },
     },
-    security: [{
-      bearerAuth: []
-    }]
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  apis: [
-    "./server/routes/*.js",
-    "./server/models/*.js"
-  ],
+  apis: ["./server/routes/*.js", "./server/models/*.js"],
   failOnErrors: true, // Whether or not to throw when parsing errors
-  encoding: 'utf8', // Encoding for reading files
+  encoding: "utf8", // Encoding for reading files
   verbose: true, // Include errors in the console
 };
 
 const swaggerSpec = swagger(swaggerOptions);
 
 // Serve Swagger documentation with custom options
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: "TaskSetu API Documentation",
-  customfavIcon: "/favicon.ico",
-  swaggerOptions: {
-    persistAuthorization: true,
-    filter: true,
-    displayRequestDuration: true,
-    docExpansion: 'none'
-  }
-}));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "TaskSetu API Documentation",
+    customfavIcon: "/favicon.ico",
+    swaggerOptions: {
+      persistAuthorization: true,
+      filter: true,
+      displayRequestDuration: true,
+      docExpansion: "none",
+    },
+  })
+);
 
 // Serve Swagger spec as JSON for third-party tools
 app.get("/api-docs.json", (req, res) => {
@@ -73,14 +76,14 @@ app.get("/api-docs.json", (req, res) => {
 });
 
 // Add error handling for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
 });
 
 // Add error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error("Error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
 });
 
 app.use(express.json());
@@ -123,22 +126,15 @@ const connectToMongoDB = async () => {
 // Initialize comprehensive sample data
 async function initializeSampleData() {
   try {
-    const {
-      Organization,
-      User,
-      Project,
-      Task,
-      TaskStatus,
-      Form,
-      ProcessFlow,
-      FormResponse,
-    } = await import("./models.js");
-
+    const { Project, Task, TaskStatus, Form, ProcessFlow, FormResponse } =
+      await import("./models.js");
+    const { User } = await import("./modals/userModal.js");
+    const { Organization } = await import("./modals/organizationModal.js");
     // Check if sample data already exists
     const existingOrgs = await Organization.countDocuments();
     const existingUsers = await User.countDocuments();
     console.log(
-      `Found ${existingOrgs} organizations and ${existingUsers} users in database`,
+      `Found ${existingOrgs} organizations and ${existingUsers} users in database`
     );
 
     if (existingOrgs > 0 && existingUsers > 1) {
@@ -564,7 +560,7 @@ async function initializeSampleData() {
 
       console.log("Comprehensive sample data initialized successfully");
       console.log(
-        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`,
+        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`
       );
     } catch (error) {
       console.error("Error initializing sample data:", error);

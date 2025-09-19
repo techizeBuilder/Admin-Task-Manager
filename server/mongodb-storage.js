@@ -4,8 +4,6 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { emailService } from './services/emailService.js';
 import { 
-  Organization, 
-  User, 
   Project, 
   TaskStatus, 
   Task, 
@@ -17,10 +15,11 @@ import {
   Form,
   ProcessFlow,
   FormResponse,
-  ProcessInstance,
-  PendingUser
+  ProcessInstance
 } from './models.js';
-
+import { Organization } from './modals/organizationModal.js';
+import { PendingUser } from './modals/pendingUserModal.js';
+import { User } from './modals/userModal.js';
 export class MongoStorage {
   
   // Token generation methods

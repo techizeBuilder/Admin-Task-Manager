@@ -361,7 +361,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             htmlFor={`name_${user.id}`}
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Full Name *
+            Full Name <span className="text-red-500">*</span>
           </Label>
           <Input
             id={`name_${user.id}`}
@@ -384,7 +384,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             htmlFor={`email_${user.id}`}
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Email Address *
+            Email Address <span className="text-red-500">*</span>
           </Label>
           <Input
             id={`email_${user.id}`}
@@ -407,7 +407,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             htmlFor={`role_${user.id}`}
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Role *
+            Role <span className="text-red-500">*</span>
           </Label>
 
           <MultiSelect
@@ -437,7 +437,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             htmlFor={`license_${user.id}`}
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            License Type *
+            License Type <span className="text-red-500">*</span>
           </Label>
           <Select
             key={`license_${user.id}`}

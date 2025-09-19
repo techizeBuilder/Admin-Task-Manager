@@ -65,7 +65,7 @@ export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-  const { user, isAdmin, orgId } = useUserRole();
+  const { user,  orgId } = useUserRole();
 
   const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
@@ -434,12 +434,7 @@ const updateUserStatusMutation = useMutation({
   const activeUsers = data?.user_stats?.active || 0;
   const inactiveUsers = data?.user_stats?.inactive || 0;
   const pendingUsers = data?.user_stats?.pending || 0;
-  useEffect(() => {
-    if (isAdmin === false) {
-      // Redirect non-admin users away from this page
-      setLocation("/dashboard");
-    }
-  }, [isAdmin]);
+
   const usersData = data?.users || [];
 
   return (

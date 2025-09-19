@@ -178,7 +178,7 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* First Name */}
     <div>
-      <Label htmlFor="firstname">First Name *</Label>
+      <Label htmlFor="firstname">First Name <span className="text-red-500">*</span></Label>
       <Input
         id="firstname"
         type="text"
@@ -239,7 +239,7 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                   htmlFor={`role_${user.id}`}
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Role *
+                  Role <span className="text-red-500">*</span>
                 </Label>
 
                 <MultiSelect
@@ -262,7 +262,7 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
 
               {/* License */}
               <div>
-                <Label htmlFor="licenseId">License Type *</Label>
+                <Label htmlFor="licenseId">License Type <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.licenseId}
                   onValueChange={(value) =>

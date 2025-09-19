@@ -97,7 +97,6 @@ export default function EditProfile() {
   const [errors, setErrors] = useState({
     phoneNumber: "",
     firstName: "",
-    lastName: "",
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
@@ -355,10 +354,10 @@ export default function EditProfile() {
       [name]: newValue,
     }));
 
-    if (name === "firstName" || name === "lastName") {
+    if (name === "firstName") {
       setErrors((prev) => ({
         ...prev,
-        [name]: value.trim() ? "" : "This field is required",
+        firstName: value.trim() ? "" : "This field is required",
       }));
     }
 
@@ -528,9 +527,7 @@ export default function EditProfile() {
     if (!formData.firstName.trim()) {
       newErrors.firstName = "First name is required";
     }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
-    }
+    
     if (errors.phoneNumber) {
       newErrors.phoneNumber =
         "Please fix the phone number error before submitting";
@@ -544,7 +541,7 @@ export default function EditProfile() {
     setErrors((prev) => ({
       ...prev,
       firstName: "",
-      lastName: "",
+
     }));
 
     const dataToSend = { ...formData };
@@ -725,7 +722,7 @@ export default function EditProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
                   <div className="w-full">
-                    <Label htmlFor="firstName">First Name *</Label>
+                    <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                     <Input
                       id="firstName"
                       name="firstName"
@@ -753,31 +750,18 @@ export default function EditProfile() {
                   </div>
 
                   <div className="w-full">
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="lastName">Last Name </Label>
                     <Input
                       id="lastName"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      onBlur={(e) =>
-                        setErrors((p) => ({
-                          ...p,
-                          lastName: e.target.value.trim()
-                            ? ""
-                            : "Last name is required",
-                        }))
-                      }
+                     
                       placeholder="Last name"
                       data-testid="input-last-name"
-                      className={`w-full  p-2  ${
-                        errors.lastName ? "border-red-500" : ""
-                      }`}
+                      className={`w-full  p-2  `}
                     />
-                    {errors.lastName && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.lastName}
-                      </p>
-                    )}
+                   
                   </div>
                   {/* Email */}
                   <div className="w-full">
