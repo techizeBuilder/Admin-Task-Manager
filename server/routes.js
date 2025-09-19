@@ -37,14 +37,7 @@ export async function registerRoutes(app) {
       ],
     })
   );
-  // Register rate limiter (10 requests/minute per IP)
-  const registerLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    message: { error: "Too many registrations. Please wait a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
@@ -872,52 +865,7 @@ export async function registerRoutes(app) {
   );
 
   // Remove user permanently (Company Admin only)
-  app.delete(
-    "/api/organization/users/:userId",
-    authenticateToken,
-    async (req, res) => {
-      try {
-        const { userId } = req.params;
-        const adminUser = req.user;
-
-        // Check admin privileges
-        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
-          return res
-            .status(403)
-            .json({ message: "Insufficient privileges for user management" });
-        }
-
-        // Validate user exists and belongs to same organization
-        const targetUser = await storage.getUser(userId);
-        if (
-          !targetUser ||
-          targetUser.organization.toString() !== adminUser.organizationId
-        ) {
-          return res.status(404).json({ message: "User not found" });
-        }
-
-        // Cannot remove self
-        if (targetUser._id.toString() === adminUser.id) {
-          return res
-            .status(400)
-            .json({ message: "Cannot remove your own account" });
-        }
-
-        // Check for assigned tasks (implement task reassignment logic as needed)
-        // For now, we'll allow removal but in production should require task reassignment
-
-        // Remove user
-        await storage.deleteUser(userId);
-
-        res.json({
-          message: "User removed successfully",
-        });
-      } catch (error) {
-        console.error("Remove user error:", error);
-        res.status(500).json({ message: "Failed to remove user" });
-      }
-    }
-  );
+  
 
   // Resend invitation (Company Admin only)
   app.post(

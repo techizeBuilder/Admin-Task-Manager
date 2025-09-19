@@ -4,7 +4,41 @@ import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
 import { User } from "../modals/userModal.js";
 const router = express.Router();
-
+/**
+ * @swagger
+ * /api/organization/check-email-exists:
+ *   post:
+ *     summary: Check if an email is already a member of your organization
+ *     tags: [Organization - User Invitation]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *     responses:
+ *       200:
+ *         description: Email check result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Email is required
+ *       500:
+ *         description: Failed to check email
+ */
 // Check if email exists
 router.post("/check-email-exists", authenticateToken, async (req, res) => {
   try {
@@ -28,6 +62,88 @@ router.post("/check-email-exists", authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/organization/invite-users:
+ *   post:
+ *     summary: Invite users to your organization
+ *     tags: [Organization - User Invitation]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               invites:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["employee"]
+ *                     licenseId:
+ *                       type: string
+ *                     department:
+ *                       type: string
+ *                     designation:
+ *                       type: string
+ *                     location:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     sendEmail:
+ *                       type: boolean
+ *               adminUser:
+ *                 type: object
+ *                 description: (Usually injected by backend, not required in request)
+ *     responses:
+ *       200:
+ *         description: Invitations processed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 results:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           email:
+ *                             type: string
+ *                           message:
+ *                             type: string
+ *                           userId:
+ *                             type: string
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           email:
+ *                             type: string
+ *                           error:
+ *                             type: string
+ *       400:
+ *         description: Invalid invitation data
+ *       500:
+ *         description: Failed to process invitations
+ */
 // Send user invitation - requires manager role or above  
 router.post(
   "/invite-users",

@@ -38,9 +38,9 @@ const router = express.Router();
  *         description: User not found
  */
 router.put(
-  '/organization/users/update-status',
+  "/organization/users/update-status",
   authenticateToken,
-  roleAuth(['org_admin']),
+  roleAuth(["org_admin"]),
   userController.updateUserStatus
 );
 /**
@@ -74,10 +74,10 @@ router.put(
  *         description: Forbidden
  */
 router.get(
-    '/organization/:orgId/users',
-    authenticateToken, // <-- authentication middleware (should set req.user)
-    roleAuth(['org_admin']),
-    userController.getUsersByOrg
+  "/organization/:orgId/users",
+  authenticateToken, // <-- authentication middleware (should set req.user)
+  roleAuth(["org_admin"]),
+  userController.getUsersByOrg
 );
 // Only org_admin can update user
 /**
@@ -119,13 +119,10 @@ router.get(
  *         description: User not found
  */
 router.put(
-  '/organization/users/:userId',
+  "/organization/users/:userId",
   authenticateToken,
-  roleAuth(['org_admin']),
+  roleAuth(["org_admin"]),
   userController.updateUser
 );
-
-
-
 
 export default router;

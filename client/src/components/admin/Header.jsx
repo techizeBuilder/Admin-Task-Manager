@@ -143,7 +143,7 @@ export default function Header({ user }) {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", { method: "POST" });
+   
       localStorage.removeItem("token");
      logout()
       queryClient.clear();
