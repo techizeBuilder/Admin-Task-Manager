@@ -248,4 +248,362 @@ export const authController = {
         .json({ message: "Verification failed. Please try again." });
     }
   },
+
+
+  // ...existing code...
+
+  async acceptInvite(req, res) {
+    try {
+      const { token, firstName, lastName, password } = req.body;
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({
+          message: "Token, first name, last name, and password are required",
+        });
+      }
+      const result = await storage.completeUserInvitation(token, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        password,
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+      const authToken = storage.generateToken(result.user);
+      res.json({
+        message: "Account created successfully",
+        token: authToken,
+        user: {
+          id: result.user._id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role,
+        },
+      });
+    } catch (error) {
+      console.error("Accept invite error:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
+    }
+  },
+
+  async validateInvite(req, res) {
+    try {
+      const { token } = req.query;
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+      const pendingUser = await storage.getUserByInviteToken(token);
+      if (!pendingUser) {
+        return res.status(404).json({ message: "Invalid or expired invitation token" });
+      }
+      if (
+        pendingUser.inviteExpires &&
+        new Date() > new Date(pendingUser.inviteExpires)
+      ) {
+        return res.status(400).json({ message: "Invitation token has expired" });
+      }
+      const orgId = pendingUser.organization_id || null;
+      let organization = null;
+      if (orgId) {
+        try {
+          organization = await storage.getOrganization(orgId);
+        } catch (_) {}
+        if (!organization) {
+          try {
+            const { Organization } = await import("../modals/organizationModal.js");
+            organization = await Organization.findById(orgId).lean();
+          } catch (_) {}
+        }
+      }
+      res.json({
+        email: pendingUser.email,
+        role: pendingUser.role,
+        organization: {
+          id: orgId || null,
+          name: organization?.name || "Unknown Organization",
+          slug: organization?.slug || null,
+        },
+        organizationName: organization?.name || "Unknown Organization",
+        invitedBy: pendingUser.invitedBy || null,
+      });
+    } catch (error) {
+      console.error("Validate invite error:", error);
+      res.status(500).json({ message: "Failed to validate invitation" });
+    }
+  },
+
+  async validateInviteToken(req, res) {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "Invitation token is required" });
+      }
+      const pendingUser = await storage.getUserByInviteToken(token);
+      if (!pendingUser) {
+        return res.status(404).json({ message: "Invalid or expired invitation token" });
+      }
+      if (
+        pendingUser.inviteExpires &&
+        new Date() > new Date(pendingUser.inviteExpires)
+      ) {
+        return res.status(400).json({ message: "Invitation token has expired" });
+      }
+      const orgId = pendingUser.organization_id || null;
+      let organization = null;
+      if (orgId) {
+        try {
+          organization = await storage.getOrganization(orgId);
+        } catch (_) {}
+        if (!organization) {
+          try {
+            const { Organization } = await import("../modals/organizationModal.js");
+            organization = await Organization.findById(orgId).lean();
+          } catch (_) {}
+        }
+      }
+      res.json({
+        email: pendingUser.email,
+        roles: Array.isArray(pendingUser.roles)
+          ? pendingUser.roles
+          : pendingUser.role
+          ? [pendingUser.role]
+          : [],
+        organization: {
+          id: orgId || null,
+          name: organization?.name || "Unknown Organization",
+          slug: organization?.slug || null,
+        },
+        organizationName: organization?.name || "Unknown Organization",
+        invitedBy: pendingUser.invitedBy || null,
+      });
+    } catch (error) {
+      console.error("Validate invite token error:", error);
+      res.status(500).json({ message: "Failed to validate invitation token" });
+    }
+  },
+
+  async completeInvitation(req, res) {
+    try {
+      const { token, firstName, lastName, password } = req.body;
+      if (!token || !firstName || !lastName || !password) {
+        return res.status(400).json({
+          message: "Token, first name, last name, and password are required",
+        });
+      }
+      const result = await storage.completeUserInvitation(token, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        password,
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: result.message });
+      }
+      const authToken = storage.generateToken(result.user);
+      res.json({
+        message: "Account created successfully",
+        token: authToken,
+        user: {
+          id: result.user._id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
+          role: result.user.role,
+          organizationId: result.user.organizationId,
+        },
+      });
+    } catch (error) {
+      console.error("Complete invitation error:", error);
+      res.status(500).json({ message: "Failed to complete invitation" });
+    }
+  },
+
+// ...existing code...
+
+  async registerIndividual(req, res) {
+    try {
+      const { firstName, lastName, email } = req.body;
+
+      if (!firstName || !email) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        if (
+          existingUser.status === "pending" ||
+          existingUser.status === "invited" ||
+          !existingUser.emailVerified
+        ) {
+          const verificationToken = storage.generateEmailVerificationToken();
+          await storage.updateUser(existingUser._id, {
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          });
+          await emailService.sendVerificationEmail(
+            email,
+            verificationToken,
+            existingUser.firstName || firstName,
+            null
+          );
+          return res.status(200).json({
+            message: "We've re-sent your verification link.",
+            resent: true,
+          });
+        }
+        return res.status(400).json({
+          message: "This email is already registered. Please Login or Reset Password.",
+        });
+      }
+
+      const userData = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        role: "individual",
+        status: "pending",
+        accountType: "individual",
+      };
+
+      const user = await storage.createUser(userData);
+
+      const verificationToken = storage.generateEmailVerificationToken();
+      await storage.updateUser(user._id, {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      await emailService.sendVerificationEmail(
+        email,
+        verificationToken,
+        firstName,
+        null
+      );
+
+      res.status(201).json({
+        message: "Registration successful. Please check your email for verification.",
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      });
+    } catch (error) {
+      console.error("Individual registration error:", error);
+      res.status(500).json({ message: "Registration failed. Please try again." });
+    }
+  },
+
+  async registerOrganization(req, res) {
+    try {
+      const { firstName, lastName, email, organizationName, isPrimaryAdmin } = req.body;
+
+      if (!firstName || !email || !organizationName) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      if (
+        organizationName.trim().length < 2 ||
+        organizationName.trim().length > 100
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Organization name must be 2-100 characters" });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        if (
+          existingUser.status === "pending" ||
+          existingUser.status === "invited" ||
+          !existingUser.emailVerified
+        ) {
+          const verificationToken = storage.generateEmailVerificationToken();
+          await storage.updateUser(existingUser._id, {
+            emailVerificationToken: verificationToken,
+            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          });
+          await emailService.sendVerificationEmail(
+            email,
+            verificationToken,
+            existingUser.firstName || firstName,
+            organizationName
+          );
+          return res.status(200).json({
+            message: "We've re-sent your verification link.",
+            resent: true,
+          });
+        }
+        return res.status(400).json({
+          message: "This email is already registered. Please Login or Reset Password.",
+        });
+      }
+
+      const organizationSlug = organizationName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .trim();
+
+      const existingOrg = await storage.getOrganizationBySlug(organizationSlug);
+      if (existingOrg) {
+        return res
+          .status(400)
+          .json({ message: "Organization name is already taken" });
+      }
+
+      const orgData = {
+        name: organizationName.trim(),
+        slug: organizationSlug.toLowerCase().trim(),
+        licenseCount: 10,
+        isActive: true,
+      };
+
+      const organization = await storage.createOrganization(orgData);
+
+      const userData = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.toLowerCase().trim(),
+        role: ["org_admin"],
+        status: "pending",
+        organization_id: organization._id,
+        accountType: "organization",
+        isPrimaryAdmin: isPrimaryAdmin === true,
+      };
+
+      const user = await storage.createUser(userData);
+
+      const verificationToken = storage.generateEmailVerificationToken();
+      await storage.updateUser(user._id, {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      await emailService.sendVerificationEmail(
+        email,
+        verificationToken,
+        firstName,
+        organizationName
+      );
+
+      res.status(201).json({
+        message: "Organization registration successful. Please check your email for verification.",
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          organization: organization._id,
+          organizationName: organization.name,
+        },
+      });
+    } catch (error) {
+      console.error("Organization registration error:", error);
+      res.status(500).json({ message: "Registration failed. Please try again." });
+    }
+  },
+
+// ...existing code...
 };
