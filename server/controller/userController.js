@@ -1,5 +1,11 @@
 import { User } from "../models.js";
+import { storage } from "../mongodb-storage.js";
+import { emailService } from "../services/emailService.js";
 
+/**
+ * Get users by organization
+
+ */
 export const getUsersByOrg = async (req, res) => {
   try {
     const { orgId } = req.params;
@@ -40,12 +46,14 @@ export const getUsersByOrg = async (req, res) => {
 
       lastLoginAt: u.lastLoginAt || null, // force null if missing
     }));
- const allUsers = await User.find({ organization_id: orgId }).select("status").lean();
+    const allUsers = await User.find({ organization_id: orgId })
+      .select("status")
+      .lean();
     const user_stats = {
       total: allUsers.length,
-      active: allUsers.filter(u => u.status === "active").length,
-      pending: allUsers.filter(u => u.status === "invited").length,
-      inactive: allUsers.filter(u => u.status === "inactive").length,
+      active: allUsers.filter((u) => u.status === "active").length,
+      pending: allUsers.filter((u) => u.status === "invited").length,
+      inactive: allUsers.filter((u) => u.status === "inactive").length,
     };
     res.json({
       users: formattedUsers,
@@ -56,5 +64,109 @@ export const getUsersByOrg = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+/**
+ * Update user details
+ * Only org_admin can update user (enforced in route middleware)
+ * Fields that can be updated: firstName, lastName, role, designation, department, location
+ */
+export const updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { firstName, lastName, role, designation, department, location } =
+      req.body;
+
+    // Find and update user
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { firstName, lastName, role, designation, department, location },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Successfully updated",
+      data: updated, // optional: send updated user back
+    });
+  } catch (err) {
+    return res.status(400).json({
+      status: 400,
+      message: "Update failed",
+      error: err.message,
+    });
+  }
+};
+
+
+/**
+ * Update user status (active/inactive)
+ * If activating and last login > 90 days, send invitation email
+ */
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { userId, status } = req.body;
+    if (!userId || !["active", "inactive"].includes(status)) {
+      return res.status(400).json({ message: "Invalid userId or status" });
+    }
+
+    // Use storage utility to get user
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if status is changing
+    if (user.status === status) {
+      return res.status(200).json({ message: "Status already set", data: user });
+    }
+
+    // Update status
+    await storage.updateUser(userId, { status });
+
+    let invitationSent = false;
+
+    // If activating and last login > 90 days, send reset email
+    if (
+      status === "active" &&
+      (!user.lastLoginAt ||
+        (new Date() - new Date(user.lastLoginAt)) / (1000 * 60 * 60 * 24) > 90)
+    ) {
+      // Generate reset token and expiry
+      const resetToken = storage.generatePasswordResetToken();
+      const resetExpiry = new Date(Date.now() + 3600000); // 1 hour
+
+      // Save token to user
+      await storage.updateUser(userId, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpiry,
+      });
+
+      // Send reset email
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        resetToken,
+        user.firstName || user.lastName || "User"
+      );
+      invitationSent = true;
+    }
+
+    // Get updated user for response
+    const updatedUser = await storage.getUser(userId);
+
+    return res.status(200).json({
+      message: "Status updated successfully",
+      invitationSent,
+      data: updatedUser,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };

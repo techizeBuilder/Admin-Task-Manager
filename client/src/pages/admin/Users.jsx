@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import userDataManager from "@/data/userDataManager";
-import { 
-  UserPlus, 
-  Users as UsersIcon, 
-  Shield, 
-  Mail, 
-  MoreHorizontal, 
-  CheckCircle, 
-  Clock, 
-  UserX, 
+import {
+  UserPlus,
+  Users as UsersIcon,
+  Shield,
+  Mail,
+  MoreHorizontal,
+  CheckCircle,
+  Clock,
+  UserX,
   Eye,
   Edit3,
   Trash2,
@@ -17,18 +17,24 @@ import {
   User,
   Download,
   AlertTriangle,
-  Search
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
   DropdownMenu,
@@ -53,141 +59,175 @@ import { useToast } from "@/hooks/use-toast";
 import Pagination from "../../components/common/Pagination";
 import { useUserRole } from "../../utils/auth";
 import { useLocation } from "wouter";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { set } from "mongoose";
 export default function Users() {
-    const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-    const {user, isAdmin, orgId } = useUserRole();
-    
-        const [, setLocation] = useLocation();
+  const { user, isAdmin, orgId } = useUserRole();
+
+  const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
   useEffect(() => {
-    // setUsers(userDataManager.getAllUsers());
     setLicensePool(userDataManager.getLicensePool());
   }, []);
-const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
-const [statusAction, setStatusAction] = useState(null); // "deactivate" or "activate"
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [statusAction, setStatusAction] = useState(null); // "deactivate" or "activate"
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [isViewActivityModalOpen, setIsViewActivityModalOpen] = useState(false);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
-  const [isRoleChangeDialogOpen, setIsRoleChangeDialogOpen] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState(null);
-  const [roleChangeData, setRoleChangeData] = useState(null);
-const [searchQuery, setSearchQuery] = useState("");
-const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 10; // change as needed
-// Pagination
-const totalPages = Math.ceil(users.length / itemsPerPage);
-const startIndex = (currentPage - 1) * itemsPerPage;
-const paginatedUsers = users.slice(startIndex, startIndex + itemsPerPage);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // change as needed
+  // Pagination
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+
   const { toast } = useToast();
-  console.log('User',user)
-// Fetch users with react-query
-const {
-  data,
-  isLoading,
-  isError,
-  error,
-  refetch,
-} = useQuery({
-  queryKey: ["users", currentPage, searchQuery],
-  queryFn: async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch(
-      `/api/organization/${orgId}/users?page=${currentPage}&search=${encodeURIComponent(
-        searchQuery
-      )}`,
-      {
+
+  // Mutation for updating user
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, userData }) => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/organization/users/${userId}`, {
+        method: "PUT",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify(userData),
+      });
+      if (!res.ok) {
+        // Try to parse error message from server
+        let errorMsg = "Update failed";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch {}
+        const error = new Error(errorMsg);
+        error.status = res.status;
+        throw error;
       }
-    );
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Successfully updated",
+        status: "success",
+      });
+      queryClient.invalidateQueries(["users"]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        status: "error",
+      });
+    },
+  });
 
-    if (!res.ok) {
-      throw new Error(`Error: ${res.status} ${res.statusText}`);
-    }
-
-    return res.json();
-  },
-  keepPreviousData: true,
-  staleTime: 1000 * 60 * 5,
-});
-
-
-
-// Prefetch next page for smoother UX
-  useEffect(() => {
-  if (data?.page < data?.pages) {
-    queryClient.prefetchQuery({
-      queryKey: ["users", currentPage + 1, searchQuery],
-      queryFn: async () => {
-        const token = localStorage.getItem("token");
-        const res = await fetch(
-          `/api/organization/68c7b212e70a5ea02a4b0abe/users?page=${
-            currentPage + 1
-          }&search=${encodeURIComponent(searchQuery)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!res.ok) {
-          throw new Error(`Error: ${res.status} ${res.statusText}`);
+  console.log("User", user);
+  // Fetch users with react-query
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["users", currentPage, searchQuery],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `/api/organization/${orgId}/users?page=${currentPage}&search=${encodeURIComponent(
+          searchQuery
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
+      );
 
-        return res.json();
-      },
-    });
-  }
-}, [data, currentPage, searchQuery, queryClient]);
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status} ${res.statusText}`);
+      }
 
+      return res.json();
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+  });
 
- // Helper for null/empty fields
-  const safe = (val) => (val === null || val === undefined || val === "" ? "-" : val);
-const roleLabels = {
-  org_admin: "Organization Admin",
-  manager: "Manager",
-  employee: "Employee",
-};
+  // Prefetch next page for smoother UX
+  useEffect(() => {
+    if (data?.page < data?.pages) {
+      queryClient.prefetchQuery({
+        queryKey: ["users", currentPage + 1, searchQuery],
+        queryFn: async () => {
+          const token = localStorage.getItem("token");
+          const res = await fetch(
+            `/api/organization/68c7b212e70a5ea02a4b0abe/users?page=${
+              currentPage + 1
+            }&search=${encodeURIComponent(searchQuery)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
-const renderRoles = (roles) =>
-  Array.isArray(roles) && roles.length > 0 ? (
-    <div className="flex flex-col gap-1">
-      {roles.map((role, index) => (
-        <Badge
-          key={role + index}
-          variant="outline"
-          className={`${
-            role === "org_admin"
-              ? "bg-purple-100 text-purple-800 border-purple-200"
-              : role === "manager"
-              ? "bg-blue-100 text-blue-800 border-blue-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
-          {roleLabels[role] || role}
-        </Badge>
-      ))}
-    </div>
-  ) : (
-    <Badge variant="outline">-</Badge>
-  );
+          if (!res.ok) {
+            throw new Error(`Error: ${res.status} ${res.statusText}`);
+          }
+
+          return res.json();
+        },
+      });
+    }
+  }, [data, currentPage, searchQuery, queryClient]);
+
+  // Helper for null/empty fields
+  const safe = (val) =>
+    val === null || val === undefined || val === "" ? "-" : val;
+  const roleLabels = {
+    org_admin: "Organization Admin",
+    manager: "Manager",
+    employee: "Employee",
+  };
+
+  const renderRoles = (roles) =>
+    Array.isArray(roles) && roles.length > 0 ? (
+      <div className="flex flex-col gap-1">
+        {roles.map((role, index) => (
+          <Badge
+            key={role + index}
+            variant="outline"
+            className={`${
+              role === "org_admin"
+                ? "bg-purple-100 text-purple-800 border-purple-200"
+                : role === "manager"
+                ? "bg-blue-100 text-blue-800 border-blue-200"
+                : "bg-gray-100 text-gray-800 border-gray-200"
+            }`}
+          >
+            {roleLabels[role] || role}
+          </Badge>
+        ))}
+      </div>
+    ) : (
+      <Badge variant="outline">-</Badge>
+    );
   // Add new user using UserDataManager
   const handleAddUser = (newUserData) => {
     try {
       const newUser = userDataManager.addUser(newUserData);
-      setUsers(userDataManager.getAllUsers());
+
       setLicensePool(userDataManager.getLicensePool());
-      
+
       toast({
         title: "User Added Successfully!",
         description: `${newUser.name} has been added to your organization. License pool updated.`,
@@ -205,103 +245,78 @@ const renderRoles = (roles) =>
   };
 
   // Edit user
-const handleEditUser = (user) => {
-  
-  setSelectedUser({
-    ...user,
-    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-  });
-  setIsEditUserModalOpen(true);
-};
-  const handleUpdateUser = (updatedUserData, oldRole = null) => {
-    // If role changed, show confirmation dialog
-    if (oldRole && updatedUserData.role !== oldRole) {
-      setRoleChangeData({ updatedUser: updatedUserData, oldRole });
-      setIsRoleChangeDialogOpen(true);
-      return;
-    }
-
-    try {
-      // Update user using UserDataManager
-      const updatedUser = userDataManager.updateUser(updatedUserData.id, updatedUserData);
-      setUsers(userDataManager.getAllUsers());
-      setLicensePool(userDataManager.getLicensePool());
-
-      toast({
-        title: "User Updated Successfully!",
-        description: `${updatedUser.name}'s details have been updated.`,
-        variant: "default",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Error Updating User",
-        description: error.message,
-        variant: "destructive",
-        duration: 5000,
-      });
-    }
+  const handleEditUser = (user) => {
+    setSelectedUser({
+      ...user,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+    });
+    setIsEditUserModalOpen(true);
   };
 
-
+  const handleUpdateUser = async (userId, userData) => {
+    updateUserMutation.mutate({ userId, userData });
+  };
 
   // Deactivate/Reactivate user using UserDataManager
-const toggleUserStatus = (user, action='activate') => {
-  try {
-    let updatedUser;
-
-    if (action === "deactivate") {
-      updatedUser = userDataManager.deactivateUser(user.id);
-    } else if (action === "activate") {
-      updatedUser = userDataManager.reactivateUser(user.id);
-    } else {
-      throw new Error("Invalid action type");
+ const toggleUserStatus = (user, action = "activate") => {
+  const status = action === "deactivate" ? "inactive" : "active";
+  updateUserStatusMutation.mutate({ userId: user._id, status });
+};
+const updateUserStatusMutation = useMutation({
+  mutationFn: async ({ userId, status }) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch("/api/organization/users/update-status", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId, status }),
+    });
+    if (!res.ok) {
+      let errorMsg = "Status update failed";
+      try {
+        const errData = await res.json();
+        errorMsg = errData.message || errorMsg;
+      } catch {}
+      const error = new Error(errorMsg);
+      error.status = res.status;
+      throw error;
     }
-
-    // Refresh user list
-    setUsers(userDataManager.getAllUsers());
-
-    // Toast message
+    return res.json();
+  },
+  onSuccess: (data) => {
     toast({
-      title: `User ${action === "deactivate" ? "Deactivated" : "Reactivated"}!`,
-      description: `${
-        user.name
-      } has been ${action === "deactivate" ? "deactivated" : "reactivated"}.
-      ${
-        updatedUser.status === "Inactive"
-          ? "They cannot log in and assigned tasks will show Owner Inactive label."
-          : "They can now log in normally."
-      }`,
-      variant: updatedUser.status === "Inactive" ? "destructive" : "default",
-      duration: 5000,
+      title: "Success",
+      description: data.message || "User status updated",
+      status: "success",
     });
-  } catch (error) {
+    queryClient.invalidateQueries(["users"]);
+  },
+  onError: (error) => {
     toast({
-      title: "Error Updating User Status",
-      description: error.message,
-      variant: "destructive",
-      duration: 5000,
+      title: "Error",
+      description: error.message || "An unexpected error occurred",
+      status: "error",
     });
-  }
-};
-
-
+  },
+});
   // Remove user
- const handleRemoveUser = (user) => {
-  setSelectedUser({
-    ...user,
-    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-  });
-  setIsRemoveDialogOpen(true);
-};
+  const handleRemoveUser = (user) => {
+    setSelectedUser({
+      ...user,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+    });
+    setIsRemoveDialogOpen(true);
+  };
 
   const confirmRemoveUser = () => {
     if (selectedUser) {
       try {
         const removedUser = userDataManager.removeUser(selectedUser.id);
-        setUsers(userDataManager.getAllUsers());
+
         setLicensePool(userDataManager.getLicensePool());
-        
+
         toast({
           title: "User Removed Successfully!",
           description: `${removedUser.name} has been permanently removed from your organization. Their ${removedUser.licenseId} license has been returned to the available pool.`,
@@ -323,21 +338,22 @@ const toggleUserStatus = (user, action='activate') => {
 
   // View user activity
   const handleViewActivity = (user) => {
-  setSelectedUser({
-    ...user,
-    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-  });
-  setIsViewActivityModalOpen(true);
-};
+    setSelectedUser({
+      ...user,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+    });
+    setIsViewActivityModalOpen(true);
+  };
 
   // Export user data using UserDataManager
   const exportUserData = () => {
     const csvData = userDataManager.exportUserData();
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [Object.keys(csvData[0]).join(',')]
-        .concat(csvData.map(row => Object.values(row).join(',')))
-        .join('\n');
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [Object.keys(csvData[0]).join(",")]
+        .concat(csvData.map((row) => Object.values(row).join(",")))
+        .join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -349,7 +365,8 @@ const toggleUserStatus = (user, action='activate') => {
 
     toast({
       title: "Export Successful!",
-      description: "User activity data has been exported to CSV with completion rates.",
+      description:
+        "User activity data has been exported to CSV with completion rates.",
       variant: "default",
       duration: 3000,
     });
@@ -357,14 +374,46 @@ const toggleUserStatus = (user, action='activate') => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200"><UserX className="h-3 w-3 mr-1" />Inactive</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
-      case 'invited':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Invited</Badge>;
+      case "active":
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-800 border-green-200"
+          >
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case "inactive":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-red-100 text-red-800 border-red-200"
+          >
+            <UserX className="h-3 w-3 mr-1" />
+            Inactive
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-100 text-yellow-800 border-yellow-200"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "invited":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-100 text-yellow-800 border-yellow-200"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Invited
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -372,26 +421,25 @@ const toggleUserStatus = (user, action='activate') => {
 
   const getRoleIcon = (role) => {
     switch (role) {
-      case 'Company Admin':
+      case "Company Admin":
         return <Crown className="h-4 w-4 text-purple-600" />;
-      case 'Manager':
+      case "Manager":
         return <Shield className="h-4 w-4 text-blue-600" />;
       default:
         return <User className="h-4 w-4 text-gray-600" />;
     }
   };
 
-
   const totalUsers = data?.user_stats?.total || 0;
   const activeUsers = data?.user_stats?.active || 0;
   const inactiveUsers = data?.user_stats?.inactive || 0;
   const pendingUsers = data?.user_stats?.pending || 0;
-useEffect(()=>{ 
-    if (!isAdmin) {
+  useEffect(() => {
+    if (isAdmin === false) {
       // Redirect non-admin users away from this page
       setLocation("/dashboard");
     }
-  },[isAdmin])
+  }, [isAdmin]);
   const usersData = data?.users || [];
 
   return (
@@ -408,15 +456,15 @@ useEffect(()=>{
           </p>
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={exportUserData}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
             Export CSV
           </Button>
-          <Button 
+          <Button
             onClick={() => setIsAddUserModalOpen(true)}
             className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
           >
@@ -440,7 +488,10 @@ useEffect(()=>{
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {Object.entries(licensePool).map(([licenseType, data]) => (
-              <div key={licenseType} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div
+                key={licenseType}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
                 <div>
                   <div className="font-medium text-sm">{licenseType}</div>
                   <div className="text-xs text-gray-500">
@@ -448,7 +499,9 @@ useEffect(()=>{
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-lg text-green-600">{data.available}</div>
+                  <div className="font-bold text-lg text-green-600">
+                    {data.available}
+                  </div>
                   <div className="text-xs text-gray-500">available</div>
                 </div>
               </div>
@@ -468,14 +521,16 @@ useEffect(()=>{
             <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeUsers}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {activeUsers}
+            </div>
           </CardContent>
         </Card>
 
@@ -485,47 +540,54 @@ useEffect(()=>{
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingUsers}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {pendingUsers}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Inactive Users
+            </CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inactiveUsers}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {inactiveUsers}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Users Table */}
       <Card>
-      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-  <div>
-    <CardTitle>All Users</CardTitle>
-    <CardDescription>
-      Complete list of users in your organization with their details and status
-    </CardDescription>
-  </div>
-  <div className="relative w-full sm:w-64">
-    <input
-      type="text"
-      placeholder="Search users..."
-         value={searchQuery}
-      onChange={(e) => {
-        setSearchQuery(e.target.value);
-        setCurrentPage(1); // reset to first page
-      }}
-      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-    />
-    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-  </div>
-</CardHeader>
+        <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <CardTitle>All Users</CardTitle>
+            <CardDescription>
+              Complete list of users in your organization with their details and
+              status
+            </CardDescription>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // reset to first page
+              }}
+              className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+          </div>
+        </CardHeader>
 
         <CardContent>
-          <Table  className="w-full">
+          <Table className="w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
@@ -538,14 +600,16 @@ useEffect(()=>{
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-              <TableBody>
+            <TableBody>
               {usersData.map((user) => (
                 <TableRow key={user._id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                        {(user.firstName || user.lastName)
-                          ? `${(user.firstName || "").charAt(0)}${(user.lastName || "").charAt(0)}`.toUpperCase()
+                        {user.firstName || user.lastName
+                          ? `${(user.firstName || "").charAt(0)}${(
+                              user.lastName || ""
+                            ).charAt(0)}`.toUpperCase()
                           : (user.email || "-").charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -554,7 +618,9 @@ useEffect(()=>{
                             ? `${safe(user.firstName)} ${safe(user.lastName)}`
                             : "-"}
                         </div>
-                        <div className="text-sm text-gray-500">{safe(user.email)}</div>
+                        <div className="text-sm text-gray-500">
+                          {safe(user.email)}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
@@ -571,13 +637,12 @@ useEffect(()=>{
                   <TableCell>
                     <div>
                       <div className="font-medium">{safe(user.department)}</div>
-                      <div className="text-sm text-gray-500">{safe(user.designation)}</div>
+                      <div className="text-sm text-gray-500">
+                        {safe(user.designation)}
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-             
-                      {getStatusBadge(user.status)}
-                  </TableCell>
+                  <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell className="text-sm text-gray-500">
                     {user.lastLoginAt
                       ? new Date(user.lastLoginAt).toLocaleDateString()
@@ -586,67 +651,71 @@ useEffect(()=>{
                   <TableCell>
                     <div className="text-sm">
                       <div>
-                        {safe(user.completedTasks)}/{safe(user.assignedTasks)} completed
+                        {safe(user.completedTasks)}/{safe(user.assignedTasks)}{" "}
+                        completed
                       </div>
                     </div>
                   </TableCell>
-                   <TableCell className="text-right">
-        {/* 3. 3-DOT ACTIONS MENU */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className='bg-white' align="end">
-            <DropdownMenuItem onClick={() => handleEditUser(user)}>
-              <Edit3 className="h-4 w-4 mr-2" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleViewActivity(user)}>
-              <Eye className="h-4 w-4 mr-2" /> View Activity
-            </DropdownMenuItem>
-            {user.status === "Active" ? (
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedUser(user);
-                  setStatusAction("deactivate");
-                  setIsStatusDialogOpen(true);
-                }}
-              >
-                <UserX className="h-4 w-4 mr-2 text-red-600" /> Deactivate
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedUser(user);
-                  setStatusAction("activate");
-                  setIsStatusDialogOpen(true);
-                }}
-              >
-                <RefreshCw className="h-4 w-4 mr-2 text-green-600" /> Reactivate
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onClick={() => handleRemoveUser(user)}
-              className="text-red-600"
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Remove
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
+                  <TableCell className="text-right">
+                    {/* 3. 3-DOT ACTIONS MENU */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-white" align="end">
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                          <Edit3 className="h-4 w-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleViewActivity(user)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" /> View Activity
+                        </DropdownMenuItem>
+                      {user.status?.toLowerCase() === "active" && (
+    <DropdownMenuItem
+      onClick={() => {
+        setSelectedUser(user);
+        setStatusAction("deactivate");
+        setIsStatusDialogOpen(true);
+      }}
+    >
+      <UserX className="h-4 w-4 mr-2 text-red-600" /> Deactivate
+    </DropdownMenuItem>
+  )}
+  {user.status?.toLowerCase() === "inactive" && (
+    <DropdownMenuItem
+      onClick={() => {
+        setSelectedUser(user);
+        setStatusAction("activate");
+        setIsStatusDialogOpen(true);
+      }}
+    >
+      <RefreshCw className="h-4 w-4 mr-2 text-green-600" /> Reactivate
+    </DropdownMenuItem>
+  )}
+                        <DropdownMenuItem
+                          onClick={() => handleRemoveUser(user)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-               {/* Pagination */}
-            <Pagination
-  currentPage={currentPage}
-  totalPages={data?.pages || 1}
-  itemsPerPage={itemsPerPage}
-  totalItems={data?.total || usersData.length}
-  onPageChange={setCurrentPage}
-/>
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={data?.pages || 1}
+            itemsPerPage={itemsPerPage}
+            totalItems={data?.total || usersData.length}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
 
@@ -666,7 +735,9 @@ useEffect(()=>{
             setSelectedUser(null);
           }}
           user={selectedUser}
-          onUserUpdated={handleUpdateUser}
+          onUserUpdated={(userData) =>
+            handleUpdateUser(selectedUser._id, userData)
+          }
         />
       )}
 
@@ -682,11 +753,12 @@ useEffect(()=>{
         />
       )}
 
- 
-
       {/* Remove User Confirmation Dialog */}
-      <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>
-        <AlertDialogContent className='bg-white'>
+      <AlertDialog
+        open={isRemoveDialogOpen}
+        onOpenChange={setIsRemoveDialogOpen}
+      >
+        <AlertDialogContent className="bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Trash2 className="h-5 w-5 text-red-500" />
@@ -695,94 +767,106 @@ useEffect(()=>{
             <AlertDialogDescription>
               {selectedUser && (
                 <>
-                  Are you sure you want to permanently remove <strong>{selectedUser.name}</strong> from your organization?
-                  <br /><br />
+                  Are you sure you want to permanently remove{" "}
+                  <strong>{selectedUser.name}</strong> from your organization?
+                  <br />
+                  <br />
                   {selectedUser.activeProcesses > 0 ? (
                     <span className="text-red-600 font-medium">
-                      ⚠️ This user has {selectedUser.activeProcesses} active task(s). Please reassign these tasks before removing the user.
+                      ⚠️ This user has {selectedUser.activeProcesses} active
+                      task(s). Please reassign these tasks before removing the
+                      user.
                     </span>
                   ) : (
                     <>
-                      This action cannot be undone. The user will be permanently deleted and their license will be returned to the available pool.
+                      This action cannot be undone. The user will be permanently
+                      deleted and their license will be returned to the
+                      available pool.
                     </>
                   )}
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className='flex justify-between'>
+          <AlertDialogFooter className="flex justify-between">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-         <AlertDialogAction
-
-  className={"bg-red-600 text-white hover:bg-red-700"
-  }
->
- Remove User
-</AlertDialogAction>
+            <AlertDialogAction
+              className={"bg-red-600 text-white hover:bg-red-700"}
+            >
+              Remove User
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Deactivate/Activate Confirmation Dialog */}
-<AlertDialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-  <AlertDialogContent className="bg-white">
-    <AlertDialogHeader>
-      <AlertDialogTitle className="flex items-center gap-2">
-        {statusAction === "deactivate" ? (
-          <>
-            <UserX className="h-5 w-5 text-red-500" />
-            Deactivate User
-          </>
-        ) : (
-          <>
-            <RefreshCw className="h-5 w-5 text-green-500" />
-            Reactivate User
-          </>
-        )}
-      </AlertDialogTitle>
-      <AlertDialogDescription>
-        {selectedUser && (
-          <>
-            Are you sure you want to{" "}
-            <strong>
-              {statusAction === "deactivate" ? "deactivate" : "reactivate"}
-            </strong>{" "}
-            <strong>{selectedUser.name}</strong>?
-            <br />
-            <br />
-            {statusAction === "deactivate" ? (
-              <span className="text-red-600 font-medium">
-                They will lose access to the system and all assigned tasks will
-                show "Owner Inactive".
-              </span>
-            ) : (
-              "They will regain access and can log in normally."
-            )}
-          </>
-        )}
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction
-        onClick={() => {
-          if (selectedUser) {
-            toggleUserStatus(selectedUser,statusAction === "deactivate" ? "deactivate" : "activate"); // Pass action type
-          }
-          setIsStatusDialogOpen(false);
-        }}
-        className={
-          statusAction === "deactivate"
-            ? "bg-red-600 text-white hover:bg-red-700"
-            : "bg-green-600 text-white hover:bg-green-700"
-        }
+      <AlertDialog
+        open={isStatusDialogOpen}
+        onOpenChange={setIsStatusDialogOpen}
       >
-        {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {statusAction === "deactivate" ? (
+                <>
+                  <UserX className="h-5 w-5 text-red-500" />
+                  Deactivate User
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-5 w-5 text-green-500" />
+                  Reactivate User
+                </>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser && (
+                <>
+                  Are you sure you want to{" "}
+                  <strong>
+                    {statusAction === "deactivate"
+                      ? "deactivate"
+                      : "reactivate"}
+                  </strong>{" "}
+                  <strong>{selectedUser.name}</strong>?
+            
+                  {statusAction === "deactivate" ? (
+                    <span className="text-red-600 font-medium">
+                      They will lose access to the system and all assigned tasks
+                      will show "Owner Inactive".
+                    </span>
+                  ) : (
+                    "They will regain access and can log in normally."
+                  )}
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <div className="flex justify-between w-full">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedUser) {
+                  toggleUserStatus(
+                    selectedUser,
+                    statusAction === "deactivate" ? "deactivate" : "activate"
+                  ); // Pass action type
+                }
+                setIsStatusDialogOpen(false);
+              }}
+              className={
+                statusAction === "deactivate"
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "bg-green-600 text-white hover:bg-green-700"
+              }
+            >
+              {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+            </AlertDialogAction>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
