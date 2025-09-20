@@ -22,7 +22,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table" 
+} from "@/components/ui/table"
 import { getTaskTypeInfo, getTaskPriorityColor } from "../TaskTypeUtils";
 import {
   CheckCircle,
@@ -106,7 +106,7 @@ export default function AllTasks({
 
   // Get tasks from Zustand store
   const { tasks: storeTasks } = useTasksStore();
- // Lock body scroll while any modal/drawer is open
+  // Lock body scroll while any modal/drawer is open
   useEffect(() => {
     const anyOpen =
       showCreateTaskDrawer ||
@@ -387,8 +387,7 @@ export default function AllTasks({
         (s) => s.code === task.status,
       );
       alert(
-        `Invalid status transition from "${
-          currentStatusObj?.label || task.status
+        `Invalid status transition from "${currentStatusObj?.label || task.status
         }" to "${newStatus.label}". Please follow the allowed workflow.`,
       );
       return;
@@ -442,8 +441,7 @@ export default function AllTasks({
     const oldStatus = companyStatuses.find((s) => s.code === oldStatusCode);
     const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
     console.log(
-      `✅ Status updated: "${task.title}" changed from "${
-        oldStatus?.label || oldStatusCode
+      `✅ Status updated: "${task.title}" changed from "${oldStatus?.label || oldStatusCode
       }" to "${newStatus.label}"`,
     );
   };
@@ -671,9 +669,9 @@ export default function AllTasks({
     if (
       editingSubtaskTitle.trim() &&
       editingSubtaskTitle !==
-        tasks
-          .find((t) => t.id === parentTaskId)
-          ?.subtasks?.find((s) => s.id === subtaskId)?.title
+      tasks
+        .find((t) => t.id === parentTaskId)
+        ?.subtasks?.find((s) => s.id === subtaskId)?.title
     ) {
       updateSubtask(parentTaskId, subtaskId, {
         title: editingSubtaskTitle.trim(),
@@ -891,20 +889,20 @@ export default function AllTasks({
       // For linked milestones, create mock task dependencies
       tasks:
         milestoneData.milestoneType === "linked" &&
-        milestoneData.linkedTasks.length > 0
+          milestoneData.linkedTasks.length > 0
           ? milestoneData.linkedTasks.map((taskId) => {
-              const taskNames = {
-                1: "UI Design Complete",
-                2: "Backend API Development",
-                3: "Testing Phase",
-                4: "Deployment",
-              };
-              return {
-                id: taskId,
-                title: taskNames[taskId] || `Task ${taskId}`,
-                completed: false,
-              };
-            })
+            const taskNames = {
+              1: "UI Design Complete",
+              2: "Backend API Development",
+              3: "Testing Phase",
+              4: "Deployment",
+            };
+            return {
+              id: taskId,
+              title: taskNames[taskId] || `Task ${taskId}`,
+              completed: false,
+            };
+          })
           : [],
     };
 
@@ -1046,20 +1044,20 @@ export default function AllTasks({
   };
 
   return (
-    <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden">
-     
-{/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">All Tasks</h1>
-          <p className="mt-2 text-lg text-gray-600">
+    <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden max-w-full box-border">
+
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 max-w-full">
+        <div className="flex-1 ">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 truncate">All Tasks</h1>
+          <p className="mt-2 text-base lg:text-lg text-gray-600">
             Manage and track all your tasks
           </p>
         </div>
-        <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-2 flex-wrap flex-shrink-0 max-w-full overflow-hidden">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap`}
+            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap text-sm`}
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -1077,9 +1075,8 @@ export default function AllTasks({
             {showSnooze ? "Hide" : "Show"} Snoozed Tasks
           </button>
           <button
-            className={`btn ${
-              showCalendarView ? "btn-primary" : "btn-secondary"
-            } whitespace-nowrap`}
+            className={`btn ${showCalendarView ? "btn-primary" : "btn-secondary"
+              } whitespace-nowrap text-sm`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
             <svg
@@ -1214,8 +1211,8 @@ export default function AllTasks({
         {/* Search Bar */}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <div className="relative w-50 max-w-md">
+        <div className="flex gap-2 overflow-x-auto">
+          <div className="relative w-full sm:w-50 max-w-md flex-shrink-0">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
               fill="none"
@@ -1248,7 +1245,7 @@ export default function AllTasks({
               { value: "completed", label: "Completed" },
             ]}
             placeholder="Filter by Status"
-            className="min-w-[140px]"
+            className="min-w-[140px] flex-shrink-0"
           />
 
           <SearchableSelect
@@ -1262,7 +1259,7 @@ export default function AllTasks({
               { value: "urgent", label: "Urgent" },
             ]}
             placeholder="Filter by Priority"
-            className="min-w-[140px]"
+            className="min-w-[140px] flex-shrink-0"
           />
 
           <SearchableSelect
@@ -1276,7 +1273,7 @@ export default function AllTasks({
               { value: "Approval Task", label: "Approval Task" },
             ]}
             placeholder="Filter by Task Type"
-            className="min-w-[180px]"
+            className="min-w-[180px] flex-shrink-0"
           />
 
           <SearchableSelect
@@ -1297,22 +1294,22 @@ export default function AllTasks({
               { value: "no_due_date", label: "No Due Date" },
               ...(window.calendarSpecificDate
                 ? [
-                    {
-                      value: "specific_date",
-                      label: `Date: ${new Date(
-                        window.calendarSpecificDate,
-                      ).toLocaleDateString()}`,
-                    },
-                  ]
+                  {
+                    value: "specific_date",
+                    label: `Date: ${new Date(
+                      window.calendarSpecificDate,
+                    ).toLocaleDateString()}`,
+                  },
+                ]
                 : []),
             ]}
             placeholder="Filter by Due Date"
-            className="min-w-[200px]"
+            className="min-w-[200px] flex-shrink-0"
           />
 
           <SearchableSelect
             placeholder="All Categories"
-            className="min-w-[160px]"
+            className="min-w-[160px] flex-shrink-0"
           />
         </div>
         {/* Bulk Actions */}
@@ -1368,163 +1365,162 @@ export default function AllTasks({
         taskTypeFilter !== "all" ||
         dueDateFilter !== "all" ||
         searchTerm) && (
-        <div className="card bg-blue-50 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-800">
-                Active Filters:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {searchTerm && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Search: "{searchTerm}"
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {statusFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Status: {statusFilter}
-                    <button
-                      onClick={() => setStatusFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {priorityFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Priority: {priorityFilter}
-                    <button
-                      onClick={() => setPriorityFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {taskTypeFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Type: {taskTypeFilter}
-                    <button
-                      onClick={() => setTaskTypeFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {dueDateFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Due:{" "}
-                    {dueDateFilter === "specific_date" &&
-                    window.calendarSpecificDate
-                      ? `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`
-                      : dueDateFilter.replace(/_/g, " ")}
-                    <button
-                      onClick={() => {
-                        setDueDateFilter("all");
-                        window.calendarSpecificDate = null;
-                      }}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
+          <div className="card bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-800">
+                  Active Filters:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Search: "{searchTerm}"
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {statusFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Status: {statusFilter}
+                      <button
+                        onClick={() => setStatusFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {priorityFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Priority: {priorityFilter}
+                      <button
+                        onClick={() => setPriorityFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {taskTypeFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Type: {taskTypeFilter}
+                      <button
+                        onClick={() => setTaskTypeFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {dueDateFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Due:{" "}
+                      {dueDateFilter === "specific_date" &&
+                        window.calendarSpecificDate
+                        ? `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`
+                        : dueDateFilter.replace(/_/g, " ")}
+                      <button
+                        onClick={() => {
+                          setDueDateFilter("all");
+                          window.calendarSpecificDate = null;
+                        }}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPriorityFilter("all");
+                  setTaskTypeFilter("all");
+                  setDueDateFilter("all");
+                  window.calendarSpecificDate = null;
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear All Filters
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-                setPriorityFilter("all");
-                setTaskTypeFilter("all");
-                setDueDateFilter("all");
-                window.calendarSpecificDate = null;
-              }}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear All Filters
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Export Options */}
-      <div className="flex justify-end gap-2 ">
-        <button className="btn btn-secondary btn-md">Export as CSV</button>
-        <button className="btn btn-secondary btn-md">Export as Excel</button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button className="btn btn-secondary btn-md whitespace-nowrap">Export as CSV</button>
+        <button className="btn btn-secondary btn-md whitespace-nowrap">Export as Excel</button>
       </div>
 
 
 
       {/* Tasks Table */}
-   <div className="card p-0">
-  <div className="w-full overflow-x-auto">
-    <Table wrapperClassName="max-w-[80rem]" className="w-full"> 
-           <TableHeader>
-             <TableRow>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
-                 <input
-                   type="checkbox"
-                   checked={
-                     selectedTasks.length === tasks.length && tasks.length > 0
-                   }
-                   onChange={(e) => handleSelectAll(e.target.checked)}
-                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                 />
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Task
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Assignee
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Status
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Priority
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Due Date
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Progress
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Tags
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Task Type
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Color Code
-               </TableHead>
-               <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
-                 Actions
-               </TableHead>
-             </TableRow>
-           </TableHeader>
-        
-             <TableBody>
+      <div className="card p-0 max-w-full overflow-hidden">
+        <div className="table-container w-full overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <Table className="w-full table-auto" style={{ minWidth: '800px' }}>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedTasks.length === tasks.length && tasks.length > 0
+                    }
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px] max-w-[300px]">
+                  Task
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] max-w-[150px]">
+                  Assignee
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] max-w-[120px]">
+                  Status
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px] max-w-[100px]">
+                  Priority
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] max-w-[120px]">
+                  Due Date
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px] max-w-[100px]">
+                  Progress
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] max-w-[150px] hidden lg:table-cell">
+                  Tags
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] max-w-[120px] hidden xl:table-cell">
+                  Task Type
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px] max-w-[100px] hidden xl:table-cell">
+                  Color Code
+                </TableHead>
+                <TableHead className="px-3 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px] max-w-[100px]">
+                  Actions
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
               {filteredTasks.map((task) => (
                 <React.Fragment key={task.id}>
                   <TableRow
-                    className={`hover:bg-gray-50 transition-colors ${
-                      selectedTasks.includes(task.id) ? "bg-blue-50" : ""
-                    }`}
+                    className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
+                      }`}
                     style={{
                       borderLeft: `4px solid ${getTaskColorCode(task)}`,
                     }}
                   >
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4">
                       <input
                         type="checkbox"
                         checked={selectedTasks.includes(task.id)}
@@ -1534,10 +1530,10 @@ export default function AllTasks({
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4 max-w-[300px]">
                       <div>
                         <div className="font-medium text-gray-900">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {/* Expansion control for tasks with subtasks */}
                             {task.subtasks && task.subtasks.length > 0 && (
                               <button
@@ -1654,9 +1650,9 @@ export default function AllTasks({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4 max-w-[150px]">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
                           <span className="text-xs font-medium text-gray-600">
                             {task.assignee
                               .split(" ")
@@ -1664,12 +1660,12 @@ export default function AllTasks({
                               .join("")}
                           </span>
                         </div>
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 truncate">
                           {task.assignee}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap text-left">
+                    <TableCell className="px-3 py-4 text-left">
                       <TaskStatusDropdown
                         task={task}
                         currentStatus={task.status}
@@ -1681,25 +1677,25 @@ export default function AllTasks({
                         canMarkCompleted={canMarkAsCompleted(task)}
                       />
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4">
                       <span className={getTaskPriorityColor(task.priority)}>
                         {task.priority}
                       </span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
-                      {task.dueDate}
+                    <TableCell className="px-3 py-4 text-sm text-gray-900">
+                      <span className="truncate block max-w-[100px]">{task.dueDate}</span>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4">
                       <div className="flex items-center">
                         <span className="text-xs text-gray-600 min-w-[3rem]">
                           {task.progress}%
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4 max-w-[150px] hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {task.tags &&
-                          task.tags.map((tag, index) => (
+                          task.tags.slice(0, 2).map((tag, index) => (
                             <span
                               key={index}
                               className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
@@ -1707,23 +1703,26 @@ export default function AllTasks({
                               {tag}
                             </span>
                           ))}
+                        {task.tags && task.tags.length > 2 && (
+                          <span className="text-xs text-gray-500">+{task.tags.length - 2}</span>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4 hidden xl:table-cell">
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 truncate max-w-[100px]">
                           {getTaskType(task)}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4 hidden xl:table-cell">
                       <div
                         className="w-6 h-6 rounded-full shadow-md"
                         style={{ backgroundColor: getTaskColorCode(task) }}
                         title={getTaskColorCode(task)}
                       ></div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-nowrap">
+                    <TableCell className="px-3 py-4">
                       <div className="flex items-center justify-center">
                         <TaskActionsDropdown
                           task={task}
@@ -1883,33 +1882,33 @@ export default function AllTasks({
                     ))}
                 </React.Fragment>
               ))}
-           </TableBody>
-        
+            </TableBody>
+
           </Table>
         </div>
       </div>
 
       {/* Pagination */}
-     
+
       {/* Slide-in Drawer */}
-     {showCreateTaskDrawer && (
-    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0 -top-[16px]" role="dialog" aria-modal="true">
-      <div
-        className=" absolute inset-0 bg-black/40 "
-        onClick={() => setShowCreateTaskDrawer(false)}
-      ></div>
-      <div
-        className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
-        style={{
-          width: "min(90vw, 900px)",
-          boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-          borderLeft: "1px solid rgba(255,255,255,0.2)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-      >
+      {showCreateTaskDrawer && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0 -top-[16px]" role="dialog" aria-modal="true">
+          <div
+            className=" absolute inset-0 bg-black/40 "
+            onClick={() => setShowCreateTaskDrawer(false)}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
+            style={{
+              width: "min(90vw, 900px)",
+              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+              borderLeft: "1px solid rgba(255,255,255,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
                 Create New Task
@@ -1943,16 +1942,16 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-              <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-          <CreateTask
-            onClose={() => {
-              setShowCreateTaskDrawer(false);
-              setSelectedDateForTask(null);
-            }}
-            initialTaskType={selectedTaskType}
-            preFilledDate={selectedDateForTask}
-          />
-        </div>
+            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+              <CreateTask
+                onClose={() => {
+                  setShowCreateTaskDrawer(false);
+                  setSelectedDateForTask(null);
+                }}
+                initialTaskType={selectedTaskType}
+                preFilledDate={selectedDateForTask}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -2014,7 +2013,7 @@ export default function AllTasks({
       {/* Approval Task Creator Modal */}
       {showApprovalTaskModal && !selectedApprovalTask && (
         <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
-    <div
+          <div
             className="absolute inset-0 bg-black/40 "
             onClick={() => setShowApprovalTaskModal(false)}
           ></div>
@@ -2025,10 +2024,10 @@ export default function AllTasks({
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
-                onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
@@ -2063,17 +2062,17 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-           <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-          <ApprovalTaskCreator
-            onClose={() => {
-              setShowApprovalTaskModal(false);
-              setSelectedDateForTask(null);
-            }}
-            onSubmit={handleCreateApprovalTask}
-            preFilledDate={selectedDateForTask}
-            selectedDate={selectedDateForTask}
-          />
-        </div>
+            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+              <ApprovalTaskCreator
+                onClose={() => {
+                  setShowApprovalTaskModal(false);
+                  setSelectedDateForTask(null);
+                }}
+                onSubmit={handleCreateApprovalTask}
+                preFilledDate={selectedDateForTask}
+                selectedDate={selectedDateForTask}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -2091,9 +2090,9 @@ export default function AllTasks({
       )}
 
       {/* Milestone Creation Modal */}
-    {showMilestoneModal && (
-    <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
-       <div
+      {showMilestoneModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+          <div
             className="absolute inset-0 bg-black/40 "
             onClick={() => setShowMilestoneModal(false)}
           ></div>
@@ -2104,10 +2103,10 @@ export default function AllTasks({
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
-               onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
               <h2 className="text-2xl font-bold text-white">
@@ -2142,17 +2141,17 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-             <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-          <MilestoneCreator
-            onClose={() => {
-              setShowMilestoneModal(false);
-              setSelectedDateForTask(null);
-            }}
-            onSubmit={handleCreateMilestone}
-            preFilledDate={selectedDateForTask}
-            selectedDate={selectedDateForTask}
-          />
-        </div>
+            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+              <MilestoneCreator
+                onClose={() => {
+                  setShowMilestoneModal(false);
+                  setSelectedDateForTask(null);
+                }}
+                onSubmit={handleCreateMilestone}
+                preFilledDate={selectedDateForTask}
+                selectedDate={selectedDateForTask}
+              />
+            </div>
           </div>
         </div>
       )}

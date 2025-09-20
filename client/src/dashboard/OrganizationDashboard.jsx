@@ -205,7 +205,7 @@ const OrganizationDashboard = () => {
             <div className="bg-blue-100 p-2 rounded-lg">
               <Users className="text-blue-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Total Employees</p>
               <p className="text-xl font-bold text-gray-900">
                 {orgStats.totalEmployees}
@@ -234,10 +234,10 @@ const OrganizationDashboard = () => {
           data-testid="card-completed-tasks"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-lg">
+            <div className="bg-purple-100 rounded-lg">
               <CheckSquare className="text-purple-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Tasks Completed</p>
               <p className="text-xl font-bold text-gray-900">
                 {orgStats.completedTasksThisMonth}
@@ -254,7 +254,7 @@ const OrganizationDashboard = () => {
             <div className="bg-yellow-100 p-2 rounded-lg">
               <Clock className="text-yellow-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Pending Approvals</p>
               <p className="text-xl font-bold text-gray-900">
                 {orgStats.pendingApprovals}
@@ -271,7 +271,7 @@ const OrganizationDashboard = () => {
             <div className="bg-indigo-100 p-2 rounded-lg">
               <TrendingUp className="text-indigo-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Team Productivity</p>
               <p className="text-xl font-bold text-gray-900">
                 {orgStats.teamProductivity}%
@@ -288,7 +288,7 @@ const OrganizationDashboard = () => {
             <div className="bg-red-100 p-2 rounded-lg">
               <AlertTriangle className="text-red-600" size={20} />
             </div>
-            <div>
+            <div className="overflow-hidden">
               <p className="text-sm text-gray-600">Upcoming Deadlines</p>
               <p className="text-xl font-bold text-gray-900">
                 {orgStats.upcomingDeadlines}

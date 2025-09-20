@@ -11,7 +11,7 @@ export function AdminLayout({ children }) {
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/verify"],
     enabled: !!localStorage.getItem("token"),
-      retry: false,
+    retry: false,
   });
 
   const toggleSidebar = () => {
@@ -25,12 +25,12 @@ export function AdminLayout({ children }) {
   const handleLogout = () => {
     // Clear authentication token
     localStorage.removeItem("token");
-    
+
     // Redirect to login page
     window.location.href = "/login";
   };
-   const activeRole = user?.activeRole || user?.role?.[0];
-    const userRole = activeRole?.toLowerCase();
+  const activeRole = user?.activeRole || user?.role?.[0];
+  const userRole = activeRole?.toLowerCase();
   // Show loading state while user data is being fetched
   if (isLoading) {
     return (
@@ -44,28 +44,28 @@ export function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-100 flex overflow-x-hidden max-w-full">
       {/* Dynamic sidebar based on user role */}
-      <Sidebar 
+      <Sidebar
         role={userRole}
         onLogout={handleLogout}
         defaultCollapsed={!sidebarOpen}
         showToggle={true}
         className="fixed lg:static"
       />
-      
+
       {/* Main content area */}
-      <div className="flex-1 lg:ml-0">
-        <Header 
+      <div className="flex-1 lg:ml-0 min-w-0 max-w-full overflow-x-hidden">
+        <Header
           onMenuClick={toggleMobileMenu}
           onSidebarToggle={toggleSidebar}
           sidebarOpen={sidebarOpen}
         />
-        
-        <main className="min-h-screen bg-gray-50">
-          <div className="h-full w-full">
-            <div className="w-full h-full bg-white border-l border-gray-200">
-              <div className="h-full">
+
+        <main className="min-h-screen bg-gray-50 max-w-full overflow-x-hidden">
+          <div className="h-full w-full max-w-full">
+            <div className="w-full h-full bg-white border-l border-gray-200 max-w-full overflow-x-hidden">
+              <div className="h-full max-w-full overflow-x-hidden">
                 {children}
               </div>
             </div>
