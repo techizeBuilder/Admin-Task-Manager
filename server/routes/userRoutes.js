@@ -6,6 +6,42 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /api/organization/users/{userId}:
+ *   delete:
+ *     summary: Remove/Delete a user
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User removed successfully
+ *       400:
+ *         description: Cannot remove primary admin
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.delete(
+  "/organization/users/:userId",
+  authenticateToken,
+  roleAuth(["org_admin"]),
+  userController.removeUser
+);
+/**
+ * @swagger
  * /api/organization/users/update-status:
  *   put:
  *     summary: Update a user's status (active/inactive)

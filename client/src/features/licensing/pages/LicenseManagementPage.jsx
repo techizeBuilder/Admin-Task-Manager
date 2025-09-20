@@ -42,7 +42,8 @@ import { cn } from "@/lib/utils"; // if you already use cn helper
 import { useUserRole } from "../../../utils/auth";
 /**
  * License Management Page - In-app summary with usage meters, trial countdown, plan comparison cards
- */ function ComparisonTable({ plans }) {
+ */ 
+function ComparisonTable({ plans }) {
   const [expanded, setExpanded] = useState(false);
 
   // Get all feature names
@@ -194,8 +195,8 @@ export default function LicenseManagementPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
- 
-  const { data: user,isAdmin } = useUserRole();
+
+  const { data: user, isAdmin } = useUserRole();
   const currentPlan = getCurrentPlan();
   const isOnTrial = currentPlanKey === "explore";
   const warnings = getLimitWarnings;

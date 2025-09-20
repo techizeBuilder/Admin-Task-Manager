@@ -1,6 +1,63 @@
 import { User } from "../modals/userModal.js";
 import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
+/**
+ * Remove/Delete user
+ * Only org_admin can remove user (enforced in route middleware)
+ */
+export const removeUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+  
+    
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        status: 401,
+        message: "Unauthorized - user not authenticated",
+      });
+    }
+
+    // Find the user first to check if exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found",
+      });
+    }
+
+    // Check if user belongs to the same organization as the admin
+    if (user.organization_id.toString() !== req.user.organizationId.toString()) {
+      return res.status(403).json({
+        status: 403,
+        message: "Cannot remove user from different organization",
+      });
+    }
+
+    // Prevent removing primary admin
+    if (user.isPrimaryAdmin) {
+      return res.status(400).json({
+        status: 400,
+        message: "Cannot remove primary admin",
+      });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    return res.status(200).json({
+      status: 200,
+      message: "User removed successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to remove user",
+      error: err.message,
+    });
+  }
+};
 
 /**
  * Get users by organization

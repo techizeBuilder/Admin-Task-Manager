@@ -61,11 +61,12 @@ import { useUserRole } from "../../utils/auth";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { set } from "mongoose";
+import { showErrorToast, showSuccessToast } from "../../utils/ToastMessage";
 export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-  const { user,  orgId } = useUserRole();
+  const { user, orgId } = useUserRole();
 
   const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
@@ -117,23 +118,48 @@ export default function Users() {
       return res.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Successfully updated",
-        status: "success",
-      });
+      showSuccessToast("Successfully updated");
       queryClient.invalidateQueries(["users"]);
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
-        status: "error",
-      });
+      showErrorToast(error.message || "An unexpected error occurred");
     },
   });
 
-  console.log("User", user);
+  // Add this mutation after the updateUserStatusMutation
+  const removeUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/organization/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        let errorMsg = "Failed to remove user";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch {}
+        const error = new Error(errorMsg);
+        error.status = res.status;
+        throw error;
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+     
+      showSuccessToast(data.message || "User removed successfully");
+      queryClient.invalidateQueries(["users"]);
+      setIsRemoveDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      showErrorToast(error.message || "An unexpected error occurred");
+    },
+  });
   // Fetch users with react-query
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["users", currentPage, searchQuery],
@@ -235,12 +261,7 @@ export default function Users() {
         duration: 5000,
       });
     } catch (error) {
-      toast({
-        title: "Error Adding User",
-        description: error.message,
-        variant: "destructive",
-        duration: 5000,
-      });
+      showErrorToast(error.message || "An unexpected error occurred");
     }
   };
 
@@ -258,49 +279,49 @@ export default function Users() {
   };
 
   // Deactivate/Reactivate user using UserDataManager
- const toggleUserStatus = (user, action = "activate") => {
-  const status = action === "deactivate" ? "inactive" : "active";
-  updateUserStatusMutation.mutate({ userId: user._id, status });
-};
-const updateUserStatusMutation = useMutation({
-  mutationFn: async ({ userId, status }) => {
-    const token = localStorage.getItem("token");
-    const res = await fetch("/api/organization/users/update-status", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ userId, status }),
-    });
-    if (!res.ok) {
-      let errorMsg = "Status update failed";
-      try {
-        const errData = await res.json();
-        errorMsg = errData.message || errorMsg;
-      } catch {}
-      const error = new Error(errorMsg);
-      error.status = res.status;
-      throw error;
-    }
-    return res.json();
-  },
-  onSuccess: (data) => {
-    toast({
-      title: "Success",
-      description: data.message || "User status updated",
-      status: "success",
-    });
-    queryClient.invalidateQueries(["users"]);
-  },
-  onError: (error) => {
-    toast({
-      title: "Error",
-      description: error.message || "An unexpected error occurred",
-      status: "error",
-    });
-  },
-});
+  const toggleUserStatus = (user, action = "activate") => {
+    const status = action === "deactivate" ? "inactive" : "active";
+    updateUserStatusMutation.mutate({ userId: user._id, status });
+  };
+  const updateUserStatusMutation = useMutation({
+    mutationFn: async ({ userId, status }) => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/organization/users/update-status", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId, status }),
+      });
+      if (!res.ok) {
+        let errorMsg = "Status update failed";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch {}
+        const error = new Error(errorMsg);
+        error.status = res.status;
+        throw error;
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: data.message || "User status updated",
+        status: "success",
+      });
+      queryClient.invalidateQueries(["users"]);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        status: "error",
+      });
+    },
+  });
   // Remove user
   const handleRemoveUser = (user) => {
     setSelectedUser({
@@ -310,30 +331,11 @@ const updateUserStatusMutation = useMutation({
     setIsRemoveDialogOpen(true);
   };
 
+  // Update the confirmRemoveUser function
   const confirmRemoveUser = () => {
-    if (selectedUser) {
-      try {
-        const removedUser = userDataManager.removeUser(selectedUser.id);
-
-        setLicensePool(userDataManager.getLicensePool());
-
-        toast({
-          title: "User Removed Successfully!",
-          description: `${removedUser.name} has been permanently removed from your organization. Their ${removedUser.licenseId} license has been returned to the available pool.`,
-          variant: "default",
-          duration: 5000,
-        });
-      } catch (error) {
-        toast({
-          title: "Cannot Remove User",
-          description: error.message,
-          variant: "destructive",
-          duration: 6000,
-        });
-      }
+    if (selectedUser?._id) {
+      removeUserMutation.mutate(selectedUser._id);
     }
-    setIsRemoveDialogOpen(false);
-    setSelectedUser(null);
   };
 
   // View user activity
@@ -668,28 +670,30 @@ const updateUserStatusMutation = useMutation({
                         >
                           <Eye className="h-4 w-4 mr-2" /> View Activity
                         </DropdownMenuItem>
-                      {user.status?.toLowerCase() === "active" && (
-    <DropdownMenuItem
-      onClick={() => {
-        setSelectedUser(user);
-        setStatusAction("deactivate");
-        setIsStatusDialogOpen(true);
-      }}
-    >
-      <UserX className="h-4 w-4 mr-2 text-red-600" /> Deactivate
-    </DropdownMenuItem>
-  )}
-  {user.status?.toLowerCase() === "inactive" && (
-    <DropdownMenuItem
-      onClick={() => {
-        setSelectedUser(user);
-        setStatusAction("activate");
-        setIsStatusDialogOpen(true);
-      }}
-    >
-      <RefreshCw className="h-4 w-4 mr-2 text-green-600" /> Reactivate
-    </DropdownMenuItem>
-  )}
+                        {user.status?.toLowerCase() === "active" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setStatusAction("deactivate");
+                              setIsStatusDialogOpen(true);
+                            }}
+                          >
+                            <UserX className="h-4 w-4 mr-2 text-red-600" />{" "}
+                            Deactivate
+                          </DropdownMenuItem>
+                        )}
+                        {user.status?.toLowerCase() === "inactive" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setStatusAction("activate");
+                              setIsStatusDialogOpen(true);
+                            }}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
+                            Reactivate
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => handleRemoveUser(user)}
                           className="text-red-600"
@@ -783,14 +787,16 @@ const updateUserStatusMutation = useMutation({
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex justify-between">
+          <div className="flex justify-between">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
+              onClick={confirmRemoveUser}
+              disabled={removeUserMutation.isLoading}
               className={"bg-red-600 text-white hover:bg-red-700"}
             >
-              Remove User
+              {removeUserMutation.isLoading ? "Removing..." : "Remove User"}
             </AlertDialogAction>
-          </AlertDialogFooter>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -824,7 +830,6 @@ const updateUserStatusMutation = useMutation({
                       : "reactivate"}
                   </strong>{" "}
                   <strong>{selectedUser.name}</strong>?
-            
                   {statusAction === "deactivate" ? (
                     <span className="text-red-600 font-medium">
                       They will lose access to the system and all assigned tasks
@@ -839,25 +844,25 @@ const updateUserStatusMutation = useMutation({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <div className="flex justify-between w-full">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (selectedUser) {
-                  toggleUserStatus(
-                    selectedUser,
-                    statusAction === "deactivate" ? "deactivate" : "activate"
-                  ); // Pass action type
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (selectedUser) {
+                    toggleUserStatus(
+                      selectedUser,
+                      statusAction === "deactivate" ? "deactivate" : "activate"
+                    ); // Pass action type
+                  }
+                  setIsStatusDialogOpen(false);
+                }}
+                className={
+                  statusAction === "deactivate"
+                    ? "bg-red-600 text-white hover:bg-red-700"
+                    : "bg-green-600 text-white hover:bg-green-700"
                 }
-                setIsStatusDialogOpen(false);
-              }}
-              className={
-                statusAction === "deactivate"
-                  ? "bg-red-600 text-white hover:bg-red-700"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }
-            >
-              {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
-            </AlertDialogAction>
+              >
+                {statusAction === "deactivate" ? "Deactivate" : "Reactivate"}
+              </AlertDialogAction>
             </div>
           </AlertDialogFooter>
         </AlertDialogContent>

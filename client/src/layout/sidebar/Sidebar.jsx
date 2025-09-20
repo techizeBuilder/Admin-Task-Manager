@@ -17,7 +17,9 @@ const Sidebar = ({
   const [menuItems, setMenuItems] = useState([]);
 
   useEffect(() => {
+
     const menu = getMenuByRole(role);
+ 
     setMenuItems(menu);
   }, [role]);
 
