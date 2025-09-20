@@ -16,7 +16,7 @@ import {
   MoreVerticalIcon,
 } from 'lucide-react';
 import { RecurringTaskIcon } from '../../components/common/TaskIcons';
-// If your icon lives elsewhere, adjust this path.
+import { apiClient } from '../../utils/apiClient';
 
 import {
   DropdownMenu,
@@ -30,14 +30,106 @@ const RecurringTaskManager = () => {
   const [priorityFilter, setPriorityFilter] = useState('all'); // all | low | medium | high
   const [frequencyFilter, setFrequencyFilter] = useState('all'); // all | daily | weekly | monthly | quarterly | yearly
   const [viewMode, setViewMode] = useState('grid'); // grid | list
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLimit] = useState(20);
 
   // Fetch recurring tasks from API
-  const { data: recurringTasks = [], isLoading } = useQuery({
-    queryKey: ['/api/tasks/recurring'],
-    retry: false,
+  const { data: apiResponse, isLoading, error, refetch } = useQuery({
+    queryKey: ['recurring-tasks', currentPage, pageLimit, statusFilter, priorityFilter, searchTerm],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageLimit.toString(),
+      });
+      
+      // Add filters if they're not 'all'
+      if (statusFilter !== 'all') {
+        // Map status filter to API status
+        const statusMap = {
+          'active': 'todo', // or 'in-progress' depending on your logic
+          'paused': 'on-hold'
+        };
+        if (statusMap[statusFilter]) {
+          params.append('status', statusMap[statusFilter]);
+        }
+      }
+      
+      if (priorityFilter !== 'all') {
+        params.append('priority', priorityFilter);
+      }
+      
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await apiClient.get(`/api/tasks/filter/recurring?${params.toString()}`);
+      console.log('Full API Response:', response);
+      console.log('Response data structure:', {
+        hasSuccess: !!response.success,
+        hasData: !!response.data,
+        hasTasks: !!response.data?.tasks,
+        tasksLength: response.data?.tasks?.length,
+        fullData: response.data
+      });
+      return response;
+    },
+    retry: 1,
+    staleTime: 30000, // 30 seconds
   });
 
-  // Mock data for now - will be replaced with real API
+  // Transform API data to match component expectations
+  const transformApiTask = (apiTask) => {
+    console.log('Transforming API task:', apiTask);
+    const transformed = {
+      id: apiTask._id,
+      title: apiTask.title,
+      description: apiTask.description,
+      frequency: apiTask.recurrencePattern?.frequency || 'daily', // Map from API recurrence pattern
+      nextDue: apiTask.dueDate || apiTask.nextDueDate,
+      isActive: apiTask.status !== 'on-hold' && apiTask.status !== 'cancelled', // Map status to active/paused
+      priority: apiTask.priority,
+      estimatedTime: apiTask.customFields?.estimatedTime || null,
+      tags: apiTask.tags || [],
+      createdBy: apiTask.createdBy ? `${apiTask.createdBy.firstName} ${apiTask.createdBy.lastName}` : 'Unknown',
+      createdByRole: apiTask.createdByRole || ["employee"], // User role who created the task
+      lastGenerated: apiTask.updatedAt,
+      status: apiTask.status,
+      category: apiTask.category,
+      visibility: apiTask.visibility,
+      attachments: apiTask.attachments || [],
+      // Additional API fields that might be useful
+      _id: apiTask._id,
+      organization: apiTask.organization,
+      assignedTo: apiTask.assignedTo,
+      createdAt: apiTask.createdAt,
+      updatedAt: apiTask.updatedAt,
+      isRecurring: apiTask.isRecurring,
+      recurrencePattern: apiTask.recurrencePattern,
+    };
+    console.log('Transformed task:', transformed);
+    return transformed;
+  };
+
+  // Get tasks from API or fallback to mock data
+  console.log('apiResponse:', apiResponse);
+  console.log('Checking data paths:', {
+    'apiResponse?.data': !!apiResponse?.data,
+    'apiResponse?.data?.tasks': !!apiResponse?.data?.tasks,
+    'apiResponse?.data?.data': !!apiResponse?.data?.data,
+    'apiResponse?.data?.data?.tasks': !!apiResponse?.data?.data?.tasks,
+    'tasksFromDirectPath': apiResponse?.data?.tasks,
+    'tasksFromNestedPath': apiResponse?.data?.data?.tasks
+  });
+  
+  // Try both possible data paths
+  const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
+  console.log('Final tasks array:', tasksArray);
+  
+  const recurringTasks = tasksArray.map(transformApiTask) || [];
+  const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
+  const summary = apiResponse?.data?.summary || apiResponse?.data?.data?.summary || {};
+
+  // Mock data for development/fallback
   const mockRecurringTasks = [
     {
       id: 1,
@@ -85,12 +177,12 @@ const RecurringTaskManager = () => {
   const getFrequencyLabel = (frequency) => {
     const labels = {
       daily: 'Daily',
-      weekly: 'Weekly',
+      weekly: 'Weekly', 
       monthly: 'Monthly',
       quarterly: 'Quarterly',
       yearly: 'Yearly'
     };
-    return labels[frequency] || frequency;
+    return labels[frequency] || frequency || 'Not Set';
   };
 
   const getPriorityColor = (priority) => {
@@ -115,13 +207,28 @@ const RecurringTaskManager = () => {
   };
 
   const stats = useMemo(() => {
-    const total = currentTasks.length;
-    const active = currentTasks.filter(t => t.isActive).length;
-    const paused = currentTasks.filter(t => !t.isActive).length;
-    const overdue = currentTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
-    const dueSoon = currentTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
-    return { total, active, paused, overdue, dueSoon };
-  }, [currentTasks]);
+    console.log('Stats calculation - currentTasks:', currentTasks);
+    console.log('Stats calculation - apiResponse:', apiResponse);
+    
+    // Use real data from API if available, otherwise calculate from current tasks
+    if (apiResponse?.data?.data?.summary) {
+      const apiSummary = apiResponse.data.data.summary;
+      const total = apiSummary.totalCount || currentTasks.length;
+      const active = currentTasks.filter(t => t.isActive).length;
+      const paused = currentTasks.filter(t => !t.isActive).length;
+      const overdue = currentTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
+      const dueSoon = currentTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
+      return { total, active, paused, overdue, dueSoon };
+    } else {
+      // Fallback to calculating from current tasks
+      const total = currentTasks.length;
+      const active = currentTasks.filter(t => t.isActive).length;
+      const paused = currentTasks.filter(t => !t.isActive).length;
+      const overdue = currentTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
+      const dueSoon = currentTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
+      return { total, active, paused, overdue, dueSoon };
+    }
+  }, [currentTasks, apiResponse]);
 
   const filteredTasks = currentTasks.filter(task => {
     const matchesSearch =
@@ -143,24 +250,107 @@ const RecurringTaskManager = () => {
     return matchesSearch && matchesStatus && matchesPriority && matchesFrequency;
   });
 
-  const handleToggleActive = (id) => {
-    console.log('Toggle recurring task:', id);
-    // TODO: Implement toggle functionality
+  const handleToggleActive = async (id) => {
+    try {
+      const task = currentTasks.find(t => t.id === id || t._id === id);
+      if (!task) return;
+
+      const newStatus = task.isActive ? 'on-hold' : 'todo';
+      await apiClient.patch(`/api/tasks/${task._id || id}/status`, {
+        status: newStatus
+      });
+      
+      // Refetch data to update UI
+      refetch();
+    } catch (error) {
+      console.error('Error toggling task status:', error);
+      // You might want to show a toast notification here
+    }
   };
 
   const handleEdit = (id) => {
-    console.log('Edit recurring task:', id);
-    // TODO: Navigate to edit form
+    const task = currentTasks.find(t => t.id === id || t._id === id);
+    const taskId = task?._id || id;
+    window.location.href = `/tasks/edit/${taskId}?type=recurring`;
   };
 
-  const handleDelete = (id) => {
-    console.log('Delete recurring task:', id);
-    // TODO: Implement delete functionality
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this recurring task?')) {
+      return;
+    }
+    
+    try {
+      const task = currentTasks.find(t => t.id === id || t._id === id);
+      const taskId = task?._id || id;
+      
+      console.log('Deleting task with ID:', taskId);
+      console.log('Delete API URL:', `/api/tasks/delete/${taskId}`);
+      
+      const response = await apiClient.delete(`/api/tasks/delete/${taskId}`);
+      console.log('Delete response:', response);
+      
+      // Refetch data to update UI
+      refetch();
+      console.log('Task deleted successfully, refetching data...');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      alert('Failed to delete task. Please check the console for details.');
+    }
   };
 
   const handleCreateNew = () => {
     window.location.href = '/tasks/create?type=recurring';
   };
+
+  // Handle search with debounced API calls
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handlePriorityFilterChange = (e) => {
+    setPriorityFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Show loading state
+  if (isLoading && !currentTasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading recurring tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !currentTasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading recurring tasks: {error.message}</p>
+          <button 
+            onClick={() => refetch()} 
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -185,6 +375,38 @@ const RecurringTaskManager = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Recurring Task
             </button>
+          </div>
+          
+          {/* Loading indicator and refresh button */}
+          <div className="flex items-center justify-between">
+            {isLoading && (
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                Loading recurring tasks...
+              </div>
+            )}
+            
+            {error && (
+              <div className="flex items-center text-sm text-red-600">
+                <span className="mr-2">Error loading tasks</span>
+                <button 
+                  onClick={() => refetch()}
+                  className="text-purple-600 hover:text-purple-700 underline"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            
+            {!isLoading && !error && (
+              <button 
+                onClick={() => refetch()}
+                className="text-sm text-gray-600 hover:text-gray-800"
+                title="Refresh tasks"
+              >
+                🔄 Refresh
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -252,14 +474,14 @@ const RecurringTaskManager = () => {
                 type="text"
                 placeholder="Search recurring tasks..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 data-testid="input-search-recurring-tasks"
               />
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={handleStatusFilterChange}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 data-testid="filter-status"
               >
@@ -270,7 +492,7 @@ const RecurringTaskManager = () => {
 
               <select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
+                onChange={handlePriorityFilterChange}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 data-testid="filter-priority"
               >
@@ -561,6 +783,55 @@ const RecurringTaskManager = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Recurring Task
             </button>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+            <div className="flex items-center text-sm text-gray-700">
+              <span>
+                Showing page {pagination.currentPage} of {pagination.totalPages} 
+                ({pagination.totalTasks} total tasks)
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, pagination.currentPage - 2) + i;
+                if (pageNum > pagination.totalPages) return null;
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      pageNum === pagination.currentPage
+                        ? 'bg-purple-600 text-white'
+                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              
+              <button
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -195,21 +195,79 @@ export class MongoStorage {
   }
 
   async updateTask(id, taskData, userId) {
-    const task = await Task.findByIdAndUpdate(id, taskData, { new: true });
+    console.log('=== STORAGE.updateTask DEBUG ===');
+    console.log('Task ID:', id);
+    console.log('Update data:', taskData);
+    console.log('User ID:', userId);
     
-    // Create activity log
-    if (userId) {
-      await this.createActivity({
-        type: 'task_updated',
-        description: `Task "${task.title}" was updated`,
-        relatedId: task._id,
-        relatedType: 'task',
-        user: userId,
-        organization: task.organization,
-      });
+    try {
+      // First check if task exists
+      const existingTask = await Task.findById(id);
+      console.log('Existing task before update:', existingTask ? {
+        id: existingTask._id,
+        title: existingTask.title,
+        isDeleted: existingTask.isDeleted,
+        updatedAt: existingTask.updatedAt
+      } : 'Task not found');
+
+      const task = await Task.findByIdAndUpdate(id, taskData, { new: true });
+      console.log('MongoDB findByIdAndUpdate result:', task ? {
+        id: task._id,
+        title: task.title,
+        isDeleted: task.isDeleted,
+        updatedAt: task.updatedAt
+      } : 'null/undefined');
+      
+      // Verify the update happened
+      const verifyTask = await Task.findById(id);
+      console.log('Verification check - Task after update:', verifyTask ? {
+        id: verifyTask._id,
+        title: verifyTask.title,
+        isDeleted: verifyTask.isDeleted,
+        updatedAt: verifyTask.updatedAt
+      } : 'Task not found in verification');
+      
+      // Create activity log
+      if (userId && task) {
+        await this.createActivity({
+          type: 'task_updated',
+          description: `Task "${task.title}" was updated`,
+          relatedId: task._id,
+          relatedType: 'task',
+          user: userId,
+          organization: task.organization,
+        });
+        console.log('Activity log created for task update');
+      }
+      
+      console.log('=== STORAGE.updateTask COMPLETE ===');
+      return task;
+    } catch (error) {
+      console.error('❌ ERROR in updateTask:', error);
+      throw error;
     }
-    
-    return task;
+  }
+
+  // Direct database check method for debugging
+  async directTaskCheck(id) {
+    try {
+      const task = await Task.findById(id).lean();
+      return task ? {
+        id: task._id,
+        title: task.title,
+        isDeleted: task.isDeleted,
+        updatedAt: task.updatedAt,
+        exists: true
+      } : {
+        exists: false,
+        message: 'Task not found in database'
+      };
+    } catch (error) {
+      return {
+        exists: false,
+        error: error.message
+      };
+    }
   }
 
   async deleteTask(id, userId) {

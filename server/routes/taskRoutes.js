@@ -9,6 +9,7 @@ import {
   updateTaskStatus,
   deleteTask,
   approveOrRejectTask,
+  getTasksByType,
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -18,7 +19,10 @@ const router = express.Router();
  * /api/create-task:
  *   post:
  *     summary: Create a new task (regular, recurring, milestone, approval)
- *     description: Creates a comprehensive task with support for different task types including regular tasks, recurring tasks, milestone tracking, and approval workflows
+ *     description: |
+ *       Creates a comprehensive task with support for different task types including regular tasks, recurring tasks, milestone tracking, and approval workflows.
+ *       
+ *       **Note**: The `createdByRole` field should be provided in the request to specify the role of the user creating the task.
  *     tags:
  *       - Tasks
  *     security:
@@ -42,7 +46,7 @@ const router = express.Router();
  *                 example: "Prepare and submit the Q4 financial report"
  *               taskType:
  *                 type: string
- *                 enum: [regular, recurring, milestone, approval]
+ *                 enum: ["regular", "recurring", "milestone", "approval"]
  *                 description: Type of task
  *                 example: "regular"
  *               dueDate:
@@ -57,7 +61,7 @@ const router = express.Router();
  *                 example: "2025-01-01T09:00:00.000Z"
  *               priority:
  *                 type: string
- *                 enum: [low, medium, high, urgent]
+ *                 enum: ["low", "medium", "high", "urgent"]
  *                 description: Task priority level
  *                 example: "high"
  *               category:
@@ -68,14 +72,19 @@ const router = express.Router();
  *                 type: string
  *                 description: User ID of the assigned person
  *                 example: "507f1f77bcf86cd799439011"
+ *               createdByRole:
+ *                 type: string
+ *                 enum: ["super_admin", "org_admin", "manager", "individual", "employee"]
+ *                 description: Role of the user creating the task
+ *                 example: "manager"
  *               status:
  *                 type: string
- *                 enum: [todo, in-progress, completed, on-hold, cancelled]
+ *                 enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
  *                 description: Current task status
  *                 example: "todo"
  *               visibility:
  *                 type: string
- *                 enum: [private, public, team]
+ *                 enum: ["private", "public", "team"]
  *                 description: Task visibility level
  *                 example: "team"
  *               tags:
@@ -156,6 +165,18 @@ const router = express.Router();
  *                     priority:
  *                       type: string
  *                       example: "high"
+ *                     createdBy:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439010"
+ *                     createdByRole:
+ *                       type: string
+ *                       enum: ["super_admin", "org_admin", "manager", "individual", "employee"]
+ *                       example: "manager"
+ *                       description: "Role of the user who created the task"
+ *                     taskType:
+ *                       type: string
+ *                       enum: ["regular", "recurring", "milestone", "approval"]
+ *                       example: "regular"
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -208,6 +229,7 @@ const router = express.Router();
  */
 router.post("/create-task", authenticateToken, upload.array('attachments', 5), createTask);
 
+
 /**
  * @swagger
  * /api/tasks:
@@ -223,14 +245,14 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *         name: type
  *         schema:
  *           type: string
- *           enum: [regular, recurring, milestone, approval]
+ *           enum: ["regular", "recurring", "milestone", "approval"]
  *         description: Filter tasks by type
  *         example: "regular"
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [todo, in-progress, completed, on-hold, cancelled]
+ *           enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
  *         description: Filter tasks by status
  *         example: "in-progress"
  *       - in: query
@@ -249,7 +271,7 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *         name: priority
  *         schema:
  *           type: string
- *           enum: [low, medium, high, urgent]
+ *           enum: ["low", "medium", "high", "urgent"]
  *         description: Filter tasks by priority level
  *         example: "high"
  *       - in: query
@@ -316,6 +338,20 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *                           assignedTo:
  *                             type: string
  *                             example: "507f1f77bcf86cd799439011"
+ *                           createdBy:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439010"
+ *                           createdByRole:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                               enum: [super_admin, org_admin, manager, individual, employee]
+ *                             example: ["manager"]
+ *                             description: "Role of the user who created the task"
+ *                           taskType:
+ *                             type: string
+ *                             enum: [regular, recurring, milestone, approval]
+ *                             example: "regular"
  *                           createdAt:
  *                             type: string
  *                             format: date-time
@@ -889,7 +925,7 @@ router.patch("/tasks/:id/status", authenticateToken, updateTaskStatus);
 
 /**
  * @swagger
- * /api/tasks/{id}:
+ * /api/tasks/delete/{id}:
  *   delete:
  *     summary: Delete a task by ID
  *     description: Performs a soft delete on a task by marking it as deleted. Only users with appropriate permissions (task creator, admin, or organization member) can delete tasks. This action can be undone by restoring the task.
@@ -991,7 +1027,7 @@ router.patch("/tasks/:id/status", authenticateToken, updateTaskStatus);
  *                   type: string
  *                   example: "Database connection error"
  */
-router.delete("/tasks/:id", authenticateToken, deleteTask);
+router.delete("/tasks/delete/:id", authenticateToken, deleteTask);
 
 /**
  * @swagger
@@ -1001,7 +1037,7 @@ router.delete("/tasks/:id", authenticateToken, deleteTask);
  *     description: Processes approval or rejection of a task that requires approval. Only designated approvers can perform this action. Supports both 'any' and 'all' approval modes.
  *     tags:
  *       - Tasks
- *       - Approvals
+ *       - Tasks
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1186,5 +1222,295 @@ router.delete("/tasks/:id", authenticateToken, deleteTask);
  *                   example: "Database connection error"
  */
 router.post("/tasks/:id/approve", authenticateToken, approveOrRejectTask);
+
+/**
+ * @swagger
+ * /api/tasks/filter/{type}:
+ *   get:
+ *     summary: Get tasks filtered by task type
+ *     description: Retrieves tasks filtered by specific task type (regular, recurring, milestone, approval) with additional filtering capabilities. Supports pagination and comprehensive search options.
+ *     tags:
+ *       - Tasks
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [regular, recurring, milestone, approval]
+ *         description: Type of tasks to filter by
+ *         example: "regular"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [todo, in-progress, completed, on-hold, cancelled]
+ *         description: Filter by task status
+ *         example: "in-progress"
+ *       - in: query
+ *         name: assignee
+ *         schema:
+ *           type: string
+ *         description: Filter by assignee user ID
+ *         example: "507f1f77bcf86cd799439011"
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, urgent]
+ *         description: Filter by task priority
+ *         example: "high"
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by task category (case-insensitive partial match)
+ *         example: "Finance"
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in task title, description, and tags
+ *         example: "quarterly report"
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tasks with due date on or after this date
+ *         example: "2025-01-01"
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tasks with due date on or before this date
+ *         example: "2025-12-31"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of tasks per page
+ *         example: 20
+ *     responses:
+ *       200:
+ *         description: Tasks filtered by type retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Regular tasks retrieved successfully"
+ *                 taskType:
+ *                   type: string
+ *                   example: "regular"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439020"
+ *                           title:
+ *                             type: string
+ *                             example: "Complete quarterly report"
+ *                           description:
+ *                             type: string
+ *                             example: "Prepare and submit the Q4 financial report"
+ *                           taskType:
+ *                             type: string
+ *                             example: "regular"
+ *                           status:
+ *                             type: string
+ *                             example: "in-progress"
+ *                           priority:
+ *                             type: string
+ *                             example: "high"
+ *                           category:
+ *                             type: string
+ *                             example: "Finance"
+ *                           dueDate:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-12-31T23:59:59.000Z"
+ *                           assignedTo:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439011"
+ *                           createdBy:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439010"
+ *                           createdByRole:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                               enum: [super_admin, org_admin, manager, individual, employee]
+ *                             example: ["manager"]
+ *                             description: "Role of the user who created the task"
+ *                           tags:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["urgent", "finance", "quarterly"]
+ *                           isRecurring:
+ *                             type: boolean
+ *                             description: Present for recurring tasks
+ *                             example: false
+ *                           isMilestone:
+ *                             type: boolean
+ *                             description: Present for milestone tasks
+ *                             example: false
+ *                           isApprovalTask:
+ *                             type: boolean
+ *                             description: Present for approval tasks
+ *                             example: false
+ *                           approvalDetails:
+ *                             type: array
+ *                             description: Present only for approval tasks
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 approverId:
+ *                                   type: string
+ *                                 status:
+ *                                   type: string
+ *                                 comment:
+ *                                   type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T10:30:00.000Z"
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T15:45:00.000Z"
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                           example: 1
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *                         totalTasks:
+ *                           type: integer
+ *                           example: 95
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         taskType:
+ *                           type: string
+ *                           example: "regular"
+ *                         totalCount:
+ *                           type: integer
+ *                           example: 95
+ *                         filters:
+ *                           type: object
+ *                           properties:
+ *                             status:
+ *                               type: string
+ *                               example: "in-progress"
+ *                             assignee:
+ *                               type: string
+ *                               example: "507f1f77bcf86cd799439011"
+ *                             priority:
+ *                               type: string
+ *                               example: "high"
+ *                             category:
+ *                               type: string
+ *                               example: "Finance"
+ *                             search:
+ *                               type: string
+ *                               example: "quarterly report"
+ *                             dateRange:
+ *                               type: object
+ *                               properties:
+ *                                 from:
+ *                                   type: string
+ *                                   example: "2025-01-01"
+ *                                 to:
+ *                                   type: string
+ *                                   example: "2025-12-31"
+ *       400:
+ *         description: Invalid task type parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid task type. Must be one of: regular, recurring, milestone, approval"
+ *                 validTypes:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["regular", "recurring", "milestone", "approval"]
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch tasks by type"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get("/tasks/filter/:type", authenticateToken, getTasksByType);
 
 export { router as taskRoutes };

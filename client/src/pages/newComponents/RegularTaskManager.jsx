@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
   Target,
@@ -13,16 +13,12 @@ import {
   Filter,
   Grid3X3,
   List,
-  MoreHorizontal,
   Edit3,
-  Share2,
-  X,
+  Trash2,
   File,
   Tag,
   Paperclip,
   MoreVerticalIcon,
-  Play,
-  Trash2
 } from "lucide-react";
 import { RegularTaskIcon } from "../../components/common/TaskIcons";
 import { Link } from "wouter";
@@ -32,6 +28,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { apiClient } from "../../utils/apiClient";
 // THEME: Regular Task uses teal; Milestone uses purple
 const RT = {
   // base
@@ -103,190 +100,318 @@ const dueDateFromPriority = (priority) => {
   }
 };
 
-export default function RegularTaskManager() {
-  // Sample tasks (regular tasks, not milestones)
-  const [tasks, setTasks] = useState([
+const RegularTaskManager = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // all | not_started | in_progress | completed | overdue
+  const [priorityFilter, setPriorityFilter] = useState('all'); // all | low | medium | high | critical
+  const [viewMode, setViewMode] = useState('grid'); // grid | list
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLimit] = useState(20);
+
+  // Fetch regular tasks from API
+  const { data: apiResponse, isLoading, error, refetch } = useQuery({
+    queryKey: ['regular-tasks', currentPage, pageLimit, statusFilter, priorityFilter, searchTerm],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageLimit.toString(),
+      });
+      
+      // Add filters if they're not 'all'
+      if (statusFilter !== 'all') {
+        // Map status filter to API status
+        const statusMap = {
+          'not_started': 'todo',
+          'in_progress': 'in-progress',
+          'completed': 'done',
+          'overdue': 'overdue'
+        };
+        if (statusMap[statusFilter]) {
+          params.append('status', statusMap[statusFilter]);
+        }
+      }
+      
+      if (priorityFilter !== 'all') {
+        params.append('priority', priorityFilter);
+      }
+      
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await apiClient.get(`/api/tasks/filter/regular?${params.toString()}`);
+      console.log('Full API Response:', response);
+      console.log('Response data structure:', {
+        hasSuccess: !!response.success,
+        hasData: !!response.data,
+        hasTasks: !!response.data?.tasks,
+        tasksLength: response.data?.tasks?.length,
+        fullData: response.data
+      });
+      return response;
+    },
+    retry: 1,
+    staleTime: 30000, // 30 seconds
+  });
+
+  // Transform API data to match component expectations
+  const transformApiTask = (apiTask) => {
+    console.log('Transforming API task:', apiTask);
+    const transformed = {
+      id: apiTask._id,
+      taskName: apiTask.title,
+      description: apiTask.description,
+      assignedTo: apiTask.assignedTo?.name || apiTask.assignedTo?.firstName || apiTask.assignedTo || "Self",
+      priority: apiTask.priority,
+      dueDate: apiTask.dueDate ? new Date(apiTask.dueDate).toISOString().slice(0, 10) : null,
+      visibility: apiTask.visibility || "private",
+      labels: apiTask.tags || [],
+      attachments: apiTask.attachments || [],
+      status: mapApiStatusToLocal(apiTask.status),
+      taskType: apiTask.taskTypeAdvanced || "simple",
+      progress: calculateProgress(apiTask.status),
+      createdBy: apiTask.createdBy ? `${apiTask.createdBy.firstName} ${apiTask.createdBy.lastName}` : 'Unknown',
+      createdByRole: apiTask.createdByRole || ["employee"],
+      // Additional API fields that might be useful
+      _id: apiTask._id,
+      organization: apiTask.organization,
+      createdAt: apiTask.createdAt,
+      updatedAt: apiTask.updatedAt,
+    };
+    console.log('Transformed task:', transformed);
+    return transformed;
+  };
+
+  // Map API status to local status format
+  const mapApiStatusToLocal = (apiStatus) => {
+    const statusMap = {
+      'todo': 'not_started',
+      'in-progress': 'in_progress',
+      'done': 'completed',
+      'overdue': 'overdue'
+    };
+    return statusMap[apiStatus] || 'not_started';
+  };
+
+  // Calculate progress based on status
+  const calculateProgress = (status) => {
+    const progressMap = {
+      'todo': 0,
+      'in-progress': 50,
+      'done': 100,
+      'overdue': 0
+    };
+    return progressMap[status] || 0;
+  };
+
+  // Get tasks from API or fallback to mock data
+  console.log('apiResponse:', apiResponse);
+  console.log('Checking data paths:', {
+    'apiResponse?.data': !!apiResponse?.data,
+    'apiResponse?.data?.tasks': !!apiResponse?.data?.tasks,
+    'apiResponse?.data?.data': !!apiResponse?.data?.data,
+    'apiResponse?.data?.data?.tasks': !!apiResponse?.data?.data?.tasks,
+    'tasksFromDirectPath': apiResponse?.data?.tasks,
+    'tasksFromNestedPath': apiResponse?.data?.data?.tasks
+  });
+  
+  // Try both possible data paths
+  const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
+  console.log('Final tasks array:', tasksArray);
+  
+  const regularTasks = tasksArray.map(transformApiTask) || [];
+  const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
+  const summary = apiResponse?.data?.summary || apiResponse?.data?.data?.summary || {};
+
+  // Mock data for development/fallback
+  const mockRegularTasks = [
     {
       id: 1,
-      taskName: "Prepare Report",
-      description: "Compile weekly sales metrics and insights.",
-      assignedTo: "Self",
-      priority: "medium",
-      dueDate: "2025-09-20",
-      visibility: "private",
-      labels: ["report", "sales"],
+      taskName: 'Prepare Report',
+      description: 'Compile weekly sales metrics and insights.',
+      assignedTo: 'Self',
+      priority: 'medium',
+      dueDate: '2025-09-20',
+      visibility: 'private',
+      labels: ['report', 'sales'],
       attachments: [],
-      status: "in_progress",
-      taskType: "simple",
+      status: 'in_progress',
+      taskType: 'simple',
       progress: 50,
     },
     {
       id: 2,
-      taskName: "Team Standup",
-      description: "Daily sync with the product team.",
-      assignedTo: "Team",
-      priority: "low",
-      dueDate: "2025-09-21",
-      visibility: "public",
-      labels: ["meeting"],
+      taskName: 'Team Standup',
+      description: 'Daily sync with the product team.',
+      assignedTo: 'Team',
+      priority: 'low',
+      dueDate: '2025-09-21',
+      visibility: 'public',
+      labels: ['meeting'],
       attachments: [],
-      status: "not_started",
-      taskType: "recurring",
+      status: 'not_started',
+      taskType: 'simple',
       progress: 0,
     },
-    {
-      id: 3,
-      taskName: "Budget Approval",
-      description: "Get approval from finance for Q4 budget.",
-      assignedTo: "Emily Davis",
-      priority: "high",
-      dueDate: "2025-09-18",
-      visibility: "private",
-      labels: ["finance", "approval"],
-      attachments: [],
-      status: "completed",
-      taskType: "approval",
-      progress: 100,
-    },
-  ]);
+  ];
 
+  const currentTasks = (regularTasks && regularTasks.length > 0) ? regularTasks : mockRegularTasks;
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-
-  // Form state
-  const [form, setForm] = useState({
-    taskName: "",
-    description: "",
-    assignedTo: "Self", // default Self
-    priority: "low", // default Low
-    dueDate: dueDateFromPriority("low"), // auto-filled
-    visibility: "private", // default Private
-    labels: [],
-    labelInput: "",
-    attachments: [],  
-    taskType: "simple", // default Simple
-    // Advanced
-    referenceProcess: "",
-    customForm: "",
-    dependencies: [],
-  });
-  const [attachmentsBytes, setAttachmentsBytes] = useState(0);
-  const maxBytes = 5 * 1024 * 1024; // 5MB
-
-  const resetForm = () => {
-    setForm({
-      taskName: "",
-      description: "",
-      assignedTo: "Self",
-      priority: "low",
-      dueDate: dueDateFromPriority("low"),
-      visibility: "private",
-      labels: [],
-      labelInput: "",
-      attachments: [],
-      taskType: "simple",
-      referenceProcess: "",
-      customForm: "",
-      dependencies: [],
-    });
-    setAttachmentsBytes(0);
-  };
-
-  // Filtering
-  const filteredTasks = tasks.filter((task) => {
-    const statusMatch = statusFilter === "all" || task.status === statusFilter;
-    const priorityMatch = priorityFilter === "all" || task.priority === priorityFilter;
-    return statusMatch && priorityMatch;
-  });
-
-  const stats = {
-    total: tasks.length,
-    completed: tasks.filter((t) => t.status === "completed").length,
-    inProgress: tasks.filter((t) => t.status === "in_progress").length,
-    notStarted: tasks.filter((t) => t.status === "not_started").length,
-    overdue: tasks.filter((t) => t.status === "overdue").length,
-  };
-
-  // Form handlers
-  const onPriorityChange = (priority) => {
-    setForm((f) => ({
-      ...f,
-      priority,
-      dueDate: dueDateFromPriority(priority), // auto-set; user can edit later
-    }));
-  };
-
-  const onLabelsKeyDown = (e) => {
-    if (e.key === "Enter" && form.labelInput.trim()) {
-      e.preventDefault();
-      const val = form.labelInput.trim();
-      if (!form.labels.includes(val)) {
-        setForm((f) => ({ ...f, labels: [...f.labels, val], labelInput: "" }));
-      } else {
-        setForm((f) => ({ ...f, labelInput: "" }));
-      }
-    }
-  };
-
-  const removeLabel = (label) => {
-    setForm((f) => ({ ...f, labels: f.labels.filter((l) => l !== label) }));
-  };
-
-  const onFilesSelected = (files) => {
-    const arr = Array.from(files);
-    const total = arr.reduce((sum, f) => sum + f.size, 0);
-    if (total > maxBytes) {
-      alert("Attachments exceed 5 MB total limit.");
-      return;
-    }
-    setForm((f) => ({ ...f, attachments: arr }));
-    setAttachmentsBytes(total);
-  };
-
-  const validateForm = () => {
-    if (!form.taskName.trim()) return "Task Name is required.";
-    if (form.taskName.length > 20) return "Task Name must be <= 20 characters.";
-    if (!form.assignedTo) return "Assigned To is required.";
-    if (!form.priority) return "Priority is required.";
-    if (!form.dueDate) return "Due Date is required.";
-    if (!form.taskType) return "Task Type is required.";
-    if (attachmentsBytes > maxBytes) return "Attachments exceed 5 MB total limit.";
-    return null;
-    // Visibility rules (solo vs org) can be applied here if needed.
-  };
-
-  const onSave = () => {
-    const err = validateForm();
-    if (err) {
-      alert(err);
-      return;
-    }
-    const newTask = {
-      id: Date.now(),
-      taskName: form.taskName.trim(),
-      description: form.description,
-      assignedTo: form.assignedTo,
-      priority: form.priority,
-      dueDate: form.dueDate,
-      visibility: form.visibility,
-      labels: form.labels,
-      attachments: form.attachments.map((f) => ({ name: f.name, size: f.size })),
-      status: "not_started",
-      taskType: form.taskType,
-      progress: 0,
-      // Advanced (stored for future use)
-      referenceProcess: form.referenceProcess,
-      customForm: form.customForm,
-      dependencies: form.dependencies,
+  const getPriorityColor = (priority) => {
+    const colors = {
+      low: "bg-green-100 text-green-800 border-green-200",
+      medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      high: "bg-orange-100 text-orange-800 border-orange-200",
+      critical: "bg-red-100 text-red-800 border-red-200",
     };
-    setTasks((prev) => [newTask, ...prev]);
-
-    setShowAdvanced(false);
-    resetForm();
+    return colors[priority] || "bg-gray-100 text-gray-800 border-gray-200";
   };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      not_started: "bg-gray-100 text-gray-800 border-gray-200",
+      in_progress: "bg-blue-100 text-blue-800 border-blue-200",
+      completed: "bg-green-100 text-green-800 border-green-200",
+      overdue: "bg-red-100 text-red-800 border-red-200",
+    };
+    return colors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "completed":
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "in_progress":
+        return <Clock className="h-4 w-4 text-blue-600" />;
+      case "overdue":
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const stats = useMemo(() => {
+    console.log('Stats calculation - currentTasks:', currentTasks);
+    console.log('Stats calculation - apiResponse:', apiResponse);
+    
+    // Use real data from API if available, otherwise calculate from current tasks
+    if (apiResponse?.data?.data?.summary) {
+      const apiSummary = apiResponse.data.data.summary;
+      const total = apiSummary.totalCount || currentTasks.length;
+      const completed = currentTasks.filter(t => t.status === 'completed').length;
+      const inProgress = currentTasks.filter(t => t.status === 'in_progress').length;
+      const notStarted = currentTasks.filter(t => t.status === 'not_started').length;
+      const overdue = currentTasks.filter(t => t.status === 'overdue').length;
+      return { total, completed, inProgress, notStarted, overdue };
+    } else {
+      // Fallback to calculating from current tasks
+      const total = currentTasks.length;
+      const completed = currentTasks.filter(t => t.status === 'completed').length;
+      const inProgress = currentTasks.filter(t => t.status === 'in_progress').length;
+      const notStarted = currentTasks.filter(t => t.status === 'not_started').length;
+      const overdue = currentTasks.filter(t => t.status === 'overdue').length;
+      return { total, completed, inProgress, notStarted, overdue };
+    }
+  }, [currentTasks, apiResponse]);
+
+  const filteredTasks = currentTasks.filter(task => {
+    const matchesSearch =
+      !searchTerm ||
+      task.taskName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' || task.status === statusFilter;
+
+    const matchesPriority =
+      priorityFilter === 'all' || task.priority === priorityFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  const handleEdit = (id) => {
+    const task = currentTasks.find(t => t.id === id || t._id === id);
+    const taskId = task?._id || id;
+    window.location.href = `/tasks/edit/${taskId}?type=regular`;
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) {
+      return;
+    }
+    
+    try {
+      const task = currentTasks.find(t => t.id === id || t._id === id);
+      const taskId = task?._id || id;
+      
+      console.log('Deleting task with ID:', taskId);
+      console.log('Delete API URL:', `/api/tasks/delete/${taskId}`);
+      
+      const response = await apiClient.delete(`/api/tasks/delete/${taskId}`);
+      console.log('Delete response:', response);
+      
+      // Refetch data to update UI
+      refetch();
+      console.log('Task deleted successfully, refetching data...');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      alert('Failed to delete task. Please check the console for details.');
+    }
+  };
+
+  const handleCreateNew = () => {
+    window.location.href = '/tasks/create?type=regular';
+  };
+
+  // Handle search with debounced API calls
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handleStatusFilterChange = (e) => {
+    setStatusFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handlePriorityFilterChange = (e) => {
+    setPriorityFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Show loading state
+  if (isLoading && !currentTasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading regular tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && !currentTasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading regular tasks: {error.message}</p>
+          <button 
+            onClick={() => refetch()} 
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -303,15 +428,23 @@ export default function RegularTaskManager() {
                 <p className="text-sm text-gray-600">Track and manage simple tasks</p>
               </div>
             </div>
-            <Link href="/tasks/create?type=regular">
-            <button
-
-              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Regular Task
-            </button>
-            </Link>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="inline-flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
+              <button
+                onClick={handleCreateNew}
+                className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Regular Task
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -368,17 +501,25 @@ export default function RegularTaskManager() {
 
         {/* Filters and View Controls */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex-1 flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Filters:</span>
               </div>
 
+              <input
+                type="text"
+                placeholder="Search regular tasks..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              />
+
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                onChange={handleStatusFilterChange}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="not_started">Not Started</option>
@@ -389,8 +530,8 @@ export default function RegularTaskManager() {
 
               <select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                onChange={handlePriorityFilterChange}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Priority</option>
                 <option value="low">Low</option>
@@ -400,7 +541,7 @@ export default function RegularTaskManager() {
               </select>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 self-start md:self-auto">
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
@@ -424,7 +565,24 @@ export default function RegularTaskManager() {
         </div>
 
         {/* Tasks Grid/List */}
-        {viewMode === "grid" ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+            <p className="mt-2 text-gray-600">Loading tasks...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading tasks</h3>
+            <p className="text-gray-600 mb-4">{error.message}</p>
+            <button
+              onClick={() => refetch()}
+              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
+            >
+              Try Again
+            </button>
+          </div>
+        ) : viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredTasks.map((task) => (
               <div
@@ -509,7 +667,7 @@ export default function RegularTaskManager() {
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className="text-gray-600">
-                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                        Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -547,6 +705,29 @@ export default function RegularTaskManager() {
                             {label}
                           </span>
                         ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Attachments */}
+                  {task.attachments?.length ? (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Attachments</h4>
+                      <div className="space-y-1">
+                        {task.attachments.slice(0, 2).map((attachment, index) => (
+                          <div key={index} className="flex items-center space-x-2 text-xs text-gray-600">
+                            <Paperclip className="h-3 w-3" />
+                            <span className="truncate">{attachment.name}</span>
+                            <span className="text-gray-400">
+                              ({(attachment.size / 1024).toFixed(1)}KB)
+                            </span>
+                          </div>
+                        ))}
+                        {task.attachments.length > 2 && (
+                          <div className="text-xs text-gray-500">
+                            +{task.attachments.length - 2} more files
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : null}
@@ -607,7 +788,7 @@ export default function RegularTaskManager() {
                         <div className="flex items-center space-x-6 text-sm text-gray-500">
                           <span className="flex items-center space-x-1">
                             <Calendar className="h-4 w-4" />
-                            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                            <span>Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}</span>
                           </span>
                           <span className="flex items-center space-x-1">
                             <Users className="h-4 w-4" />
@@ -652,14 +833,13 @@ export default function RegularTaskManager() {
           </div>
         )}
 
-        {filteredTasks.length === 0 && (
+        {filteredTasks.length === 0 && !loading && !error && (
           <div className="text-center py-12">
             <File className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No regular tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first regular task.</p>
              <Link href="/tasks/create?type=regular">
             <button
-
               className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -672,4 +852,6 @@ export default function RegularTaskManager() {
    
     </div>
   );
-}
+};
+
+export default RegularTaskManager;
