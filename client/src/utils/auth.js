@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 // Authentication utilities for the frontend
 export const setAuthToken = (token, user) => {
   localStorage.setItem('token', token);
@@ -26,7 +26,7 @@ export const isAuthenticated = () => {
   return !!(token && user);
 };
 // activeRole and roles
-export const useUserRole = () => { 
+export const useUserRole = () => {
   const token = localStorage.getItem("token");
   const decoded = jwtDecode(token);
   const orgId = decoded?.organizationId;
@@ -68,9 +68,28 @@ export const useUserRole = () => {
 
   return { ...query, user, isAdmin, orgId };
 };
-// Check if the user has a specific role
+// Check if the user has a specific role (non-hook version)
 export const hasAccess = (requiredRoles = []) => {
-  const {user} = useUserRole();
+  const user = getAuthUser();
+
+  if (!user) return false;
+
+  // Case 1: User has multiple roles → check activeRole 
+  if (Array.isArray(user.role) && user.role.length > 1) {
+    return requiredRoles.includes(user.activeRole);
+  }
+
+  // Case 2: User has exactly one role
+  if (Array.isArray(user.role) && user.role.length === 1) {
+    return requiredRoles.includes(user.role[0]);
+  }
+
+  return false;
+};
+
+// Hook version for components that need reactive updates
+export const useHasAccess = (requiredRoles = []) => {
+  const { user } = useUserRole();
 
   if (!user) return false;
 
@@ -96,7 +115,7 @@ export const login = async (email, password) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    
+
     if (response.ok) {
       const { token, user } = await response.json();
       setAuthToken(token, user);
@@ -114,7 +133,7 @@ export const login = async (email, password) => {
 export const refreshToken = async () => {
   const currentToken = getAuthToken();
   if (!currentToken) return null;
-  
+
   try {
     const response = await fetch('/api/auth/refresh', {
       method: 'POST',
@@ -123,7 +142,7 @@ export const refreshToken = async () => {
         'Content-Type': 'application/json'
       }
     });
-    
+
     if (response.ok) {
       const { token, user } = await response.json();
       setAuthToken(token, user);

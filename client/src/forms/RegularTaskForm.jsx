@@ -3,7 +3,10 @@ import { useForm, Controller } from "react-hook-form";
 import CustomEditor from '../components/common/CustomEditor';
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
-import { hasAccess } from "../utils/auth";
+import { useHasAccess } from "../utils/auth";
+import { useTaskOperations } from "../hooks/useTaskOperations";
+import { useToast } from "../hooks/use-toast";
+import { useLocation } from "wouter";
 
 // Advanced Fields Modal Component
 const AdvancedFieldsModal = ({
@@ -238,11 +241,19 @@ export const RegularTaskForm = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
   const [advancedData, setAdvancedData] = useState({});
-const isIndividual = hasAccess(["individual"]);
-  const watchedTaskName = watch("taskName");
-  const watchedPriority = watch("priority");
 
-  // Character counter for task name
+  // API hook - moved to top level of component
+  const { createTask, loading, error, clearError } = useTaskOperations();
+
+  // Toast and navigation hooks
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Use hook version for reactive updates
+  const isIndividual = useHasAccess(["individual"]);
+
+  const watchedTaskName = watch("taskName");
+  const watchedPriority = watch("priority");  // Character counter for task name
   useEffect(() => {
     setTaskNameLength(watchedTaskName?.length || 0);
   }, [watchedTaskName]);
@@ -286,11 +297,11 @@ const isIndividual = hasAccess(["individual"]);
   // Assignment options (for org users)
   const assignmentOptions = !isIndividual
     ? [
-        { value: "self", label: "Self" },
-        { value: "john_doe", label: "John Doe" },
-        { value: "jane_smith", label: "Jane Smith" },
-        // Add more team members from API
-      ]
+      { value: "self", label: "Self" },
+      { value: "john_doe", label: "John Doe" },
+      { value: "jane_smith", label: "Jane Smith" },
+      // Add more team members from API
+    ]
     : [{ value: "self", label: "Self" }];
 
   // File upload handler
@@ -345,19 +356,61 @@ const isIndividual = hasAccess(["individual"]);
     ],
   };
 
+  // Utility function to clean HTML content
+  const cleanHtmlContent = (htmlString) => {
+    if (!htmlString) return '';
+    // Remove HTML tags and decode HTML entities
+    const div = document.createElement('div');
+    div.innerHTML = htmlString;
+    return div.textContent || div.innerText || '';
+  };
+
   const handleAdvancedSubmit = (data) => {
     setAdvancedData(data);
     setShowAdvancedModal(false);
   };
 
-  const onFormSubmit = (data) => {
+  const onFormSubmit = async (data) => {
+    // Clear any previous errors
+    clearError();
+
     // Combine primary and advanced data
     const formData = {
       ...data,
       ...advancedData,
       attachments: uploadedFiles,
     };
-    onSubmit(formData);
+
+    // Call API to create task
+    const result = await createTask(formData);
+
+    if (result.success) {
+      // Show success toast notification
+      toast({
+        title: "Task Created Successfully!",
+        description: `"${formData.taskName}" has been created and added to your task list.`,
+        className: "bg-green-50 border-green-200 text-green-800",
+      });
+
+      // Call parent onSubmit if needed (for closing modal, etc.)
+      if (onSubmit && typeof onSubmit === 'function') {
+        onSubmit(result.data);
+      }
+
+      // Redirect to regular tasks page
+      setTimeout(() => {
+        setLocation('/regular-tasks');
+      }, 1000); // Small delay to show toast
+
+    } else {
+      // Show error toast
+      toast({
+        title: "Task Creation Failed",
+        description: result.error || "Something went wrong while creating the task.",
+        className: "bg-red-50 border-red-200 text-red-800",
+      });
+      console.error('Task creation failed:', result.error);
+    }
   };
 
   const getTodayDate = () => {
@@ -366,6 +419,24 @@ const isIndividual = hasAccess(["individual"]);
 
   return (
     <>
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-red-700 text-sm">{error}</p>
+            <button
+              onClick={clearError}
+              className="ml-auto text-red-500 hover:text-red-700"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         {/* Task Name */}
         <div>
@@ -408,9 +479,12 @@ const isIndividual = hasAccess(["individual"]);
             render={({ field }) => (
               <CustomEditor
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(content) => {
+                  // Clean HTML content before saving
+                  const cleanContent = cleanHtmlContent(content);
+                  field.onChange(cleanContent);
+                }}
                 placeholder="Describe your task..."
-            
                 className="border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             )}
@@ -433,7 +507,7 @@ const isIndividual = hasAccess(["individual"]);
                 <Select
                   {...field}
                   options={assignmentOptions}
-                  isSearchable={isIndividual}
+                  isSearchable={!isIndividual}
                   isDisabled={isIndividual}
                   className="react-select-container"
                   classNamePrefix="react-select"
@@ -442,9 +516,6 @@ const isIndividual = hasAccess(["individual"]);
                 />
               )}
             />
-            {
-              console.log('isIndividual:', isIndividual)
-            }
             {errors.assignedTo && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.assignedTo.message}
@@ -503,37 +574,49 @@ const isIndividual = hasAccess(["individual"]);
           </div>
         </div>
 
-    <div>
-  <label className="block text-sm font-medium text-gray-900 mb-2">
-    Visibility <span className="text-red-500">*</span>
-  </label>
-  <div className="flex space-x-4">
-    <label className="flex items-center">
-      <input
-        {...register("visibility")}
-        type="radio"
-        value="private"
-        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-        data-testid="radio-private"
-        disabled={isIndividual} // locked for individual
-      />
-      <span className="ml-2 text-sm text-gray-900">Private</span>
-    </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Visibility <span className="text-red-500">*</span>
+          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                {...register("visibility")}
+                type="radio"
+                value="private"
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                data-testid="radio-private"
+                disabled={isIndividual} // locked for individual
+              />
+              <span className="ml-2 text-sm text-gray-900">Private</span>
+            </label>
 
-    {!isIndividual && ( // completely hide Public if individual
-      <label className="flex items-center">
-        <input
-          {...register("visibility")}
-          type="radio"
-          value="public"
-          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-          data-testid="radio-public"
-        />
-        <span className="ml-2 text-sm text-gray-900">Public</span>
-      </label>
-    )}
-  </div>
-</div>
+            {!isIndividual && ( // Show team options for org users
+              <>
+                <label className="flex items-center">
+                  <input
+                    {...register("visibility")}
+                    type="radio"
+                    value="team"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    data-testid="radio-team"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Team</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    {...register("visibility")}
+                    type="radio"
+                    value="organization"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    data-testid="radio-organization"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Organization</span>
+                </label>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Tags */}
         <div>
@@ -676,10 +759,21 @@ const isIndividual = hasAccess(["individual"]);
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            disabled={loading}
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             data-testid="button-save"
           >
-            Save
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Creating...
+              </>
+            ) : (
+              'Save'
+            )}
           </button>
         </div>
       </form>

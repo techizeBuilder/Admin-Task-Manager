@@ -24,6 +24,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 const RecurringTaskManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all | active | paused
@@ -32,6 +42,7 @@ const RecurringTaskManager = () => {
   const [viewMode, setViewMode] = useState('grid'); // grid | list
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit] = useState(20);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(null);
 
   // Fetch recurring tasks from API
   const { data: apiResponse, isLoading, error, refetch } = useQuery({
@@ -41,7 +52,7 @@ const RecurringTaskManager = () => {
         page: currentPage.toString(),
         limit: pageLimit.toString(),
       });
-      
+
       // Add filters if they're not 'all'
       if (statusFilter !== 'all') {
         // Map status filter to API status
@@ -53,11 +64,11 @@ const RecurringTaskManager = () => {
           params.append('status', statusMap[statusFilter]);
         }
       }
-      
+
       if (priorityFilter !== 'all') {
         params.append('priority', priorityFilter);
       }
-      
+
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
@@ -120,11 +131,11 @@ const RecurringTaskManager = () => {
     'tasksFromDirectPath': apiResponse?.data?.tasks,
     'tasksFromNestedPath': apiResponse?.data?.data?.tasks
   });
-  
+
   // Try both possible data paths
   const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
   console.log('Final tasks array:', tasksArray);
-  
+
   const recurringTasks = tasksArray.map(transformApiTask) || [];
   const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
   const summary = apiResponse?.data?.summary || apiResponse?.data?.data?.summary || {};
@@ -177,7 +188,7 @@ const RecurringTaskManager = () => {
   const getFrequencyLabel = (frequency) => {
     const labels = {
       daily: 'Daily',
-      weekly: 'Weekly', 
+      weekly: 'Weekly',
       monthly: 'Monthly',
       quarterly: 'Quarterly',
       yearly: 'Yearly'
@@ -209,7 +220,7 @@ const RecurringTaskManager = () => {
   const stats = useMemo(() => {
     console.log('Stats calculation - currentTasks:', currentTasks);
     console.log('Stats calculation - apiResponse:', apiResponse);
-    
+
     // Use real data from API if available, otherwise calculate from current tasks
     if (apiResponse?.data?.data?.summary) {
       const apiSummary = apiResponse.data.data.summary;
@@ -259,7 +270,7 @@ const RecurringTaskManager = () => {
       await apiClient.patch(`/api/tasks/${task._id || id}/status`, {
         status: newStatus
       });
-      
+
       // Refetch data to update UI
       refetch();
     } catch (error) {
@@ -274,21 +285,25 @@ const RecurringTaskManager = () => {
     window.location.href = `/tasks/edit/${taskId}?type=recurring`;
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this recurring task?')) {
-      return;
-    }
-    
+  const handleDelete = (id) => {
+    const task = currentTasks.find(t => t.id === id || t._id === id);
+    setShowDeleteConfirmation({ id, task });
+  };
+
+  const confirmDelete = async () => {
+    if (!showDeleteConfirmation) return;
+
+    const { id } = showDeleteConfirmation;
     try {
       const task = currentTasks.find(t => t.id === id || t._id === id);
       const taskId = task?._id || id;
-      
+
       console.log('Deleting task with ID:', taskId);
       console.log('Delete API URL:', `/api/tasks/delete/${taskId}`);
-      
+
       const response = await apiClient.delete(`/api/tasks/delete/${taskId}`);
       console.log('Delete response:', response);
-      
+
       // Refetch data to update UI
       refetch();
       console.log('Task deleted successfully, refetching data...');
@@ -296,6 +311,8 @@ const RecurringTaskManager = () => {
       console.error('Error deleting task:', error);
       console.error('Error details:', error.response?.data || error.message);
       alert('Failed to delete task. Please check the console for details.');
+    } finally {
+      setShowDeleteConfirmation(null);
     }
   };
 
@@ -341,8 +358,8 @@ const RecurringTaskManager = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error loading recurring tasks: {error.message}</p>
-          <button 
-            onClick={() => refetch()} 
+          <button
+            onClick={() => refetch()}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             Retry
@@ -376,7 +393,7 @@ const RecurringTaskManager = () => {
               Add Recurring Task
             </button>
           </div>
-          
+
           {/* Loading indicator and refresh button */}
           <div className="flex items-center justify-between">
             {isLoading && (
@@ -385,11 +402,11 @@ const RecurringTaskManager = () => {
                 Loading recurring tasks...
               </div>
             )}
-            
+
             {error && (
               <div className="flex items-center text-sm text-red-600">
                 <span className="mr-2">Error loading tasks</span>
-                <button 
+                <button
                   onClick={() => refetch()}
                   className="text-purple-600 hover:text-purple-700 underline"
                 >
@@ -397,9 +414,9 @@ const RecurringTaskManager = () => {
                 </button>
               </div>
             )}
-            
+
             {!isLoading && !error && (
-              <button 
+              <button
                 onClick={() => refetch()}
                 className="text-sm text-gray-600 hover:text-gray-800"
                 title="Refresh tasks"
@@ -521,17 +538,15 @@ const RecurringTaskManager = () => {
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:text-gray-900'
+                    }`}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -549,142 +564,141 @@ const RecurringTaskManager = () => {
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
                 data-testid={`recurring-task-card-${task.id}`}
               >
-                {/* Card Header */}
-               <div className="p-6 border-b border-gray-200">
-      <div className="flex items-start justify-between mb-3">
-        {/* Left section */}
-        <div className="flex items-center space-x-3">
-          <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
-            <RecurringTaskIcon className="h-5 w-5 text-purple-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              {task.title}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {getFrequencyLabel(task.frequency)}
-            </p>
-          </div>
-        </div>
-
-        {/* Actions - now in 3-dot menu */}
-        <DropdownMenu className='bg-white'>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-white">
-            <DropdownMenuItem onClick={() => handleToggleActive(task.id)}>
-              {task.isActive ? (
-                <>
-                  <Pause className="h-4 w-4 mr-2 text-gray-600" /> Pause
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2 text-green-600" /> Resume
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
-              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
-              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Description */}
-      <p className="text-sm text-gray-600 mb-4">{task.description}</p>
-
-      {/* Status + Priority */}
-      <div className="flex items-center flex-wrap gap-2">
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusPill(
-            task.isActive
-          )}`}
-        >
-          {task.isActive ? "ACTIVE" : "PAUSED"}
-        </span>
-        <span
-          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
-            task.priority
-          )}`}
-        >
-          {task.priority?.toUpperCase() || "N/A"}
-        </span>
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-          <Tag className="h-3 w-3 mr-1" />
-          {getFrequencyLabel(task.frequency)}
-        </span>
-      </div>
-    </div>
-
-                {/* Card Body */}
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                {/* Card Header - Compact */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    {/* Left section */}
                     <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">
-                        Next Due: {task.nextDue ? new Date(task.nextDue).toLocaleDateString() : '—'}
+                      <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <RecurringTaskIcon className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900 leading-tight">
+                          {task.title}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          {getFrequencyLabel(task.frequency)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions - 3-dot menu */}
+                    <DropdownMenu className='bg-white'>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                          <MoreVerticalIcon className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40 bg-white">
+                        <DropdownMenuItem onClick={() => handleToggleActive(task.id)}>
+                          {task.isActive ? (
+                            <>
+                              <Pause className="h-4 w-4 mr-2 text-gray-600" /> Pause
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2 text-green-600" /> Resume
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+                          <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+                          <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Description - Compact */}
+                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">{task.description}</p>
+
+                  {/* Status + Priority - Inline */}
+                  <div className="flex items-center flex-wrap gap-1 mb-3">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusPill(
+                        task.isActive
+                      )}`}
+                    >
+                      {task.isActive ? "ACTIVE" : "PAUSED"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(
+                        task.priority
+                      )}`}
+                    >
+                      {task.priority?.toUpperCase() || "N/A"}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                      <Tag className="h-2.5 w-2.5 mr-1" />
+                      {getFrequencyLabel(task.frequency)}
+                    </span>
+                  </div>
+
+                  {/* Compact Info Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3 text-gray-400" />
+                      <span className="text-gray-600 truncate">
+                        {task.nextDue ? new Date(task.nextDue).toLocaleDateString() : '—'}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">Est. Time: {task.estimatedTime || '—'}</span>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-3 w-3 text-gray-400" />
+                      <span className="text-gray-600 truncate">{task.estimatedTime || '—'}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Tag className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">Created By: {task.createdBy || '—'}</span>
+                    <div className="flex items-center space-x-1">
+                      <Tag className="h-3 w-3 text-gray-400" />
+                      <span className="text-gray-600 truncate">{task.createdBy || '—'}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-600">Last Gen: {task.lastGenerated ? new Date(task.lastGenerated).toLocaleDateString() : '—'}</span>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-3 w-3 text-gray-400" />
+                      <span className="text-gray-600 truncate">{task.lastGenerated ? new Date(task.lastGenerated).toLocaleDateString() : '—'}</span>
                     </div>
                   </div>
 
+                  {/* Tags - Compact */}
                   {task.tags && task.tags.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Tags</h4>
-                      <div className="flex items-center flex-wrap gap-2">
-                        {task.tags.map((tag) => (
+                    <div className="mb-3">
+                      <div className="flex items-center flex-wrap gap-1">
+                        {task.tags.slice(0, 3).map((tag) => (
                           <span
                             key={tag}
-                            className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                            className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
                           >
                             {tag}
                           </span>
                         ))}
+                        {task.tags.length > 3 && (
+                          <span className="text-xs text-gray-500">+{task.tags.length - 3}</span>
+                        )}
                       </div>
                     </div>
                   )}
-                </div>
 
-                {/* Card Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-                  <div className="flex items-center justify-end gap-2">
+                  {/* Compact Footer Actions */}
+                  <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-100">
                     <button
                       onClick={() => handleToggleActive(task.id)}
-                      className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                      className="inline-flex items-center px-2 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors rounded"
+                      title={task.isActive ? 'Pause' : 'Resume'}
                     >
-                      {task.isActive ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-                      {task.isActive ? 'Pause' : 'Resume'}
+                      {task.isActive ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                     </button>
                     <button
                       onClick={() => handleEdit(task.id)}
-                      className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                      className="inline-flex items-center px-2 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors rounded"
+                      title="Edit"
                     >
-                      <Edit3 className="h-4 w-4 mr-1" />
-                      Edit
+                      <Edit3 className="h-3 w-3" />
                     </button>
                     <button
                       onClick={() => handleDelete(task.id)}
-                      className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:text-red-800 transition-colors"
+                      className="inline-flex items-center px-2 py-1 text-xs text-red-600 hover:text-red-800 transition-colors rounded"
+                      title="Delete"
                     >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
+                      <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
                 </div>
@@ -791,7 +805,7 @@ const RecurringTaskManager = () => {
           <div className="mt-6 flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
             <div className="flex items-center text-sm text-gray-700">
               <span>
-                Showing page {pagination.currentPage} of {pagination.totalPages} 
+                Showing page {pagination.currentPage} of {pagination.totalPages}
                 ({pagination.totalTasks} total tasks)
               </span>
             </div>
@@ -803,27 +817,26 @@ const RecurringTaskManager = () => {
               >
                 Previous
               </button>
-              
+
               {/* Page numbers */}
               {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                 const pageNum = Math.max(1, pagination.currentPage - 2) + i;
                 if (pageNum > pagination.totalPages) return null;
-                
+
                 return (
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      pageNum === pagination.currentPage
-                        ? 'bg-purple-600 text-white'
-                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${pageNum === pagination.currentPage
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
                   >
                     {pageNum}
                   </button>
                 );
               })}
-              
+
               <button
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
                 disabled={!pagination.hasNextPage}
@@ -835,6 +848,33 @@ const RecurringTaskManager = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={!!showDeleteConfirmation} onOpenChange={(open) => !open && setShowDeleteConfirmation(null)}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete Recurring Task
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete{" "}
+              <strong>"{showDeleteConfirmation?.task?.title}"</strong>? This will permanently remove the recurring task template and stop all future task generation. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-300">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1054,13 +1054,16 @@ export default function AllTasks({
             Manage and track all your tasks
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 flex-wrap flex-shrink-0 max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row gap-2 flex-wrap justify-end w-full max-w-full overflow-hidden">
+          {/* Mobile: Stack all buttons vertically */}
+          {/* Tablet & up: Show buttons in row with wrapping */}
+
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap text-sm`}
+            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap text-xs sm:text-sm w-full sm:w-auto flex-shrink-0`}
           >
             <svg
-              className="w-4 h-4 mr-2"
+              className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1072,15 +1075,17 @@ export default function AllTasks({
                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
               />
             </svg>
-            {showSnooze ? "Hide" : "Show"} Snoozed Tasks
+            <span className="hidden xs:inline">{showSnooze ? "Hide" : "Show"} Snoozed</span>
+            <span className="xs:hidden">Snoozed</span>
           </button>
+
           <button
             className={`btn ${showCalendarView ? "btn-primary" : "btn-secondary"
-              } whitespace-nowrap text-sm`}
+              } whitespace-nowrap text-xs sm:text-sm w-full sm:w-auto flex-shrink-0`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
             <svg
-              className="w-4 h-4 mr-2"
+              className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1092,40 +1097,47 @@ export default function AllTasks({
                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            {showCalendarView ? "Hide Calendar" : "Calendar View"}
+            <span className="hidden xs:inline">{showCalendarView ? "Hide Calendar" : "Calendar View"}</span>
+            <span className="xs:hidden">Calendar</span>
           </button>
-          <div className="relative flex-shrink-0">
-            <button
-              className="btn btn-primary whitespace-nowrap"
-              onClick={() => handleTaskTypeSelect("regular")}
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+
+          <div className="relative flex-shrink-0 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-1 sm:gap-0">
+              <button
+                className="btn btn-primary whitespace-nowrap text-xs sm:text-sm w-full sm:w-auto sm:rounded-r-none"
+                onClick={() => handleTaskTypeSelect("regular")}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Create Task
-            </button>
-            <button
-              className="btn btn-primary ml-1 px-2 flex-shrink-0"
-              onClick={() => setShowTaskTypeDropdown(!showTaskTypeDropdown)}
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span className="hidden xs:inline">Create Task</span>
+                <span className="xs:hidden">Create</span>
+              </button>
+
+              <button
+                className="btn btn-primary px-2 sm:px-2 flex-shrink-0 w-full sm:w-auto sm:ml-0 sm:rounded-l-none sm:border-l-0"
+                onClick={() => setShowTaskTypeDropdown(!showTaskTypeDropdown)}
+              >
+                <svg className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="sm:hidden ml-2">Task Types</span>
+              </button>
+            </div>
 
             {showTaskTypeDropdown && (
               <>
@@ -1133,69 +1145,73 @@ export default function AllTasks({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowTaskTypeDropdown(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
+                <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20 max-w-xs sm:max-w-none mx-auto sm:mx-0">
                   <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-200">
                     Task Types
                   </div>
                   <button
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 sm:gap-3"
                     onClick={() => handleTaskTypeSelect("regular")}
                   >
-                    <span className="text-lg">
+                    <span className="text-base sm:text-lg flex-shrink-0">
                       <ClipboardList />
                     </span>
-
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">
                         Simple Task
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                         Standard one-time task
                       </div>
                     </div>
                   </button>
+
                   <button
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 sm:gap-3"
                     onClick={() => handleTaskTypeSelect("recurring")}
                   >
-                    <span className="text-lg">
-                      <RotateCcw />{" "}
+                    <span className="text-base sm:text-lg flex-shrink-0">
+                      <RotateCcw />
                     </span>
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">
                         Recurring Task
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                         Repeats on schedule
                       </div>
                     </div>
                   </button>
+
                   <button
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 sm:gap-3"
                     onClick={() => handleTaskTypeSelect("milestone")}
                   >
-                    <span className="text-lg">
-                      <Target />{" "}
+                    <span className="text-base sm:text-lg flex-shrink-0">
+                      <Target />
                     </span>
-                    <div>
-                      <div className="font-medium text-gray-900">Milestone</div>
-                      <div className="text-sm text-gray-500">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">
+                        Milestone
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                         Project checkpoint
                       </div>
                     </div>
                   </button>
+
                   <button
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 flex items-center gap-2 sm:gap-3"
                     onClick={() => handleTaskTypeSelect("approval")}
                   >
-                    <span className="text-lg">
-                      <CheckCircle />{" "}
+                    <span className="text-base sm:text-lg flex-shrink-0">
+                      <CheckCircle />
                     </span>
-                    <div>
-                      <div className="font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900 text-sm sm:text-base">
                         Approval Task
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">
                         Requires approval workflow
                       </div>
                     </div>
