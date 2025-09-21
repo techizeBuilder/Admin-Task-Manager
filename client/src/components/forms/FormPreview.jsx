@@ -124,7 +124,7 @@ export function FormPreview({ form, onClose }) {
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             {form.fields.map((field) => (
               <div key={field.id} className="space-y-2">
                 <label className="block text-sm font-medium">

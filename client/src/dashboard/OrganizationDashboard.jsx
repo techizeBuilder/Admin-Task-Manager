@@ -16,6 +16,7 @@ import {
   Plus,
   Download,
 } from "lucide-react";
+import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
 
 /**
  * Organization Dashboard - Administrative workspace for organization admins
@@ -301,6 +302,7 @@ const OrganizationDashboard = () => {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Performance */}
+      
         <div
           className="lg:col-span-2 bg-white rounded-lg shadow-sm border"
           data-testid="card-team-performance"
@@ -369,8 +371,10 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
-
+    
         {/* Recent Activity */}
+              <div className="space-y-6">
+                      <QuickTaskWidget />
         <div
           className="bg-white rounded-lg shadow-sm border"
           data-testid="card-recent-activity"
@@ -380,6 +384,7 @@ const OrganizationDashboard = () => {
               Recent Activity
             </h2>
           </div>
+     
           <div className="p-6">
             <div className="space-y-4">
               {recentActivity.map((activity) => (
@@ -416,6 +421,8 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
+        </div>
+        
       </div>
 
       {/* Upcoming Deadlines */}

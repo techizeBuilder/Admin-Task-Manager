@@ -55,8 +55,8 @@ const fieldTypes = [
 
 export function FormFieldTypes({ onAddField }) {
   return (
-    <Card className="border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
+    <Card className="border-slate-200 shadow-sm bg-white dark:bg-[rgb(30,30,45)]">
+      <CardHeader className="pb-4 border-b border-slate-200 ">
         <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
           <Type className="h-5 w-5 mr-2 text-purple-600" />
           Field Types

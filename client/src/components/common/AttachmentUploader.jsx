@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { handleFileUpload, formatFileSize, validateFile } from '../../utils/fileUpload';
+import { showErrorToast } from '../../utils/ToastMessage';
 
 const AttachmentUploader = ({
   files = [],
@@ -69,6 +70,7 @@ const AttachmentUploader = ({
     for (const file of selectedFiles) {
       const validation = validateFile(file, maxSize);
       if (!validation.valid) {
+        showErrorToast(`File ${file.name}: ${validation.error}`);
         console.error(`File ${file.name}: ${validation.error}`);
         continue;
       }
@@ -76,12 +78,14 @@ const AttachmentUploader = ({
       // Check if file already exists
       const exists = files.find(f => f.name === file.name && f.size === file.size);
       if (exists) {
+        showErrorToast(`File ${file.name} already uploaded`);
         console.warn(`File ${file.name} already uploaded`);
         continue;
       }
       
       // Check max files limit
       if (files.length + newFiles.length >= maxFiles) {
+          showErrorToast(`Maximum ${maxFiles} files allowed`);
         console.warn(`Maximum ${maxFiles} files allowed`);
         break;
       }
