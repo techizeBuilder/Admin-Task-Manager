@@ -13,9 +13,18 @@ import {
   Undo2,
   Redo2,
   ShieldCheck,
+  Trash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -212,48 +221,59 @@ export default function FormBuilder() {
           ? ["Option 1"]
           : [],
       order: form.fields.length,
+      ...(fieldType === "signature" && { signature: true }), // Default for signature
+      ...(fieldType === "file_upload" && { accept: "image/*,application/pdf" }), // Default for file upload
+      ...(fieldType === "location_picker" && { location: null }), // Default for location picker
     };
     updateForm({
       ...form,
       fields: [...form.fields, newField],
     });
-  
+
     setSelectedField(newField.id);
   };
-const validateForm = () => {
-  const errors = [];
+  const validateForm = () => {
+    const errors = [];
 
-  // Check for missing field labels
-  form.fields.forEach((field, index) => {
-    if (!field.label || field.label.trim() === "") {
-      errors.push(`Field ${index + 1} is missing a label.`);
+    // Check for missing field labels
+    form.fields.forEach((field, index) => {
+      if (!field.label || field.label.trim() === "") {
+        errors.push(`Field ${index + 1} is missing a label.`);
+      }
+    });
+
+    // Check for duplicate field IDs
+    const fieldIds = form.fields.map((field) => field.id);
+    const duplicateIds = fieldIds.filter(
+      (id, index) => fieldIds.indexOf(id) !== index
+    );
+    if (duplicateIds.length > 0) {
+      errors.push("Duplicate field IDs found: " + duplicateIds.join(", "));
     }
-  });
 
-  // Check for duplicate field IDs
-  const fieldIds = form.fields.map((field) => field.id);
-  const duplicateIds = fieldIds.filter((id, index) => fieldIds.indexOf(id) !== index);
-  if (duplicateIds.length > 0) {
-    errors.push("Duplicate field IDs found: " + duplicateIds.join(", "));
-  }
-
-  // Check for required fields without default values
-  form.fields.forEach((field, index) => {
-    if (field.required) {
-      if (field.type === "dropdown" || field.type === "multiselect") {
-        if (!field.options || field.options.length === 0) {
-          errors.push(`Required field ${index + 1} (dropdown/multiselect) has no options.`);
-        }
-      } else if (field.type === "text" || field.type === "textarea") {
-        if (!field.placeholder || field.placeholder.trim() === "") {
-          errors.push(`Required field ${index + 1} (text/textarea) has no placeholder.`);
+    // Check for required fields without default values
+    form.fields.forEach((field, index) => {
+      if (field.required) {
+        if (field.type === "dropdown" || field.type === "multiselect") {
+          if (!field.options || field.options.length === 0) {
+            errors.push(
+              `Required field ${
+                index + 1
+              } (dropdown/multiselect) has no options.`
+            );
+          }
+        } else if (field.type === "text" || field.type === "textarea") {
+          if (!field.placeholder || field.placeholder.trim() === "") {
+            errors.push(
+              `Required field ${index + 1} (text/textarea) has no placeholder.`
+            );
+          }
         }
       }
-    }
-  });
+    });
 
-  return errors;
-};
+    return errors;
+  };
   const updateField = (fieldId, updates) => {
     updateForm({
       ...form,
@@ -296,7 +316,34 @@ const validateForm = () => {
 
     setForm((prev) => ({ ...prev, fields: newFields }));
   };
+  const addGroup = (groupLabel) => {
+    const newGroup = {
+      groupLabel,
+      fields: [],
+    };
+    setForm((prev) => ({
+      ...prev,
+      fields: [...prev.fields, newGroup],
+    }));
+  };
 
+  const addFieldToGroup = (groupLabel, fieldType) => {
+    const newField = {
+      id: `field_${Date.now()}`,
+      type: fieldType,
+      placeholder: `Enter ${fieldType} value`,
+      required: false,
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      fields: prev.fields.map((group) =>
+        group.groupLabel === groupLabel
+          ? { ...group, fields: [...group.fields, newField] }
+          : group
+      ),
+    }));
+  };
   const handleSave = () => {
     if (!form.title.trim()) {
       toast({
@@ -383,22 +430,26 @@ const validateForm = () => {
             >
               <Redo2 className="mx-2 h-4 w-4" /> Redo
             </Button>
-            <Button variant="outline" title="Validation Check" onClick={() => {
-    const errors = validateForm();
-    if (errors.length > 0) {
-      toast({
-        title: "Validation Errors",
-        description: errors.join("\n"),
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Validation Successful",
-        description: "No issues found in the form.",
-        variant: "success",
-      });
-    }
-  }}>
+            <Button
+              variant="outline"
+              title="Validation Check"
+              onClick={() => {
+                const errors = validateForm();
+                if (errors.length > 0) {
+                  toast({
+                    title: "Validation Errors",
+                    description: errors.join("\n"),
+                    variant: "destructive",
+                  });
+                } else {
+                  toast({
+                    title: "Validation Successful",
+                    description: "No issues found in the form.",
+                    variant: "success",
+                  });
+                }
+              }}
+            >
               <ShieldCheck className="mr-2 h-4 w-4" />
               Validate
             </Button>
@@ -470,7 +521,7 @@ const validateForm = () => {
 
           {/* Form Fields */}
           <Card className="border-slate-200 shadow-sm bg-white">
-            <CardHeader className="pb-4 border-b border-slate-200">
+            <CardHeader className=" pb-4 border-b border-slate-200">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
                 <Plus className="h-5 w-5 mr-2 text-green-600" />
                 Form Fields
@@ -482,7 +533,9 @@ const validateForm = () => {
                 Drag and drop fields to reorder, click to configure properties
               </p>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent
+              className="p-6 max-h-[400px] overflow-y-auto" // Fixed height and scrollable area
+            >
               <div className="space-y-2">
                 {form.fields.map((field, index) => (
                   <div
@@ -505,8 +558,8 @@ const validateForm = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                             <span className="font-extrabold font-md text-slate-600">
-                              {index+1}
+                            <span className="font-extrabold font-md text-slate-600">
+                              {index + 1}
                             </span>
                             <span className="font-medium text-slate-900">
                               {field.label}
@@ -569,7 +622,7 @@ const validateForm = () => {
                 ))}
 
                 {form.fields.length === 0 && (
-                  <div className="text-center py-12 border-2 border-dashed border-slate-300 rounded-lg">
+                  <div className="text-center max-h-[400px] py-12 border-2 border-dashed border-slate-300 rounded-lg">
                     <div className="flex flex-col items-center space-y-3">
                       <div className="p-3 bg-slate-100 rounded-full">
                         <Plus className="h-6 w-6 text-slate-500" />
@@ -589,10 +642,9 @@ const validateForm = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Actions */}
+              {/* Actions */}
           <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">
                   Form Actions
@@ -630,29 +682,28 @@ const validateForm = () => {
         {/* Field Types & Properties */}
         <div className="space-y-6">
           <FormFieldTypes onAddField={addField} />
-
-          {selectedField && (
-            <Card className="border-slate-200 shadow-sm bg-white">
-              <CardHeader className="pb-4 border-b border-slate-200">
-                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
-                  <Settings className="h-5 w-5 mr-2 text-blue-600" />
-                  Field Properties
-                </CardTitle>
-                <p className="text-sm text-slate-600">
-                  Configure the selected field's behavior and appearance
-                </p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <FieldProperties
-                  field={form.fields.find((f) => f.id === selectedField)}
-                  onUpdate={(updates) => updateField(selectedField, updates)}
-                />
-              </CardContent>
-            </Card>
-          )}
+      
         </div>
       </div>
-
+      {selectedField && (
+        <Card className="border-slate-200 shadow-sm bg-white">
+          <CardHeader className="pb-4 border-b border-slate-200">
+            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center">
+              <Settings className="h-5 w-5 mr-2 text-blue-600" />
+              Field Properties
+            </CardTitle>
+            <p className="text-sm text-slate-600">
+              Configure the selected field's behavior and appearance
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <FieldProperties
+              field={form.fields.find((f) => f.id === selectedField)}
+              onUpdate={(updates) => updateField(selectedField, updates)}
+            />
+          </CardContent>
+        </Card>
+      )}
       {/* Existing Forms */}
       <Card className="border-slate-200 shadow-sm bg-white">
         <CardHeader className="pb-4 border-b border-slate-200">
@@ -772,117 +823,151 @@ const validateForm = () => {
     </div>
   );
 }
-
-function FieldProperties({ field, onUpdate }) {
+function FieldProperties({ field, onUpdate, form }) {
   if (!field) return null;
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          Label
-        </label>
-        <Input
-          value={field.label}
-          onChange={(e) => onUpdate({ label: e.target.value })}
-          className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-        />
-      </div>
+  const handleAddCondition = () => {
+    const newCondition = { field: "", operator: "equals", value: "" };
+    onUpdate({ conditions: [...(field.conditions || []), newCondition] });
+  };
 
-      {(field.type === "text" ||
-        field.type === "textarea" ||
-        field.type === "email" ||
-        field.type === "number") && (
+  const handleUpdateCondition = (index, updates) => {
+    const updatedConditions = [...field.conditions];
+    updatedConditions[index] = { ...updatedConditions[index], ...updates };
+    onUpdate({ conditions: updatedConditions });
+  };
+
+  const handleRemoveCondition = (index) => {
+    const updatedConditions = field.conditions.filter((_, i) => i !== index);
+    onUpdate({ conditions: updatedConditions });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3  gap-4 mb-6">
+        {/* Label Field */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Placeholder
+            Field Label
           </label>
           <Input
-            value={field.placeholder}
-            onChange={(e) => onUpdate({ placeholder: e.target.value })}
-            className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+            type="text"
+            value={field.label}
+            onChange={(e) => onUpdate({ label: e.target.value })}
+            className="border p-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 outline-none rounded-md w-full"
+            placeholder="Enter field label"
           />
         </div>
-      )}
 
-      {(field.type === "dropdown" ||
-        field.type === "multiselect" ||
-        field.type === "radio" ||
-        field.type === "checkbox") && (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-slate-700">
-            Options
+        {/* Placeholder Field */}
+        {field.type === "text" || field.type === "textarea" ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Placeholder
+            </label>
+            <Input
+              type="text"
+              value={field.placeholder}
+              onChange={(e) => onUpdate({ placeholder: e.target.value })}
+              className="border p-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500 outline-none rounded-md w-full"
+              placeholder="Enter placeholder text"
+            />
+          </div>
+        ) : null}
+
+        {/* Required Toggle */}
+        <div className="flex flex-col items-end">
+          <label className="block text-sm font-medium text-slate-700 mb-4">
+            Required
           </label>
-          {field.options.map((option, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              <Input
-                value={option}
-                onChange={(e) => {
-                  const newOptions = [...field.options];
-                  newOptions[index] = e.target.value;
-                  onUpdate({ options: newOptions });
-                }}
-                className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  const newOptions = field.options.filter(
-                    (_, i) => i !== index
-                  );
-                  onUpdate({ options: newOptions });
-                }}
-                className="hover:bg-red-50 hover:text-red-600"
+          <button
+            onClick={() => onUpdate({ required: !field.required })}
+            className={`w-12 h-6 flex items-center rounded-full p-1 ${
+              field.required ? "bg-blue-500" : "bg-gray-300"
+            }`}
+          >
+            <div
+              className={`w-4 h-4 bg-white rounded-full shadow-md transform ${
+                field.required ? "translate-x-6" : "translate-x-0"
+              }`}
+            ></div>
+          </button>
+        </div>
+      </div>
+      {/* Conditional Logic Section */}
+      <div className="p-4 border border-slate-200 rounded-md bg-gray-50">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Conditional Logic
+        </label>
+        <div className="space-y-4">
+          {field.conditions?.map((condition, index) => (
+            <div key={index} className="flex items-center space-x-4">
+              <Select
+                value={condition.field}
+                onValueChange={(value) =>
+                  handleUpdateCondition(index, { field: value })
+                }
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+                <SelectTrigger className="border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md">
+                  <SelectValue placeholder="Select Field" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(form?.fields || [])
+                    .filter((f) => f.id !== field.id)
+                    .map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              {/* Select Operator */}
+              <Select
+                value={condition.operator}
+                onValueChange={(value) =>
+                  handleUpdateCondition(index, { operator: value })
+                }
+              >
+                <SelectTrigger className="border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md">
+                  <SelectValue placeholder="Select Operator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="equals">Equals</SelectItem>
+                  <SelectItem value="not_equals">Not Equals</SelectItem>
+                  <SelectItem value="contains">Contains</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Input Value */}
+              <Input
+                type="text"
+                value={condition.value}
+                onChange={(e) =>
+                  handleUpdateCondition(index, { value: e.target.value })
+                }
+                placeholder="Value"
+                className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 rounded-md "
+              />
+
+              {/* Remove Condition */}
+              <button
+                onClick={() => handleRemoveCondition(index)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
             </div>
           ))}
+
+          {/* Add Condition Button */}
           <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              const newOptions = [
-                ...field.options,
-                `Option ${field.options.length + 1}`,
-              ];
-              onUpdate({ options: newOptions });
-            }}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100"
+            onClick={handleAddCondition}
+            className="bg-blue-500 text-white mt-2"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Option
+            Add Condition
           </Button>
         </div>
-      )}
-
-      <div className="flex items-center justify-between pt-4">
-        <span className="text-sm font-medium text-slate-700">Required</span>
-        <label
-          htmlFor={`required-${field.id}`}
-          className="flex items-center cursor-pointer"
-        >
-          <div className="relative">
-            <input
-              id={`required-${field.id}`}
-              type="checkbox"
-              className="sr-only"
-              checked={field.required}
-              onChange={(e) => onUpdate({ required: e.target.checked })}
-            />
-            <div
-              className={`block w-10 h-6 rounded-full ${
-                field.required ? "bg-blue-600" : "bg-slate-300"
-              }`}
-            ></div>
-            <div
-              className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${
-                field.required ? "transform translate-x-full" : ""
-              }`}
-            ></div>
-          </div>
-        </label>
       </div>
     </div>
   );
