@@ -106,6 +106,8 @@ import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
 import QuickTaskManage from "./components/quick-task/QuickTaskManage";
 import FormBuilder from "./components/forms/FormBuilder";
 import FormLibrary from "./components/forms/FormLibrary";
+import ExternalFormSubmit from "./components/forms/ExternalFormSubmit";
+import FormVersionHistory from "./components/forms/FormVersionHistory";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -273,6 +275,8 @@ function App() {
               <Route path="/reset-password" component={ResetPassword} />
               <Route path="/accept-invitation" component={SimpleAcceptInvite} />
               <Route path="/accept-invite" component={SimpleAcceptInvite} />
+             <Route path="/public-forms/:token" component={ExternalFormSubmit} />
+
               <Route
                 path="/register/invite/:token"
                 component={SimpleAcceptInvite}
@@ -385,8 +389,7 @@ function App() {
                 </AdminLayout>
               </Route>
 
-              
-
+                  
               <Route path="/milestones">
                 <AdminLayout>
                   <ProtectedRoute
@@ -703,6 +706,11 @@ function App() {
               <Route path="/form-builder">
                 <AdminLayout>
                   <ProtectedRoute component={FormBuilder} />
+                </AdminLayout>
+              </Route>
+                <Route path="/form-version-history">
+                <AdminLayout>
+                  <ProtectedRoute component={FormVersionHistory} />
                 </AdminLayout>
               </Route>
               <Route path="/integrations">
