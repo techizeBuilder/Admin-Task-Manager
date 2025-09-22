@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export function FormPreview({ form, onClose }) {
+export function FormPreview({ form, onClose, layout }) {
   const [formData, setFormData] = useState({});
 
   const renderField = (field) => {
@@ -124,8 +124,8 @@ export function FormPreview({ form, onClose }) {
           </div>
 
           {/* Form Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            {form.fields.map((field) => (
+        <div className={`grid gap-4 ${layout === '1-column' ? 'grid-cols-1' : layout === '2-column' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+   {form.fields.map((field) => (
               <div key={field.id} className="space-y-2">
                 <label className="block text-sm font-medium">
                   {field.label}

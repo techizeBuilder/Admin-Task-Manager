@@ -1,43 +1,57 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation, Link } from 'wouter';
-import { Plus, Save, Eye, Share2, Settings, Trash2, GripVertical, FileText, Undo2, Redo2, ShieldCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { FormFieldTypes } from '@/components/forms/FormFieldTypes';
-import { FormPreview } from '@/components/forms/FormPreview';
-import { FormSettings } from '@/components/forms/FormSettings';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation, Link } from "wouter";
+import {
+  Plus,
+  Save,
+  Eye,
+  Share2,
+  Settings,
+  Trash2,
+  GripVertical,
+  FileText,
+  Undo2,
+  Redo2,
+  ShieldCheck,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { FormFieldTypes } from "@/components/forms/FormFieldTypes";
+import { FormPreview } from "@/components/forms/FormPreview";
+import { FormSettings } from "@/components/forms/FormSettings";
 
 export default function FormBuilder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [form, setForm] = useState({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     fields: [],
     settings: {
       allowAnonymous: true,
-      submitMessage: 'Thank you for your submission!'
-    }
+      submitMessage: "Thank you for your submission!",
+    },
   });
-  
+  const [layout, setLayout] = useState("1-column");
+  const [history, setHistory] = useState([]);
+  const [currentStep, setCurrentStep] = useState(-1);
   const [selectedField, setSelectedField] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [draggedField, setDraggedField] = useState(null);
   // Fetch forms
   const { data: forms = [], isLoading } = useQuery({
-    queryKey: ['/api/forms'],
+    queryKey: ["/api/forms"],
   });
- const handleDragStart = (e, field) => {
+  const handleDragStart = (e, field) => {
     setDraggedField(field.id);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', field.id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", field.id);
   };
 
   const handleDragOver = (e) => {
@@ -54,8 +68,8 @@ export default function FormBuilder() {
       return;
     }
 
-    const sourceIndex = form.fields.findIndex(f => f.id === sourceFieldId);
-    const targetIndex = form.fields.findIndex(f => f.id === targetFieldId);
+    const sourceIndex = form.fields.findIndex((f) => f.id === sourceFieldId);
+    const targetIndex = form.fields.findIndex((f) => f.id === targetFieldId);
 
     if (sourceIndex === -1 || targetIndex === -1) {
       setDraggedField(null);
@@ -66,85 +80,124 @@ export default function FormBuilder() {
     const [removed] = newFields.splice(sourceIndex, 1);
     newFields.splice(targetIndex, 0, removed);
 
-    setForm(prev => ({ ...prev, fields: newFields }));
+    setForm((prev) => ({ ...prev, fields: newFields }));
     setDraggedField(null);
   };
+  const updateForm = (newForm) => {
+    const newHistory = history.slice(0, currentStep + 1); // Remove future steps
+    setHistory([...newHistory, newForm]);
+    setCurrentStep(newHistory.length);
+    setForm(newForm);
+  };
+  const handleUndo = () => {
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+      setForm(history[currentStep - 1]);
+    }
+  };
 
+  const handleRedo = () => {
+    if (currentStep < history.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+      setForm(history[currentStep + 1]);
+    }
+  };
   // Create form mutation
   const createFormMutation = useMutation({
     mutationFn: async (formData) => {
-      const response = await fetch('/api/forms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/forms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error('Failed to create form');
+      if (!response.ok) throw new Error("Failed to create form");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['/api/forms']);
-      toast({ title: 'Success', description: 'Form created successfully!' });
+      queryClient.invalidateQueries(["/api/forms"]);
+      toast({ title: "Success", description: "Form created successfully!" });
       setForm({
-        title: '',
-        description: '',
+        title: "",
+        description: "",
         fields: [],
-        settings: { allowAnonymous: true, submitMessage: 'Thank you for your submission!' }
+        settings: {
+          allowAnonymous: true,
+          submitMessage: "Thank you for your submission!",
+        },
       });
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to create form', variant: 'destructive' });
-    }
+      toast({
+        title: "Error",
+        description: "Failed to create form",
+        variant: "destructive",
+      });
+    },
   });
 
   // Update form mutation
   const updateFormMutation = useMutation({
     mutationFn: async ({ id, formData }) => {
       const response = await fetch(`/api/forms/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error('Failed to update form');
+      if (!response.ok) throw new Error("Failed to update form");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['/api/forms']);
-      toast({ title: 'Success', description: 'Form updated successfully!' });
+      queryClient.invalidateQueries(["/api/forms"]);
+      toast({ title: "Success", description: "Form updated successfully!" });
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to update form', variant: 'destructive' });
-    }
+      toast({
+        title: "Error",
+        description: "Failed to update form",
+        variant: "destructive",
+      });
+    },
   });
 
   // Delete form mutation
   const deleteFormMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(`/api/forms/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete form');
+      const response = await fetch(`/api/forms/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete form");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['/api/forms']);
-      toast({ title: 'Success', description: 'Form deleted successfully!' });
+      queryClient.invalidateQueries(["/api/forms"]);
+      toast({ title: "Success", description: "Form deleted successfully!" });
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to delete form', variant: 'destructive' });
-    }
+      toast({
+        title: "Error",
+        description: "Failed to delete form",
+        variant: "destructive",
+      });
+    },
   });
 
   // Publish form mutation
   const publishFormMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(`/api/forms/${id}/publish`, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to publish form');
+      const response = await fetch(`/api/forms/${id}/publish`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to publish form");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['/api/forms']);
-      toast({ title: 'Success', description: 'Form published successfully!' });
+      queryClient.invalidateQueries(["/api/forms"]);
+      toast({ title: "Success", description: "Form published successfully!" });
     },
     onError: () => {
-      toast({ title: 'Error', description: 'Failed to publish form', variant: 'destructive' });
-    }
+      toast({
+        title: "Error",
+        description: "Failed to publish form",
+        variant: "destructive",
+      });
+    },
   });
 
   const addField = (fieldType) => {
@@ -152,57 +205,114 @@ export default function FormBuilder() {
       id: `field_${Date.now()}`,
       type: fieldType,
       label: `New ${fieldType} field`,
-      placeholder: '',
+      placeholder: "",
       required: false,
-      options: fieldType === 'dropdown' || fieldType === 'multiselect' ? ['Option 1'] : [],
-      order: form.fields.length
+      options:
+        fieldType === "dropdown" || fieldType === "multiselect"
+          ? ["Option 1"]
+          : [],
+      order: form.fields.length,
     };
-    
-    setForm(prev => ({
-      ...prev,
-      fields: [...prev.fields, newField]
-    }));
+    updateForm({
+      ...form,
+      fields: [...form.fields, newField],
+    });
+  
     setSelectedField(newField.id);
   };
+const validateForm = () => {
+  const errors = [];
 
+  // Check for missing field labels
+  form.fields.forEach((field, index) => {
+    if (!field.label || field.label.trim() === "") {
+      errors.push(`Field ${index + 1} is missing a label.`);
+    }
+  });
+
+  // Check for duplicate field IDs
+  const fieldIds = form.fields.map((field) => field.id);
+  const duplicateIds = fieldIds.filter((id, index) => fieldIds.indexOf(id) !== index);
+  if (duplicateIds.length > 0) {
+    errors.push("Duplicate field IDs found: " + duplicateIds.join(", "));
+  }
+
+  // Check for required fields without default values
+  form.fields.forEach((field, index) => {
+    if (field.required) {
+      if (field.type === "dropdown" || field.type === "multiselect") {
+        if (!field.options || field.options.length === 0) {
+          errors.push(`Required field ${index + 1} (dropdown/multiselect) has no options.`);
+        }
+      } else if (field.type === "text" || field.type === "textarea") {
+        if (!field.placeholder || field.placeholder.trim() === "") {
+          errors.push(`Required field ${index + 1} (text/textarea) has no placeholder.`);
+        }
+      }
+    }
+  });
+
+  return errors;
+};
   const updateField = (fieldId, updates) => {
-    setForm(prev => ({
-      ...prev,
-      fields: prev.fields.map(field => 
+    updateForm({
+      ...form,
+      fields: form.fields.map((field) =>
         field.id === fieldId ? { ...field, ...updates } : field
-      )
+      ),
+    });
+    setForm((prev) => ({
+      ...prev,
+      fields: prev.fields.map((field) =>
+        field.id === fieldId ? { ...field, ...updates } : field
+      ),
     }));
   };
 
   const removeField = (fieldId) => {
-    setForm(prev => ({
+    updateForm({
+      ...form,
+      fields: form.fields.filter((field) => field.id !== fieldId),
+    });
+    setForm((prev) => ({
       ...prev,
-      fields: prev.fields.filter(field => field.id !== fieldId)
+      fields: prev.fields.filter((field) => field.id !== fieldId),
     }));
     setSelectedField(null);
   };
 
   const moveField = (fieldId, direction) => {
-    const fieldIndex = form.fields.findIndex(f => f.id === fieldId);
+    const fieldIndex = form.fields.findIndex((f) => f.id === fieldId);
     if (fieldIndex === -1) return;
-    
-    const newIndex = direction === 'up' ? fieldIndex - 1 : fieldIndex + 1;
+
+    const newIndex = direction === "up" ? fieldIndex - 1 : fieldIndex + 1;
     if (newIndex < 0 || newIndex >= form.fields.length) return;
-    
+
     const newFields = [...form.fields];
-    [newFields[fieldIndex], newFields[newIndex]] = [newFields[newIndex], newFields[fieldIndex]];
-    
-    setForm(prev => ({ ...prev, fields: newFields }));
+    [newFields[fieldIndex], newFields[newIndex]] = [
+      newFields[newIndex],
+      newFields[fieldIndex],
+    ];
+
+    setForm((prev) => ({ ...prev, fields: newFields }));
   };
 
   const handleSave = () => {
     if (!form.title.trim()) {
-      toast({ title: 'Error', description: 'Form title is required', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Form title is required",
+        variant: "destructive",
+      });
       return;
     }
-    
+
     if (form.fields.length === 0) {
-      toast({ title: 'Error', description: 'Form must have at least one field', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "Form must have at least one field",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -214,7 +324,7 @@ export default function FormBuilder() {
   };
 
   const handleDelete = (formId) => {
-    if (confirm('Are you sure you want to delete this form?')) {
+    if (confirm("Are you sure you want to delete this form?")) {
       deleteFormMutation.mutate(formId);
     }
   };
@@ -222,7 +332,7 @@ export default function FormBuilder() {
   const copyShareLink = (accessLink) => {
     const shareUrl = `${window.location.origin}/public/forms/${accessLink}`;
     navigator.clipboard.writeText(shareUrl);
-    toast({ title: 'Success', description: 'Share link copied to clipboard!' });
+    toast({ title: "Success", description: "Share link copied to clipboard!" });
   };
 
   if (isLoading) {
@@ -243,25 +353,52 @@ export default function FormBuilder() {
             Create and customize dynamic forms with drag-and-drop simplicity
           </p>
         </div>
-      <div className="">
-       
-        <div className="flex items-center justify-center space-x-3 mt-2">
-         
-          <Button 
-            onClick={handleSave} 
-            disabled={createFormMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Form
-          </Button>
-            <Button className='w-100 p-2' variant="outline" size="icon" title="Undo" disabled>
+        <div className="">
+          <div className="flex items-center justify-center space-x-3 mt-2">
+            <Button
+              onClick={handleSave}
+              disabled={createFormMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Form
+            </Button>
+            <Button
+              className="w-100 p-2"
+              variant="outline"
+              size="icon"
+              title="Undo"
+              onClick={handleUndo}
+              disabled={currentStep <= 0}
+            >
               <Undo2 className="mx-2 h-4 w-4" /> Undo
             </Button>
-            <Button className='w-100 p-2' variant="outline" size="icon" title="Redo" disabled>
+            <Button
+              className="w-100 p-2"
+              variant="outline"
+              size="icon"
+              title="Redo"
+              onClick={handleRedo}
+              disabled={currentStep >= history.length - 1}
+            >
               <Redo2 className="mx-2 h-4 w-4" /> Redo
             </Button>
-            <Button variant="outline" title="Validation Check" disabled>
+            <Button variant="outline" title="Validation Check" onClick={() => {
+    const errors = validateForm();
+    if (errors.length > 0) {
+      toast({
+        title: "Validation Errors",
+        description: errors.join("\n"),
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Validation Successful",
+        description: "No issues found in the form.",
+        variant: "success",
+      });
+    }
+  }}>
               <ShieldCheck className="mr-2 h-4 w-4" />
               Validate
             </Button>
@@ -269,15 +406,19 @@ export default function FormBuilder() {
               <Eye className="mr-2 h-4 w-4" />
               Preview
             </Button>
-            <Button onClick={handleSave} disabled={createFormMutation.isLoading || updateFormMutation.isLoading}>
+            <Button
+              onClick={handleSave}
+              disabled={
+                createFormMutation.isLoading || updateFormMutation.isLoading
+              }
+            >
               <Save className="mr-2 h-4 w-4" />
-              {form.id ? 'Save Draft' : 'Save Draft'}
+              {form.id ? "Save Draft" : "Save Draft"}
             </Button>
             <Button disabled>Save & Publish</Button>
+          </div>
         </div>
       </div>
-      </div>
- 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Builder */}
@@ -301,7 +442,9 @@ export default function FormBuilder() {
                 <Input
                   placeholder="Enter a descriptive title for your form"
                   value={form.title}
-                  onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
@@ -312,7 +455,12 @@ export default function FormBuilder() {
                 <Textarea
                   placeholder="Provide a brief description of what this form is for (optional)"
                   value={form.description}
-                  onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   rows={3}
                   className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -335,19 +483,19 @@ export default function FormBuilder() {
               </p>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {form.fields.map((field, index) => (
                   <div
                     key={field.id}
-                          draggable
+                    draggable
                     onDragStart={(e) => handleDragStart(e, field)}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, field)}
                     className={`group border rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                      selectedField === field.id 
-                        ? 'border-blue-500 bg-blue-50 shadow-md' 
-                        : 'border-slate-200 hover:border-slate-300'
-                    } ${draggedField === field.id ? 'opacity-50' : ''}`}
+                      selectedField === field.id
+                        ? "border-blue-500 bg-blue-50 shadow-md"
+                        : "border-slate-200 hover:border-slate-300"
+                    } ${draggedField === field.id ? "opacity-50" : ""}`}
                     onClick={() => setSelectedField(field.id)}
                   >
                     <div className="flex items-center justify-between">
@@ -357,6 +505,9 @@ export default function FormBuilder() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
+                             <span className="font-extrabold font-md text-slate-600">
+                              {index+1}
+                            </span>
                             <span className="font-medium text-slate-900">
                               {field.label}
                             </span>
@@ -382,7 +533,7 @@ export default function FormBuilder() {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            moveField(field.id, 'up');
+                            moveField(field.id, "up");
                           }}
                           disabled={index === 0}
                           className="h-8 w-8 p-0 hover:bg-slate-100"
@@ -394,7 +545,7 @@ export default function FormBuilder() {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            moveField(field.id, 'down');
+                            moveField(field.id, "down");
                           }}
                           disabled={index === form.fields.length - 1}
                           className="h-8 w-8 p-0 hover:bg-slate-100"
@@ -416,7 +567,7 @@ export default function FormBuilder() {
                     </div>
                   </div>
                 ))}
-                
+
                 {form.fields.length === 0 && (
                   <div className="text-center py-12 border-2 border-dashed border-slate-300 rounded-lg">
                     <div className="flex flex-col items-center space-y-3">
@@ -428,7 +579,8 @@ export default function FormBuilder() {
                           No fields added yet
                         </h3>
                         <p className="text-slate-500 mt-1">
-                          Start building your form by adding fields from the panel on the right
+                          Start building your form by adding fields from the
+                          panel on the right
                         </p>
                       </div>
                     </div>
@@ -442,27 +594,33 @@ export default function FormBuilder() {
           <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Form Actions</h3>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Form Actions
+                </h3>
                 <p className="text-sm text-slate-600">
                   Save your form or configure advanced settings
                 </p>
               </div>
               <div className="flex items-center space-x-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowSettings(true)}
                   className="border-slate-300 text-slate-700 hover:bg-slate-100"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </Button>
-                <Button 
-                  onClick={handleSave} 
-                  disabled={createFormMutation.isPending || !form.title.trim() || form.fields.length === 0}
+                <Button
+                  onClick={handleSave}
+                  disabled={
+                    createFormMutation.isPending ||
+                    !form.title.trim() ||
+                    form.fields.length === 0
+                  }
                   className="bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-300"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {createFormMutation.isPending ? 'Saving...' : 'Save Form'}
+                  {createFormMutation.isPending ? "Saving..." : "Save Form"}
                 </Button>
               </div>
             </div>
@@ -472,7 +630,7 @@ export default function FormBuilder() {
         {/* Field Types & Properties */}
         <div className="space-y-6">
           <FormFieldTypes onAddField={addField} />
-          
+
           {selectedField && (
             <Card className="border-slate-200 shadow-sm bg-white">
               <CardHeader className="pb-4 border-b border-slate-200">
@@ -486,7 +644,7 @@ export default function FormBuilder() {
               </CardHeader>
               <CardContent className="p-6">
                 <FieldProperties
-                  field={form.fields.find(f => f.id === selectedField)}
+                  field={form.fields.find((f) => f.id === selectedField)}
                   onUpdate={(updates) => updateField(selectedField, updates)}
                 />
               </CardContent>
@@ -529,7 +687,10 @@ export default function FormBuilder() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {forms.map((form) => (
-                <div key={form._id} className="group border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-slate-300">
+                <div
+                  key={form._id}
+                  className="group border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-slate-300"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-slate-900 text-base truncate">
@@ -590,16 +751,21 @@ export default function FormBuilder() {
       </Card>
 
       {showPreview && (
-        <FormPreview 
-          form={form} 
-          onClose={() => setShowPreview(false)} 
+        <FormPreview
+          form={form}
+          layout={layout}
+          onClose={() => setShowPreview(false)}
         />
       )}
 
       {showSettings && (
         <FormSettings
           settings={form.settings}
-          onUpdate={(newSettings) => setForm(prev => ({ ...prev, settings: newSettings }))}
+          layout={layout}
+          setLayout={setLayout}
+          onUpdate={(newSettings) =>
+            setForm((prev) => ({ ...prev, settings: newSettings }))
+          }
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -622,8 +788,11 @@ function FieldProperties({ field, onUpdate }) {
           className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
         />
       </div>
-      
-      {(field.type === 'text' || field.type === 'textarea' || field.type === 'email' || field.type === 'number') && (
+
+      {(field.type === "text" ||
+        field.type === "textarea" ||
+        field.type === "email" ||
+        field.type === "number") && (
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Placeholder
@@ -636,7 +805,10 @@ function FieldProperties({ field, onUpdate }) {
         </div>
       )}
 
-      {(field.type === 'dropdown' || field.type === 'multiselect' || field.type === 'radio' || field.type === 'checkbox') && (
+      {(field.type === "dropdown" ||
+        field.type === "multiselect" ||
+        field.type === "radio" ||
+        field.type === "checkbox") && (
         <div className="space-y-2">
           <label className="block text-sm font-medium text-slate-700">
             Options
@@ -656,7 +828,9 @@ function FieldProperties({ field, onUpdate }) {
                 size="sm"
                 variant="ghost"
                 onClick={() => {
-                  const newOptions = field.options.filter((_, i) => i !== index);
+                  const newOptions = field.options.filter(
+                    (_, i) => i !== index
+                  );
                   onUpdate({ options: newOptions });
                 }}
                 className="hover:bg-red-50 hover:text-red-600"
@@ -669,7 +843,10 @@ function FieldProperties({ field, onUpdate }) {
             size="sm"
             variant="outline"
             onClick={() => {
-              const newOptions = [...field.options, `Option ${field.options.length + 1}`];
+              const newOptions = [
+                ...field.options,
+                `Option ${field.options.length + 1}`,
+              ];
               onUpdate({ options: newOptions });
             }}
             className="border-slate-300 text-slate-700 hover:bg-slate-100"
@@ -681,20 +858,29 @@ function FieldProperties({ field, onUpdate }) {
       )}
 
       <div className="flex items-center justify-between pt-4">
-        <span className="text-sm font-medium text-slate-700">
-          Required
-        </span>
-        <label htmlFor={`required-${field.id}`} className="flex items-center cursor-pointer">
+        <span className="text-sm font-medium text-slate-700">Required</span>
+        <label
+          htmlFor={`required-${field.id}`}
+          className="flex items-center cursor-pointer"
+        >
           <div className="relative">
-            <input 
+            <input
               id={`required-${field.id}`}
-              type="checkbox" 
+              type="checkbox"
               className="sr-only"
               checked={field.required}
               onChange={(e) => onUpdate({ required: e.target.checked })}
             />
-            <div className={`block w-10 h-6 rounded-full ${field.required ? 'bg-blue-600' : 'bg-slate-300'}`}></div>
-            <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${field.required ? 'transform translate-x-full' : ''}`}></div>
+            <div
+              className={`block w-10 h-6 rounded-full ${
+                field.required ? "bg-blue-600" : "bg-slate-300"
+              }`}
+            ></div>
+            <div
+              className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${
+                field.required ? "transform translate-x-full" : ""
+              }`}
+            ></div>
           </div>
         </label>
       </div>
