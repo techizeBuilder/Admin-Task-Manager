@@ -125,7 +125,7 @@ const TaskSchema = mongoose.Schema(
         default: 1,
       },
       daysOfWeek: [{
-        type: Number, // 0 = Sunday, 1 = Monday, etc.
+        type: Number, 
       }],
       dayOfMonth: {
         type: Number,
