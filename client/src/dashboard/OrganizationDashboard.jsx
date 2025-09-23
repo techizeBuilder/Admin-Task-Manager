@@ -18,6 +18,12 @@ import {
   Mail,
 } from "lucide-react";
 import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 // ...existing code...
 
@@ -56,7 +62,10 @@ const OrganizationDashboard = () => {
     onTime: 124,
     overdueClosed: 32,
   };
-  const orgOnTimeRate = pct(orgCompletion.onTime, orgCompletion.onTime + orgCompletion.overdueClosed);
+  const orgOnTimeRate = pct(
+    orgCompletion.onTime,
+    orgCompletion.onTime + orgCompletion.overdueClosed
+  );
 
   // Adoption dashboard (mock trend over 7 days)
   const adoption = {
@@ -68,6 +77,14 @@ const OrganizationDashboard = () => {
   const maxLogins = Math.max(...adoption.logins7d, 1);
   const maxUpdates = Math.max(...adoption.updates7d, 1);
 
+  // Weekday labels for the last 7 days (oldest → today)
+  const dayShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const last7DayLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return dayShort[d.getDay()];
+  });
+  // ...existing code...
   // Overdue % by Department (mock)
   const departmentOverdue = [
     { name: "Development", percent: 12 },
@@ -76,7 +93,10 @@ const OrganizationDashboard = () => {
     { name: "Sales", percent: 22 },
     { name: "Support", percent: 5 },
   ];
-  const maxDeptOverdue = Math.max(...departmentOverdue.map((d) => d.percent), 1);
+  const maxDeptOverdue = Math.max(
+    ...departmentOverdue.map((d) => d.percent),
+    1
+  );
 
   // Module usage report (quick tasks vs full tasks)
   const moduleUsage = { quick: 96, full: 140 };
@@ -86,31 +106,127 @@ const OrganizationDashboard = () => {
 
   // System health (mock recent issues)
   const systemHealth = [
-    { id: 1, type: "sync", severity: "error", message: "Failed to sync Project X (HTTP 500)", time: "Today 10:23" },
-    { id: 2, type: "export", severity: "warning", message: "Export queue delay ~5 min", time: "Today 09:10" },
-    { id: 3, type: "report", severity: "info", message: "Scheduled weekly report sent", time: "Yesterday 18:00" },
+    {
+      id: 1,
+      type: "sync",
+      severity: "error",
+      message: "Failed to sync Project X (HTTP 500)",
+      time: "Today 10:23",
+    },
+    {
+      id: 2,
+      type: "export",
+      severity: "warning",
+      message: "Export queue delay ~5 min",
+      time: "Today 09:10",
+    },
+    {
+      id: 3,
+      type: "report",
+      severity: "info",
+      message: "Scheduled weekly report sent",
+      time: "Yesterday 18:00",
+    },
   ];
 
   const teamMetrics = [
-    { name: "Development Team", members: 12, productivity: 92, tasksCompleted: 45, tasksActive: 18 },
-    { name: "Design Team", members: 8, productivity: 88, tasksCompleted: 32, tasksActive: 12 },
-    { name: "Marketing Team", members: 10, productivity: 85, tasksCompleted: 28, tasksActive: 15 },
-    { name: "Sales Team", members: 15, productivity: 78, tasksCompleted: 52, tasksActive: 22 },
-    { name: "Support Team", members: 6, productivity: 95, tasksCompleted: 38, tasksActive: 8 },
+    {
+      name: "Development Team",
+      members: 12,
+      productivity: 92,
+      tasksCompleted: 45,
+      tasksActive: 18,
+    },
+    {
+      name: "Design Team",
+      members: 8,
+      productivity: 88,
+      tasksCompleted: 32,
+      tasksActive: 12,
+    },
+    {
+      name: "Marketing Team",
+      members: 10,
+      productivity: 85,
+      tasksCompleted: 28,
+      tasksActive: 15,
+    },
+    {
+      name: "Sales Team",
+      members: 15,
+      productivity: 78,
+      tasksCompleted: 52,
+      tasksActive: 22,
+    },
+    {
+      name: "Support Team",
+      members: 6,
+      productivity: 95,
+      tasksCompleted: 38,
+      tasksActive: 8,
+    },
   ];
 
   const recentActivity = [
-    { id: 1, type: "task_completed", user: "Sarah Johnson", action: 'completed "API Integration"', time: "2 hours ago" },
-    { id: 2, type: "milestone_achieved", user: "Development Team", action: 'achieved milestone "Phase 2 Complete"', time: "4 hours ago" },
-    { id: 3, type: "user_joined", user: "Michael Chen", action: "joined Marketing Team", time: "1 day ago" },
-    { id: 4, type: "project_created", user: "Jennifer Lee", action: 'created new project "Q4 Campaign"', time: "2 days ago" },
+    {
+      id: 1,
+      type: "task_completed",
+      user: "Sarah Johnson",
+      action: 'completed "API Integration"',
+      time: "2 hours ago",
+    },
+    {
+      id: 2,
+      type: "milestone_achieved",
+      user: "Development Team",
+      action: 'achieved milestone "Phase 2 Complete"',
+      time: "4 hours ago",
+    },
+    {
+      id: 3,
+      type: "user_joined",
+      user: "Michael Chen",
+      action: "joined Marketing Team",
+      time: "1 day ago",
+    },
+    {
+      id: 4,
+      type: "project_created",
+      user: "Jennifer Lee",
+      action: 'created new project "Q4 Campaign"',
+      time: "2 days ago",
+    },
   ];
 
   const upcomingDeadlines = [
-    { id: 1, task: "Quarterly Report Submission", assignee: "Finance Team", dueDate: "2025-09-05", priority: "high" },
-    { id: 2, task: "Product Launch Preparation", assignee: "Marketing Team", dueDate: "2025-09-07", priority: "high" },
-    { id: 3, task: "Client Presentation Review", assignee: "Sales Team", dueDate: "2025-09-08", priority: "medium" },
-    { id: 4, task: "Security Audit Completion", assignee: "Development Team", dueDate: "2025-09-10", priority: "high" },
+    {
+      id: 1,
+      task: "Quarterly Report Submission",
+      assignee: "Finance Team",
+      dueDate: "2025-09-05",
+      priority: "high",
+    },
+    {
+      id: 2,
+      task: "Product Launch Preparation",
+      assignee: "Marketing Team",
+      dueDate: "2025-09-07",
+      priority: "high",
+    },
+    {
+      id: 3,
+      task: "Client Presentation Review",
+      assignee: "Sales Team",
+      dueDate: "2025-09-08",
+      priority: "medium",
+    },
+    {
+      id: 4,
+      task: "Security Audit Completion",
+      assignee: "Development Team",
+      dueDate: "2025-09-10",
+      priority: "high",
+    },
   ];
 
   const getPriorityColor = (priority) => {
@@ -161,7 +277,11 @@ const OrganizationDashboard = () => {
   const handleScheduleSave = (e) => {
     e.preventDefault();
     console.log("Schedule report", scheduleForm);
-    alert(`Report scheduled: ${scheduleForm.frequency}, ${scheduleForm.day} at ${scheduleForm.time} → ${scheduleForm.email || "your email"}`);
+    alert(
+      `Report scheduled: ${scheduleForm.frequency}, ${scheduleForm.day} at ${
+        scheduleForm.time
+      } → ${scheduleForm.email || "your email"}`
+    );
     setScheduleOpen(false);
   };
 
@@ -170,9 +290,12 @@ const OrganizationDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Organization Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Organization Dashboard
+          </h1>
           <p className="text-gray-600 mt-1">
-            Overview of {user?.organization?.name || "your organization"} performance and metrics
+            Overview of {user?.organization?.name || "your organization"}{" "}
+            performance and metrics
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -213,80 +336,114 @@ const OrganizationDashboard = () => {
 
       {/* Organizational KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-total-employees">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-total-employees"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-lg">
               <Users className="text-blue-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Employees</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.totalEmployees}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.totalEmployees}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-completed-tasks">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-completed-tasks"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-purple-100 p-2 rounded-lg">
               <CheckSquare className="text-purple-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Tasks Completed</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.completedTasksThisMonth}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.completedTasksThisMonth}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-pending-approvals">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-pending-approvals"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-yellow-100 p-2 rounded-lg">
               <Clock className="text-yellow-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Pending Approvals</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.pendingApprovals}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.pendingApprovals}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-productivity">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-productivity"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-indigo-100 p-2 rounded-lg">
               <TrendingUp className="text-indigo-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Team Productivity</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.teamProductivity}%</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.teamProductivity}%
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-upcoming-deadlines">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-upcoming-deadlines"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-red-100 p-2 rounded-lg">
               <AlertTriangle className="text-red-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Upcoming Deadlines</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.upcomingDeadlines}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.upcomingDeadlines}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Org-wide Completion Metrics */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1" data-testid="card-on-time-rate">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1"
+          data-testid="card-on-time-rate"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-green-100 p-2 rounded-lg">
               <Target className="text-green-600" size={20} />
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-600">On-Time Completion</p>
-              <p className="text-xl font-bold text-gray-900">{orgOnTimeRate}%</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgOnTimeRate}%
+              </p>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${orgOnTimeRate}%` }} />
+                <div
+                  className="bg-green-600 h-2 rounded-full"
+                  style={{ width: `${orgOnTimeRate}%` }}
+                />
               </div>
               <p className="text-[11px] text-gray-500 mt-1">
-                On-time {orgCompletion.onTime} · Overdue closed {orgCompletion.overdueClosed}
+                On-time {orgCompletion.onTime} · Overdue closed{" "}
+                {orgCompletion.overdueClosed}
               </p>
             </div>
           </div>
@@ -296,46 +453,99 @@ const OrganizationDashboard = () => {
       {/* Adoption + Overdue + Usage + Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Adoption Dashboard */}
-        <div className="bg-white rounded-lg shadow-sm border" data-testid="card-adoption-dashboard">
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-adoption-dashboard"
+        >
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="text-blue-600" size={18} />
               Adoption Dashboard
             </h2>
             <span className="text-sm text-gray-600">
-              Active: <span className="font-semibold text-gray-900">{adoption.activeUsers}</span> / {adoption.totalUsers}
+              Active:{" "}
+              <span className="font-semibold text-gray-900">
+                {adoption.activeUsers}
+              </span>{" "}
+              / {adoption.totalUsers}
             </span>
           </div>
           <div className="p-6 space-y-6">
             {/* Logins trend */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-800">Logins (7d)</span>
-                <span className="text-xs text-gray-500">peak {maxLogins}</span>
+            <TooltipProvider>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-800">
+                    Logins (7d)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    peak {maxLogins}
+                  </span>
+                </div>
+                <div className="flex items-end gap-3">
+                  {adoption.logins7d.map((v, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div className="group relative flex items-end h-20">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="bg-blue-500 w-6 rounded-sm"
+                              style={{ height: `${(v / maxLogins) * 100}%` }}
+                          
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} logins
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                       <span className="mt-1 text-[10px] text-gray-500">{last7DayLabels[i]}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-end gap-2 h-20">
-                {adoption.logins7d.map((v, i) => (
-                  <div key={i} className="bg-blue-500 w-6 rounded-sm" style={{ height: `${(v / maxLogins) * 100}%` }} />
-                ))}
-              </div>
-            </div>
+      
             {/* Comments/updates trend */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-800">Comments/Updates (7d)</span>
+                <span className="text-sm font-medium text-gray-800">
+                  Comments/Updates (7d)
+                </span>
                 <span className="text-xs text-gray-500">peak {maxUpdates}</span>
               </div>
-              <div className="flex items-end gap-2 h-20">
+              <div className="flex items-end gap-3">
                 {adoption.updates7d.map((v, i) => (
-                  <div key={i} className="bg-indigo-500 w-6 rounded-sm" style={{ height: `${((v || 0) / maxUpdates) * 100}%` }} />
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="group relative flex items-end h-20">
+                     <Tooltip>
+                          <TooltipTrigger asChild>
+                      <div
+                        className="bg-indigo-500 w-6 rounded-sm"
+                        style={{ height: `${((v || 0) / maxUpdates) * 100}%` }}
+                     
+                      />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} comments/updates
+                          </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="mt-1 text-[10px] text-gray-500">
+                      {last7DayLabels[i]}
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
+                  </TooltipProvider>
           </div>
         </div>
 
         {/* Overdue % by Department */}
-        <div className="bg-white rounded-lg shadow-sm border" data-testid="card-overdue-by-dept">
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-overdue-by-dept"
+        >
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <PieChart className="text-red-600" size={18} />
@@ -347,7 +557,9 @@ const OrganizationDashboard = () => {
               <div key={d.name}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-gray-700">{d.name}</span>
-                  <span className="text-gray-900 font-medium">{d.percent}%</span>
+                  <span className="text-gray-900 font-medium">
+                    {d.percent}%
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
@@ -363,7 +575,10 @@ const OrganizationDashboard = () => {
         {/* Module Usage + System Health (stacked vertical) */}
         <div className="space-y-6">
           {/* Module Usage Report */}
-          <div className="bg-white rounded-lg shadow-sm border" data-testid="card-module-usage">
+          <div
+            className="bg-white rounded-lg shadow-sm border"
+            data-testid="card-module-usage"
+          >
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <BarChart3 className="text-green-600" size={18} />
@@ -373,24 +588,39 @@ const OrganizationDashboard = () => {
             <div className="p-6">
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-gray-700">Quick Tasks</span>
-                <span className="font-medium text-gray-900">{moduleUsage.quick}</span>
+                <span className="font-medium text-gray-900">
+                  {moduleUsage.quick}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div className="h-3 rounded-l-full bg-emerald-500" style={{ width: `${quickPct}%` }} />
+                <div
+                  className="h-3 rounded-l-full bg-emerald-500"
+                  style={{ width: `${quickPct}%` }}
+                />
               </div>
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-gray-700">Full Tasks</span>
-                <span className="font-medium text-gray-900">{moduleUsage.full}</span>
+                <span className="font-medium text-gray-900">
+                  {moduleUsage.full}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
-                <div className="h-3 rounded-l-full bg-blue-500" style={{ width: `${fullPct}%` }} />
+                <div
+                  className="h-3 rounded-l-full bg-blue-500"
+                  style={{ width: `${fullPct}%` }}
+                />
               </div>
-              <p className="text-xs text-gray-500 mt-2">Quick vs Full usage ratio: {quickPct}% / {fullPct}%</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Quick vs Full usage ratio: {quickPct}% / {fullPct}%
+              </p>
             </div>
           </div>
 
           {/* System Health */}
-          <div className="bg-white rounded-lg shadow-sm border" data-testid="card-system-health">
+          <div
+            className="bg-white rounded-lg shadow-sm border"
+            data-testid="card-system-health"
+          >
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <AlertTriangle className="text-orange-600" size={18} />
@@ -402,7 +632,11 @@ const OrganizationDashboard = () => {
                 <div key={e.id} className="flex items-start gap-3">
                   <div
                     className={`w-2.5 h-2.5 mt-1 rounded-full ${
-                      e.severity === "error" ? "bg-red-600" : e.severity === "warning" ? "bg-yellow-500" : "bg-green-500"
+                      e.severity === "error"
+                        ? "bg-red-600"
+                        : e.severity === "warning"
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
                     }`}
                   />
                   <div className="flex-1">
@@ -411,7 +645,9 @@ const OrganizationDashboard = () => {
                   </div>
                 </div>
               ))}
-              {systemHealth.length === 0 && <div className="text-sm text-gray-500">No issues detected.</div>}
+              {systemHealth.length === 0 && (
+                <div className="text-sm text-gray-500">No issues detected.</div>
+              )}
             </div>
           </div>
         </div>
@@ -419,7 +655,7 @@ const OrganizationDashboard = () => {
 
       {/* Existing Main Content Grid (Team Performance + Recent Activity) */}
       {/* ...existing code... */}
-    {/* Keep your current Team Performance, Recent Activity, Upcoming Deadlines, and Charts sections below unchanged */}
+      {/* Keep your current Team Performance, Recent Activity, Upcoming Deadlines, and Charts sections below unchanged */}
     </div>
   );
 };

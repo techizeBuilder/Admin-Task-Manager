@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import ReactECharts from "echarts-for-react";
 import {
   Users,
   TrendingUp,
@@ -14,6 +15,9 @@ import {
   AlertOctagon,
   X,
   Gauge,
+  FileSpreadsheet,
+  FileText,
+  CalendarClock,
 } from "lucide-react";
 import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
 
@@ -24,6 +28,13 @@ import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
 const ManagerDashboard = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [selectedMember, setSelectedMember] = useState(null);
+  // Report filters & scheduling
+  const [memberFilter, setMemberFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ frequency: "weekly", time: "09:00", email: "" });
 
   // Get current user data
   const { data: user } = useQuery({
@@ -89,20 +100,6 @@ const ManagerDashboard = () => {
       productivity: 88,
       status: "online",
       lastActivity: "5 minutes ago",
-    }, {
-      id: 1,
-      name: "Alice Johnson",
-      role: "Senior Developer",
-      avatar: "AJ",
-      capacity: 6, // weekly capacity
-      activeTasks: 4,
-      overdueTasks: 1,
-      completedThisWeek: 3,
-      completedOnTimeThisMonth: 9,
-      overdueClosedThisMonth: 1,
-      productivity: 95,
-      status: "online",
-      lastActivity: "2 minutes ago",
     },
     {
       id: 4,
@@ -118,22 +115,7 @@ const ManagerDashboard = () => {
       productivity: 75,
       status: "offline",
       lastActivity: "2 hours ago",
-    }, {
-      id: 1,
-      name: "Alice Johnson",
-      role: "Senior Developer",
-      avatar: "AJ",
-      capacity: 6, // weekly capacity
-      activeTasks: 4,
-      overdueTasks: 1,
-      completedThisWeek: 3,
-      completedOnTimeThisMonth: 9,
-      overdueClosedThisMonth: 1,
-      productivity: 95,
-      status: "online",
-      lastActivity: "2 minutes ago",
     },
-  
   ];
 
   // Example project stats with milestones
@@ -219,6 +201,121 @@ const ManagerDashboard = () => {
     { day: "Sun", completed: 2, assigned: 3 },
   ];
 
+  // ===== Analytics datasets & helpers (mock) =====
+  const priorities = ["urgent", "high", "medium", "low"];
+  const statuses = ["pending", "in_progress", "completed", "blocked"];
+  const generateTeamMockTasks = (members, count = 140) => {
+    const now = new Date();
+    const addDays = (d, n) => {
+      const x = new Date(d);
+      x.setDate(x.getDate() + n);
+      return x;
+    };
+    const rand = (n) => Math.floor(Math.random() * n);
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      const m = members[rand(members.length)];
+      const createdAt = addDays(now, -rand(45));
+      const dueDate = addDays(createdAt, rand(20) + 1);
+      const isCompleted = Math.random() < 0.55;
+      const completedAt = isCompleted ? addDays(dueDate, rand(6) - 3) : null;
+      arr.push({
+        id: `t-${i + 1}`,
+        title: `Task #${i + 1}`,
+        assigneeId: m.id,
+        assignee: m.name,
+        priority: priorities[rand(priorities.length)],
+        status: isCompleted ? "completed" : statuses[rand(statuses.length - 1)],
+        createdAt: createdAt.toISOString(),
+        dueDate: dueDate.toISOString(),
+        completedAt: completedAt ? completedAt.toISOString() : null,
+        type: Math.random() < 0.45 ? "quick" : "full",
+      });
+    }
+    return arr;
+  };
+  const teamTasks = useMemo(() => generateTeamMockTasks(teamMembers, 150), [teamMembers]);
+  const now = new Date();
+
+  const filteredTasks = useMemo(() => {
+    return teamTasks.filter((t) => {
+      const byMember = memberFilter === "all" ? true : t.assigneeId === Number(memberFilter);
+      const byPriority = priorityFilter === "all" ? true : t.priority === priorityFilter;
+      const byFrom = dueFrom ? new Date(t.dueDate) >= new Date(dueFrom) : true;
+      const byTo = dueTo ? new Date(t.dueDate) <= new Date(dueTo) : true;
+      const inRange =
+        selectedTimeRange === "this_week"
+          ? new Date(t.createdAt) >= new Date(new Date().setDate(new Date().getDate() - 7))
+          : selectedTimeRange === "this_month"
+          ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          : selectedTimeRange === "last_month"
+          ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+          : true;
+      return byMember && byPriority && byFrom && byTo && inRange;
+    });
+  }, [teamTasks, memberFilter, priorityFilter, dueFrom, dueTo, selectedTimeRange]);
+
+  const overdueRows = useMemo(() => {
+    return filteredTasks
+      .filter((t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "completed")
+      .map((t) => ({
+        id: t.id,
+        task: t.title,
+        assignee: t.assignee,
+        priority: t.priority,
+        dueDate: new Date(t.dueDate).toLocaleDateString(),
+        daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
+      }))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  }, [filteredTasks]);
+
+  const efficiencyPie = useMemo(() => {
+    let onTime = 0,
+      late = 0;
+    for (const t of filteredTasks) {
+      if (t.status !== "completed" || !t.dueDate || !t.completedAt) continue;
+      if (new Date(t.completedAt) <= new Date(t.dueDate)) onTime++;
+      else late++;
+    }
+    return {
+      tooltip: { trigger: "item" },
+      series: [
+        {
+          type: "pie",
+          radius: ["45%", "70%"],
+          label: { show: false },
+          labelLine: { show: false },
+          data: [
+            { value: onTime, name: "On-time", itemStyle: { color: "#16a34a" } },
+            { value: late, name: "Late", itemStyle: { color: "#ef4444" } },
+          ],
+        },
+      ],
+    };
+  }, [filteredTasks]);
+
+  const workloadStacked = useMemo(() => {
+    const map = new Map(teamMembers.map((m) => [m.id, { name: m.name, urgent: 0, high: 0, medium: 0, low: 0 }]));
+    for (const t of filteredTasks) if (map.has(t.assigneeId)) map.get(t.assigneeId)[t.priority]++;
+    const names = Array.from(map.values()).map((x) => x.name);
+    const colors = { urgent: "#ef4444", high: "#f59e0b", medium: "#3b82f6", low: "#10b981" };
+    const series = ["urgent", "high", "medium", "low"].map((p) => ({
+      name: p[0].toUpperCase() + p.slice(1),
+      type: "bar",
+      stack: "total",
+      itemStyle: { color: colors[p] },
+      data: Array.from(map.values()).map((x) => x[p]),
+    }));
+    return {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 10, right: 10, top: 10, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: names },
+      yAxis: { type: "value" },
+      series,
+    };
+  }, [filteredTasks, teamMembers]);
+
   // Helpers
   const getStatusColor = (status) => {
     switch (status) {
@@ -281,6 +378,43 @@ const ManagerDashboard = () => {
     };
   }, [teamMembers]);
 
+  // Exports
+  const toCSV = (rows) => {
+    if (!rows?.length) return "";
+    const header = Object.keys(rows[0]);
+    const esc = (v) =>
+      typeof v === "string" && (v.includes(",") || v.includes('"') || v.includes("\n"))
+        ? `"${v.replace(/"/g, '""')}"`
+        : v ?? "";
+    return [header.join(","), ...rows.map((r) => header.map((k) => esc(r[k])).join(","))].join("\n");
+  };
+  const download = (name, content, type = "text/csv;charset=utf-8") => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleExportCSV = () => {
+    const csv = toCSV(
+      filteredTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        assignee: t.assignee,
+        priority: t.priority,
+        status: t.status,
+        createdAt: t.createdAt,
+        dueDate: t.dueDate,
+        completedAt: t.completedAt || "",
+        type: t.type,
+      }))
+    );
+    download(`manager-report-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  };
+  const handleExportPDF = () => window.print();
+
   const handleOpenMember = (member) => setSelectedMember(member);
   const handleCloseMember = () => setSelectedMember(null);
 
@@ -322,20 +456,93 @@ const ManagerDashboard = () => {
         </p>
       </div>
 
-      {/* Time Range Selector */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
+      {/* Filters & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="text-sm font-medium text-gray-700">Time Range:</label>
           <select
             value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
           >
             <option value="this_week">This Week</option>
             <option value="this_month">This Month</option>
             <option value="last_month">Last Month</option>
             <option value="this_quarter">This Quarter</option>
           </select>
+          <select
+            value={memberFilter}
+            onChange={(e) => setMemberFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
+          >
+            <option value="all">All members</option>
+            {teamMembers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
+          >
+            <option value="all">All priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <input
+            type="date"
+            value={dueFrom}
+            onChange={(e) => setDueFrom(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
+            aria-label="Due from"
+          />
+          <input
+            type="date"
+            value={dueTo}
+            onChange={(e) => setDueTo(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
+            aria-label="Due to"
+          />
+          {(memberFilter !== "all" || priorityFilter !== "all" || dueFrom || dueTo) && (
+            <button
+              onClick={() => {
+                setMemberFilter("all");
+                setPriorityFilter("all");
+                setDueFrom("");
+                setDueTo("");
+              }}
+              className="px-3 py-2 rounded-md bg-gray-100 text-sm"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md flex items-center gap-2 text-sm"
+            title="Export Excel (CSV)"
+          >
+            <FileSpreadsheet size={16} /> CSV
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md flex items-center gap-2 text-sm"
+            title="Export as PDF"
+          >
+            <FileText size={16} /> PDF
+          </button>
+          <button
+            onClick={() => setScheduleOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center gap-2 text-sm"
+            title="Schedule report email"
+          >
+            <CalendarClock size={16} /> Schedule
+          </button>
         </div>
       </div>
 
@@ -416,6 +623,78 @@ const ManagerDashboard = () => {
         </div>
       </div>
 
+      {/* Team Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <TrendingUp className="text-indigo-600" size={18} /> Productivity & Efficiency
+            </h2>
+          </div>
+          <div className="p-6">
+            <ReactECharts option={efficiencyPie} style={{ height: 280 }} />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Users className="text-green-600" size={18} /> Workload by Priority
+            </h2>
+          </div>
+          <div className="p-6">
+            <ReactECharts option={workloadStacked} style={{ height: 320 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Overdue Tasks Report */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <AlertTriangle className="text-red-600" size={18} /> Overdue Tasks Report
+          </h2>
+          <span className="text-sm text-gray-600">
+            {overdueRows.length > 0 ? `${overdueRows.length} items` : "All caught up ✅"}
+          </span>
+        </div>
+        {overdueRows.length > 0 && (
+          <div className="p-6 overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Assignee</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {overdueRows.map((r) => (
+                  <tr key={r.id} className="hover:bg-gray-50">
+                    <td className="py-3 px-6 text-sm text-gray-900">{r.task}</td>
+                    <td className="py-3 px-6 text-sm">
+                      <button
+                        className="text-blue-600 hover:underline"
+                        onClick={() => setMemberFilter(String(teamMembers.find((m) => m.name === r.assignee)?.id || "all"))}
+                        title="Filter by member"
+                      >
+                        {r.assignee}
+                      </button>
+                    </td>
+                    <td className="py-3 px-6 text-xs">
+                      <span className="px-2 py-1 rounded-full border">{r.priority}</span>
+                    </td>
+                    <td className="py-3 px-6 text-sm">{r.dueDate}</td>
+                    <td className="py-3 px-6 text-sm font-semibold text-red-600">{r.daysOverdue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Members List */}
@@ -740,6 +1019,58 @@ const ManagerDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Schedule modal (Phase II stub) */}
+      {scheduleOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Schedule Report Email</h3>
+              <button className="p-2 hover:bg-gray-100 rounded" onClick={() => setScheduleOpen(false)}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <select
+                className="border rounded px-2 py-1 w-full"
+                value={scheduleForm.frequency}
+                onChange={(e) => setScheduleForm((s) => ({ ...s, frequency: e.target.value }))}
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <input
+                type="time"
+                className="border rounded px-2 py-1 w-full"
+                value={scheduleForm.time}
+                onChange={(e) => setScheduleForm((s) => ({ ...s, time: e.target.value }))}
+              />
+              <input
+                type="email"
+                className="border rounded px-2 py-1 w-full"
+                placeholder="manager@company.com"
+                value={scheduleForm.email}
+                onChange={(e) => setScheduleForm((s) => ({ ...s, email: e.target.value }))}
+              />
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200" onClick={() => setScheduleOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => {
+                  setScheduleOpen(false);
+                  alert("Schedule saved (stub)");
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Member Drill-Down Panel */}
       {selectedMember && (
