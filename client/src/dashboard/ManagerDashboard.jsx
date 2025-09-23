@@ -16,7 +16,6 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
-import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
 
 /**
  * Manager Dashboard - Team management workspace for managers
@@ -329,9 +328,8 @@ const ManagerDashboard = () => {
         {/* Quick Stats Sidebar */}
         <div className="space-y-6">
           {/* Overdue Items */}
-              <QuickTaskWidget />
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="mt-4 p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
                 Needs Attention

@@ -1,4 +1,4 @@
-import { Type, Calendar, ChevronDown, CheckSquare, Hash, Mail, Phone, FileText, MapPin } from 'lucide-react';
+import { Type, Calendar, ChevronDown, CheckSquare, Hash, Mail, Phone, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -50,32 +50,13 @@ const fieldTypes = [
     label: 'Multi-select',
     icon: CheckSquare,
     description: 'Multiple selection checkboxes'
-  },
-    // New Fields
-  {
-    type: 'signature',
-    label: 'Signature',
-    icon: CheckSquare, // Replace with an appropriate icon
-    description: 'Capture user signature'
-  },
-  {
-    type: 'file_upload',
-    label: 'File Upload',
-    icon: FileText, // Replace with an appropriate icon
-    description: 'Upload files like images or documents'
-  },
-  {
-    type: 'location_picker',
-    label: 'Location Picker',
-    icon: MapPin,
-    description: 'Pick a location using a map'
   }
 ];
 
 export function FormFieldTypes({ onAddField }) {
   return (
-    <Card className="border-slate-200 shadow-sm bg-white dark:bg-[rgb(30,30,45)]">
-      <CardHeader className="pb-4 border-b border-slate-200 ">
+    <Card className="border-slate-200 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800">
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white flex items-center">
           <Type className="h-5 w-5 mr-2 text-purple-600" />
           Field Types
