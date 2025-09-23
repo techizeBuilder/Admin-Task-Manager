@@ -168,7 +168,7 @@ export default function RegularTaskManager() {
     visibility: "private", // default Private
     labels: [],
     labelInput: "",
-    attachments: [],  
+    attachments: [],
     taskType: "simple", // default Simple
     // Advanced
     referenceProcess: "",
@@ -307,8 +307,8 @@ export default function RegularTaskManager() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error loading regular tasks: {error.message}</p>
-          <button 
-            onClick={() => refetch()} 
+          <button
+            onClick={() => refetch()}
             className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
           >
             Retry
@@ -334,13 +334,13 @@ export default function RegularTaskManager() {
               </div>
             </div>
             <Link href="/tasks/create?type=regular">
-            <button
+              <button
 
-              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Regular Task
-            </button>
+                className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Regular Task
+              </button>
             </Link>
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function RegularTaskManager() {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -434,17 +434,15 @@ export default function RegularTaskManager() {
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === "grid" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -462,42 +460,42 @@ export default function RegularTaskManager() {
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Card Header */}
-                <div className={`p-6 ${RT.panelHeader}`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 rounded-lg bg-teal-100 flex items-center justify-center">
-                        <File className={`h-5 w-5 ${RT.icon}`} />
+                <div className={`p-4 ${RT.panelHeader}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-8 w-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                        <File className={`h-4 w-4 ${RT.icon}`} />
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{task.taskName}</h3>
-                        <p className="text-sm text-gray-600 capitalize">{task.taskType}</p>
+                        <h3 className="text-base font-semibold text-gray-900">{task.taskName}</h3>
+                        <p className="text-xs text-gray-600 capitalize">{task.taskType}</p>
                       </div>
                     </div>
-                   {/* Actions - now in 3-dot menu */}
-        <DropdownMenu className='bg-white'>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-white">
-        
-            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
-              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
-              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+
+                    {/* Actions - now in 3-dot menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                          <MoreVerticalIcon className="h-4 w-4 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36 bg-white">
+                        <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+                          <Edit3 className="h-3.5 w-3.5 mr-2 text-gray-600" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+                          <Trash2 className="h-3.5 w-3.5 mr-2 text-red-600" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{task.description}</p>
+                  <p className="text-xs text-gray-600 mb-2">{task.description}</p>
 
                   {/* Status and Priority */}
-                  <div className="flex items-center flex-wrap gap-2 mb-4">
+                  <div className="flex items-center flex-wrap gap-2 mb-2">
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(
                         task.status
                       )}`}
                     >
@@ -505,27 +503,29 @@ export default function RegularTaskManager() {
                       <span className="ml-1">{task.status.replace("_", " ").toUpperCase()}</span>
                     </span>
                     <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getPriorityColor(
                         task.priority
                       )}`}
                     >
                       {task.priority.toUpperCase()}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${RT.chip.primary}`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${RT.chip.primary}`}
+                    >
                       <File className="h-3 w-3 mr-1" />
                       REGULAR
                     </span>
                   </div>
 
-                  {/* Progress (derived/optional) */}
-                  <div className="space-y-2">
+                  {/* Progress */}
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className="text-sm text-gray-500">{task.progress}%</span>
+                      <span className="text-xs font-medium text-gray-700">Progress</span>
+                      <span className="text-xs text-gray-500">{task.progress}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
                       <div
-                        className="bg-teal-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-teal-600 h-1.5 rounded-full transition-all duration-300"
                         style={{ width: `${task.progress}%` }}
                       />
                     </div>
@@ -533,29 +533,28 @@ export default function RegularTaskManager() {
                 </div>
 
                 {/* Card Body */}
-                <div className="p-6 space-y-4">
-                  {/* Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                <div className="p-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex items-center space-x-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-gray-400" />
                       <span className="text-gray-600">
                         Due: {new Date(task.dueDate).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-1.5">
+                      <Users className="h-3.5 w-3.5 text-gray-400" />
                       <span className="text-gray-600">{task.assignedTo}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1.5">
                       {task.visibility === "public" ? (
-                        <Eye className="h-4 w-4 text-gray-400" />
+                        <Eye className="h-3.5 w-3.5 text-gray-400" />
                       ) : (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
+                        <EyeOff className="h-3.5 w-3.5 text-gray-400" />
                       )}
                       <span className="text-gray-600 capitalize">{task.visibility}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Paperclip className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-1.5">
+                      <Paperclip className="h-3.5 w-3.5 text-gray-400" />
                       <span className="text-gray-600">
                         {task.attachments?.length || 0} Attachment
                         {task.attachments?.length === 1 ? "" : "s"}
@@ -566,12 +565,12 @@ export default function RegularTaskManager() {
                   {/* Labels */}
                   {task.labels?.length ? (
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Labels</h4>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-xs font-medium text-gray-700 mb-1">Labels</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {task.labels.map((label, index) => (
                           <span
                             key={`${label}-${index}`}
-                            className="inline-flex items-center px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700"
+                            className="inline-flex items-center px-2 py-0.5 text-[10px] rounded-full bg-gray-100 text-gray-700"
                           >
                             <Tag className="h-3 w-3 mr-1 text-gray-500" />
                             {label}
@@ -583,21 +582,21 @@ export default function RegularTaskManager() {
                 </div>
 
                 {/* Card Footer */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <button className="inline-flex items-center px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                        <Edit3 className="h-4 w-4 mr-1" />
+                    <div className="flex items-center space-x-1.5">
+                      <button className="inline-flex items-center px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors">
+                        <Edit3 className="h-3.5 w-3.5 mr-1" />
                         Edit
                       </button>
-                      
                     </div>
-                    <button className="inline-flex items-center px-4 py-1.5 bg-teal-600 text-white text-sm font-medium rounded-md hover:bg-teal-700 transition-colors">
+                    <button className="inline-flex items-center px-3 py-1 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 transition-colors">
                       View Details
                     </button>
                   </div>
                 </div>
               </div>
+
             ))}
           </div>
         ) : (
@@ -669,7 +668,7 @@ export default function RegularTaskManager() {
                         <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                           <Edit3 className="h-4 w-4 text-gray-500" />
                         </button>
-                     
+
                         <button className="inline-flex items-center px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors">
                           View Details
                         </button>
@@ -687,13 +686,13 @@ export default function RegularTaskManager() {
             <File className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No regular tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first regular task.</p>
-             <Link href="/tasks/create?type=regular">
-            <button
-              className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Regular Task
-            </button></Link>
+            <Link href="/tasks/create?type=regular">
+              <button
+                className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Regular Task
+              </button></Link>
           </div>
         )}
 
@@ -702,7 +701,7 @@ export default function RegularTaskManager() {
           <div className="mt-6 flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
             <div className="flex items-center text-sm text-gray-700">
               <span>
-                Showing page {pagination.currentPage} of {pagination.totalPages} 
+                Showing page {pagination.currentPage} of {pagination.totalPages}
                 ({pagination.totalTasks} total tasks)
               </span>
             </div>
@@ -722,11 +721,10 @@ export default function RegularTaskManager() {
                   <button
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      pageNum === pagination.currentPage
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${pageNum === pagination.currentPage
                         ? 'bg-teal-600 text-white'
                         : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {pageNum}
                   </button>
@@ -744,7 +742,7 @@ export default function RegularTaskManager() {
         )}
       </div>
 
-   
+
     </div>
   );
 }

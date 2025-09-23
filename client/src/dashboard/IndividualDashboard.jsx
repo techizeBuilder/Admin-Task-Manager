@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Plus,
@@ -17,6 +17,8 @@ import {
   Edit,
   Trash2,
   X,
+  Download,   // added
+  ListChecks, // added
 } from "lucide-react";
 import CreateTask from "../pages/newComponents/CreateTask";
 
@@ -33,8 +35,12 @@ const IndividualDashboard = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [quickTaskInput, setQuickTaskInput] = useState("");
+   const [priorityFilter, setPriorityFilter] = useState("all");
+ const [dueFrom, setDueFrom] = useState("");
+ const [dueTo, setDueTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
+  const [recurringDone, setRecurringDone] = useState({});
 
   // Get current user data
   const { data: user } = useQuery({
@@ -43,44 +49,155 @@ const IndividualDashboard = ({
   });
 
   // Fetch dashboard stats from API
-  const { data: dashboardStats, isLoading: statsLoading } = useQuery({
+  const { data: dashboardStats } = useQuery({
     queryKey: ["/api/dashboard/stats"],
     retry: false,
   });
 
   // Fetch tasks from API
-  const { data: apiTasks = [], isLoading: tasksLoading } = useQuery({
+  const { data: apiTasks = [] } = useQuery({
     queryKey: ["/api/tasks"],
     retry: false,
   });
 
   // Use API data or fallback to passed tasks
-  const currentTasks =
-    apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : [];
+   const demoTasks = useMemo(() => generateMockTasks(), []);
+ const currentTasks =
+   apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : demoTasks;
 
-  // Use API dashboard stats or fallback to userStats
-  const currentStats = dashboardStats || {
-    totalTasks: userStats.totalTasks || 20,
-    completedTasks: userStats.completedToday || 5,
-    inProgressTasks: userStats.inProgressTasks || 8,
-    overdueTasks: userStats.tasksPastDue || 2,
-    upcomingDeadlines: userStats.upcomingDeadlines || 4,
-    tasksByPriority: userStats.tasksByPriority || {
-      low: 3,
-      medium: 8,
-      high: 6,
-      urgent: 3,
+  // Use API dashboard stats or fallback to userStats (mock)
+
+ // Use API stats -> provided userStats -> compute from currentTasks
+ const computedStats = useMemo(() => computeStatsFromTasks(currentTasks), [currentTasks]);
+  const currentStats =
+    dashboardStats ||
+    (userStats && Object.keys(userStats).length ? userStats : computedStats);
+  // Derived metrics for Task Health and Overdue
+  const now = new Date();
+  const statusOf = (s) => (s || "").toLowerCase();
+  const openCount = currentTasks.filter((t) =>
+    ["pending", "todo", "open"].includes(statusOf(t.status))
+  ).length;
+  const inProgressCount = currentTasks.filter((t) =>
+    ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))
+  ).length;
+  const completedCount = currentTasks.filter(
+    (t) => statusOf(t.status) === "completed"
+  ).length;
+  const overdueCount = currentTasks.filter(
+    (t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed"
+  ).length;
+
+  // Recurring adherence (last 7 days)
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const recurringTasksFull = currentTasks.filter((t) => t.isRecurring || t.recurringInterval);
+  const recurringDue = recurringTasksFull.filter(
+    (t) => t.dueDate && new Date(t.dueDate) >= sevenDaysAgo && new Date(t.dueDate) <= now
+  );
+  const recurringOnTime = recurringDue.filter(
+    (t) =>
+      statusOf(t.status) === "completed" &&
+      t.completedAt &&
+      new Date(t.completedAt) <= new Date(t.dueDate)
+  ).length;
+  const recurringMissed = recurringDue.filter(
+    (t) => statusOf(t.status) !== "completed" && new Date(t.dueDate) < now
+  ).length;
+  const recurringAdherencePct = recurringDue.length
+    ? Math.round((recurringOnTime / recurringDue.length) * 100)
+    : 100;
+
+  // Efficiency: On-time vs Late (completed tasks)
+ const completedOnTimeCount = currentTasks.filter((t) => {
+   if (statusOf(t.status) !== "completed") return false;
+   if (!t.dueDate || !t.completedAt) return false;
+   return new Date(t.completedAt) <= new Date(t.dueDate);
+ }).length;
+ const completedLateCount = currentTasks.filter((t) => {
+   if (statusOf(t.status) !== "completed") return false;
+   if (!t.dueDate || !t.completedAt) return false;
+   return new Date(t.completedAt) > new Date(t.dueDate);
+ }).length;
+ const efficiencyPieOptions = {
+   tooltip: { trigger: "item" },
+   series: [
+     {
+       type: "pie",
+       radius: ["45%", "70%"],
+       avoidLabelOverlap: false,
+       label: { show: false },
+       labelLine: { show: false },
+       data: [
+         { value: completedOnTimeCount, name: "On-time", itemStyle: { color: "#16a34a" } },
+         { value: completedLateCount, name: "Late", itemStyle: { color: "#ef4444" } },
+       ],
+     },
+   ],
+ };
+  // Completion Trend: last 7 days
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (6 - i));
+    return d;
+  });
+  const dayKey = (d) => d.toISOString().slice(0, 10);
+  const dayLabel = (d) =>
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const dayMap = Object.fromEntries(last7.map((d) => [dayKey(d), 0]));
+
+  currentTasks.forEach((t) => {
+    if (statusOf(t.status) === "completed") {
+      const date = t.completedAt || t.updatedAt || t.dueDate || t.createdAt;
+      if (date) {
+        const k = dayKey(new Date(date));
+        if (k in dayMap) dayMap[k] += 1;
+      }
+    }
+  });
+
+  const trendLabels = last7.map((d) => dayLabel(d));
+  const trendCounts = last7.map((d) => dayMap[dayKey(d)] || 0);
+
+  const completionTrendOptions = {
+    color: ["#2563eb"],
+    tooltip: { trigger: "axis" },
+    grid: { left: 24, right: 12, top: 24, bottom: 24 },
+    xAxis: {
+      type: "category",
+      data: trendLabels,
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: "#e5e7eb" } },
+      axisLabel: { color: "#6b7280" },
     },
+    yAxis: {
+      type: "value",
+      minInterval: 1,
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: "#e5e7eb" } },
+      axisLabel: { color: "#6b7280" },
+    },
+    series: [
+      {
+        type: "line",
+        data: trendCounts,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 6,
+        areaStyle: { color: "rgba(37,99,235,0.1)" },
+      },
+    ],
   };
 
   const samplePinnedTasks =
     pinnedTasks.length > 0
       ? pinnedTasks
       : [
-        { id: 1, title: "Weekly planning session", priority: "high" },
-        { id: 2, title: "Client feedback review", priority: "medium" },
-        { id: 3, title: "Sprint retrospective", priority: "low" },
-      ];
+          { id: 1, title: "Weekly planning session", priority: "high" },
+          { id: 2, title: "Client feedback review", priority: "medium" },
+          { id: 3, title: "Sprint retrospective", priority: "low" },
+        ];
 
   const handleQuickTaskSubmit = () => {
     if (quickTaskInput.trim()) {
@@ -90,15 +207,12 @@ const IndividualDashboard = ({
   };
 
   const handleCreateTask = () => {
-    // Open Create Task drawer with regular task as default
     setShowCreateTaskDrawer(true);
   };
 
   const handleCreateTaskSubmit = (taskData) => {
     console.log("Task created from dashboard:", taskData);
-    // Here you would typically call API to create the task
     setShowCreateTaskDrawer(false);
-    // Optionally refresh tasks list or show success message
   };
 
   const handleCloseCreateTask = () => {
@@ -133,6 +247,84 @@ const IndividualDashboard = ({
     }
   };
 
+  // Recurring tasks (fallback if none on tasks)
+  const defaultRecurring = [
+    { id: "r1", title: "Daily standup", frequency: "daily" },
+    { id: "r2", title: "Weekly planning", frequency: "weekly" },
+    { id: "r3", title: "Inbox zero", frequency: "daily" },
+  ];
+  const recurringTasks =
+    currentTasks
+      .filter((t) => t.isRecurring || t.recurringInterval)
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        frequency: t.recurringInterval || "recurring",
+      })) || [];
+  const recurringItems =
+    recurringTasks.length > 0 ? recurringTasks : defaultRecurring;
+
+  const toggleRecurring = (id) =>
+    setRecurringDone((s) => ({ ...s, [id]: !s[id] }));
+
+  const handleViewMyTasks = () => {
+    document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
+    setShowFilters(true);
+  };
+
+  const exportMyReport = () => {
+    const rows = [];
+    rows.push(["Metric", "Value"]);
+    rows.push(["Open", openCount]);
+    rows.push(["In Progress", inProgressCount]);
+    rows.push(["Completed", completedCount]);
+    rows.push(["Overdue", overdueCount]);
+    rows.push([]);
+    rows.push(["Last 7 days", ...trendLabels]);
+    rows.push(["Completed", ...trendCounts]);
+    rows.push([]);
+    rows.push(["Task ID", "Title", "Status", "Priority", "Due Date"]);
+    currentTasks.forEach((t) =>
+      rows.push([
+        t.id,
+        t.title,
+        t.status,
+        t.priority,
+        t.dueDate ? new Date(t.dueDate).toISOString() : "",
+      ])
+    );
+    const csv = rows
+      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "my-task-report.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const printMyReport = () => {
+    window.print();
+  };
+
+  const copyShareLink = () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("search", searchTerm);
+      url.searchParams.set("filter", selectedFilter);
+      url.searchParams.set("priority", priorityFilter);
+      if (dueFrom) url.searchParams.set("dueFrom", dueFrom);
+      else url.searchParams.delete("dueFrom");
+      if (dueTo) url.searchParams.set("dueTo", dueTo);
+      else url.searchParams.delete("dueTo");
+      navigator.clipboard?.writeText(url.toString());
+      alert("Share link copied to clipboard");
+    } catch (e) {
+      console.error("Copy link failed", e);
+    }
+  };
+
   const filteredTasks = currentTasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,11 +332,25 @@ const IndividualDashboard = ({
         task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.tags &&
         task.tags.some((tag) =>
-          tag.toLowerCase().includes(searchTerm.toLowerCase()),
+          tag.toLowerCase().includes(searchTerm.toLowerCase())
         ));
     const matchesFilter =
-      selectedFilter === "all" || task.status === selectedFilter;
-    return matchesSearch && matchesFilter;
+      selectedFilter === "all"
+        ? true
+        : selectedFilter === "overdue"
+        ? task.dueDate &&
+          new Date(task.dueDate) < now &&
+          statusOf(task.status) !== "completed"
+        : statusOf(task.status) === selectedFilter;
+   const matchesPriority =
+     priorityFilter === "all"
+       ? true
+       : (task.priority || "").toLowerCase() === priorityFilter;
+   const matchesDueFrom = dueFrom ? (task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)) : true;
+   const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
+   
+   return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
+ 
   });
 
   return (
@@ -169,8 +375,162 @@ const IndividualDashboard = ({
         </button>
       </div>
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Quick Actions */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleViewMyTasks}
+          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg flex items-center gap-2"
+        >
+          <ListChecks size={16} />
+          View My Tasks
+        </button>
+        <button
+          onClick={exportMyReport}
+          className="px-3 py-2 bg-white hover:bg-gray-50 border rounded-lg text-gray-800 flex items-center gap-2"
+        >
+          <Download size={16} />
+          Export My Report
+        </button>
+        <button
+          onClick={printMyReport}
+          className="px-3 py-2 bg-white hover:bg-gray-50 border rounded-lg text-gray-800"
+        >
+          Print (PDF)
+        </button>
+        <button
+          onClick={copyShareLink}
+          className="px-3 py-2 bg-white hover:bg-gray-50 border rounded-lg text-gray-800"
+        >
+          Copy Share Link
+        </button>
+      </div>
+
+      {/* Overdue Alert */}
+      {overdueCount > 0 && (
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="text-red-600" size={18} />
+            <span>
+              You have {overdueCount} overdue {overdueCount === 1 ? "task" : "tasks"} ⚠️
+            </span>
+          </div>
+          <Button
+            onClick={() => {
+              setShowFilters(true);
+              setSelectedFilter("overdue");
+              document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="text-red-700 hover:text-red-900 "
+          >
+            View Overdue
+          </Button>
+        </div>
+      )}
+
+      {/* Overdue Report (sorted by days overdue) */}
+      {overdueCount > 0 ? (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
+            <span className="text-sm text-gray-600">{overdueCount} items</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentTasks
+                  .filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed")
+                  .map((t) => ({
+                    ...t,
+                    daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
+                  }))
+                  .sort((a, b) => b.daysOverdue - a.daysOverdue)
+                  .slice(0, 20)
+                  .map((t) => (
+                    <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
+                      <td className="py-3 px-6 text-sm text-gray-900">{t.title}</td>
+                      <td className="py-3 px-6 text-sm text-gray-900">
+                        {new Date(t.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-6 text-sm font-semibold text-red-600">{t.daysOverdue}</td>
+                      <td className="py-3 px-6">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(t.priority)}`}>
+                          {t.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          
+        </div>
+      ) : (
+        <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="text-green-600" size={18} />
+            <span>All caught up ✅ No overdue tasks.</span>
+          </div>
+        </div>
+      )}
+      {/* Task Health Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Open</p>
+          <p className="text-2xl font-semibold text-gray-900">{openCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">In Progress</p>
+          <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Completed</p>
+          <p className="text-2xl font-semibold text-gray-900">{completedCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Overdue</p>
+          <p className="text-2xl font-semibold text-gray-900">{overdueCount}</p>
+        </div>
+      </div>
+
+    {/* Completion Trend (7 days) */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-900">Completion Trend (7 days)</h2>
+          </div>
+          <ReactECharts option={completionTrendOptions} style={{ height: 220 }} />
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-900">Efficiency (On-time vs Late)</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <ReactECharts option={efficiencyPieOptions} style={{ height: 220 }} />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">On-time</span>
+                <span className="font-medium text-gray-900">{completedOnTimeCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Late</span>
+                <span className="font-medium text-gray-900">{completedLateCount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  {/* KPI Cards Row */}
+  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div
           className="bg-white p-4 rounded-lg shadow-sm border"
           data-testid="card-completed-today"
@@ -272,11 +632,25 @@ const IndividualDashboard = ({
             </div>
           </div>
         </div>
+
+        {/* Recurring Adherence */}
+        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-recurring-adherence">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-100 p-2 rounded-lg">
+              <Clock className="text-indigo-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Recurring Adherence (7d)</p>
+              <p className="text-xl font-bold text-gray-900">{recurringAdherencePct}%</p>
+              <p className="text-xs text-gray-500">Missed: {recurringMissed} • On-time: {recurringOnTime}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Quick Task & Pinned Tasks */}
+        {/* Left Column - Quick Task & Recurring & Pinned Tasks */}
         <div className="space-y-6">
           {/* Frozen Quick Task Tile */}
           <div
@@ -343,6 +717,7 @@ const IndividualDashboard = ({
         {/* Middle Column - Tasks Grid */}
         <div className="lg:col-span-2">
           <div
+            id="my-tasks"
             className="h-full bg-white rounded-lg shadow-sm border"
             data-testid="card-tasks-grid"
           >
@@ -379,15 +754,16 @@ const IndividualDashboard = ({
 
                 {showFilters && (
                   <div className="flex gap-2 flex-wrap">
-                    {["all", "pending", "in_progress", "completed"].map(
+                    {["all", "pending", "in_progress", "completed", "overdue"].map(
                       (filter) => (
                         <button
                           key={filter}
                           onClick={() => setSelectedFilter(filter)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedFilter === filter
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                            selectedFilter === filter
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
                           data-testid={`filter-${filter}`}
                         >
                           {filter.replace("_", " ")}
@@ -473,7 +849,7 @@ const IndividualDashboard = ({
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-900">
-                        {new Date(task.dueDate).toLocaleDateString()}
+                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
                       </td>
                       <td className="py-4 px-6">
                         <span

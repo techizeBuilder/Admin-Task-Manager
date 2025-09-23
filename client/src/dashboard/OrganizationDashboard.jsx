@@ -10,20 +10,24 @@ import {
   AlertTriangle,
   Target,
   Calendar,
-  Search,
-  Filter,
-  ChevronDown,
-  Plus,
   Download,
+  PieChart,
+  CalendarClock,
+  FileSpreadsheet,
+  FileText,
+  Mail,
 } from "lucide-react";
 
-/**
- * Organization Dashboard - Administrative workspace for organization admins
- * Displays team metrics, organizational KPIs, and management overview
- */
 const OrganizationDashboard = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [selectedTeam, setSelectedTeam] = useState("all");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    frequency: "weekly",
+    day: "Monday",
+    time: "09:00",
+    email: "",
+  });
 
   // Get current user data
   const { data: user } = useQuery({
@@ -31,7 +35,10 @@ const OrganizationDashboard = () => {
     enabled: !!localStorage.getItem("token"),
   });
 
-  // Sample organizational data
+  // Helpers
+  const pct = (a, b) => (b === 0 ? 0 : Math.round((a / b) * 100));
+
+  // Sample organizational data (mock)
   const orgStats = {
     totalEmployees: 48,
     activeProjects: 12,
@@ -40,6 +47,78 @@ const OrganizationDashboard = () => {
     teamProductivity: 87,
     upcomingDeadlines: 23,
   };
+
+  // Org-wide completion metrics (on-time vs overdue-closed)
+  const orgCompletion = {
+    onTime: 124,
+    overdueClosed: 32,
+  };
+  const orgOnTimeRate = pct(
+    orgCompletion.onTime,
+    orgCompletion.onTime + orgCompletion.overdueClosed
+  );
+
+  // Adoption dashboard (mock trend over 7 days)
+  const adoption = {
+    activeUsers: 39,
+    totalUsers: orgStats.totalEmployees,
+    logins7d: [12, 16, 18, 22, 20, 17, 25],
+    updates7d: [5, 7, 6, 9, 8, 10, 11], // comments/updates
+  };
+  const maxLogins = Math.max(...adoption.logins7d, 1);
+  const maxUpdates = Math.max(...adoption.updates7d, 1);
+
+  // Weekday labels for the last 7 days (oldest → today)
+  const dayShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const last7DayLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return dayShort[d.getDay()];
+  });
+  // ...existing code...
+  // Overdue % by Department (mock)
+  const departmentOverdue = [
+    { name: "Development", percent: 12 },
+    { name: "Design", percent: 8 },
+    { name: "Marketing", percent: 18 },
+    { name: "Sales", percent: 22 },
+    { name: "Support", percent: 5 },
+  ];
+  const maxDeptOverdue = Math.max(
+    ...departmentOverdue.map((d) => d.percent),
+    1
+  );
+
+  // Module usage report (quick tasks vs full tasks)
+  const moduleUsage = { quick: 96, full: 140 };
+  const totalModule = moduleUsage.quick + moduleUsage.full;
+  const quickPct = pct(moduleUsage.quick, totalModule);
+  const fullPct = 100 - quickPct;
+
+  // System health (mock recent issues)
+  const systemHealth = [
+    {
+      id: 1,
+      type: "sync",
+      severity: "error",
+      message: "Failed to sync Project X (HTTP 500)",
+      time: "Today 10:23",
+    },
+    {
+      id: 2,
+      type: "export",
+      severity: "warning",
+      message: "Export queue delay ~5 min",
+      time: "Today 09:10",
+    },
+    {
+      id: 3,
+      type: "report",
+      severity: "info",
+      message: "Scheduled weekly report sent",
+      time: "Yesterday 18:00",
+    },
+  ];
 
   const teamMetrics = [
     {
@@ -160,6 +239,43 @@ const OrganizationDashboard = () => {
     return "text-red-600";
   };
 
+  // Export & schedule stubs
+  const handleExportCSV = () => {
+    const rows = [
+      ["Metric", "Value"],
+      ["On-Time %", orgOnTimeRate],
+      ["Active Users", adoption.activeUsers],
+      ["Total Users", adoption.totalUsers],
+      ...departmentOverdue.map((d) => [`Overdue % - ${d.name}`, d.percent]),
+      ["Quick Tasks", moduleUsage.quick],
+      ["Full Tasks", moduleUsage.full],
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "org-report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    // Simple print-to-PDF experience (use server-side PDF for production)
+    window.print();
+  };
+
+  const handleScheduleSave = (e) => {
+    e.preventDefault();
+    console.log("Schedule report", scheduleForm);
+    alert(
+      `Report scheduled: ${scheduleForm.frequency}, ${scheduleForm.day} at ${
+        scheduleForm.time
+      } → ${scheduleForm.email || "your email"}`
+    );
+    setScheduleOpen(false);
+  };
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -186,11 +302,25 @@ const OrganizationDashboard = () => {
             <option value="this_year">This Year</option>
           </select>
           <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            data-testid="button-export-report"
+            onClick={handleExportCSV}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            title="Export Excel (CSV)"
           >
-            <Download size={18} />
-            Export Report
+            <FileSpreadsheet size={18} /> Excel (CSV)
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            title="Export as PDF"
+          >
+            <FileText size={18} /> PDF
+          </button>
+          <button
+            onClick={() => setScheduleOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            title="Schedule report email"
+          >
+            <CalendarClock size={18} /> Schedule
           </button>
         </div>
       </div>
@@ -213,21 +343,6 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
-
-        {/* <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-active-projects"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-lg">
-              <Building2 className="text-green-600" size={20} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Active Projects</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.activeProjects}</p>
-            </div>
-          </div>
-        </div> */}
 
         <div
           className="bg-white p-4 rounded-lg shadow-sm border"
@@ -296,76 +411,33 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Performance */}
         <div
-          className="lg:col-span-2 bg-white rounded-lg shadow-sm border"
-          data-testid="card-team-performance"
+          className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1"
+          data-testid="card-on-time-rate"
         >
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Team Performance
-              </h2>
-              <select
-                value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                data-testid="select-team"
-              >
-                <option value="all">All Teams</option>
-                <option value="development">Development</option>
-                <option value="design">Design</option>
-                <option value="marketing">Marketing</option>
-                <option value="sales">Sales</option>
-                <option value="support">Support</option>
-              </select>
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <Target className="text-green-600" size={20} />
             </div>
-          </div>
-
-          <div className="p-6">
-            <div className="space-y-4">
-              {teamMetrics.map((team, index) => (
+            <div className="flex-1">
+              <p className="text-sm text-gray-600">On-Time Completion</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgOnTimeRate}%
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                 <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  data-testid={`team-metric-${index}`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium text-gray-900">{team.name}</h3>
-                      <span className="text-sm text-gray-500">
-                        ({team.members} members)
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 mt-2 text-sm">
-                      <span className="text-gray-600">
-                        Completed:{" "}
-                        <span className="font-medium text-green-600">
-                          {team.tasksCompleted}
-                        </span>
-                      </span>
-                      <span className="text-gray-600">
-                        Active:{" "}
-                        <span className="font-medium text-blue-600">
-                          {team.tasksActive}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`text-lg font-bold ${getProductivityColor(team.productivity)}`}
-                    >
-                      {team.productivity}%
-                    </div>
-                    <div className="text-xs text-gray-500">Productivity</div>
-                  </div>
-                </div>
-              ))}
+                  className="bg-green-600 h-2 rounded-full"
+                  style={{ width: `${orgOnTimeRate}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">
+                On-time {orgCompletion.onTime} · Overdue closed{" "}
+                {orgCompletion.overdueClosed}
+              </p>
             </div>
           </div>
         </div>
@@ -373,141 +445,169 @@ const OrganizationDashboard = () => {
         {/* Recent Activity */}
         <div
           className="bg-white rounded-lg shadow-sm border"
-          data-testid="card-recent-activity"
+          data-testid="card-adoption-dashboard"
+        >
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Users className="text-blue-600" size={18} />
+              Adoption Dashboard
+            </h2>
+            <span className="text-sm text-gray-600">
+              Active:{" "}
+              <span className="font-semibold text-gray-900">
+                {adoption.activeUsers}
+              </span>{" "}
+              / {adoption.totalUsers}
+            </span>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* Logins trend */}
+            <TooltipProvider>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-800">
+                    Logins (7d)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    peak {maxLogins}
+                  </span>
+                </div>
+                <div className="flex items-end gap-3">
+                  {adoption.logins7d.map((v, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div className="group relative flex items-end h-20">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="bg-blue-500 w-6 rounded-sm"
+                              style={{ height: `${(v / maxLogins) * 100}%` }}
+                          
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} logins
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                       <span className="mt-1 text-[10px] text-gray-500">{last7DayLabels[i]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+      
+            {/* Comments/updates trend */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-800">
+                  Comments/Updates (7d)
+                </span>
+                <span className="text-xs text-gray-500">peak {maxUpdates}</span>
+              </div>
+              <div className="flex items-end gap-3">
+                {adoption.updates7d.map((v, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="group relative flex items-end h-20">
+                     <Tooltip>
+                          <TooltipTrigger asChild>
+                      <div
+                        className="bg-indigo-500 w-6 rounded-sm"
+                        style={{ height: `${((v || 0) / maxUpdates) * 100}%` }}
+                     
+                      />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} comments/updates
+                          </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="mt-1 text-[10px] text-gray-500">
+                      {last7DayLabels[i]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+                  </TooltipProvider>
+          </div>
+        </div>
+
+        {/* Overdue % by Department */}
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-overdue-by-dept"
         >
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Recent Activity
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <PieChart className="text-red-600" size={18} />
+              Overdue % by Department
             </h2>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               {recentActivity.map((activity) => (
                 <div
-                  key={activity.id}
-                  className="flex items-start gap-3"
-                  data-testid={`activity-${activity.id}`}
-                >
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    {activity.type === "task_completed" && (
-                      <CheckSquare className="text-blue-600" size={14} />
-                    )}
-                    {activity.type === "milestone_achieved" && (
-                      <Target className="text-purple-600" size={14} />
-                    )}
-                    {activity.type === "user_joined" && (
-                      <Users className="text-green-600" size={14} />
-                    )}
-                    {activity.type === "project_created" && (
-                      <Plus className="text-orange-600" size={14} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">{activity.user}</span>{" "}
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {activity.time}
-                    </p>
+                  className="h-3 rounded-l-full bg-emerald-500"
+                  style={{ width: `${quickPct}%` }}
+                />
+              </div> */}
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-gray-700">Full Tasks</span>
+                <span className="font-medium text-gray-900">
+                  {moduleUsage.full}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="h-3 rounded-l-full bg-blue-500"
+                  style={{ width: `${fullPct}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Quick vs Full usage ratio: {quickPct}% / {fullPct}%
+              </p>
+            </div>
+          </div>
+
+          {/* System Health */}
+          <div
+            className="bg-white rounded-lg shadow-sm border"
+            data-testid="card-system-health"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="text-orange-600" size={18} />
+                System Health
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {systemHealth.map((e) => (
+                <div key={e.id} className="flex items-start gap-3">
+                  <div
+                    className={`w-2.5 h-2.5 mt-1 rounded-full ${
+                      e.severity === "error"
+                        ? "bg-red-600"
+                        : e.severity === "warning"
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm text-gray-900">{e.message}</div>
+                    <div className="text-xs text-gray-500">{e.time}</div>
                   </div>
                 </div>
               ))}
+              {systemHealth.length === 0 && (
+                <div className="text-sm text-gray-500">No issues detected.</div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Upcoming Deadlines */}
-      <div
-        className="bg-white rounded-lg shadow-sm border"
-        data-testid="card-upcoming-deadlines-list"
-      >
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Upcoming Deadlines
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Task
-                </th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assignee
-                </th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {upcomingDeadlines.map((deadline) => (
-                <tr
-                  key={deadline.id}
-                  className="hover:bg-gray-50"
-                  data-testid={`deadline-row-${deadline.id}`}
-                >
-                  <td className="py-4 px-6">
-                    <span className="font-medium text-gray-900">
-                      {deadline.task}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-700">
-                    {deadline.assignee}
-                  </td>
-                  <td className="py-4 px-6 text-sm text-gray-900">
-                    {new Date(deadline.dueDate).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(deadline.priority)}`}
-                    >
-                      {deadline.priority}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Charts Placeholder */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div
-          className="bg-white rounded-lg shadow-sm border p-6"
-          data-testid="card-productivity-chart"
-        >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Productivity Trends
-          </h2>
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <BarChart3 className="mx-auto mb-2 text-gray-400" size={48} />
-            <p className="text-gray-600">Productivity charts coming soon</p>
-          </div>
-        </div>
-
-        <div
-          className="bg-white rounded-lg shadow-sm border p-6"
-          data-testid="card-task-distribution"
-        >
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Task Distribution
-          </h2>
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <Target className="mx-auto mb-2 text-gray-400" size={48} />
-            <p className="text-gray-600">
-              Task distribution charts coming soon
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Existing Main Content Grid (Team Performance + Recent Activity) */}
+      {/* ...existing code... */}
+      {/* Keep your current Team Performance, Recent Activity, Upcoming Deadlines, and Charts sections below unchanged */}
     </div>
   );
 };

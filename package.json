@@ -57,6 +57,8 @@
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.3",
     "drizzle-zod": "^0.8.2",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
