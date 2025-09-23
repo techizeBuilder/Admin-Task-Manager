@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import axios from "axios";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
 import TaskDeleteConfirmationModal from "./TaskDeleteConfirmationModal";
@@ -104,8 +105,9 @@ export default function AllTasks({
     snoozeTask,
   } = useTasksStore();
 
-  // Get tasks from Zustand store
-  const { tasks: storeTasks } = useTasksStore();
+  const [apiTasks, setApiTasks] = useState([]);
+  const [apiLoading, setApiLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
  // Lock body scroll while any modal/drawer is open
   useEffect(() => {
     const anyOpen =
@@ -144,6 +146,72 @@ export default function AllTasks({
       setDueDateFilter(initialDueDateFilter);
     }
   }, [initialDueDateFilter]);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      setApiLoading(true);
+      setApiError(null);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authorization token not found.");
+        }
+        const response = await axios.get(
+          "http://localhost:5000/api/mytasks?page=1&limit=100",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (response.data && response.data.success) {
+          const mappedTasks = response.data.data.tasks.map((task) => {
+            const statusMap = {
+              todo: "OPEN",
+              inprogress: "INPROGRESS",
+              done: "DONE",
+              onhold: "ONHOLD",
+              cancelled: "CANCELLED",
+            };
+            const apiStatus = task.status?.toLowerCase() || "open";
+            const feStatus = statusMap[apiStatus] || apiStatus.toUpperCase();
+
+            return {
+              ...task, // Spread the rest of the properties
+              id: task._id,
+              title: task.title,
+              assignee: task.assignedTo
+                ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+                : "Unassigned",
+              assigneeId: task.assignedTo?._id,
+              status: feStatus,
+              priority: task.priority
+                ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1)
+                : "Medium",
+              dueDate: task.dueDate
+                ? new Date(task.dueDate).toISOString().split("T")[0]
+                : "",
+              progress: feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
+            };
+          });
+          setApiTasks(mappedTasks);
+        } else {
+          setApiError(response.data.message || "Failed to fetch tasks.");
+        }
+      } catch (error) {
+        setApiError(
+          error.response?.data?.message ||
+            error.message ||
+            "An error occurred while fetching tasks.",
+        );
+      } finally {
+        setApiLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
 
   // Company-defined statuses with comprehensive management
   const [companyStatuses] = useState([
@@ -614,7 +682,7 @@ export default function AllTasks({
   // Handle select all
   const handleSelectAll = (isSelected) => {
     if (isSelected) {
-      setSelectedTasks(tasks.map((t) => t.id));
+      setSelectedTasks(apiTasks.map((t) => t.id));
     } else {
       setSelectedTasks([]);
     }
@@ -935,7 +1003,7 @@ export default function AllTasks({
   };
 
   // Apply filters to tasks
-  const filteredTasks = storeTasks.filter((task) => {
+  const filteredTasks = apiTasks.filter((task) => {
     // Apply search filter
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1465,16 +1533,25 @@ export default function AllTasks({
 
 
       {/* Tasks Table */}
-   <div className="card p-0">
-  <div className="w-full overflow-x-auto">
-    <Table wrapperClassName="max-w-[80rem]" className="w-full"> 
+      {apiLoading ? (
+        <div className="flex justify-center items-center py-10">
+          <span className="text-lg text-gray-500">Loading tasks...</span>
+        </div>
+      ) : apiError ? (
+        <div className="flex justify-center items-center py-10">
+          <span className="text-lg text-red-500">{apiError}</span>
+        </div>
+      ) : (
+        <div className="card p-0">
+          <div className="w-full overflow-x-auto">
+            <Table wrapperClassName="max-w-[80rem]" className="w-full">
            <TableHeader>
              <TableRow>
                <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
                  <input
                    type="checkbox"
                    checked={
-                     selectedTasks.length === tasks.length && tasks.length > 0
+                     selectedTasks.length === apiTasks.length && apiTasks.length > 0
                    }
                    onChange={(e) => handleSelectAll(e.target.checked)}
                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1888,6 +1965,7 @@ export default function AllTasks({
           </Table>
         </div>
       </div>
+      )}
 
       {/* Pagination */}
      

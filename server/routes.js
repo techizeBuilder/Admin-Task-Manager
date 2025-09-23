@@ -17,7 +17,7 @@ import userRoutes from "./routes/userRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
-import { taskRoutes } from "./routes/taskRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/authRoutes.js";

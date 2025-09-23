@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { FileText, RotateCcw, Target, CheckCircle, Settings, FlaskConical, Rocket, Link } from "lucide-react";
-import { RegularTaskForm } from "../../forms/RegularTaskForm";
+import RegularTaskForm from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
@@ -29,15 +30,15 @@ export default function CreateTask({
     canAssignToOthers,
     restrictions,
   } = useAssignmentOptions();
- const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
+  const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
 
   // Extract query params
-useEffect(() => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const type = searchParams.get("type") || "recurring";
-  setSelectedTaskType(type);
-}, [location]); 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const type = searchParams.get("type") || "recurring";
+    setSelectedTaskType(type);
+  }, [location]);
   // Filter available task types based on role permissions
   const getAvailableTaskTypes = () => {
     const taskTypes = [
@@ -78,13 +79,125 @@ useEffect(() => {
 
   const taskTypes = getAvailableTaskTypes();
 
+  const commonFormProps = {
+    onCancel: onClose,
+    isOrgUser: canAssignToOthers,
+    assignmentOptions,
+    userRole: role,
+    canAssignToOthers,
+  };
+
+  // Updated: Now actually calls the API to create the task
+  const handleTaskSubmit = async (data) => {
+    try {
+      // Fix assignedTo: must be a user ObjectId string or empty
+      let assignedTo = data.assignedTo;
+      if (assignedTo && typeof assignedTo === "object") {
+        assignedTo = assignedTo._id || assignedTo.value || assignedTo.id || "";
+      }
+      // If assignedTo is "self", use current user's id if available
+      if (assignedTo === "self" && window?.currentUser?._id) {
+        assignedTo = window.currentUser._id;
+      }
+      // If still not valid ObjectId, set to empty
+      if (assignedTo && !/^[a-fA-F0-9]{24}$/.test(assignedTo)) {
+        assignedTo = "";
+      }
+
+      // Fix priority: must be lowercase string (low, medium, high, critical)
+      let priority = data.priority;
+      if (priority && typeof priority === "object") {
+        priority = (priority.value || priority.label || "").toLowerCase();
+      } else if (typeof priority === "string") {
+        priority = priority.toLowerCase();
+      }
+      if (!["low", "medium", "high", "critical"].includes(priority)) {
+        priority = "medium";
+      }
+
+      // Fix tags: array of strings
+      let tags = data.tags;
+      if (Array.isArray(tags)) {
+        tags = tags.map(t => (typeof t === "object" ? t.value || t.label || "" : t)).filter(Boolean);
+      }
+
+      // Debug: log title and data
+      // Map taskName to title for backend compatibility
+      data.title = data.taskName;
+      delete data.taskName;
+      console.log("DEBUG: data.title =", data.title);
+      console.log("DEBUG: full data =", data);
+      if (!data.title || data.title.trim() === "") {
+        setError("Title is required.");
+        setLoading(false);
+        return;
+      }
+
+      const submitData = new FormData();
+      submitData.append("title", data.title);
+      submitData.append("description", data.description || "");
+      submitData.append("taskType", selectedTaskType);
+      submitData.append("priority", priority || "medium");
+      submitData.append("visibility", data.visibility || "private");
+      if (data.category) submitData.append("category", data.category);
+      if (data.dueDate) submitData.append("dueDate", data.dueDate);
+      if (data.startDate) submitData.append("startDate", data.startDate);
+      if (assignedTo) submitData.append("assignedTo", assignedTo);
+      if (tags && tags.length > 0) submitData.append("tags", JSON.stringify(tags));
+      if (data.collaborators && data.collaborators.length > 0) submitData.append("collaboratorIds", JSON.stringify(data.collaborators.map(c => c.id || c.value || c)));
+      if (data.attachments && data.attachments.length > 0) {
+        data.attachments.forEach((attachment) => {
+          if (attachment.file) submitData.append("attachments", attachment.file);
+        });
+      }
+
+      // Add any extra fields for recurring/milestone/approval if needed
+      if (selectedTaskType === "recurring" && data.recurrencePattern) {
+        submitData.append("recurrencePattern", JSON.stringify(data.recurrencePattern));
+      }
+      if (selectedTaskType === "milestone" && data.milestoneData) {
+        submitData.append("milestoneData", JSON.stringify(data.milestoneData));
+        submitData.append("milestoneType", data.milestoneData.type || "standalone");
+        if (data.milestoneData.linkedTaskIds) {
+          submitData.append("linkedTaskIds", JSON.stringify(data.milestoneData.linkedTaskIds));
+        }
+      }
+      if (selectedTaskType === "approval" && data.approval) {
+        submitData.append("approval", JSON.stringify(data.approval));
+      }
+
+      // Auth token
+      const token = localStorage.getItem("token");
+
+      // API call
+      const response = await axios.post("/api/create-task", submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      console.log("Task created successfully:", response.data);
+
+      // Call parent onSubmit if needed
+      if (typeof onSubmit === "function") {
+        onSubmit({ ...data, taskType: selectedTaskType });
+      }
+      // Optionally close modal
+      if (onClose) onClose();
+    } catch (error) {
+      console.error("Error creating task:", error);
+      alert("Failed to create task: " + (error.response?.data?.message || error.message));
+    }
+  };
+
   return (
     <div className="flex flex-col h-full p-6 bg-gray-50 z-50" >
       {/* Task Type Selection Section */}
       <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Task Type 
+            Task Type
           </h3>
           <p className="text-gray-600 text-sm">
             Choose the type of task you want to create
@@ -256,13 +369,15 @@ useEffect(() => {
         {/* Task Form Content */}
         {selectedTaskType === "regular" && (
           <RegularTaskForm
-            onSubmit={(data) => {
-              console.log("Regular task created:", data);
-              onSubmit({
-                ...data,
-                taskType: selectedTaskType,
-              });
-            }}
+            {...commonFormProps}
+            // onSubmit={(data) => {
+            //   console.log("Regular task created:", data);
+            //   onSubmit({
+            //     ...data,
+            //     taskType: selectedTaskType,
+            //   });
+            // }}
+            onSubmit={handleTaskSubmit}
             onCancel={onClose}
             isOrgUser={canAssignToOthers}
             assignmentOptions={assignmentOptions}
@@ -273,13 +388,7 @@ useEffect(() => {
 
         {selectedTaskType === "recurring" && (
           <RecurringTaskForm
-            onSubmit={(data) => {
-              console.log("Recurring task created:", data);
-              onSubmit({
-                ...data,
-                taskType: selectedTaskType,
-              });
-            }}
+            onSubmit={handleTaskSubmit}
             onCancel={onClose}
             isOrgUser={canAssignToOthers}
             assignmentOptions={assignmentOptions}
@@ -290,13 +399,7 @@ useEffect(() => {
 
         {selectedTaskType === "milestone" && canCreateMilestones && (
           <MilestoneTaskForm
-            onSubmit={(data) => {
-              console.log("Milestone task created:", data);
-              onSubmit({
-                ...data,
-                taskType: selectedTaskType,
-              });
-            }}
+            onSubmit={handleTaskSubmit}
             onCancel={onClose}
             isOrgUser={canAssignToOthers}
             assignmentOptions={assignmentOptions}
@@ -333,13 +436,7 @@ useEffect(() => {
 
         {selectedTaskType === "approval" && canCreateApprovals && (
           <ApprovalTaskForm
-            onSubmit={(data) => {
-              console.log("Approval task created:", data);
-              onSubmit({
-                ...data,
-                taskType: selectedTaskType,
-              });
-            }}
+            onSubmit={handleTaskSubmit}
             onCancel={onClose}
             isOrgUser={canAssignToOthers}
             assignmentOptions={assignmentOptions}
@@ -486,7 +583,7 @@ function LegacyCreateTask({
     },
   });
 
-  const [taskType, setTaskType] = useState("modular");
+  const [taskType, setTaskType] = useState("regular");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
   const [attachments, setAttachments] = useState([]);
@@ -594,7 +691,7 @@ function LegacyCreateTask({
       // Get auth token from localStorage
       const token = localStorage.getItem("token");
 
-      const response = await axios.post("/api/create-task", submitData, {
+      await axios.post("/api/create-task", submitData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: token ? `Bearer ${token}` : "",
@@ -615,7 +712,7 @@ function LegacyCreateTask({
       console.error("Error creating task:", error);
       alert(
         "Failed to create task: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
       );
     }
   };
@@ -641,19 +738,17 @@ function LegacyCreateTask({
         <div className="grid grid-cols-1 gap-3">
           <button
             onClick={() => setTaskType("modular")}
-            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "modular"
-                ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
-                : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "modular"
+              ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
+              : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "modular"
-                    ? "bg-blue-500 text-white"
-                    : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
-                }`}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "modular"
+                  ? "bg-blue-500 text-white"
+                  : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
+                  }`}
               >
                 <FileText size={20} className="text-blue-600" />
               </div>
@@ -713,19 +808,17 @@ function LegacyCreateTask({
           </button> */}
           <button
             onClick={() => setTaskType("milestone")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "milestone"
-                ? "border-purple-500 bg-gradient-to-br from-purple-50 to-violet-50 shadow-md transform scale-102"
-                : "border-gray-200 hover:border-purple-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "milestone"
+              ? "border-purple-500 bg-gradient-to-br from-purple-50 to-violet-50 shadow-md transform scale-102"
+              : "border-gray-200 hover:border-purple-300 hover:shadow-sm hover:transform hover:scale-101"
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "milestone"
-                    ? "bg-purple-500 text-white"
-                    : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
-                }`}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "milestone"
+                  ? "bg-purple-500 text-white"
+                  : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
+                  }`}
               >
                 <Target size={16} className="text-red-600" />
               </div>
@@ -742,19 +835,17 @@ function LegacyCreateTask({
 
           <button
             onClick={() => setTaskType("approval")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "approval"
-                ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
-                : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "approval"
+              ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
+              : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "approval"
-                    ? "bg-emerald-500 text-white"
-                    : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
-                }`}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "approval"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
+                  }`}
               >
                 <CheckCircle size={16} className="text-amber-600" />
               </div>
@@ -808,21 +899,9 @@ function LegacyCreateTask({
       {taskType === "regular" && (
         <RegularTaskForm
           onSubmit={(formData) => {
-            // Convert RegularTaskForm data format to match existing API
-            onSubmit({
-              title: formData.title,
-              description: formData.description,
-              assignedTo: formData.assignee,
-              priority: formData.priority,
-              visibility: formData.visibility,
-              dueDate: formData.dueDate,
-              category: "regular",
-              tags: formData.tags
-                ? formData.tags.split(",").map((tag) => tag.trim())
-                : [],
-              taskType: "regular",
-              ...formData,
-            });
+            console.log("Regular task created from Legacy:", formData);
+            // The `onSubmit` here is the one from LegacyCreateTask's scope.
+            onSubmit(formData);
           }}
           onClose={onClose}
           initialData={{
@@ -836,26 +915,7 @@ function LegacyCreateTask({
         <RecurringTaskForm
           onSubmit={(formData) => {
             // Convert RecurringTaskForm data format to match existing API
-            onSubmit({
-              title: formData.title,
-              description: formData.description,
-              assignedTo: formData.assignee,
-              priority: formData.priority,
-              visibility: formData.visibility,
-              frequency: formData.frequency,
-              repeatEvery: formData.repeatEvery,
-              startDate: formData.startDate,
-              endConditionType: formData.endConditionType,
-              endDate: formData.endDate,
-              maxOccurrences: formData.maxOccurrences,
-              time: formData.time,
-              repeatOnDays: formData.repeatOnDays,
-              contributors: formData.contributors,
-              notes: formData.notes,
-              category: "recurring",
-              taskType: "recurring",
-              ...formData,
-            });
+            onSubmit(formData);
           }}
           onClose={onClose}
           initialData={{
@@ -1064,9 +1124,8 @@ function LegacyCreateTask({
                         />
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-${
-                              ["green", "blue", "purple", "orange"][i]
-                            }-600`}
+                            className={`text-${["green", "blue", "purple", "orange"][i]
+                              }-600`}
                           >
                             {[<CheckCircle size={16} className="text-green-600" />, <Settings size={16} className="text-blue-600" />, <FlaskConical size={16} className="text-purple-600" />, <Rocket size={16} className="text-red-600" />][i]}
                           </span>
@@ -1379,20 +1438,6 @@ function LegacyCreateTask({
           }}
           setFormData={(formData) => {
             // Handle form data updates if needed
-          }}
-          onSubmit={(formData) => {
-            // Convert ApprovalTaskForm data format to match existing API
-            onSubmit({
-              title: formData.title,
-              description: formData.description,
-              dueDate: formData.dueDate,
-              collaborators: formData.collaborators,
-              taskType: "approval",
-              approval: formData.approval,
-              priority: "medium",
-              visibility: "private",
-              category: "approval",
-            });
           }}
           onSaveDraft={(formData) => {
             // Handle draft saving if needed

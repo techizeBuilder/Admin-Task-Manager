@@ -1,6 +1,8 @@
+
 import express from "express";
 import { authenticateToken } from "../middleware/roleAuth.js";
 import { upload } from "../utils/upload.js";
+
 import {
   createTask,
   getTasks,
@@ -10,6 +12,7 @@ import {
   deleteTask,
   approveOrRejectTask,
   getTasksByType,
+  getMyTasks
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -1513,4 +1516,112 @@ router.post("/tasks/:id/approve", authenticateToken, approveOrRejectTask);
  */
 router.get("/tasks/filter/:type", authenticateToken, getTasksByType);
 
-export { router as taskRoutes };
+/**
+ * @swagger
+ * /api/mytasks:
+ *   get:
+ *     summary: Get all tasks created by the user's role
+ *     description: Retrieves a list of tasks where the createdByRole matches the user's role. Supports pagination and filtering.
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
+ *         description: Filter tasks by status
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: ["low", "medium", "high", "urgent"]
+ *         description: Filter tasks by priority
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of tasks per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search tasks by title or description
+ *     responses:
+ *       200:
+ *         description: List of tasks created by user's role retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalTasks:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                         limit:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch tasks"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get("/mytasks", authenticateToken, getMyTasks);
+
+export default router;

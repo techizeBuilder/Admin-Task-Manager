@@ -53,6 +53,8 @@ const AdvancedFieldsModal = ({
     { value: "Approval", label: "Approval" },
   ];
 
+  console.log('onSubmit in AdvancedFieldsModal:', onSubmit);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -206,7 +208,7 @@ const AdvancedFieldsModal = ({
 };
 
 // Main Regular Task Form Component
-export const RegularTaskForm = ({
+const RegularTaskForm = ({
   onSubmit,
   onCancel,
   isOrgUser = false,
@@ -238,7 +240,7 @@ export const RegularTaskForm = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
   const [advancedData, setAdvancedData] = useState({});
-const isIndividual = hasAccess(["individual"]);
+  const isIndividual = hasAccess(["individual"]);
   const watchedTaskName = watch("taskName");
   const watchedPriority = watch("priority");
 
@@ -286,11 +288,11 @@ const isIndividual = hasAccess(["individual"]);
   // Assignment options (for org users)
   const assignmentOptions = !isIndividual
     ? [
-        { value: "self", label: "Self" },
-        { value: "john_doe", label: "John Doe" },
-        { value: "jane_smith", label: "Jane Smith" },
-        // Add more team members from API
-      ]
+      { value: "self", label: "Self" },
+      { value: "john_doe", label: "John Doe" },
+      { value: "jane_smith", label: "Jane Smith" },
+      // Add more team members from API
+    ]
     : [{ value: "self", label: "Self" }];
 
   // File upload handler
@@ -351,13 +353,18 @@ const isIndividual = hasAccess(["individual"]);
   };
 
   const onFormSubmit = (data) => {
-    // Combine primary and advanced data
     const formData = {
       ...data,
       ...advancedData,
       attachments: uploadedFiles,
     };
-    onSubmit(formData);
+
+    if (typeof onSubmit === "function") {
+      onSubmit(formData);
+    } else {
+      alert("onSubmit is not a function! regular");
+      console.error("onSubmit is not a function!", onSubmit);
+    }
   };
 
   const getTodayDate = () => {
@@ -410,7 +417,7 @@ const isIndividual = hasAccess(["individual"]);
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Describe your task..."
-            
+
                 className="border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             )}
@@ -503,37 +510,37 @@ const isIndividual = hasAccess(["individual"]);
           </div>
         </div>
 
-    <div>
-  <label className="block text-sm font-medium text-gray-900 mb-2">
-    Visibility <span className="text-red-500">*</span>
-  </label>
-  <div className="flex space-x-4">
-    <label className="flex items-center">
-      <input
-        {...register("visibility")}
-        type="radio"
-        value="private"
-        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-        data-testid="radio-private"
-        disabled={isIndividual} // locked for individual
-      />
-      <span className="ml-2 text-sm text-gray-900">Private</span>
-    </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Visibility <span className="text-red-500">*</span>
+          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                {...register("visibility")}
+                type="radio"
+                value="private"
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                data-testid="radio-private"
+                disabled={isIndividual} // locked for individual
+              />
+              <span className="ml-2 text-sm text-gray-900">Private</span>
+            </label>
 
-    {!isIndividual && ( // completely hide Public if individual
-      <label className="flex items-center">
-        <input
-          {...register("visibility")}
-          type="radio"
-          value="public"
-          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-          data-testid="radio-public"
-        />
-        <span className="ml-2 text-sm text-gray-900">Public</span>
-      </label>
-    )}
-  </div>
-</div>
+            {!isIndividual && ( // completely hide Public if individual
+              <label className="flex items-center">
+                <input
+                  {...register("visibility")}
+                  type="radio"
+                  value="public"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-public"
+                />
+                <span className="ml-2 text-sm text-gray-900">Public</span>
+              </label>
+            )}
+          </div>
+        </div>
 
         {/* Tags */}
         <div>

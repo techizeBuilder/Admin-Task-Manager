@@ -868,3 +868,68 @@ export const getTasksByType = async (req, res) => {
     });
   }
 };
+
+export const getMyTasks = async (req, res) => {
+  try {
+    const user = req.user;
+    const {
+      status,
+      priority,
+      page = 1,
+      limit = 50,
+      search
+    } = req.query;
+
+    // Support both string and array role
+    let userRole = user.role;
+    if (Array.isArray(userRole)) {
+      userRole = userRole[0];
+    }
+
+    const filter = {
+      createdByRole: userRole,
+      isDeleted: { $ne: true }
+    };
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const tasks = await storage.getTasksByFilter(filter, {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort: { createdAt: -1 }
+    });
+
+    const totalTasks = tasks ? tasks.length : 0;
+    const totalPages = Math.ceil(totalTasks / parseInt(limit));
+    const hasNext = parseInt(page) < totalPages;
+    const hasPrev = parseInt(page) > 1;
+
+    res.json({
+      success: true,
+      data: {
+        tasks: tasks || [],
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: totalPages,
+          totalTasks: totalTasks,
+          hasNextPage: hasNext,
+          hasPrevPage: hasPrev,
+          limit: parseInt(limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching my tasks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch tasks',
+      error: error.message
+    });
+  }
+};
