@@ -40,7 +40,6 @@ import Pagination from "@/components/common/Pagination";
 import { Link } from "wouter";
 import FormUsageModal from "./FormUsageModal";
 import FormSubmissionsModal from "./FormSubmissionsModal";
-import FormPublishModal from "./FormPublishModal";
 
 // Mock data based on your requirements
 export const mockFormTemplates = [
@@ -53,26 +52,14 @@ export const mockFormTemplates = [
     lastUsed: "2025-09-15",
     owner: "Nitesh Gautam",
     fields: [
-      { id: "f1", label: "Vendor Name" },
-      { id: "f2", label: "Contact Email" },
-      { id: "f3", label: "Vendor Type" },
+      { id: 'f1', label: 'Vendor Name' },
+      { id: 'f2', label: 'Contact Email' },
+      { id: 'f3', label: 'Vendor Type' }
     ],
     submissions: [
-      {
-        submittedBy: { name: "John Doe", email: "john.d@example.com" },
-        submittedAt: "2025-09-20",
-        data: {
-          f1: "Innovate Inc.",
-          f2: "contact@innovate.com",
-          f3: "Software",
-        },
-      },
-      {
-        submittedBy: { name: "Jane Smith", email: "jane.s@example.com" },
-        submittedAt: "2025-09-19",
-        data: { f1: "Supply Co.", f2: "sales@supplyco.com", f3: "Goods" },
-      },
-    ],
+      { submittedBy: { name: 'John Doe', email: 'john.d@example.com' }, submittedAt: '2025-09-20', data: { f1: 'Innovate Inc.', f2: 'contact@innovate.com', f3: 'Software' } },
+      { submittedBy: { name: 'Jane Smith', email: 'jane.s@example.com' }, submittedAt: '2025-09-19', data: { f1: 'Supply Co.', f2: 'sales@supplyco.com', f3: 'Goods' } },
+    ]
   },
   {
     id: "FRM-002",
@@ -83,22 +70,14 @@ export const mockFormTemplates = [
     lastUsed: "2025-09-18",
     owner: "Priya Sharma",
     fields: [
-      { id: "e1", label: "Expense Type" },
-      { id: "e2", label: "Amount" },
-      { id: "e3", label: "Date of Expense" },
+      { id: 'e1', label: 'Expense Type' },
+      { id: 'e2', label: 'Amount' },
+      { id: 'e3', label: 'Date of Expense' }
     ],
     submissions: [
-      {
-        submittedBy: { name: "Peter Jones", email: "peter.j@example.com" },
-        submittedAt: "2025-09-18",
-        data: { e1: "Travel", e2: "$500", e3: "2025-09-15" },
-      },
-      {
-        submittedBy: { name: "Samantha Bee", email: "samantha.b@example.com" },
-        submittedAt: "2025-09-17",
-        data: { e1: "Software", e2: "$120", e3: "2025-09-16" },
-      },
-    ],
+      { submittedBy: { name: 'Peter Jones', email: 'peter.j@example.com' }, submittedAt: '2025-09-18', data: { e1: 'Travel', e2: '$500', e3: '2025-09-15' } },
+      { submittedBy: { name: 'Samantha Bee', email: 'samantha.b@example.com' }, submittedAt: '2025-09-17', data: { e1: 'Software', e2: '$120', e3: '2025-09-16' } },
+    ]
   },
   {
     id: "FRM-003",
@@ -109,11 +88,11 @@ export const mockFormTemplates = [
     lastUsed: null,
     owner: "Admin",
     fields: [
-      { id: "it1", label: "Asset Type" },
-      { id: "it2", label: "Justification" },
-      { id: "it3", label: "Delivery Location" },
+        { id: 'it1', label: 'Asset Type' },
+        { id: 'it2', label: 'Justification' },
+        { id: 'it3', label: 'Delivery Location' }
     ],
-    submissions: [],
+    submissions: []
   },
   {
     id: "FRM-004",
@@ -124,21 +103,13 @@ export const mockFormTemplates = [
     lastUsed: "2024-01-20",
     owner: "Rajesh Kumar",
     fields: [
-      { id: "cf1", label: "Service Rating (1-5)" },
-      { id: "cf2", label: "Feedback" },
+        { id: 'cf1', label: 'Service Rating (1-5)' },
+        { id: 'cf2', label: 'Feedback' },
     ],
     submissions: [
-      {
-        submittedBy: { name: "Alice Johnson", email: "alice.j@example.com" },
-        submittedAt: "2024-01-18",
-        data: { cf1: "5", cf2: "Excellent service!" },
-      },
-      {
-        submittedBy: { name: "Bob Williams", email: "bob.w@example.com" },
-        submittedAt: "2024-01-17",
-        data: { cf1: "4", cf2: "Good, but could be faster." },
-      },
-    ],
+        { submittedBy: { name: 'Alice Johnson', email: 'alice.j@example.com' }, submittedAt: '2024-01-18', data: { cf1: '5', cf2: 'Excellent service!' } },
+        { submittedBy: { name: 'Bob Williams', email: 'bob.w@example.com' }, submittedAt: '2024-01-17', data: { cf1: '4', cf2: 'Good, but could be faster.' } },
+    ]
   },
   {
     id: "FRM-005",
@@ -149,23 +120,14 @@ export const mockFormTemplates = [
     lastUsed: "2025-09-19",
     owner: "Priya Sharma",
     fields: [
-      { id: "la1", label: "Leave Type" },
-      { id: "la2", label: "Start Date" },
-      { id: "la3", label: "End Date" },
-      { id: "la4", label: "Reason" },
+        { id: 'la1', label: 'Leave Type' },
+        { id: 'la2', label: 'Start Date' },
+        { id: 'la3', label: 'End Date' },
+        { id: 'la4', label: 'Reason' },
     ],
     submissions: [
-      {
-        submittedBy: { name: "Michael Chen", email: "michael.c@example.com" },
-        submittedAt: "2025-09-19",
-        data: {
-          la1: "Sick Leave",
-          la2: "2025-09-19",
-          la3: "2025-09-19",
-          la4: "Fever",
-        },
-      },
-    ],
+        { submittedBy: { name: 'Michael Chen', email: 'michael.c@example.com' }, submittedAt: '2025-09-19', data: { la1: 'Sick Leave', la2: '2025-09-19', la3: '2025-09-19', la4: 'Fever' } },
+    ]
   },
   {
     id: "FRM-007",
@@ -176,222 +138,27 @@ export const mockFormTemplates = [
     lastUsed: "2025-08-30",
     owner: "Admin",
     fields: [
-      { id: "ir1", label: "Incident Type" },
-      { id: "ir2", label: "Location" },
-      { id: "ir3", label: "Description" },
+        { id: 'ir1', label: 'Incident Type' },
+        { id: 'ir2', label: 'Location' },
+        { id: 'ir3', label: 'Description' },
     ],
     submissions: [
-      {
-        submittedBy: { name: "Security Desk", email: "security@example.com" },
-        submittedAt: "2025-08-30",
-        data: {
-          ir1: "Safety Hazard",
-          ir2: "Warehouse A",
-          ir3: "Water spill near aisle 3.",
-        },
-      },
-    ],
+        { submittedBy: { name: 'Security Desk', email: 'security@example.com' }, submittedAt: '2025-08-30', data: { ir1: 'Safety Hazard', ir2: 'Warehouse A', ir3: 'Water spill near aisle 3.' } },
+    ]
   },
   // ... other forms without submissions remain the same
-  {
-    id: "FRM-006",
-    name: "Project Kickoff Checklist",
-    category: "Projects",
-    tags: ["project", "checklist"],
-    status: "Draft",
-    lastUsed: null,
-    owner: "Nitesh Gautam",
-    fields: [],
-    submissions: [],
-  },
-  {
-    id: "FRM-008",
-    name: "New Hire Information",
-    category: "HR",
-    tags: ["onboarding", "hr"],
-    status: "Published",
-    lastUsed: "2025-09-05",
-    owner: "Priya Sharma",
-    fields: [],
-    submissions: [],
-  },
-  {
-    id: "FRM-009",
-    name: "Software Access Request",
-    category: "IT",
-    tags: ["software", "access"],
-    status: "Archived",
-    lastUsed: "2023-11-10",
-    owner: "Admin",
-    fields: [],
-    submissions: [],
-  },
-  {
-    id: "FRM-010",
-    name: "Marketing Campaign Brief",
-    category: "Marketing",
-    tags: ["campaign", "creative"],
-    status: "Draft",
-    lastUsed: null,
-    owner: "Rajesh Kumar",
-    fields: [],
-    submissions: [],
-  },
-];
-export const mockFormList = [
-  {
-    formId: "frm_onboarding",
-    formName: "Employee Onboarding",
-    currentVersion: "1.4.0",
-    lastUpdatedAt: "2025-09-15T10:22:00Z",
-    lastUpdatedBy: { id: "u_12", name: "Priya Sharma" },
-  },
-  {
-    formId: "frm_expense",
-    formName: "Expense Reimbursement",
-    currentVersion: "3.1.0",
-    lastUpdatedAt: "2025-09-12T14:00:00Z",
-    lastUpdatedBy: { id: "u_07", name: "Rahul Verma" },
-  },
+  { id: "FRM-006", name: "Project Kickoff Checklist", category: "Projects", tags: ["project", "checklist"], status: "Draft", lastUsed: null, owner: "Nitesh Gautam", fields: [], submissions: [] },
+  { id: "FRM-008", name: "New Hire Information", category: "HR", tags: ["onboarding", "hr"], status: "Published", lastUsed: "2025-09-05", owner: "Priya Sharma", fields: [], submissions: [] },
+  { id: "FRM-009", name: "Software Access Request", category: "IT", tags: ["software", "access"], status: "Archived", lastUsed: "2023-11-10", owner: "Admin", fields: [], submissions: [] },
+  { id: "FRM-010", name: "Marketing Campaign Brief", category: "Marketing", tags: ["campaign", "creative"], status: "Draft", lastUsed: null, owner: "Rajesh Kumar", fields: [], submissions: [] },
 ];
 
-// Version list per form for the Versions UI (summary rows)
-export const mockFormVersions = {
-  frm_onboarding: [
-    {
-      id: "ver_onb_1_4_0",
-      version: "1.4.0",
-      status: "published",
-      createdAt: "2025-09-14T09:02:00Z",
-      createdBy: { id: "u_12", name: "Priya Sharma" },
-      publishedAt: "2025-09-15T10:22:00Z",
-      notes: "Added Address Line 2; tweaked validations.",
-      changes: { added: 2, modified: 3, removed: 0 },
-      fieldsCount: 24,
-      sectionsCount: 5,
-      canRollback: true,
-      tags: ["minor", "validation"],
-    },
-    {
-      id: "ver_onb_1_3_0",
-      version: "1.3.0",
-      status: "archived",
-      createdAt: "2025-08-28T12:30:00Z",
-      createdBy: { id: "u_07", name: "Rahul Verma" },
-      publishedAt: "2025-08-29T08:00:00Z",
-      notes: "Added Emergency Contact section.",
-      changes: { added: 5, modified: 1, removed: 0 },
-      fieldsCount: 22,
-      sectionsCount: 5,
-      canRollback: true,
-      tags: ["feature"],
-    },
-    {
-      id: "ver_onb_1_2_1",
-      version: "1.2.1",
-      status: "archived",
-      createdAt: "2025-08-12T09:00:00Z",
-      createdBy: { id: "u_12", name: "Priya Sharma" },
-      publishedAt: "2025-08-12T10:00:00Z",
-      notes: "Bugfix: required field flag on PAN.",
-      changes: { added: 0, modified: 1, removed: 0 },
-      fieldsCount: 17,
-      sectionsCount: 4,
-      canRollback: true,
-      tags: ["patch"],
-    },
-    {
-      id: "ver_onb_draft_next",
-      version: "1.5.0",
-      status: "draft",
-      createdAt: "2025-09-20T16:10:00Z",
-      createdBy: { id: "u_99", name: "System" },
-      notes: "WIP: new Bank Details section.",
-      changes: { added: 4, modified: 0, removed: 0 },
-      fieldsCount: 28,
-      sectionsCount: 6,
-      canRollback: false,
-      tags: ["draft"],
-    },
-  ],
-  frm_expense: [
-    {
-      id: "ver_exp_3_1_0",
-      version: "3.1.0",
-      status: "published",
-      createdAt: "2025-09-10T11:00:00Z",
-      createdBy: { id: "u_03", name: "Anita Gupta" },
-      publishedAt: "2025-09-12T14:00:00Z",
-      notes: "Mileage cap raised; currency list updated.",
-      changes: { added: 1, modified: 4, removed: 1 },
-      fieldsCount: 18,
-      sectionsCount: 3,
-      canRollback: true,
-      tags: ["minor"],
-    },
-    {
-      id: "ver_exp_3_0_0",
-      version: "3.0.0",
-      status: "archived",
-      createdAt: "2025-08-20T09:45:00Z",
-      createdBy: { id: "u_03", name: "Anita Gupta" },
-      publishedAt: "2025-08-22T10:15:00Z",
-      notes: "Revamped receipt upload + validation rules.",
-      changes: { added: 6, modified: 2, removed: 2 },
-      fieldsCount: 17,
-      sectionsCount: 3,
-      canRollback: true,
-      tags: ["major"],
-    },
-  ],
-};
 
-// Optional: detailed payload per version for a details panel
-export const mockFormVersionDetails = {
-  ver_onb_1_4_0: {
-    id: "ver_onb_1_4_0",
-    formId: "frm_onboarding",
-    version: "1.4.0",
-    status: "published",
-    createdAt: "2025-09-14T09:02:00Z",
-    createdBy: { id: "u_12", name: "Priya Sharma" },
-    publishedAt: "2025-09-15T10:22:00Z",
-    notes: "Added Address Line 2; tweaked validations.",
-    diff: [
-      { type: "added", path: "sections.address.fields.addressLine2", newValue: { type: "text", required: false } },
-      { type: "modified", path: "sections.identity.fields.pan.required", oldValue: true, newValue: false },
-      { type: "modified", path: "sections.identity.fields.aadhaar.pattern", oldValue: "^[0-9]{12}$", newValue: "^[2-9][0-9]{11}$" },
-    ],
-    jsonSchemaSnapshot: { /* trimmed example */ title: "Employee Onboarding", type: "object" },
-    uiSchemaSnapshot: { /* trimmed example */ "ui:order": ["identity", "address", "emergency"] },
-  },
-  ver_exp_3_1_0: {
-    id: "ver_exp_3_1_0",
-    formId: "frm_expense",
-    version: "3.1.0",
-    status: "published",
-    createdAt: "2025-09-10T11:00:00Z",
-    createdBy: { id: "u_03", name: "Anita Gupta" },
-    publishedAt: "2025-09-12T14:00:00Z",
-    notes: "Mileage cap raised; currency list updated.",
-    diff: [
-      { type: "modified", path: "sections.mileage.fields.maxKmPerDay", oldValue: 150, newValue: 200 },
-      { type: "removed", path: "sections.general.fields.legacyCategory" },
-      { type: "modified", path: "sections.general.fields.currency.enum", oldValue: ["INR","USD","EUR"], newValue: ["INR","USD","EUR","GBP"] },
-    ],
-    jsonSchemaSnapshot: { title: "Expense Reimbursement", type: "object" },
-    uiSchemaSnapshot: { "ui:order": ["general", "mileage", "attachments"] },
-  },
-};
 
 const ITEMS_PER_PAGE = 7;
 
 const FormLibrary = () => {
   const [forms, setForms] = useState(mockFormTemplates);
-  const [isPublishOpen, setIsPublishOpen] = useState(false); // <-- add
-  const [selectedFormForPublish, setSelectedFormForPublish] = useState(null); // <-- add
-  const [selectedDraftSchema, setSelectedDraftSchema] = useState(null); // <-- add
-
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -448,17 +215,7 @@ const FormLibrary = () => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-  const buildDraftSchema = (form) => ({
-    title: form.name,
-    description: `${form.category || ""} template`,
-    fields: (form.fields || []).map((f) => ({
-      id: f.id,
-      type: "text", // placeholder type for mock rows
-      label: f.label,
-      required: false,
-      placeholder: "",
-    })),
-  });
+
   const handleSort = (key) => {
     let direction = "ascending";
     if (sortConfig.key === key && sortConfig.direction === "ascending") {
@@ -491,24 +248,6 @@ const FormLibrary = () => {
   const handleCloseSubmissionsModal = () => {
     setIsSubmissionsModalOpen(false);
     setSelectedFormForSubmissions(null);
-  };
-  const handleOpenPublishFromLibrary = (form) => {
-    setSelectedFormForPublish(form);
-    setSelectedDraftSchema(buildDraftSchema(form));
-    setIsPublishOpen(true);
-  };
-  const handleClosePublish = (published) => {
-    setIsPublishOpen(false);
-    if (published && selectedFormForPublish) {
-      // Optimistically mark as Published in table
-      setForms((prev) =>
-        prev.map((f) =>
-          f.id === selectedFormForPublish.id ? { ...f, status: "Published" } : f
-        )
-      );
-    }
-    setSelectedFormForPublish(null);
-    setSelectedDraftSchema(null);
   };
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -644,8 +383,7 @@ const FormLibrary = () => {
                           </DropdownMenuItem>
                         ) : (
                           <DropdownMenuItem
-                            // disabled={form.status === "Archived"}
-                            onClick={() => handleOpenPublishFromLibrary(form)} // <-- open modal
+                            disabled={form.status === "Archived"}
                           >
                             <Play className="mr-2 h-4 w-4" /> Publish
                           </DropdownMenuItem>
@@ -682,14 +420,6 @@ const FormLibrary = () => {
           onClose={handleCloseUsageModal}
           form={selectedFormForUsage}
         />
-        {/* Publish Modal from Library */}
-        <FormPublishModal
-          open={isPublishOpen}
-          onClose={handleClosePublish}
-          formId={selectedFormForPublish?.id}
-          draftSchema={selectedDraftSchema}
-        />
-
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}

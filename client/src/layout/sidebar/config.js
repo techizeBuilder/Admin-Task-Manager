@@ -102,30 +102,14 @@ const baseItems = {
     icon: MilestoneTaskIcon,
     path: "/milestones",
   },
-  // form modules
+// form modules 
   form: {
     id: "form",
     label: "Forms",
     icon: ClipboardCheck,
     children: [
-      {
-        id: "form-library",
-        label: "Form Library",
-        icon: ClipboardCheck,
-        path: "/form-library",
-      },
-      {
-        id: "form-builder",
-        label: "Form Builder",
-        icon: ClipboardCheck,
-        path: "/form-builder",
-      },
-      {
-        id: "form-version-history",
-        label: "Form Version History",
-        icon: Clock,
-        path: "/form-version-history",
-      },
+      { id: "form-library", label: "Form Library", icon: ClipboardCheck, path: "/form-library" },
+      { id: "form-builder", label: "Form Builder", icon: ClipboardCheck, path: "/form-builder" },
     ],
   },
   // Settings for employee & manager (view only)
