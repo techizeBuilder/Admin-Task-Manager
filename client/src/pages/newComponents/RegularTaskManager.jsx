@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useQuery } from '@tanstack/react-query';
 import { createPortal } from "react-dom";
 import {
   Plus,
@@ -24,6 +25,7 @@ import {
   Play,
   Trash2
 } from "lucide-react";
+import { apiClient } from '../../utils/apiClient';
 import { RegularTaskIcon } from "../../components/common/TaskIcons";
 import { Link } from "wouter";
 import {
@@ -104,57 +106,57 @@ const dueDateFromPriority = (priority) => {
 };
 
 export default function RegularTaskManager() {
-  // Sample tasks (regular tasks, not milestones)
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      taskName: "Prepare Report",
-      description: "Compile weekly sales metrics and insights.",
-      assignedTo: "Self",
-      priority: "medium",
-      dueDate: "2025-09-20",
-      visibility: "private",
-      labels: ["report", "sales"],
-      attachments: [],
-      status: "in_progress",
-      taskType: "simple",
-      progress: 50,
-    },
-    {
-      id: 2,
-      taskName: "Team Standup",
-      description: "Daily sync with the product team.",
-      assignedTo: "Team",
-      priority: "low",
-      dueDate: "2025-09-21",
-      visibility: "public",
-      labels: ["meeting"],
-      attachments: [],
-      status: "not_started",
-      taskType: "recurring",
-      progress: 0,
-    },
-    {
-      id: 3,
-      taskName: "Budget Approval",
-      description: "Get approval from finance for Q4 budget.",
-      assignedTo: "Emily Davis",
-      priority: "high",
-      dueDate: "2025-09-18",
-      visibility: "private",
-      labels: ["finance", "approval"],
-      attachments: [],
-      status: "completed",
-      taskType: "approval",
-      progress: 100,
-    },
-  ]);
-
-
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  // Pagination and filters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageLimit] = useState(20);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("grid");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Fetch regular tasks from API
+  const { data: apiResponse, isLoading, error, refetch } = useQuery({
+    queryKey: ['regular-tasks', currentPage, pageLimit, statusFilter, priorityFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageLimit.toString(),
+      });
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (priorityFilter !== 'all') params.append('priority', priorityFilter);
+      const response = await apiClient.get(`/api/tasks/filter/regular?${params.toString()}`);
+      return response;
+    },
+    retry: 1,
+    staleTime: 30000,
+  });
+
+  // Transform API data to match component expectations
+  const transformApiTask = (apiTask) => ({
+    id: apiTask._id,
+    taskName: apiTask.title,
+    description: apiTask.description,
+    assignedTo: typeof apiTask.assignedTo === 'object' && apiTask.assignedTo !== null
+      ? (apiTask.assignedTo.name || apiTask.assignedTo.username || apiTask.assignedTo.email || 'User')
+      : (apiTask.assignedTo || 'Self'),
+    priority: apiTask.priority,
+    dueDate: apiTask.dueDate,
+    visibility: apiTask.visibility,
+    labels: apiTask.tags || [],
+    attachments: apiTask.attachments || [],
+    status: apiTask.status,
+    taskType: apiTask.taskType || 'regular',
+    progress: apiTask.progress || 0,
+  });
+
+  // Get tasks from API or fallback to empty
+  const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
+  const tasks = tasksArray.map(transformApiTask) || [];
+  const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
+
+
+
+
 
   // Form state
   const [form, setForm] = useState({
@@ -195,20 +197,19 @@ export default function RegularTaskManager() {
     setAttachmentsBytes(0);
   };
 
-  // Filtering
-  const filteredTasks = tasks.filter((task) => {
-    const statusMatch = statusFilter === "all" || task.status === statusFilter;
-    const priorityMatch = priorityFilter === "all" || task.priority === priorityFilter;
-    return statusMatch && priorityMatch;
-  });
 
-  const stats = {
+  // Filtering (API already filters, but keep for local fallback)
+  const filteredTasks = tasks;
+
+
+  // Stats (calculate from tasks)
+  const stats = useMemo(() => ({
     total: tasks.length,
     completed: tasks.filter((t) => t.status === "completed").length,
     inProgress: tasks.filter((t) => t.status === "in_progress").length,
     notStarted: tasks.filter((t) => t.status === "not_started").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
-  };
+  }), [tasks]);
 
   // Form handlers
   const onPriorityChange = (priority) => {
@@ -288,6 +289,35 @@ export default function RegularTaskManager() {
     resetForm();
   };
 
+  // Loading state
+  if (isLoading && !tasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading regular tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !tasks.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading regular tasks: {error.message}</p>
+          <button 
+            onClick={() => refetch()} 
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -318,7 +348,7 @@ export default function RegularTaskManager() {
 
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -377,7 +407,7 @@ export default function RegularTaskManager() {
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                 className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
@@ -389,7 +419,7 @@ export default function RegularTaskManager() {
 
               <select
                 value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
+                onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
                 className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Priority</option>
@@ -652,19 +682,64 @@ export default function RegularTaskManager() {
           </div>
         )}
 
-        {filteredTasks.length === 0 && (
+        {filteredTasks.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <File className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No regular tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first regular task.</p>
              <Link href="/tasks/create?type=regular">
             <button
-
               className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Regular Task
             </button></Link>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between bg-white px-4 py-3 border border-gray-200 rounded-lg">
+            <div className="flex items-center text-sm text-gray-700">
+              <span>
+                Showing page {pagination.currentPage} of {pagination.totalPages} 
+                ({pagination.totalTasks} total tasks)
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              {/* Page numbers */}
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, pagination.currentPage - 2) + i;
+                if (pageNum > pagination.totalPages) return null;
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      pageNum === pagination.currentPage
+                        ? 'bg-teal-600 text-white'
+                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setCurrentPage(pagination.currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
