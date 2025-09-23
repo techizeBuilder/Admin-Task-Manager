@@ -11,7 +11,7 @@ import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon
 import { useLocation } from "wouter";
 export default function CreateTask({
   onClose,
-  onSubmit,
+  onSubmit = () => { }, // <-- Default empty function
   initialTaskType = "regular",
   preFilledDate = null,
 }) {
@@ -29,15 +29,15 @@ export default function CreateTask({
     canAssignToOthers,
     restrictions,
   } = useAssignmentOptions();
- const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
+  const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
 
   // Extract query params
-useEffect(() => {
-  const searchParams = new URLSearchParams(window.location.search);
-  const type = searchParams.get("type") || "recurring";
-  setSelectedTaskType(type);
-}, [location]); 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const type = searchParams.get("type") || "recurring";
+    setSelectedTaskType(type);
+  }, [location]);
   // Filter available task types based on role permissions
   const getAvailableTaskTypes = () => {
     const taskTypes = [
@@ -84,7 +84,7 @@ useEffect(() => {
       <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Task Type 
+            Task Type
           </h3>
           <p className="text-gray-600 text-sm">
             Choose the type of task you want to create
@@ -615,7 +615,7 @@ function LegacyCreateTask({
       console.error("Error creating task:", error);
       alert(
         "Failed to create task: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
       );
     }
   };
@@ -641,19 +641,17 @@ function LegacyCreateTask({
         <div className="grid grid-cols-1 gap-3">
           <button
             onClick={() => setTaskType("modular")}
-            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "modular"
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "modular"
                 ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
                 : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "modular"
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "modular"
                     ? "bg-blue-500 text-white"
                     : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
-                }`}
+                  }`}
               >
                 <FileText size={20} className="text-blue-600" />
               </div>
@@ -713,19 +711,17 @@ function LegacyCreateTask({
           </button> */}
           <button
             onClick={() => setTaskType("milestone")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "milestone"
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "milestone"
                 ? "border-purple-500 bg-gradient-to-br from-purple-50 to-violet-50 shadow-md transform scale-102"
                 : "border-gray-200 hover:border-purple-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "milestone"
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "milestone"
                     ? "bg-purple-500 text-white"
                     : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
-                }`}
+                  }`}
               >
                 <Target size={16} className="text-red-600" />
               </div>
@@ -742,19 +738,17 @@ function LegacyCreateTask({
 
           <button
             onClick={() => setTaskType("approval")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
-              taskType === "approval"
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "approval"
                 ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
                 : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
-            }`}
+              }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  taskType === "approval"
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "approval"
                     ? "bg-emerald-500 text-white"
                     : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
-                }`}
+                  }`}
               >
                 <CheckCircle size={16} className="text-amber-600" />
               </div>
@@ -1064,9 +1058,8 @@ function LegacyCreateTask({
                         />
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-${
-                              ["green", "blue", "purple", "orange"][i]
-                            }-600`}
+                            className={`text-${["green", "blue", "purple", "orange"][i]
+                              }-600`}
                           >
                             {[<CheckCircle size={16} className="text-green-600" />, <Settings size={16} className="text-blue-600" />, <FlaskConical size={16} className="text-purple-600" />, <Rocket size={16} className="text-red-600" />][i]}
                           </span>
