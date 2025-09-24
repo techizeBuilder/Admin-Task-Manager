@@ -646,11 +646,6 @@ export const getTasksByType = async (req, res) => {
       category
     } = req.query;
 
-    console.log('=== getTasksByType Debug Info ===');
-    console.log('User:', { id: user.id, organizationId: user.organizationId });
-    console.log('Requested type:', type);
-    console.log('Query params:', { status, assignee, priority, page, limit, search, startDate, endDate, category });
-
     // Validate taskType parameter
     const validTaskTypes = ["regular", "recurring", "milestone", "approval"];
     if (!validTaskTypes.includes(type)) {
@@ -713,151 +708,60 @@ export const getTasksByType = async (req, res) => {
         break;
     }
 
-    console.log('Final filter:', JSON.stringify(filter, null, 2));
-
-    // First, let's get ALL tasks to see what exists in the database
-    console.log('=== Debugging: Getting ALL tasks first ===');
-    const allTasksFilter = { isDeleted: { $ne: true } };
-    if (user.organizationId) {
-      allTasksFilter.organization = user.organizationId;
-    } else {
-      allTasksFilter.createdBy = user.id;
-    }
-    
-    const allTasks = await storage.getTasksByFilter(allTasksFilter, { limit: 1000 });
-    console.log('Total tasks in DB for this user/org:', allTasks ? allTasks.length : 0);
-    
-    // ALSO get ALL tasks including deleted ones to compare
-    const allTasksIncludingDeleted = await storage.getTasksByFilter({
-      ...(user.organizationId ? { organization: user.organizationId } : { createdBy: user.id })
-    }, { limit: 1000 });
-    console.log('Total tasks INCLUDING deleted:', allTasksIncludingDeleted ? allTasksIncludingDeleted.length : 0);
-    
-    if (allTasksIncludingDeleted && allTasksIncludingDeleted.length > 0) {
-      const deletedTasks = allTasksIncludingDeleted.filter(task => task.isDeleted);
-      console.log('Deleted tasks count:', deletedTasks.length);
-      if (deletedTasks.length > 0) {
-        console.log('Sample deleted tasks:', deletedTasks.slice(0, 3).map(task => ({
-          id: task._id,
-          title: task.title,
-          isDeleted: task.isDeleted,
-          taskType: task.taskType,
-          updatedAt: task.updatedAt
-        })));
-      }
-    }
-    
-    if (allTasks && allTasks.length > 0) {
-      console.log('Sample tasks:', allTasks.slice(0, 3).map(task => ({
-        id: task._id,
-        title: task.title,
-        taskType: task.taskType,
-        isRecurring: task.isRecurring,
-        isMilestone: task.isMilestone,
-        isApprovalTask: task.isApprovalTask,
-        organization: task.organization,
-        createdBy: task.createdBy,
-        isDeleted: task.isDeleted
-      })));
-    }
-
-    // Get tasks using the same method as getTasks
+    // Get tasks
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 }
     });
 
-    console.log('Raw tasks result:', { 
-      type: typeof tasks, 
-      isArray: Array.isArray(tasks), 
-      length: tasks ? tasks.length : 'no length',
-      firstTask: tasks && tasks.length > 0 ? { 
-        id: tasks[0]._id, 
-        title: tasks[0].title, 
-        taskType: tasks[0].taskType,
-        isDeleted: tasks[0].isDeleted
-      } : 'no tasks'
+    // Group tasks by createdByRole
+    const roleList = ["super_admin", "org_admin", "manager", "individual", "employee"];
+    const groupedTasks = {};
+    roleList.forEach((role) => {
+      groupedTasks[role] = [];
     });
 
-    // Check if any deleted tasks are in the results
     if (tasks && tasks.length > 0) {
-      const deletedInResults = tasks.filter(task => task.isDeleted);
-      if (deletedInResults.length > 0) {
-        console.error('❌ PROBLEM: Found deleted tasks in results:', deletedInResults.map(task => ({
-          id: task._id,
-          title: task.title,
-          isDeleted: task.isDeleted
-        })));
-      } else {
-        console.log('✅ Good: No deleted tasks found in results');
+      for (let task of tasks) {
+        if (groupedTasks[task.createdByRole]) {
+          groupedTasks[task.createdByRole].push(task);
+        }
+        // Add approval details if needed
+        if (task.isApprovalTask) {
+          try {
+            const approvals = await storage.getTaskApprovals(task._id);
+            task.approvalDetails = approvals;
+          } catch (err) {
+            console.error("Error fetching approvals for task:", task._id, err);
+          }
+        }
       }
-      
-      // Show all task states for debugging
-      console.log('All tasks in result with isDeleted status:', tasks.map(task => ({
-        id: task._id,
-        title: task.title,
-        isDeleted: task.isDeleted,
-        taskType: task.taskType
-      })));
     }
 
-    // Since getTasksByFilter returns a simple array, we need to create pagination manually
+    // Pagination
     const totalTasks = tasks ? tasks.length : 0;
     const totalPages = Math.ceil(totalTasks / parseInt(limit));
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
-    // Add type-specific data for each task
-    if (tasks && tasks.length > 0) {
-      for (let task of tasks) {
-        if (task.isApprovalTask) {
-          try {
-            const approvals = await storage.getTaskApprovals(task._id);
-            task.approvalDetails = approvals;
-          } catch (approvalError) {
-            console.error('Error fetching approvals for task:', task._id, approvalError);
-          }
-        }
-      }
-    }
-
-    const response = {
+    // Response (grouped by roles)
+    res.json({
       success: true,
-      message: `${getTaskTypeLabel(type)} tasks retrieved successfully`,
+      message: `${type} tasks retrieved successfully`,
       taskType: type,
       data: {
-        tasks: tasks || [],
+        roles: groupedTasks,
         pagination: {
           currentPage: parseInt(page),
-          totalPages: totalPages,
-          totalTasks: totalTasks,
+          totalPages,
+          totalTasks,
           hasNextPage: hasNext,
           hasPrevPage: hasPrev,
           limit: parseInt(limit)
-        },
-        summary: {
-          taskType: type,
-          totalCount: totalTasks,
-          filters: {
-            status,
-            assignee,
-            priority,
-            category,
-            search,
-            dateRange: startDate && endDate ? { from: startDate, to: endDate } : null
-          }
         }
       }
-    };
-
-    console.log('Final response summary:', { 
-      success: response.success, 
-      tasksCount: response.data.tasks.length,
-      totalCount: response.data.summary.totalCount 
     });
-
-    res.json(response);
 
   } catch (error) {
     console.error('Error fetching tasks by type:', error);
@@ -869,67 +773,85 @@ export const getTasksByType = async (req, res) => {
   }
 };
 
+
 export const getMyTasks = async (req, res) => {
   try {
-    const user = req.user;
     const {
       status,
       priority,
       page = 1,
       limit = 50,
-      search
+      search,
+      role // 👈 frontend se filter role aa sakta hai
     } = req.query;
 
-    // Support both string and array role
-    let userRole = user.role;
-    if (Array.isArray(userRole)) {
-      userRole = userRole[0];
-    }
-
+    // Base filter
     const filter = {
-      createdByRole: userRole,
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     };
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (search) {
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
       ];
     }
+    if (role) {
+      // 👈 agar query me role diya hai to us role ka hi filter
+      filter.createdByRole = role;
+    }
 
+    // Get tasks
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
-      sort: { createdAt: -1 }
+      sort: { createdAt: -1 },
     });
 
+    // Initialize all roles
+    const roleList = ["super_admin", "org_admin", "manager", "individual", "employee"];
+    const groupedTasks = {};
+    roleList.forEach((r) => {
+      groupedTasks[r] = [];
+    });
+
+    // Group tasks by createdByRole
+    tasks.forEach((task) => {
+      const taskRole = task.createdByRole;
+      if (groupedTasks[taskRole]) {
+        groupedTasks[taskRole].push(task);
+      }
+    });
+
+    // Pagination (sirf fetched tasks ke basis pe)
     const totalTasks = tasks ? tasks.length : 0;
     const totalPages = Math.ceil(totalTasks / parseInt(limit));
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
+    // Response
     res.json({
       success: true,
       data: {
-        tasks: tasks || [],
+        roles: groupedTasks,
         pagination: {
           currentPage: parseInt(page),
           totalPages: totalPages,
           totalTasks: totalTasks,
           hasNextPage: hasNext,
           hasPrevPage: hasPrev,
-          limit: parseInt(limit)
-        }
-      }
+          limit: parseInt(limit),
+        },
+      },
     });
   } catch (error) {
-    console.error('Error fetching my tasks:', error);
+    console.error("Error fetching my tasks:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch tasks',
-      error: error.message
+      message: "Failed to fetch tasks",
+      error: error.message,
     });
   }
 };
+

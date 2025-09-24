@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useActiveRole } from "../../components/RoleSwitcher";
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
@@ -121,13 +122,18 @@ const RecurringTaskManager = () => {
     'tasksFromNestedPath': apiResponse?.data?.data?.tasks
   });
 
-  // Try both possible data paths
-  const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
+  // Get active role from context
+  const { activeRole } = useActiveRole();
+  // Fallback to first available role if not set
+  const currentRole = activeRole || Object.keys(apiResponse?.data?.data?.roles || {})[0] || "employee";
+
+  // Get tasks for current role from API response
+  const tasksArray = apiResponse?.data?.data?.roles?.[currentRole] || [];
   console.log('Final tasks array:', tasksArray);
 
   const recurringTasks = tasksArray.map(transformApiTask) || [];
-  const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
-  const summary = apiResponse?.data?.summary || apiResponse?.data?.data?.summary || {};
+  const pagination = apiResponse?.data?.data?.pagination || {};
+  const summary = apiResponse?.data?.data?.summary || {};
 
   // Mock data for development/fallback
   const mockRecurringTasks = [

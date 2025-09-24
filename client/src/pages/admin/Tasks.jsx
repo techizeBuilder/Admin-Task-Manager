@@ -13,162 +13,11 @@ export default function Tasks() {
   const [showTaskTypeDropdown, setShowTaskTypeDropdown] = useState(false);
   const [selectedTaskType, setSelectedTaskType] = useState("regular");
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
-  const [showApprovalTaskModal, setShowApprovalTaskModal] = useState(false);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
   const [calendarFilteredTasks, setCalendarFilteredTasks] = useState([]);
-  const [tasks, setTasks] = useState([
-    {
-      id: 9,
-      title: "Review quarterly sales report",
-      assignee: "Finance Team",
-      assigneeId: 8,
-      status: "OPEN",
-      priority: "High",
-      dueDate: "2025-07-01",
-      category: "Finance",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 10,
-      title: "Client meeting preparation",
-      assignee: "Current User",
-      assigneeId: 1,
-      status: "INPROGRESS",
-      priority: "Medium",
-      dueDate: "2025-07-01",
-      category: "Meeting",
-      progress: 40,
-      subtaskCount: 2,
-      collaborators: [3],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 11,
-      title: "Update marketing materials",
-      assignee: "Marketing Team",
-      assigneeId: 9,
-      status: "OPEN",
-      priority: "Medium",
-      dueDate: "2025-07-01",
-      category: "Marketing",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 12,
-      title: "Server maintenance",
-      assignee: "DevOps Team",
-      assigneeId: 6,
-      status: "OPEN",
-      priority: "High",
-      dueDate: "2025-07-03",
-      category: "DevOps",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "System",
-      creatorId: 0,
-    },
-    {
-      id: 13,
-      title: "Team brainstorming session",
-      assignee: "Current User",
-      assigneeId: 1,
-      status: "OPEN",
-      priority: "Medium",
-      dueDate: "2025-07-03",
-      category: "Meeting",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [2, 3, 4],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 14,
-      title: "Draft project proposal",
-      assignee: "Jane Smith",
-      assigneeId: 3,
-      status: "INPROGRESS",
-      priority: "High",
-      dueDate: "2025-07-10",
-      category: "Documentation",
-      progress: 30,
-      subtaskCount: 0,
-      collaborators: [1],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 15,
-      title: "Review competitor analysis",
-      assignee: "Current User",
-      assigneeId: 1,
-      status: "OPEN",
-      priority: "Medium",
-      dueDate: "2025-07-10",
-      category: "Research",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "Jane Smith",
-      creatorId: 3,
-    },
-    {
-      id: 16,
-      title: "Submit expense reports",
-      assignee: "Current User",
-      assigneeId: 1,
-      status: "OPEN",
-      priority: "Low",
-      dueDate: "2025-07-20",
-      category: "Finance",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 17,
-      title: "Prepare training materials",
-      assignee: "HR Team",
-      assigneeId: 10,
-      status: "OPEN",
-      priority: "Medium",
-      dueDate: "2025-07-25",
-      category: "HR",
-      progress: 0,
-      subtaskCount: 0,
-      collaborators: [],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-    {
-      id: 18,
-      title: "Onboard new team member",
-      assignee: "HR Team",
-      assigneeId: 10,
-      status: "OPEN",
-      priority: "High",
-      dueDate: "2025-07-26",
-      category: "HR",
-      progress: 0,
-      subtaskCount: 3,
-      collaborators: [1],
-      createdBy: "Current User",
-      creatorId: 1,
-    },
-  ]);
+  const [showApprovalTaskModal, setShowApprovalTaskModal] = useState(false); // This can be moved to AllTasks if not needed here.
+  const [tasks, setTasks] = useState([]); // Let AllTasks handle its own data
 
   // Add this handler function
   const handleCalendarDateSelect = (date) => {
@@ -184,11 +33,7 @@ export default function Tasks() {
     setSelectedTaskType(taskType);
     setShowTaskTypeDropdown(false);
 
-    if (taskType === "approval") {
-      setShowApprovalTaskModal(true);
-    } else {
-      setShowCreateTaskDrawer(true);
-    }
+    setShowCreateTaskDrawer(true); // Let CreateTask handle the different types
   };
 
   const handleCreateApprovalTask = (approvalTaskData) => {
@@ -371,7 +216,7 @@ export default function Tasks() {
         </div>
         {showFullCalendar && (
           <FullPageCalendar
-            tasks={tasks}
+            tasks={[]} // AllTasks will fetch its own data
             onClose={() => {
               setShowFullCalendar(false);
               setSelectedCalendarDate(null);

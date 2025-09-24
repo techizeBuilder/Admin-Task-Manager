@@ -21,6 +21,7 @@ import {
   ListChecks, // added
 } from "lucide-react";
 import CreateTask from "../pages/newComponents/CreateTask";
+import ReactECharts from "../components/ReactECharts";
 
 /**
  * Individual User Dashboard - Personal workspace for individual users
@@ -54,16 +55,38 @@ const IndividualDashboard = ({
     retry: false,
   });
 
-  // Fetch tasks from API
-  const { data: apiTasks = [] } = useQuery({
-    queryKey: ["/api/tasks"],
+  // Fetch tasks for current user role from API with Authorization token
+  const { data: myTasksData, error: myTasksError, isLoading: myTasksLoading } = useQuery({
+    queryKey: ["/api/mytasks", 1, 100],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authorization token not found.");
+      }
+      const res = await fetch("/api/mytasks?page=1&limit=100", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        throw new Error("Unauthorized: Please login again.");
+      }
+      return res.json();
+    },
     retry: false,
   });
 
+  // Determine active role (customize this if your user object uses a different property)
+  const activeRole = user?.activeRole || user?.role || "employee";
+
+  // Extract tasks for the active role from API response
+  const roleTasks = myTasksData?.data?.roles?.[activeRole] || [];
+
   // Use API data or fallback to passed tasks
-   const demoTasks = useMemo(() => generateMockTasks(), []);
- const currentTasks =
-   apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : demoTasks;
+  const demoTasks = useMemo(() => generateMockTasks(), []);
+  // Local state for tasks to avoid mutating props or query data
+  const [localTasks, setLocalTasks] = useState(null);
+  const currentTasks = localTasks ?? (roleTasks.length > 0 ? roleTasks : tasks.length > 0 ? tasks : demoTasks);
 
   // Use API dashboard stats or fallback to userStats (mock)
 
@@ -325,6 +348,69 @@ const IndividualDashboard = ({
     }
   };
 
+  // State for local task deletion feedback
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+
+  // Show error if unauthorized or other API error
+  if (myTasksError) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-10">
+          <span className="text-lg text-red-500">{myTasksError.message}</span>
+        </div>
+      </div>
+    );
+  }
+  // Show loading state
+  if (myTasksLoading) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-10">
+          <span className="text-lg text-gray-500">Loading tasks...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Delete task API logic
+  const handleDeleteTask = async (taskId) => {
+    setDeletingTaskId(taskId);
+    setDeleteError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setDeleteError("Authorization token not found.");
+        setDeletingTaskId(null);
+        return;
+      }
+      const res = await fetch(`/api/tasks/delete/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        setDeleteError("Unauthorized: Please login again.");
+        setDeletingTaskId(null);
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.message || "Failed to delete task.");
+        setDeletingTaskId(null);
+        return;
+      }
+      // Remove deleted task from UI (local only, will refetch on next load)
+      setLocalTasks((prev) => (prev ? prev.filter((t) => t._id !== taskId) : currentTasks.filter((t) => t._id !== taskId)));
+      setDeletingTaskId(null);
+    } catch (err) {
+      setDeleteError(err.message || "Error deleting task.");
+      setDeletingTaskId(null);
+    }
+  };
+
   const filteredTasks = currentTasks.filter((task) => {
     const matchesSearch =
       task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -350,8 +436,48 @@ const IndividualDashboard = ({
    const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
    
    return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
- 
   });
+
+// Computes basic stats from a list of tasks
+function computeStatsFromTasks(tasks) {
+  const now = new Date();
+  const statusOf = (s) => (s || "").toLowerCase();
+  const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
+  const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
+  const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
+  const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
+  return {
+    openCount,
+    inProgressCount,
+    completedCount,
+    overdueCount,
+  };
+}
+// Simple mock function to generate demo tasks if API data is unavailable
+function generateMockTasks() {
+  return [
+    {
+      id: 1,
+      title: "Demo Task 1",
+      description: "This is a demo task.",
+      status: "pending",
+      dueDate: new Date().toISOString(),
+      isRecurring: false,
+      priority: "medium",
+    },
+    {
+      id: 2,
+      title: "Demo Task 2",
+      description: "Another demo task.",
+      status: "completed",
+      dueDate: new Date(Date.now() - 86400000).toISOString(),
+      completedAt: new Date().toISOString(),
+      isRecurring: true,
+      recurringInterval: "weekly",
+      priority: "high",
+    },
+  ];
+}
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -414,16 +540,16 @@ const IndividualDashboard = ({
               You have {overdueCount} overdue {overdueCount === 1 ? "task" : "tasks"} ⚠️
             </span>
           </div>
-          <Button
+          <button
             onClick={() => {
               setShowFilters(true);
               setSelectedFilter("overdue");
               document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="text-red-700 hover:text-red-900 "
+            className="text-red-700 hover:text-red-900 font-medium px-3 py-2 rounded-lg border border-red-200 bg-red-100 hover:bg-red-200 transition-colors"
           >
             View Overdue
-          </Button>
+          </button>
         </div>
       )}
 
@@ -800,9 +926,9 @@ const IndividualDashboard = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredTasks.map((task) => (
                     <tr
-                      key={task.id}
+                      key={task._id}
                       className="hover:bg-gray-50"
-                      data-testid={`task-row-${task.id}`}
+                      data-testid={`task-row-${task._id}`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
@@ -869,23 +995,28 @@ const IndividualDashboard = ({
                         <div className="flex items-center gap-2">
                           <button
                             className="text-gray-600 hover:text-blue-600 p-1 rounded"
-                            data-testid={`button-edit-${task.id}`}
+                            data-testid={`button-edit-${task._id}`}
                           >
                             <Edit size={14} />
                           </button>
                           <button
-                            className="text-gray-600 hover:text-red-600 p-1 rounded"
-                            data-testid={`button-delete-${task.id}`}
+                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${deletingTaskId === task._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            data-testid={`button-delete-${task._id}`}
+                            disabled={deletingTaskId === task._id}
+                            onClick={() => handleDeleteTask(task._id)}
                           >
                             <Trash2 size={14} />
                           </button>
                           <button
                             className="text-gray-600 hover:text-gray-900 p-1 rounded"
-                            data-testid={`button-more-${task.id}`}
+                            data-testid={`button-more-${task._id}`}
                           >
                             <MoreHorizontal size={14} />
                           </button>
                         </div>
+                        {deleteError && deletingTaskId === task._id && (
+                          <div className="text-xs text-red-500 mt-1">{deleteError}</div>
+                        )}
                       </td>
                     </tr>
                   ))}

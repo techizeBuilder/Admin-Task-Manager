@@ -83,6 +83,10 @@ const taskStatusSchema = new mongoose.Schema(
 // Task Schema
 const taskSchema = new mongoose.Schema(
   {
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     title: {
       type: String,
       required: true,
@@ -155,6 +159,12 @@ const taskSchema = new mongoose.Schema(
       enum: ["regular", "recurring", "milestone", "approval"],
       default: "regular",
     }, // Clear task category identification
+    createdByRole: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
     taskTypeAdvanced: {
       type: String,
       enum: ["simple", "complex", "recurring", "milestone", "approval"],

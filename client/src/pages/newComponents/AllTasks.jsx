@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useActiveRole } from "../../components/RoleSwitcher";
 import { useLocation } from "wouter";
 import axios from "axios";
 import useTasksStore from "../../stores/tasksStore";
@@ -108,6 +109,8 @@ export default function AllTasks({
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
+  const { activeRole } = useActiveRole();
+  const [currentRole, setCurrentRole] = useState(null);
  // Lock body scroll while any modal/drawer is open
   useEffect(() => {
     const anyOpen =
@@ -166,7 +169,20 @@ export default function AllTasks({
         );
 
         if (response.data && response.data.success) {
-          const mappedTasks = response.data.data.tasks.map((task) => {
+          // If response is grouped by roles, use only current role's tasks
+          const rolesObj = response.data.data?.roles;
+          let roleToUse = activeRole || null;
+          if (!roleToUse && rolesObj) {
+            roleToUse = Object.keys(rolesObj)[0];
+          }
+          setCurrentRole(roleToUse);
+          let tasksArr = [];
+          if (rolesObj && roleToUse && rolesObj[roleToUse]) {
+            tasksArr = rolesObj[roleToUse];
+          } else if (response.data.data.tasks) {
+            tasksArr = response.data.data.tasks;
+          }
+          const mappedTasks = tasksArr.map((task) => {
             const statusMap = {
               todo: "OPEN",
               inprogress: "INPROGRESS",
@@ -211,7 +227,7 @@ export default function AllTasks({
     };
 
     fetchTasks();
-  }, []);
+  }, [activeRole]);
 
   // Company-defined statuses with comprehensive management
   const [companyStatuses] = useState([

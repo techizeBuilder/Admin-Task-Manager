@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useActiveRole } from "../../components/RoleSwitcher";
 import axios from "axios";
 import { FileText, RotateCcw, Target, CheckCircle, Settings, FlaskConical, Rocket, Link } from "lucide-react";
 import RegularTaskForm from "../../forms/RegularTaskForm";
@@ -32,6 +33,7 @@ export default function CreateTask({
   } = useAssignmentOptions();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
+  const { activeRole } = useActiveRole();
 
   // Extract query params
   useEffect(() => {
@@ -166,6 +168,11 @@ export default function CreateTask({
         submitData.append("approval", JSON.stringify(data.approval));
       }
 
+      // Add the active role to the request
+      if (activeRole) {
+        submitData.append("createdByRole", activeRole);
+      }
+
       // Auth token
       const token = localStorage.getItem("token");
 
@@ -185,6 +192,9 @@ export default function CreateTask({
       }
       // Optionally close modal
       if (onClose) onClose();
+
+      // Redirect to the tasks page
+      setLocation("/tasks");
     } catch (error) {
       console.error("Error creating task:", error);
       alert("Failed to create task: " + (error.response?.data?.message || error.message));

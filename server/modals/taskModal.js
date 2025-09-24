@@ -17,6 +17,12 @@ const TaskSchema = mongoose.Schema(
       enum: ["regular", "recurring", "milestone", "approval"],
       default: "regular",
     },
+    createdByRole: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
     taskTypeAdvanced: {
       type: String,
       enum: ["simple", "complex"],

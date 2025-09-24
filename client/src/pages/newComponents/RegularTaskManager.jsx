@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useActiveRole } from "../../components/RoleSwitcher";
 import { useQuery } from '@tanstack/react-query';
 import { createPortal } from "react-dom";
 import {
@@ -131,13 +132,17 @@ export default function RegularTaskManager() {
     staleTime: 30000,
   });
 
+  // Get active role from context
+  const { activeRole } = useActiveRole();
+  // Fallback to first available role if not set
+  const currentRole = activeRole || Object.keys(apiResponse?.data?.data?.roles || {})[0] || "employee";
   // Transform API data to match component expectations
   const transformApiTask = (apiTask) => ({
     id: apiTask._id,
     taskName: apiTask.title,
     description: apiTask.description,
     assignedTo: typeof apiTask.assignedTo === 'object' && apiTask.assignedTo !== null
-      ? (apiTask.assignedTo.name || apiTask.assignedTo.username || apiTask.assignedTo.email || 'User')
+      ? (apiTask.assignedTo.firstName ? `${apiTask.assignedTo.firstName} ${apiTask.assignedTo.lastName || ''}`.trim() : (apiTask.assignedTo.name || apiTask.assignedTo.username || apiTask.assignedTo.email || 'User'))
       : (apiTask.assignedTo || 'Self'),
     priority: apiTask.priority,
     dueDate: apiTask.dueDate,
@@ -149,14 +154,10 @@ export default function RegularTaskManager() {
     progress: apiTask.progress || 0,
   });
 
-  // Get tasks from API or fallback to empty
-  const tasksArray = apiResponse?.data?.tasks || apiResponse?.data?.data?.tasks || [];
+  // Get tasks for current role from API response
+  const tasksArray = apiResponse?.data?.data?.roles?.[currentRole] || [];
   const tasks = tasksArray.map(transformApiTask) || [];
-  const pagination = apiResponse?.data?.pagination || apiResponse?.data?.data?.pagination || {};
-
-
-
-
+  const pagination = apiResponse?.data?.data?.pagination || {};
 
   // Form state
   const [form, setForm] = useState({
@@ -287,6 +288,50 @@ export default function RegularTaskManager() {
 
     setShowAdvanced(false);
     resetForm();
+  };
+
+  // State for local task deletion feedback
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const [localTasks, setLocalTasks] = useState(null);
+  const currentTasks = localTasks ?? filteredTasks;
+
+  // Delete task API logic
+  const handleDeleteTask = async (taskId) => {
+    setDeletingTaskId(taskId);
+    setDeleteError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setDeleteError("Authorization token not found.");
+        setDeletingTaskId(null);
+        return;
+      }
+      const res = await fetch(`/api/tasks/delete/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        setDeleteError("Unauthorized: Please login again.");
+        setDeletingTaskId(null);
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.message || "Failed to delete task.");
+        setDeletingTaskId(null);
+        return;
+      }
+      // Remove deleted task from UI (local only, will refetch on next load)
+      setLocalTasks((prev) => (prev ? prev.filter((t) => t.id !== taskId) : currentTasks.filter((t) => t.id !== taskId)));
+      setDeletingTaskId(null);
+    } catch (err) {
+      setDeleteError(err.message || "Error deleting task.");
+      setDeletingTaskId(null);
+    }
   };
 
   // Loading state
@@ -454,7 +499,7 @@ export default function RegularTaskManager() {
         {/* Tasks Grid/List */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredTasks.map((task) => (
+            {currentTasks.map((task) => (
               <div
                 key={task.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
@@ -483,7 +528,7 @@ export default function RegularTaskManager() {
                         <DropdownMenuItem onClick={() => handleEdit(task.id)}>
                           <Edit3 className="h-3.5 w-3.5 mr-2 text-gray-600" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+                        <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} disabled={deletingTaskId === task.id}>
                           <Trash2 className="h-3.5 w-3.5 mr-2 text-red-600" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -603,7 +648,7 @@ export default function RegularTaskManager() {
           // List View
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {filteredTasks.map((task) => (
+              {currentTasks.map((task) => (
                 <div key={task.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
