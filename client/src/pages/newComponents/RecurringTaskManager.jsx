@@ -1,4 +1,68 @@
 import React, { useMemo, useState } from 'react';
+// Exported form model for recurring tasks (for RecurringTaskEdit.jsx)
+export const recurringTaskFormModel = [
+  {
+    name: 'title',
+    label: 'Task Title',
+    type: 'text',
+    required: true,
+    placeholder: 'Enter task title',
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'textarea',
+    required: false,
+    placeholder: 'Enter description',
+  },
+  {
+    name: 'frequency',
+    label: 'Frequency',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'daily', label: 'Daily' },
+      { value: 'weekly', label: 'Weekly' },
+      { value: 'monthly', label: 'Monthly' },
+      { value: 'quarterly', label: 'Quarterly' },
+      { value: 'yearly', label: 'Yearly' },
+    ],
+    placeholder: 'Select frequency',
+  },
+  {
+    name: 'priority',
+    label: 'Priority',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+    ],
+    placeholder: 'Select priority',
+  },
+  {
+    name: 'nextDue',
+    label: 'Next Due Date',
+    type: 'date',
+    required: false,
+    placeholder: '',
+  },
+  {
+    name: 'estimatedTime',
+    label: 'Estimated Time (minutes)',
+    type: 'number',
+    required: false,
+    placeholder: 'Enter estimated time',
+  },
+  {
+    name: 'tags',
+    label: 'Tags',
+    type: 'text',
+    required: false,
+    placeholder: 'Comma separated tags',
+  },
+];
 import { useActiveRole } from "../../components/RoleSwitcher";
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -33,6 +97,15 @@ const RecurringTaskManager = () => {
   const [viewMode, setViewMode] = useState('grid'); // grid | list
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit] = useState(20);
+
+  // Edit modal state
+  const [editingTask, setEditingTask] = useState(null);
+  // Initialize editForm with all fields from recurringTaskFormModel
+  const initialEditForm = Object.fromEntries(
+    recurringTaskFormModel.map(field => [field.name, ''])
+  );
+  const [editForm, setEditForm] = useState(initialEditForm);
+  const [editLoading, setEditLoading] = useState(false);
 
   // Fetch recurring tasks from API
   const { data: apiResponse, isLoading, error, refetch } = useQuery({
@@ -276,8 +349,73 @@ const RecurringTaskManager = () => {
 
   const handleEdit = (id) => {
     const task = currentTasks.find(t => t.id === id || t._id === id);
-    const taskId = task?._id || id;
-    window.location.href = `/tasks/edit/${taskId}?type=recurring`;
+    if (!task) return;
+    setEditingTask(task);
+    // Populate editForm with all fields from recurringTaskFormModel
+    const newForm = {};
+    recurringTaskFormModel.forEach(field => {
+      if (field.name === 'tags') {
+        newForm.tags = Array.isArray(task.tags) ? task.tags.join(', ') : (task.tags || '');
+      } else if (field.name === 'estimatedTime') {
+        newForm.estimatedTime = task.estimatedTime || '';
+      } else if (field.name === 'nextDue') {
+        newForm.nextDue = task.nextDue ? new Date(task.nextDue).toISOString().slice(0, 10) : '';
+      } else {
+        newForm[field.name] = task[field.name] || '';
+      }
+    });
+    setEditForm(newForm);
+  };
+
+  const handleEditFormChange = (e) => {
+    const { name, value, type } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: type === 'number' ? Number(value) : value
+    }));
+  };
+
+  const handleEditFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    setEditLoading(true);
+    try {
+      // Prepare payload from editForm using the correct API format
+      const payload = {};
+      recurringTaskFormModel.forEach(field => {
+        if (field.name === 'tags') {
+          payload.tags = editForm.tags ? editForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        } else if (field.name === 'estimatedTime') {
+          payload.estimatedTime = editForm.estimatedTime;
+        } else if (field.name === 'nextDue') {
+          payload.dueDate = editForm.nextDue ? new Date(editForm.nextDue).toISOString() : null;
+        } else if (field.name === 'title') {
+          payload.title = editForm[field.name];
+        } else {
+          payload[field.name] = editForm[field.name];
+        }
+      });
+
+      // Use PUT method with correct endpoint
+      const response = await apiClient.put(`/api/tasks/${editingTask._id || editingTask.id}`, payload);
+
+      if (response.success) {
+        setEditingTask(null);
+        setEditLoading(false);
+        refetch();
+      } else {
+        setEditLoading(false);
+        alert(response.message || 'Failed to update task.');
+      }
+    } catch (error) {
+      setEditLoading(false);
+      console.error('Error updating recurring task:', error);
+      alert(error.response?.data?.message || error.message || 'Failed to update task.');
+    }
+  };
+
+  const handleEditModalClose = () => {
+    setEditingTask(null);
   };
 
   const handleDelete = async (id) => {
@@ -360,6 +498,86 @@ const RecurringTaskManager = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Edit Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div
+            className="bg-white rounded-lg shadow-lg w-full max-w-md relative flex flex-col"
+            style={{ maxHeight: '80vh' }}
+          >
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+              onClick={handleEditModalClose}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 className="text-xl font-bold mb-4 px-6 pt-6">Edit Recurring Task</h2>
+            <form
+              onSubmit={handleEditFormSubmit}
+              className="space-y-4 px-6 pb-6 overflow-y-auto"
+              style={{ maxHeight: '60vh' }}
+            >
+              {recurringTaskFormModel.map(field => (
+                <div key={field.name}>
+                  <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                  {field.type === 'textarea' ? (
+                    <textarea
+                      name={field.name}
+                      value={editForm[field.name]}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      rows={3}
+                      required={field.required}
+                      placeholder={field.placeholder}
+                    />
+                  ) : field.type === 'select' ? (
+                    <select
+                      name={field.name}
+                      value={editForm[field.name]}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      required={field.required}
+                    >
+                      <option value="">{field.placeholder}</option>
+                      {field.options.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type}
+                      name={field.name}
+                      value={editForm[field.name]}
+                      onChange={handleEditFormChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      required={field.required}
+                      placeholder={field.placeholder}
+                    />
+                  )}
+                </div>
+              ))}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleEditModalClose}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg"
+                  disabled={editLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  disabled={editLoading}
+                >
+                  {editLoading ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -817,8 +1035,8 @@ const RecurringTaskManager = () => {
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
                     className={`px-3 py-2 text-sm font-medium rounded-md ${pageNum === pagination.currentPage
-                        ? 'bg-purple-600 text-white'
-                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      ? 'bg-purple-600 text-white'
+                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     {pageNum}

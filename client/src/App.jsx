@@ -103,6 +103,7 @@ import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
+// import RecurringTaskEdit from "./pages/newComponents/RecurringTaskEdit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -358,7 +359,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={DynamicDashboard}
-                    allowedRoles={["org_admin", "employee","manager", "individual"]}
+                    allowedRoles={["org_admin", "employee", "manager", "individual"]}
                   />
                 </AdminLayout>
               </Route>

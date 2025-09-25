@@ -70,7 +70,7 @@ export default function Header({ user }) {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const queryClient = useQueryClient();
- const {  setUser, logout } = useAuthStore()
+  const { setUser, logout } = useAuthStore()
   // Get auth user first
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],
@@ -84,11 +84,11 @@ export default function Header({ user }) {
     queryFn: async () => {
       if (authUser?.id) {
         const response = await fetch(`/api/users/${authUser.id}`);
-       
+
         if (response.ok) {
           const userData = await response.json();
           setUser(userData)
-      
+
           console.log("Header fetched user data:", userData);
           return userData;
         }
@@ -99,7 +99,7 @@ export default function Header({ user }) {
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
- 
+
   // Use profile data primarily (which has the correct profileImageUrl), fallback to auth data
   const currentUser = profileUser || authUser || user;
 
@@ -143,16 +143,16 @@ export default function Header({ user }) {
 
   const handleLogout = async () => {
     try {
-   
+
       localStorage.removeItem("token");
-     logout()
+      logout()
       queryClient.clear();
       setLocation("/login");
     } catch (error) {
       console.error("Logout error:", error);
       // Force logout even if API call fails
       localStorage.removeItem("token");
-           logout()
+      logout()
       queryClient.clear();
       setLocation("/login");
     }
@@ -205,44 +205,35 @@ export default function Header({ user }) {
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
   };
   return (
-    <header className="bg-white border-b border-gray-200 px-3 py-1.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="relative ml-4">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-3 w-3" />
+    <header className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+      <div className="flex items-center justify-between h-10">
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search..."
-              className="pl-6 pr-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent w-32"
+              placeholder="Search tasks, users, projects..."
+              className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 bg-gray-50 hover:bg-white transition-colors"
             />
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           {/* Role Switcher */}
           {
             !profileUser?.role?.includes("individual") &&
-          <RoleSwitcher />
+            <RoleSwitcher />
           }
-          
-          {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-            <Bell className="h-3 w-3" />
-          </Button> */}
+
+          {/* Notification Bell */}
           <div className="relative notification-dropdown">
             <button
-              className="p-3 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors relative"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors relative"
               onClick={() => setShowNotifications(!showNotifications)}
             >
-              {/* Proper bell icon */}
-              <svg
-                className="w-[25px] h-[25px]"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-              </svg>
+              <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 -right-[2px] bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -250,9 +241,9 @@ export default function Header({ user }) {
 
             {/* Notification Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-96 bg-white shadow-lg rounded-lg z-50 max-h-96 overflow-y-auto">
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white shadow-xl rounded-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900">
                       Notifications
@@ -260,7 +251,7 @@ export default function Header({ user }) {
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors"
                       >
                         Mark all as read
                       </button>
@@ -274,15 +265,14 @@ export default function Header({ user }) {
                     notifications.slice(0, 10).map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 border-b border-gray-100 cursor-pointer transition-colors ${
-                          !notification.read
-                            ? "bg-blue-50 hover:bg-blue-100"
+                        className={`p-4 border-b border-gray-100 cursor-pointer transition-all duration-200 ${!notification.read
+                            ? "bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-500"
                             : "hover:bg-gray-50"
-                        }`}
+                          }`}
                         onClick={() => markAsRead(notification.id)}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center border">
+                          <div className="flex-shrink-0 w-8 h-8 bg-white rounded-full flex items-center justify-center border shadow-sm">
                             <span className="text-sm">
                               {getNotificationIcon(notification.type)}
                             </span>
@@ -293,25 +283,24 @@ export default function Header({ user }) {
                                 <h4 className="text-sm font-medium text-gray-900 mb-1">
                                   {notification.title}
                                 </h4>
-                                <p className="text-sm text-gray-600 mb-2">
+                                <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                                   {notification.message}
                                 </p>
-                                <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-3">
                                   <span className="text-xs text-gray-500">
                                     {formatTimestamp(notification.timestamp)}
                                   </span>
                                   <span
-                                    className="text-xs font-medium"
-                                    style={{
-                                      color: getPriorityColor(
-                                        notification.priority,
-                                      ),
-                                    }}
+                                    className={`text-xs font-medium px-2 py-1 rounded-full ${notification.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                                        notification.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                                          notification.priority === 'medium' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-green-100 text-green-700'
+                                      }`}
                                   >
                                     {notification.priority}
                                   </span>
                                   {!notification.read && (
-                                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
                                   )}
                                 </div>
                               </div>
@@ -321,9 +310,10 @@ export default function Header({ user }) {
                       </div>
                     ))
                   ) : (
-                    <div className="p-8 text-center">
-                      <div className="text-gray-400 text-4xl mb-2">🔔</div>
-                      <p className="text-gray-500">No notifications</p>
+                    <div className="p-12 text-center">
+                      <div className="text-gray-300 text-5xl mb-3">🔔</div>
+                      <h4 className="text-gray-600 font-medium mb-1">No notifications</h4>
+                      <p className="text-gray-400 text-sm">You're all caught up!</p>
                     </div>
                   )}
                 </div>
@@ -334,9 +324,9 @@ export default function Header({ user }) {
                     <button
                       onClick={() => {
                         setShowNotifications(false);
-                        // You can add navigation to full notifications page here
+                        setLocation("/notifications");
                       }}
-                      className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-2 hover:bg-blue-50 rounded-md transition-colors"
                     >
                       View All Notifications
                     </button>
@@ -345,50 +335,52 @@ export default function Header({ user }) {
               </div>
             )}
           </div>
+          {/* User Avatar */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="relative h-6 w-6 rounded-full p-0"
+                className="relative h-10 w-10 rounded-full p-0 hover:bg-gray-100"
               >
                 <UserAvatar user={currentUser} size="md" className="h-8 w-8" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-56 bg-gray-800 text-white"
+              className="w-64 bg-white border border-gray-200 shadow-lg"
               align="end"
               forceMount
             >
-              <div className="flex flex-col space-y-1 p-2">
-                <p className="text-sm font-medium leading-none">
+              <div className="flex flex-col space-y-1 p-3 bg-gray-50 border-b">
+                <p className="text-sm font-semibold text-gray-900 leading-none">
                   {getDisplayName()}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="text-xs text-gray-500 leading-none">
                   {currentUser?.email}
                 </p>
+                <p className="text-xs text-blue-600 font-medium mt-1 capitalize">
+                  {currentUser?.activeRole || currentUser?.role?.[0] || 'User'}
+                </p>
               </div>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setLocation("/edit-profile")}
-                className="cursor-pointer"
+                className="cursor-pointer hover:bg-gray-50"
               >
-                <Edit3 className="mr-2 h-4 w-4" />
+                <Edit3 className="mr-3 h-4 w-4 text-gray-500" />
                 <span>Edit Profile</span>
               </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem> */}
               <DropdownMenuItem
                 onClick={() => setLocation("/notifications?settings=true")}
-                className="cursor-pointer"
+                className="cursor-pointer hover:bg-gray-50"
               >
-                <Settings className="mr-2 h-4 w-4" />
+                <Settings className="mr-3 h-4 w-4 text-gray-500" />
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer hover:bg-red-50 text-red-600 focus:text-red-600"
+              >
+                <LogOut className="mr-3 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

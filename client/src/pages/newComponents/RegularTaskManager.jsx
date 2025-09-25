@@ -1,4 +1,67 @@
 import React, { useState, useMemo } from "react";
+// Exported form model for regular tasks (for RecurringTaskEdit.jsx)
+export const regularTaskFormModel = [
+  {
+    name: 'taskName',
+    label: 'Task Name',
+    type: 'text',
+    required: true,
+    placeholder: 'Enter task name',
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'textarea',
+    required: false,
+    placeholder: 'Enter description',
+  },
+  {
+    name: 'assignedTo',
+    label: 'Assigned To',
+    type: 'text',
+    required: true,
+    placeholder: 'Enter assignee',
+  },
+  {
+    name: 'priority',
+    label: 'Priority',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+      { value: 'critical', label: 'Critical' },
+    ],
+    placeholder: 'Select priority',
+  },
+  {
+    name: 'dueDate',
+    label: 'Due Date',
+    type: 'date',
+    required: true,
+    placeholder: '',
+  },
+  {
+    name: 'visibility',
+    label: 'Visibility',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'private', label: 'Private' },
+      { value: 'public', label: 'Public' },
+    ],
+    placeholder: 'Select visibility',
+  },
+  {
+    name: 'labels',
+    label: 'Labels',
+    type: 'text',
+    required: false,
+    placeholder: 'Comma separated labels',
+  },
+];
+
 import { useActiveRole } from "../../components/RoleSwitcher";
 import { useQuery } from '@tanstack/react-query';
 import { createPortal } from "react-dom";
@@ -49,6 +112,71 @@ const RT = {
   headerBg: "bg-white",
   headerBorder: "border-b border-gray-200",
 };
+
+// Exported form model for recurring tasks (for RecurringTaskEdit.jsx)
+export const recurringTaskFormModel = [
+  {
+    name: 'title',
+    label: 'Task Title',
+    type: 'text',
+    required: true,
+    placeholder: 'Enter task title',
+  },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'textarea',
+    required: false,
+    placeholder: 'Enter description',
+  },
+  {
+    name: 'frequency',
+    label: 'Frequency',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'daily', label: 'Daily' },
+      { value: 'weekly', label: 'Weekly' },
+      { value: 'monthly', label: 'Monthly' },
+      { value: 'quarterly', label: 'Quarterly' },
+      { value: 'yearly', label: 'Yearly' },
+    ],
+    placeholder: 'Select frequency',
+  },
+  {
+    name: 'priority',
+    label: 'Priority',
+    type: 'select',
+    required: true,
+    options: [
+      { value: 'low', label: 'Low' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+    ],
+    placeholder: 'Select priority',
+  },
+  {
+    name: 'nextDue',
+    label: 'Next Due Date',
+    type: 'date',
+    required: false,
+    placeholder: '',
+  },
+  {
+    name: 'estimatedTime',
+    label: 'Estimated Time (minutes)',
+    type: 'number',
+    required: false,
+    placeholder: 'Enter estimated time',
+  },
+  {
+    name: 'tags',
+    label: 'Tags',
+    type: 'text',
+    required: false,
+    placeholder: 'Comma separated tags',
+  },
+];
 
 // Helpers
 const getStatusColor = (status) => {
@@ -115,6 +243,17 @@ export default function RegularTaskManager() {
   const [viewMode, setViewMode] = useState("grid");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Edit modal state
+  const [editingTask, setEditingTask] = useState(null);
+  // Initialize editForm with all fields from regularTaskFormModel
+  const initialEditForm = Object.fromEntries(
+    regularTaskFormModel.map(field => [field.name, ''])
+  );
+  const [editForm, setEditForm] = useState(initialEditForm);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState(null);
+
   // Fetch regular tasks from API
   const { data: apiResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['regular-tasks', currentPage, pageLimit, statusFilter, priorityFilter],
@@ -178,6 +317,117 @@ export default function RegularTaskManager() {
   });
   const [attachmentsBytes, setAttachmentsBytes] = useState(0);
   const maxBytes = 5 * 1024 * 1024; // 5MB
+
+  // Edit modal helpers
+  const openEditModal = (taskId) => {
+    const task = currentTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    setEditingTask(task);
+    setEditForm({
+      taskName: task.taskName,
+      description: task.description,
+      assignedTo: task.assignedTo,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      visibility: task.visibility,
+      labels: task.labels || [],
+      labelInput: "",
+      attachments: task.attachments || [],
+      taskType: task.taskType || "regular",
+      referenceProcess: task.referenceProcess || "",
+      customForm: task.customForm || "",
+      dependencies: task.dependencies || [],
+    });
+    setEditModalOpen(true);
+    setEditError(null);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditingTask(null);
+    setEditForm(null);
+    setEditError(null);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "priority") {
+      setEditForm((prev) => ({ ...prev, dueDate: dueDateFromPriority(value) }));
+    }
+  };
+
+  const handleEditLabelsKeyDown = (e) => {
+    if (e.key === "Enter" && editForm.labelInput.trim()) {
+      e.preventDefault();
+      const val = editForm.labelInput.trim();
+      if (!editForm.labels.includes(val)) {
+        setEditForm((f) => ({ ...f, labels: [...f.labels, val], labelInput: "" }));
+      } else {
+        setEditForm((f) => ({ ...f, labelInput: "" }));
+      }
+    }
+  };
+
+  const handleEditRemoveLabel = (label) => {
+    setEditForm((f) => ({ ...f, labels: f.labels.filter((l) => l !== label) }));
+  };
+
+  const handleEditFilesSelected = (files) => {
+    const arr = Array.from(files);
+    const total = arr.reduce((sum, f) => sum + f.size, 0);
+    if (total > maxBytes) {
+      alert("Attachments exceed 5 MB total limit.");
+      return;
+    }
+    setEditForm((f) => ({ ...f, attachments: arr }));
+  };
+
+  const validateEditForm = () => {
+    if (!editForm.taskName.trim()) return "Task Name is required.";
+    if (editForm.taskName.length > 20) return "Task Name must be <= 20 characters.";
+    if (!editForm.assignedTo) return "Assigned To is required.";
+    if (!editForm.priority) return "Priority is required.";
+    if (!editForm.dueDate) return "Due Date is required.";
+    if (!editForm.taskType) return "Task Type is required.";
+    return null;
+  };
+
+  const handleEditSave = async () => {
+    const err = validateEditForm();
+    if (err) {
+      setEditError(err);
+      return;
+    }
+    setEditLoading(true);
+    setEditError(null);
+    try {
+      // Prepare payload using the correct API format
+      const payload = {
+        title: editForm.taskName,
+        description: editForm.description,
+        assignedTo: editForm.assignedTo,
+        priority: editForm.priority,
+        dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
+        visibility: editForm.visibility,
+        tags: Array.isArray(editForm.labels) ? editForm.labels : [],
+      };
+
+      // Use PUT method with correct endpoint
+      const response = await apiClient.put(`/api/tasks/${editingTask.id}`, payload);
+
+      if (response.success) {
+        // Refetch tasks
+        refetch();
+        closeEditModal();
+      } else {
+        setEditError(response.message || "Failed to update task.");
+      }
+    } catch (err) {
+      console.error('Error updating task:', err);
+      setEditError(err.response?.data?.message || err.message || "Error updating task.");
+    }
+    setEditLoading(false);
+  };
 
   const resetForm = () => {
     setForm({
@@ -365,6 +615,135 @@ export default function RegularTaskManager() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4 relative" style={{ maxHeight: '80vh', overflow: 'hidden' }}>
+            <button
+              className="absolute top-2 right-2 p-2 text-gray-500 hover:text-gray-700"
+              onClick={closeEditModal}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Edit Regular Task</h2>
+            {editError && <div className="text-red-600 mb-2 text-sm">{editError}</div>}
+            {editForm && (
+              <form
+                onSubmit={e => { e.preventDefault(); handleEditSave(); }}
+                className="space-y-4 overflow-y-auto"
+                style={{ maxHeight: '60vh', paddingRight: '8px' }}
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-1">Task Name</label>
+                  <input
+                    type="text"
+                    value={editForm.taskName}
+                    onChange={e => handleEditFormChange("taskName", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                    maxLength={20}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={e => handleEditFormChange("description", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assigned To</label>
+                  <input
+                    type="text"
+                    value={editForm.assignedTo}
+                    onChange={e => handleEditFormChange("assignedTo", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <select
+                    value={editForm.priority}
+                    onChange={e => handleEditFormChange("priority", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={editForm.dueDate}
+                    onChange={e => handleEditFormChange("dueDate", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Visibility</label>
+                  <select
+                    value={editForm.visibility}
+                    onChange={e => handleEditFormChange("visibility", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="private">Private</option>
+                    <option value="public">Public</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Labels</label>
+                  <div className="flex gap-2 mb-1 flex-wrap">
+                    {editForm.labels.map((label, idx) => (
+                      <span key={label + idx} className="bg-gray-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        {label}
+                        <button type="button" className="ml-1 text-red-500" onClick={() => handleEditRemoveLabel(label)}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={editForm.labelInput}
+                    onChange={e => handleEditFormChange("labelInput", e.target.value)}
+                    onKeyDown={handleEditLabelsKeyDown}
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Add label and press Enter"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Attachments</label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={e => handleEditFilesSelected(e.target.files)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {editForm.attachments.length} file(s) selected
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 rounded"
+                    onClick={closeEditModal}
+                  >Cancel</button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-teal-600 text-white rounded"
+                    disabled={editLoading}
+                  >{editLoading ? "Saving..." : "Save Changes"}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className={`${RT.headerBg} ${RT.headerBorder}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -525,7 +904,7 @@ export default function RegularTaskManager() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-36 bg-white">
-                        <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+                        <DropdownMenuItem onClick={() => openEditModal(task.id)}>
                           <Edit3 className="h-3.5 w-3.5 mr-2 text-gray-600" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} disabled={deletingTaskId === task.id}>
@@ -630,7 +1009,10 @@ export default function RegularTaskManager() {
                 <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1.5">
-                      <button className="inline-flex items-center px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors">
+                      <button
+                        className="inline-flex items-center px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                        onClick={() => openEditModal(task.id)}
+                      >
                         <Edit3 className="h-3.5 w-3.5 mr-1" />
                         Edit
                       </button>
@@ -710,7 +1092,10 @@ export default function RegularTaskManager() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          onClick={() => openEditModal(task.id)}
+                        >
                           <Edit3 className="h-4 w-4 text-gray-500" />
                         </button>
 
@@ -767,8 +1152,8 @@ export default function RegularTaskManager() {
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-3 py-2 text-sm font-medium rounded-md ${pageNum === pagination.currentPage
-                        ? 'bg-teal-600 text-white'
-                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      ? 'bg-teal-600 text-white'
+                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     {pageNum}
