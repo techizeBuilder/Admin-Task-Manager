@@ -79,6 +79,9 @@ import {
   Tag,
   MoreVertical,
   MoreVerticalIcon,
+  CheckCircle2,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { RecurringTaskIcon } from '../../components/common/TaskIcons';
 import { apiClient } from '../../utils/apiClient';
@@ -98,6 +101,9 @@ const RecurringTaskManager = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit] = useState(20);
 
+  // Local tasks state for immediate UI updates
+  const [localTasks, setLocalTasks] = useState(null);
+
   // Edit modal state
   const [editingTask, setEditingTask] = useState(null);
   // Initialize editForm with all fields from recurringTaskFormModel
@@ -106,6 +112,44 @@ const RecurringTaskManager = () => {
   );
   const [editForm, setEditForm] = useState(initialEditForm);
   const [editLoading, setEditLoading] = useState(false);
+
+  // Delete confirmation modal state
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false,
+    taskId: null,
+    taskTitle: '',
+  });
+
+  // Edit confirmation modal state
+  const [editConfirmation, setEditConfirmation] = useState({
+    isOpen: false,
+    task: null,
+  });
+
+  // Success toast state
+  const [successToast, setSuccessToast] = useState({
+    isVisible: false,
+    message: '',
+    type: 'success'
+  });
+
+  // Show success toast
+  const showSuccessToast = (message, type = 'success') => {
+    setSuccessToast({
+      isVisible: true,
+      message: message,
+      type: type
+    });
+
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+      setSuccessToast({
+        isVisible: false,
+        message: '',
+        type: 'success'
+      });
+    }, 3000);
+  };
 
   // Fetch recurring tasks from API
   const { data: apiResponse, isLoading, error, refetch } = useQuery({
@@ -251,7 +295,7 @@ const RecurringTaskManager = () => {
     }
   ];
 
-  const currentTasks = (recurringTasks && recurringTasks.length > 0) ? recurringTasks : mockRecurringTasks;
+  const currentTasks = localTasks ?? ((recurringTasks && recurringTasks.length > 0) ? recurringTasks : mockRecurringTasks);
 
   const getFrequencyLabel = (frequency) => {
     const labels = {
@@ -289,25 +333,28 @@ const RecurringTaskManager = () => {
     console.log('Stats calculation - currentTasks:', currentTasks);
     console.log('Stats calculation - apiResponse:', apiResponse);
 
+    // Use currentTasks which includes local updates
+    const activeTasks = currentTasks;
+
     // Use real data from API if available, otherwise calculate from current tasks
-    if (apiResponse?.data?.data?.summary) {
+    if (apiResponse?.data?.data?.summary && !localTasks) {
       const apiSummary = apiResponse.data.data.summary;
-      const total = apiSummary.totalCount || currentTasks.length;
-      const active = currentTasks.filter(t => t.isActive).length;
-      const paused = currentTasks.filter(t => !t.isActive).length;
-      const overdue = currentTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
-      const dueSoon = currentTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
+      const total = apiSummary.totalCount || activeTasks.length;
+      const active = activeTasks.filter(t => t.isActive).length;
+      const paused = activeTasks.filter(t => !t.isActive).length;
+      const overdue = activeTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
+      const dueSoon = activeTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
       return { total, active, paused, overdue, dueSoon };
     } else {
-      // Fallback to calculating from current tasks
-      const total = currentTasks.length;
-      const active = currentTasks.filter(t => t.isActive).length;
-      const paused = currentTasks.filter(t => !t.isActive).length;
-      const overdue = currentTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
-      const dueSoon = currentTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
+      // Fallback to calculating from current tasks (includes local updates)
+      const total = activeTasks.length;
+      const active = activeTasks.filter(t => t.isActive).length;
+      const paused = activeTasks.filter(t => !t.isActive).length;
+      const overdue = activeTasks.filter(t => t.nextDue && new Date(t.nextDue) < now).length;
+      const dueSoon = activeTasks.filter(t => t.nextDue && inDays(t.nextDue) >= 0 && inDays(t.nextDue) <= 7).length;
       return { total, active, paused, overdue, dueSoon };
     }
-  }, [currentTasks, apiResponse]);
+  }, [currentTasks, apiResponse, localTasks]);
 
   const filteredTasks = currentTasks.filter(task => {
     const matchesSearch =
@@ -335,21 +382,53 @@ const RecurringTaskManager = () => {
       if (!task) return;
 
       const newStatus = task.isActive ? 'on-hold' : 'todo';
+
+      // Update local state immediately for better UX
+      setLocalTasks(prev => {
+        const currentList = prev ?? currentTasks;
+        return currentList.map(t =>
+          (t.id === id || t._id === id)
+            ? { ...t, isActive: !t.isActive, status: newStatus }
+            : t
+        );
+      });
+
       await apiClient.patch(`/api/tasks/${task._id || id}/status`, {
         status: newStatus
       });
 
-      // Refetch data to update UI
+      // Show success message
+      showSuccessToast(`Task "${task.title}" ${newStatus === 'on-hold' ? 'paused' : 'activated'} successfully!`);
+
+      // Background sync to ensure consistency
       refetch();
     } catch (error) {
       console.error('Error toggling task status:', error);
-      // You might want to show a toast notification here
+      showSuccessToast(`Error toggling task status: ${error.message}`, 'error');
+      // Revert local changes on error
+      setLocalTasks(prev => {
+        const currentList = prev ?? currentTasks;
+        return currentList.map(t =>
+          (t.id === id || t._id === id)
+            ? { ...t, isActive: !t.isActive }
+            : t
+        );
+      });
     }
   };
 
   const handleEdit = (id) => {
     const task = currentTasks.find(t => t.id === id || t._id === id);
     if (!task) return;
+
+    // Show edit confirmation first
+    setEditConfirmation({
+      isOpen: true,
+      task: task,
+    });
+  };
+
+  const confirmEditModal = (task) => {
     setEditingTask(task);
     // Populate editForm with all fields from recurringTaskFormModel
     const newForm = {};
@@ -365,6 +444,12 @@ const RecurringTaskManager = () => {
       }
     });
     setEditForm(newForm);
+
+    // Close edit confirmation
+    setEditConfirmation({
+      isOpen: false,
+      task: null,
+    });
   };
 
   const handleEditFormChange = (e) => {
@@ -397,21 +482,68 @@ const RecurringTaskManager = () => {
       });
 
       // Use PUT method with correct endpoint
+      console.log('Sending update request with payload:', payload);
       const response = await apiClient.put(`/api/tasks/${editingTask._id || editingTask.id}`, payload);
+      console.log('Update response:', response);
 
-      if (response.success) {
-        setEditingTask(null);
-        setEditLoading(false);
-        refetch();
-      } else {
-        setEditLoading(false);
-        alert(response.message || 'Failed to update task.');
+      // Check if response is successful (axios returns status 200-299 as success)
+      if (response.status >= 200 && response.status < 300) {
+        // Check if response has explicit success field or assume success based on status
+        const isSuccess = response.data.success !== false; // Consider success unless explicitly false
+
+        if (isSuccess) {
+          // Update local tasks state immediately for better UX
+          const updatedTask = {
+            ...editingTask,
+            title: editForm.title,
+            description: editForm.description,
+            priority: editForm.priority,
+            frequency: editForm.frequency,
+            nextDue: editForm.nextDue,
+            estimatedTime: editForm.estimatedTime,
+            tags: editForm.tags ? editForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+          };
+
+          setLocalTasks(prev => {
+            const currentList = prev ?? currentTasks;
+            return currentList.map(task =>
+              (task.id === editingTask.id || task._id === editingTask._id)
+                ? updatedTask
+                : task
+            );
+          });
+
+          // Show success message
+          showSuccessToast(`Task "${editForm.title}" updated successfully!`);
+
+          // Close modal automatically
+          setEditingTask(null);
+
+          // Background sync to ensure consistency (after UI update for better UX)
+          setTimeout(() => {
+            refetch();
+          }, 500);
+        } else {
+          const errorMessage = response.data?.message || "Failed to update task.";
+          showSuccessToast(errorMessage, 'error');
+        }
       }
     } catch (error) {
-      setEditLoading(false);
       console.error('Error updating recurring task:', error);
-      alert(error.response?.data?.message || error.message || 'Failed to update task.');
+
+      // Handle different error response structures
+      let errorMessage = "Error updating recurring task.";
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showSuccessToast(errorMessage, 'error');
     }
+    setEditLoading(false);
   };
 
   const handleEditModalClose = () => {
@@ -419,27 +551,54 @@ const RecurringTaskManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this recurring task?')) {
-      return;
-    }
+    const task = currentTasks.find(t => t.id === id || t._id === id);
+    if (!task) return;
 
+    // Show delete confirmation
+    setDeleteConfirmation({
+      isOpen: true,
+      taskId: id,
+      taskTitle: task.title,
+    });
+  };
+
+  const confirmDelete = async (taskId) => {
     try {
-      const task = currentTasks.find(t => t.id === id || t._id === id);
-      const taskId = task?._id || id;
+      const task = currentTasks.find(t => t.id === taskId || t._id === taskId);
+      const actualTaskId = task?._id || taskId;
 
-      console.log('Deleting task with ID:', taskId);
-      console.log('Delete API URL:', `/api/tasks/delete/${taskId}`);
+      console.log('Deleting task with ID:', actualTaskId);
+      console.log('Delete API URL:', `/api/tasks/delete/${actualTaskId}`);
 
-      const response = await apiClient.delete(`/api/tasks/delete/${taskId}`);
+      // Update local state immediately for better UX
+      setLocalTasks(prev => {
+        const currentList = prev ?? currentTasks;
+        return currentList.filter(t => t.id !== taskId && t._id !== taskId);
+      });
+
+      const response = await apiClient.delete(`/api/tasks/delete/${actualTaskId}`);
       console.log('Delete response:', response);
 
-      // Refetch data to update UI
+      // Close confirmation modal
+      setDeleteConfirmation({
+        isOpen: false,
+        taskId: null,
+        taskTitle: '',
+      });
+
+      // Show success message
+      showSuccessToast(`Task "${deleteConfirmation.taskTitle}" deleted successfully!`);
+
+      // Background sync to ensure consistency
       refetch();
       console.log('Task deleted successfully, refetching data...');
     } catch (error) {
       console.error('Error deleting task:', error);
       console.error('Error details:', error.response?.data || error.message);
-      alert('Failed to delete task. Please check the console for details.');
+      showSuccessToast(`Error deleting task: ${error.response?.data?.message || error.message}`, 'error');
+
+      // Revert local changes on error - refetch to get current state
+      refetch();
     }
   };
 
@@ -498,6 +657,59 @@ const RecurringTaskManager = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Confirm Delete</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete the recurring task "<strong>{deleteConfirmation.taskTitle}</strong>"?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                onClick={() => setDeleteConfirmation({ isOpen: false, taskId: null, taskTitle: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                onClick={() => confirmDelete(deleteConfirmation.taskId)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Confirmation Modal */}
+      {editConfirmation.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-purple-600 mb-4">Confirm Edit</h2>
+            <p className="text-gray-700 mb-6">
+              Do you want to edit the recurring task "<strong>{editConfirmation.task?.title}</strong>"?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                onClick={() => setEditConfirmation({ isOpen: false, task: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                onClick={() => confirmEditModal(editConfirmation.task)}
+              >
+                Continue to Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
       {editingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
@@ -1055,6 +1267,39 @@ const RecurringTaskManager = () => {
           </div>
         )}
       </div>
+
+      {/* Success Toast Notification */}
+      {successToast.isVisible && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 ${successToast.type === 'success'
+            ? 'bg-green-500 text-white'
+            : successToast.type === 'error'
+              ? 'bg-red-500 text-white'
+              : 'bg-blue-500 text-white'
+            }`}>
+            <div className="flex-shrink-0">
+              {successToast.type === 'success' && (
+                <CheckCircle2 className="h-5 w-5" />
+              )}
+              {successToast.type === 'error' && (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              {successToast.type === 'info' && (
+                <Clock className="h-5 w-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">{successToast.message}</p>
+            </div>
+            <button
+              onClick={() => setSuccessToast({ isVisible: false, message: '', type: 'success' })}
+              className="flex-shrink-0 ml-4 text-white hover:text-gray-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

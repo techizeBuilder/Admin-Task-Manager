@@ -18,9 +18,9 @@ export const regularTaskFormModel = [
   {
     name: 'assignedTo',
     label: 'Assigned To',
-    type: 'text',
-    required: true,
-    placeholder: 'Enter assignee',
+    type: 'select',
+    required: false,
+    placeholder: 'Select assignee',
   },
   {
     name: 'priority',
@@ -249,6 +249,7 @@ export default function RegularTaskManager() {
   const initialEditForm = Object.fromEntries(
     regularTaskFormModel.map(field => [field.name, ''])
   );
+  initialEditForm.assignedToId = '';
   const [editForm, setEditForm] = useState(initialEditForm);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
@@ -271,6 +272,19 @@ export default function RegularTaskManager() {
     staleTime: 30000,
   });
 
+  // Fetch team members for assignment dropdown
+  const { data: teamMembersResponse } = useQuery({
+    queryKey: ['team-members'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/team-members');
+      return response;
+    },
+    retry: 1,
+    staleTime: 300000, // 5 minutes
+  });
+
+  const teamMembers = teamMembersResponse?.data || [];
+
   // Get active role from context
   const { activeRole } = useActiveRole();
   // Fallback to first available role if not set
@@ -283,6 +297,9 @@ export default function RegularTaskManager() {
     assignedTo: typeof apiTask.assignedTo === 'object' && apiTask.assignedTo !== null
       ? (apiTask.assignedTo.firstName ? `${apiTask.assignedTo.firstName} ${apiTask.assignedTo.lastName || ''}`.trim() : (apiTask.assignedTo.name || apiTask.assignedTo.username || apiTask.assignedTo.email || 'User'))
       : (apiTask.assignedTo || 'Self'),
+    assignedToId: typeof apiTask.assignedTo === 'object' && apiTask.assignedTo !== null
+      ? apiTask.assignedTo._id
+      : apiTask.assignedTo,
     priority: apiTask.priority,
     dueDate: apiTask.dueDate,
     visibility: apiTask.visibility,
@@ -297,6 +314,10 @@ export default function RegularTaskManager() {
   const tasksArray = apiResponse?.data?.data?.roles?.[currentRole] || [];
   const tasks = tasksArray.map(transformApiTask) || [];
   const pagination = apiResponse?.data?.data?.pagination || {};
+
+  // State for local task management
+  const [localTasks, setLocalTasks] = useState(null);
+  const currentTasks = localTasks ?? tasks;
 
   // Form state
   const [form, setForm] = useState({
@@ -322,11 +343,21 @@ export default function RegularTaskManager() {
   const openEditModal = (taskId) => {
     const task = currentTasks.find((t) => t.id === taskId);
     if (!task) return;
+
+    // Show edit confirmation first
+    setEditConfirmation({
+      isOpen: true,
+      task: task,
+    });
+  };
+
+  const confirmEditModal = (task) => {
     setEditingTask(task);
     setEditForm({
       taskName: task.taskName,
       description: task.description,
       assignedTo: task.assignedTo,
+      assignedToId: task.assignedToId,
       priority: task.priority,
       dueDate: task.dueDate,
       visibility: task.visibility,
@@ -340,6 +371,12 @@ export default function RegularTaskManager() {
     });
     setEditModalOpen(true);
     setEditError(null);
+
+    // Close edit confirmation
+    setEditConfirmation({
+      isOpen: false,
+      task: null,
+    });
   };
 
   const closeEditModal = () => {
@@ -385,7 +422,7 @@ export default function RegularTaskManager() {
   const validateEditForm = () => {
     if (!editForm.taskName.trim()) return "Task Name is required.";
     if (editForm.taskName.length > 20) return "Task Name must be <= 20 characters.";
-    if (!editForm.assignedTo) return "Assigned To is required.";
+    // No validation needed for assignedTo since it can be empty (self-assigned)
     if (!editForm.priority) return "Priority is required.";
     if (!editForm.dueDate) return "Due Date is required.";
     if (!editForm.taskType) return "Task Type is required.";
@@ -405,7 +442,7 @@ export default function RegularTaskManager() {
       const payload = {
         title: editForm.taskName,
         description: editForm.description,
-        assignedTo: editForm.assignedTo,
+        assignedTo: editForm.assignedToId || null, // Send ID if available, null for self-assignment
         priority: editForm.priority,
         dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
         visibility: editForm.visibility,
@@ -413,18 +450,65 @@ export default function RegularTaskManager() {
       };
 
       // Use PUT method with correct endpoint
+      console.log('Sending update request with payload:', payload);
       const response = await apiClient.put(`/api/tasks/${editingTask.id}`, payload);
+      console.log('Update response:', response);
 
-      if (response.success) {
-        // Refetch tasks
-        refetch();
-        closeEditModal();
-      } else {
-        setEditError(response.message || "Failed to update task.");
+      // Check if response is successful (axios returns status 200-299 as success)
+      if (response.status >= 200 && response.status < 300) {
+        // Check if response has explicit success field or assume success based on status
+        const isSuccess = response.data.success !== false; // Consider success unless explicitly false
+
+        if (isSuccess) {
+          // Update local tasks state immediately for better UX
+          const updatedTask = {
+            ...editingTask,
+            taskName: editForm.taskName,
+            description: editForm.description,
+            assignedTo: editForm.assignedTo,
+            assignedToId: editForm.assignedToId,
+            priority: editForm.priority,
+            dueDate: editForm.dueDate,
+            visibility: editForm.visibility,
+            labels: editForm.labels,
+          };
+
+          setLocalTasks((prev) => {
+            const currentList = prev ?? tasks;
+            return currentList.map(task => task.id === editingTask.id ? updatedTask : task);
+          });
+
+          // Show success message
+          showSuccessToast(`Task "${editForm.taskName}" updated successfully!`, 'success');
+
+          // Close modal automatically
+          closeEditModal();
+
+          // Refetch data to ensure consistency (after UI update for better UX)
+          setTimeout(() => {
+            refetch();
+          }, 500);
+        } else {
+          const errorMessage = response.data?.message || "Failed to update task.";
+          setEditError(errorMessage);
+          showSuccessToast(errorMessage, 'error');
+        }
       }
     } catch (err) {
       console.error('Error updating task:', err);
-      setEditError(err.response?.data?.message || err.message || "Error updating task.");
+
+      // Handle different error response structures
+      let errorMessage = "Error updating task.";
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setEditError(errorMessage);
+      showSuccessToast(errorMessage, 'error');
     }
     setEditLoading(false);
   };
@@ -450,17 +534,20 @@ export default function RegularTaskManager() {
 
 
   // Filtering (API already filters, but keep for local fallback)
-  const filteredTasks = tasks;
+  const filteredTasks = currentTasks;
 
 
-  // Stats (calculate from tasks)
-  const stats = useMemo(() => ({
-    total: tasks.length,
-    completed: tasks.filter((t) => t.status === "completed").length,
-    inProgress: tasks.filter((t) => t.status === "in_progress").length,
-    notStarted: tasks.filter((t) => t.status === "not_started").length,
-    overdue: tasks.filter((t) => t.status === "overdue").length,
-  }), [tasks]);
+  // Stats (calculate from tasks and update when localTasks changes)
+  const stats = useMemo(() => {
+    const activeTasks = currentTasks;
+    return {
+      total: activeTasks.length,
+      completed: activeTasks.filter((t) => t.status === "completed").length,
+      inProgress: activeTasks.filter((t) => t.status === "in_progress").length,
+      notStarted: activeTasks.filter((t) => t.status === "not_started").length,
+      overdue: activeTasks.filter((t) => t.status === "overdue").length,
+    };
+  }, [currentTasks]);
 
   // Form handlers
   const onPriorityChange = (priority) => {
@@ -501,7 +588,7 @@ export default function RegularTaskManager() {
   const validateForm = () => {
     if (!form.taskName.trim()) return "Task Name is required.";
     if (form.taskName.length > 20) return "Task Name must be <= 20 characters.";
-    if (!form.assignedTo) return "Assigned To is required.";
+    // No validation needed for assignedTo since it can be empty (self-assigned)
     if (!form.priority) return "Priority is required.";
     if (!form.dueDate) return "Due Date is required.";
     if (!form.taskType) return "Task Type is required.";
@@ -543,8 +630,78 @@ export default function RegularTaskManager() {
   // State for local task deletion feedback
   const [deletingTaskId, setDeletingTaskId] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
-  const [localTasks, setLocalTasks] = useState(null);
-  const currentTasks = localTasks ?? filteredTasks;
+
+  // Update task status locally without refresh
+  const updateTaskStatusLocally = (taskId, newStatus) => {
+    setLocalTasks((prev) => {
+      const currentList = prev ?? tasks;
+      return currentList.map(task =>
+        task.id === taskId
+          ? { ...task, status: newStatus }
+          : task
+      );
+    });
+  };  // Success toast state
+  const [successToast, setSuccessToast] = useState({
+    isVisible: false,
+    message: '',
+    type: 'success'
+  });
+
+  // Show success toast
+  const showSuccessToast = (message, type = 'success') => {
+    setSuccessToast({
+      isVisible: true,
+      message: message,
+      type: type
+    });
+
+    // Auto hide after different durations based on type
+    const duration = type === 'error' ? 5000 : 3000; // Errors shown longer
+    setTimeout(() => {
+      setSuccessToast({
+        isVisible: false,
+        message: '',
+        type: 'success'
+      });
+    }, duration);
+  };
+
+  // Delete confirmation modal state
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false,
+    taskId: null,
+    taskTitle: '',
+  });
+
+  // Edit confirmation modal state
+  const [editConfirmation, setEditConfirmation] = useState({
+    isOpen: false,
+    task: null,
+  });
+
+  // Show delete confirmation
+  const showDeleteConfirmation = (taskId) => {
+    const task = currentTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    setDeleteConfirmation({
+      isOpen: true,
+      taskId: taskId,
+      taskTitle: task.taskName,
+    });
+  };
+
+  // Show edit confirmation  
+  const showEditConfirmation = (taskId) => {
+    const task = currentTasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    setEditConfirmation({
+      isOpen: true,
+      task: task,
+    });
+  };
 
   // Delete task API logic
   const handleDeleteTask = async (taskId) => {
@@ -575,11 +732,28 @@ export default function RegularTaskManager() {
         setDeletingTaskId(null);
         return;
       }
-      // Remove deleted task from UI (local only, will refetch on next load)
+
+      // Update local tasks state immediately for better UX
       setLocalTasks((prev) => (prev ? prev.filter((t) => t.id !== taskId) : currentTasks.filter((t) => t.id !== taskId)));
+
+      // Also refetch data to ensure consistency
+      refetch();
+
+      // Close confirmation modal
+      setDeleteConfirmation({
+        isOpen: false,
+        taskId: null,
+        taskTitle: '',
+      });
+
+      // Show success message
+      showSuccessToast(`Task "${deleteConfirmation.taskTitle}" deleted successfully!`);
+
       setDeletingTaskId(null);
     } catch (err) {
+      console.error('Delete task error:', err);
       setDeleteError(err.message || "Error deleting task.");
+      showSuccessToast(`Error deleting task: ${err.message || 'Unknown error'}`, 'error');
       setDeletingTaskId(null);
     }
   };
@@ -615,6 +789,60 @@ export default function RegularTaskManager() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-red-600 mb-4">Confirm Delete</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete the task "<strong>{deleteConfirmation.taskTitle}</strong>"?
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                onClick={() => setDeleteConfirmation({ isOpen: false, taskId: null, taskTitle: '' })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                onClick={() => handleDeleteTask(deleteConfirmation.taskId)}
+                disabled={deletingTaskId === deleteConfirmation.taskId}
+              >
+                {deletingTaskId === deleteConfirmation.taskId ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Confirmation Modal */}
+      {editConfirmation.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-blue-600 mb-4">Confirm Edit</h2>
+            <p className="text-gray-700 mb-6">
+              Do you want to edit the task "<strong>{editConfirmation.task?.taskName}</strong>"?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                onClick={() => setEditConfirmation({ isOpen: false, task: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                onClick={() => confirmEditModal(editConfirmation.task)}
+              >
+                Continue to Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
       {editModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
@@ -654,12 +882,23 @@ export default function RegularTaskManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Assigned To</label>
-                  <input
-                    type="text"
-                    value={editForm.assignedTo}
-                    onChange={e => handleEditFormChange("assignedTo", e.target.value)}
+                  <select
+                    value={editForm.assignedToId || ''}
+                    onChange={e => {
+                      const selectedUserId = e.target.value;
+                      const selectedUser = teamMembers.find(member => member.id === selectedUserId);
+                      handleEditFormChange("assignedToId", selectedUserId);
+                      handleEditFormChange("assignedTo", selectedUser ? selectedUser.fullName : 'Self');
+                    }}
                     className="w-full border rounded px-3 py-2"
-                  />
+                  >
+                    <option value="">Self</option>
+                    {teamMembers.map(member => (
+                      <option key={member.id} value={member.id}>
+                        {member.fullName || `${member.firstName} ${member.lastName}`.trim()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Priority</label>
@@ -904,11 +1143,12 @@ export default function RegularTaskManager() {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-36 bg-white">
-                        <DropdownMenuItem onClick={() => openEditModal(task.id)}>
+                        <DropdownMenuItem onClick={() => showEditConfirmation(task.id)}>
                           <Edit3 className="h-3.5 w-3.5 mr-2 text-gray-600" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDeleteTask(task.id)} disabled={deletingTaskId === task.id}>
-                          <Trash2 className="h-3.5 w-3.5 mr-2 text-red-600" /> Delete
+                        <DropdownMenuItem onClick={() => showDeleteConfirmation(task.id)} disabled={deletingTaskId === task.id}>
+                          <Trash2 className="h-3.5 w-3.5 mr-2 text-red-600" />
+                          {deletingTaskId === task.id ? "Deleting..." : "Delete"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -1011,7 +1251,7 @@ export default function RegularTaskManager() {
                     <div className="flex items-center space-x-1.5">
                       <button
                         className="inline-flex items-center px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
-                        onClick={() => openEditModal(task.id)}
+                        onClick={() => showEditConfirmation(task.id)}
                       >
                         <Edit3 className="h-3.5 w-3.5 mr-1" />
                         Edit
@@ -1094,7 +1334,7 @@ export default function RegularTaskManager() {
                       <div className="flex items-center space-x-2">
                         <button
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          onClick={() => openEditModal(task.id)}
+                          onClick={() => showEditConfirmation(task.id)}
                         >
                           <Edit3 className="h-4 w-4 text-gray-500" />
                         </button>
@@ -1172,6 +1412,38 @@ export default function RegularTaskManager() {
         )}
       </div>
 
+      {/* Success Toast Notification */}
+      {successToast.isVisible && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 ${successToast.type === 'success'
+            ? 'bg-green-500 text-white'
+            : successToast.type === 'error'
+              ? 'bg-red-500 text-white'
+              : 'bg-blue-500 text-white'
+            }`}>
+            <div className="flex-shrink-0">
+              {successToast.type === 'success' && (
+                <CheckCircle2 className="h-5 w-5" />
+              )}
+              {successToast.type === 'error' && (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              {successToast.type === 'info' && (
+                <Clock className="h-5 w-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium">{successToast.message}</p>
+            </div>
+            <button
+              onClick={() => setSuccessToast({ isVisible: false, message: '', type: 'success' })}
+              className="flex-shrink-0 ml-4 text-white hover:text-gray-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
