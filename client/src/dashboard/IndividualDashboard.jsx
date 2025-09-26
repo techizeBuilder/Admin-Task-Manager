@@ -36,9 +36,9 @@ const IndividualDashboard = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [quickTaskInput, setQuickTaskInput] = useState("");
-   const [priorityFilter, setPriorityFilter] = useState("all");
- const [dueFrom, setDueFrom] = useState("");
- const [dueTo, setDueTo] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
   const [recurringDone, setRecurringDone] = useState({});
@@ -50,9 +50,30 @@ const IndividualDashboard = ({
   });
 
   // Fetch dashboard stats from API
-  const { data: dashboardStats } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
+  const { data: dashboardStats, error: dashboardError, isLoading: dashboardLoading } = useQuery({
+    queryKey: ["/api/dashboard-stats"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authorization token not found.");
+      }
+      const res = await fetch("/api/dashboard-stats", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        throw new Error("Unauthorized: Please login again.");
+      }
+      if (!res.ok) {
+        throw new Error(`Failed to fetch dashboard stats: ${res.status}`);
+      }
+      const data = await res.json();
+      console.log("Dashboard stats API response:", data);
+      return data.data; // Extract the data from the response
+    },
     retry: false,
+    enabled: !!localStorage.getItem("token"), // Only run if token exists
   });
 
   // Fetch tasks for current user role from API with Authorization token
@@ -90,11 +111,28 @@ const IndividualDashboard = ({
 
   // Use API dashboard stats or fallback to userStats (mock)
 
- // Use API stats -> provided userStats -> compute from currentTasks
- const computedStats = useMemo(() => computeStatsFromTasks(currentTasks), [currentTasks]);
-  const currentStats =
-    dashboardStats ||
-    (userStats && Object.keys(userStats).length ? userStats : computedStats);
+  // Use API stats -> provided userStats -> compute from currentTasks
+
+  // const computedStats = useMemo(() => computeStatsFromTasks(currentTasks), [currentTasks]);
+  const computedStats = useMemo(() => {
+    const stats = computeStatsFromTasks(currentTasks);
+    console.log("computedStats (calculate hua from tasks):", stats);
+    return stats;
+  }, [currentTasks]);
+
+  // Map API response to expected format
+  const mappedDashboardStats = dashboardStats ? {
+    completedTasks: dashboardStats.completedToday || 0,
+    totalTasks: dashboardStats.beforeDueDate || 0,
+    inProgressTasks: dashboardStats.milestones || 0,
+    upcomingDeadlines: dashboardStats.collaborator || 0,
+    overdueTasks: dashboardStats.pastDue || 0,
+    tasksByPriority: {
+      urgent: dashboardStats.approvals || 0
+    }
+  } : null;
+
+  const currentStats = mappedDashboardStats || (userStats && Object.keys(userStats).length ? userStats : computedStats);
   // Derived metrics for Task Health and Overdue
   const now = new Date();
   const statusOf = (s) => (s || "").toLowerCase();
@@ -132,32 +170,32 @@ const IndividualDashboard = ({
     : 100;
 
   // Efficiency: On-time vs Late (completed tasks)
- const completedOnTimeCount = currentTasks.filter((t) => {
-   if (statusOf(t.status) !== "completed") return false;
-   if (!t.dueDate || !t.completedAt) return false;
-   return new Date(t.completedAt) <= new Date(t.dueDate);
- }).length;
- const completedLateCount = currentTasks.filter((t) => {
-   if (statusOf(t.status) !== "completed") return false;
-   if (!t.dueDate || !t.completedAt) return false;
-   return new Date(t.completedAt) > new Date(t.dueDate);
- }).length;
- const efficiencyPieOptions = {
-   tooltip: { trigger: "item" },
-   series: [
-     {
-       type: "pie",
-       radius: ["45%", "70%"],
-       avoidLabelOverlap: false,
-       label: { show: false },
-       labelLine: { show: false },
-       data: [
-         { value: completedOnTimeCount, name: "On-time", itemStyle: { color: "#16a34a" } },
-         { value: completedLateCount, name: "Late", itemStyle: { color: "#ef4444" } },
-       ],
-     },
-   ],
- };
+  const completedOnTimeCount = currentTasks.filter((t) => {
+    if (statusOf(t.status) !== "completed") return false;
+    if (!t.dueDate || !t.completedAt) return false;
+    return new Date(t.completedAt) <= new Date(t.dueDate);
+  }).length;
+  const completedLateCount = currentTasks.filter((t) => {
+    if (statusOf(t.status) !== "completed") return false;
+    if (!t.dueDate || !t.completedAt) return false;
+    return new Date(t.completedAt) > new Date(t.dueDate);
+  }).length;
+  const efficiencyPieOptions = {
+    tooltip: { trigger: "item" },
+    series: [
+      {
+        type: "pie",
+        radius: ["45%", "70%"],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        data: [
+          { value: completedOnTimeCount, name: "On-time", itemStyle: { color: "#16a34a" } },
+          { value: completedLateCount, name: "Late", itemStyle: { color: "#ef4444" } },
+        ],
+      },
+    ],
+  };
   // Completion Trend: last 7 days
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -217,10 +255,10 @@ const IndividualDashboard = ({
     pinnedTasks.length > 0
       ? pinnedTasks
       : [
-          { id: 1, title: "Weekly planning session", priority: "high" },
-          { id: 2, title: "Client feedback review", priority: "medium" },
-          { id: 3, title: "Sprint retrospective", priority: "low" },
-        ];
+        { id: 1, title: "Weekly planning session", priority: "high" },
+        { id: 2, title: "Client feedback review", priority: "medium" },
+        { id: 3, title: "Sprint retrospective", priority: "low" },
+      ];
 
   const handleQuickTaskSubmit = () => {
     if (quickTaskInput.trim()) {
@@ -424,60 +462,71 @@ const IndividualDashboard = ({
       selectedFilter === "all"
         ? true
         : selectedFilter === "overdue"
-        ? task.dueDate &&
+          ? task.dueDate &&
           new Date(task.dueDate) < now &&
           statusOf(task.status) !== "completed"
-        : statusOf(task.status) === selectedFilter;
-   const matchesPriority =
-     priorityFilter === "all"
-       ? true
-       : (task.priority || "").toLowerCase() === priorityFilter;
-   const matchesDueFrom = dueFrom ? (task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)) : true;
-   const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
-   
-   return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
+          : statusOf(task.status) === selectedFilter;
+    const matchesPriority =
+      priorityFilter === "all"
+        ? true
+        : (task.priority || "").toLowerCase() === priorityFilter;
+    const matchesDueFrom = dueFrom ? (task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)) : true;
+    const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
+
+    return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
   });
 
-// Computes basic stats from a list of tasks
-function computeStatsFromTasks(tasks) {
-  const now = new Date();
-  const statusOf = (s) => (s || "").toLowerCase();
-  const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
-  const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
-  const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
-  const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
-  return {
-    openCount,
-    inProgressCount,
-    completedCount,
-    overdueCount,
-  };
-}
-// Simple mock function to generate demo tasks if API data is unavailable
-function generateMockTasks() {
-  return [
-    {
-      id: 1,
-      title: "Demo Task 1",
-      description: "This is a demo task.",
-      status: "pending",
-      dueDate: new Date().toISOString(),
-      isRecurring: false,
-      priority: "medium",
-    },
-    {
-      id: 2,
-      title: "Demo Task 2",
-      description: "Another demo task.",
-      status: "completed",
-      dueDate: new Date(Date.now() - 86400000).toISOString(),
-      completedAt: new Date().toISOString(),
-      isRecurring: true,
-      recurringInterval: "weekly",
-      priority: "high",
-    },
-  ];
-}
+  // Computes basic stats from a list of tasks
+  function computeStatsFromTasks(tasks) {
+    const now = new Date();
+    const statusOf = (s) => (s || "").toLowerCase();
+    const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
+    const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
+    const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
+    const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
+
+    // Return in the same format as expected by UI
+    return {
+      completedTasks: completedCount, // Map to expected format
+      totalTasks: tasks.length,
+      inProgressTasks: inProgressCount,
+      upcomingDeadlines: tasks.filter((t) => t.dueDate && new Date(t.dueDate) > now && statusOf(t.status) !== "completed").length,
+      overdueTasks: overdueCount,
+      tasksByPriority: {
+        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high").length
+      },
+      // Keep original for backward compatibility
+      openCount,
+      inProgressCount,
+      completedCount,
+      overdueCount,
+    };
+  }
+  // Simple mock function to generate demo tasks if API data is unavailable
+  function generateMockTasks() {
+    return [
+      {
+        id: 1,
+        title: "Demo Task 1",
+        description: "This is a demo task.",
+        status: "pending",
+        dueDate: new Date().toISOString(),
+        isRecurring: false,
+        priority: "medium",
+      },
+      {
+        id: 2,
+        title: "Demo Task 2",
+        description: "Another demo task.",
+        status: "completed",
+        dueDate: new Date(Date.now() - 86400000).toISOString(),
+        completedAt: new Date().toISOString(),
+        isRecurring: true,
+        recurringInterval: "weekly",
+        priority: "high",
+      },
+    ];
+  }
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -493,7 +542,7 @@ function generateMockTasks() {
         </div>
         <button
           onClick={handleCreateTask}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md flex items-center gap-2 transition-colors"
           data-testid="button-create-task"
         >
           <Plus size={18} />
@@ -502,7 +551,7 @@ function generateMockTasks() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex items-center gap-3">
+      {/* <div className="flex items-center gap-3">
         <button
           onClick={handleViewMyTasks}
           className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg flex items-center gap-2"
@@ -529,11 +578,11 @@ function generateMockTasks() {
         >
           Copy Share Link
         </button>
-      </div>
+      </div> */}
 
       {/* Overdue Alert */}
       {overdueCount > 0 && (
-        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <div className="flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={18} />
             <span>
@@ -546,16 +595,182 @@ function generateMockTasks() {
               setSelectedFilter("overdue");
               document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="text-red-700 hover:text-red-900 font-medium px-3 py-2 rounded-lg border border-red-200 bg-red-100 hover:bg-red-200 transition-colors"
+            className="text-red-700 hover:text-red-900 font-medium px-3 py-2 rounded-md border border-red-200 bg-red-100 hover:bg-red-200 transition-colors"
           >
             View Overdue
           </button>
         </div>
       )}
 
+      {/* Task Health Cards */}
+      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Open</p>
+          <p className="text-2xl font-semibold text-gray-900">{openCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">In Progress</p>
+          <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Completed</p>
+          <p className="text-2xl font-semibold text-gray-900">{completedCount}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <p className="text-sm text-gray-600">Overdue</p>
+          <p className="text-2xl font-semibold text-gray-900">{overdueCount}</p>
+        </div>
+      </div> */}
+
+      {/* Completion Trend (7 days) */}
+
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-900">Completion Trend (7 days)</h2>
+          </div>
+          <ReactECharts option={completionTrendOptions} style={{ height: 220 }} />
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-900">Efficiency (On-time vs Late)</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <ReactECharts option={efficiencyPieOptions} style={{ height: 220 }} />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">On-time</span>
+                <span className="font-medium text-gray-900">{completedOnTimeCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Late</span>
+                <span className="font-medium text-gray-900">{completedLateCount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> */}
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+
+        <div className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-completed-today">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-2 rounded-md">
+              <CheckSquare className="text-green-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Completed Today</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.completedTasks}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-completed-before-due" >
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 p-2 rounded-md">
+              <Clock className="text-blue-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Before Due Date</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.totalTasks}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-milestones"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 p-2 rounded-md">
+              <Target className="text-purple-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Milestones</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.inProgressTasks}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-collaborator-tasks"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-100 p-2 rounded-md">
+              <Users className="text-orange-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Collaborator</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.upcomingDeadlines}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-past-due"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-2 rounded-md">
+              <AlertTriangle className="text-red-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Past Due</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.overdueTasks}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-approvals"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-yellow-100 p-2 rounded-md">
+              <Bell className="text-yellow-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Approvals</p>
+              <p className="text-xl font-bold text-gray-900">
+                {currentStats.tasksByPriority?.urgent || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Recurring Adherence */}
+        {/* <div className="bg-white p-4 rounded-md shadow-sm border" data-testid="card-recurring-adherence">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-100 p-2 rounded-md">
+              <Clock className="text-indigo-600" size={20} />
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-sm text-gray-600">Recurring Adherence (7d)</p>
+              <p className="text-xl font-bold text-gray-900">{recurringAdherencePct}%</p>
+              <p className="text-xs text-gray-500">Missed: {recurringMissed} • On-time: {recurringOnTime}</p>
+            </div>
+          </div>
+        </div> */}
+      </div>
+
       {/* Overdue Report (sorted by days overdue) */}
       {overdueCount > 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-md shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
             <span className="text-sm text-gray-600">{overdueCount} items</span>
@@ -596,7 +811,7 @@ function generateMockTasks() {
               </tbody>
             </table>
           </div>
-          
+
         </div>
       ) : (
         <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -606,173 +821,6 @@ function generateMockTasks() {
           </div>
         </div>
       )}
-      {/* Task Health Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Open</p>
-          <p className="text-2xl font-semibold text-gray-900">{openCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">In Progress</p>
-          <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Completed</p>
-          <p className="text-2xl font-semibold text-gray-900">{completedCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <p className="text-sm text-gray-600">Overdue</p>
-          <p className="text-2xl font-semibold text-gray-900">{overdueCount}</p>
-        </div>
-      </div>
-
-    {/* Completion Trend (7 days) */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Completion Trend (7 days)</h2>
-          </div>
-          <ReactECharts option={completionTrendOptions} style={{ height: 220 }} />
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Efficiency (On-time vs Late)</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <ReactECharts option={efficiencyPieOptions} style={{ height: 220 }} />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">On-time</span>
-                <span className="font-medium text-gray-900">{completedOnTimeCount}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Late</span>
-                <span className="font-medium text-gray-900">{completedLateCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-  {/* KPI Cards Row */}
-  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-completed-today"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-lg">
-              <CheckSquare className="text-green-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Completed Today</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.completedTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-completed-before-due"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <Clock className="text-blue-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Before Due Date</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.totalTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-milestones"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-lg">
-              <Target className="text-purple-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Milestones</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.inProgressTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-collaborator-tasks"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-lg">
-              <Users className="text-orange-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Collaborator</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.upcomingDeadlines}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-past-due"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-lg">
-              <AlertTriangle className="text-red-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Past Due</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.overdueTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-approvals"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-yellow-100 p-2 rounded-lg">
-              <Bell className="text-yellow-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Approvals</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.tasksByPriority?.urgent || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Recurring Adherence */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-recurring-adherence">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 p-2 rounded-lg">
-              <Clock className="text-indigo-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Recurring Adherence (7d)</p>
-              <p className="text-xl font-bold text-gray-900">{recurringAdherencePct}%</p>
-              <p className="text-xs text-gray-500">Missed: {recurringMissed} • On-time: {recurringOnTime}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -780,7 +828,7 @@ function generateMockTasks() {
         <div className="space-y-6">
           {/* Frozen Quick Task Tile */}
           <div
-            className="bg-white p-6 rounded-lg shadow-sm border sticky top-6"
+            className="bg-white p-6 rounded-md shadow-sm border sticky top-6"
             data-testid="card-quick-task"
           >
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -792,14 +840,14 @@ function generateMockTasks() {
                 placeholder="What needs to be done?"
                 value={quickTaskInput}
                 onChange={(e) => setQuickTaskInput(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 data-testid="input-quick-task"
                 onKeyPress={(e) => e.key === "Enter" && handleQuickTaskSubmit()}
               />
               <button
                 onClick={handleQuickTaskSubmit}
                 disabled={!quickTaskInput.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-lg transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-md transition-colors"
                 data-testid="button-add-quick-task"
               >
                 <Plus size={16} className="inline mr-2" />
@@ -810,7 +858,7 @@ function generateMockTasks() {
 
           {/* Pinned Tasks */}
           <div
-            className="bg-white p-6 rounded-lg shadow-sm border"
+            className="bg-white p-6 rounded-md shadow-sm border"
             data-testid="card-pinned-tasks"
           >
             <div className="flex items-center gap-2 mb-4">
@@ -823,7 +871,7 @@ function generateMockTasks() {
               {samplePinnedTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
                   data-testid={`pinned-task-${task.id}`}
                 >
                   <span className="text-sm font-medium text-gray-900 truncate">
@@ -844,7 +892,7 @@ function generateMockTasks() {
         <div className="lg:col-span-2">
           <div
             id="my-tasks"
-            className="h-full bg-white rounded-lg shadow-sm border"
+            className="h-full bg-white rounded-md shadow-sm border"
             data-testid="card-tasks-grid"
           >
             <div className="p-6 border-b border-gray-200">
@@ -854,7 +902,7 @@ function generateMockTasks() {
                 </h2>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100"
+                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
                   data-testid="button-toggle-filters"
                 >
                   <Filter size={18} />
@@ -873,7 +921,7 @@ function generateMockTasks() {
                     placeholder="Search tasks..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     data-testid="input-search-tasks"
                   />
                 </div>
@@ -885,11 +933,10 @@ function generateMockTasks() {
                         <button
                           key={filter}
                           onClick={() => setSelectedFilter(filter)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                            selectedFilter === filter
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedFilter === filter
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
                           data-testid={`filter-${filter}`}
                         >
                           {filter.replace("_", " ")}
@@ -1036,13 +1083,13 @@ function generateMockTasks() {
 
       {/* Calendar Section */}
       <div
-        className="bg-white rounded-lg shadow-sm border p-6"
+        className="bg-white rounded-md shadow-sm border p-6"
         data-testid="card-calendar"
       >
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Task Calendar
         </h2>
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
+        <div className="bg-gray-50 rounded-md p-8 text-center">
           <Calendar className="mx-auto mb-2 text-gray-400" size={48} />
           <p className="text-gray-600">Calendar view coming soon</p>
           <p className="text-sm text-gray-500 mt-1">

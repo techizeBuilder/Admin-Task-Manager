@@ -455,7 +455,7 @@
 .activity-view {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
 }
 
@@ -716,7 +716,7 @@
 .linked-view {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 24px;
 }
 

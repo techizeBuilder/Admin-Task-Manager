@@ -68,6 +68,7 @@ export const useUserRole = () => {
 
   return { ...query, user, isAdmin, orgId };
 };
+
 // Check if the user has a specific role
 export const hasAccess = (requiredRoles = []) => {
   const {user} = useUserRole();

@@ -437,62 +437,64 @@ export default function RegularTaskManager() {
     }
     setEditLoading(true);
     setEditError(null);
+
     try {
-      // Prepare payload using the correct API format
+      // Prepare payload according to the API specification
       const payload = {
         title: editForm.taskName,
         description: editForm.description,
-        assignedTo: editForm.assignedToId || null, // Send ID if available, null for self-assignment
+        assignedTo: editForm.assignedToId || null, // Send user ID if selected, null for self-assignment
         priority: editForm.priority,
         dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
         visibility: editForm.visibility,
         tags: Array.isArray(editForm.labels) ? editForm.labels : [],
+        // Include status if it exists in the current task
+        status: editingTask.status || 'not_started'
       };
 
       // Use PUT method with correct endpoint
       console.log('Sending update request with payload:', payload);
+      console.log('Task ID:', editingTask.id);
+
+      // Make API call using PUT method
       const response = await apiClient.put(`/api/tasks/${editingTask.id}`, payload);
       console.log('Update response:', response);
 
-      // Check if response is successful (axios returns status 200-299 as success)
-      if (response.status >= 200 && response.status < 300) {
-        // Check if response has explicit success field or assume success based on status
-        const isSuccess = response.data.success !== false; // Consider success unless explicitly false
+      // Handle successful response (API returns success: true on success)
+      if (response.data && response.data.success) {
+        // Update local tasks state immediately for better UX
+        const updatedTask = {
+          ...editingTask,
+          taskName: editForm.taskName,
+          description: editForm.description,
+          assignedTo: editForm.assignedTo,
+          assignedToId: editForm.assignedToId,
+          priority: editForm.priority,
+          dueDate: editForm.dueDate,
+          visibility: editForm.visibility,
+          labels: editForm.labels,
+        };
 
-        if (isSuccess) {
-          // Update local tasks state immediately for better UX
-          const updatedTask = {
-            ...editingTask,
-            taskName: editForm.taskName,
-            description: editForm.description,
-            assignedTo: editForm.assignedTo,
-            assignedToId: editForm.assignedToId,
-            priority: editForm.priority,
-            dueDate: editForm.dueDate,
-            visibility: editForm.visibility,
-            labels: editForm.labels,
-          };
+        setLocalTasks((prev) => {
+          const currentList = prev ?? tasks;
+          return currentList.map(task => task.id === editingTask.id ? updatedTask : task);
+        });
 
-          setLocalTasks((prev) => {
-            const currentList = prev ?? tasks;
-            return currentList.map(task => task.id === editingTask.id ? updatedTask : task);
-          });
+        // Show success message
+        showSuccessToast(`Task "${editForm.taskName}" updated successfully!`, 'success');
 
-          // Show success message
-          showSuccessToast(`Task "${editForm.taskName}" updated successfully!`, 'success');
+        // Close modal automatically
+        closeEditModal();
 
-          // Close modal automatically
-          closeEditModal();
-
-          // Refetch data to ensure consistency (after UI update for better UX)
-          setTimeout(() => {
-            refetch();
-          }, 500);
-        } else {
-          const errorMessage = response.data?.message || "Failed to update task.";
-          setEditError(errorMessage);
-          showSuccessToast(errorMessage, 'error');
-        }
+        // Refetch data to ensure consistency (after UI update for better UX)
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      } else {
+        // Handle API error response
+        const errorMessage = response.data?.message || "Failed to update task.";
+        setEditError(errorMessage);
+        showSuccessToast(errorMessage, 'error');
       }
     } catch (err) {
       console.error('Error updating task:', err);
@@ -868,7 +870,7 @@ export default function RegularTaskManager() {
                     value={editForm.taskName}
                     onChange={e => handleEditFormChange("taskName", e.target.value)}
                     className="w-full border rounded px-3 py-2"
-                    maxLength={20}
+                    maxLength={100}
                     required
                   />
                 </div>
@@ -983,12 +985,13 @@ export default function RegularTaskManager() {
           </div>
         </div>
       )}
+
       {/* Header */}
       <div className={`${RT.headerBg} ${RT.headerBorder}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 rounded-xl bg-teal-600 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-lg bg-teal-600 flex items-center justify-center">
                 <RegularTaskIcon className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -1012,7 +1015,7 @@ export default function RegularTaskManager() {
       {/* Stats Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total</p>
@@ -1021,7 +1024,7 @@ export default function RegularTaskManager() {
               <Target className="h-8 w-8 text-gray-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Completed</p>
@@ -1030,7 +1033,7 @@ export default function RegularTaskManager() {
               <CheckCircle2 className="h-8 w-8 text-green-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">In Progress</p>
@@ -1039,7 +1042,7 @@ export default function RegularTaskManager() {
               <Clock className="h-8 w-8 text-blue-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Not Started</p>
@@ -1048,7 +1051,7 @@ export default function RegularTaskManager() {
               <Clock className="h-8 w-8 text-gray-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
@@ -1060,7 +1063,7 @@ export default function RegularTaskManager() {
         </div>
 
         {/* Filters and View Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -1071,7 +1074,7 @@ export default function RegularTaskManager() {
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
                 <option value="not_started">Not Started</option>
@@ -1083,7 +1086,7 @@ export default function RegularTaskManager() {
               <select
                 value={priorityFilter}
                 onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="all">All Priority</option>
                 <option value="low">Low</option>
@@ -1094,7 +1097,7 @@ export default function RegularTaskManager() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-gray-100 rounded-md p-1">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-teal-600" : "text-gray-600 hover:text-gray-900"
@@ -1120,7 +1123,7 @@ export default function RegularTaskManager() {
             {currentTasks.map((task) => (
               <div
                 key={task.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                className="bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Card Header */}
                 <div className={`p-4 ${RT.panelHeader}`}>
@@ -1257,7 +1260,7 @@ export default function RegularTaskManager() {
                         Edit
                       </button>
                     </div>
-                    <button className="inline-flex items-center px-3 py-1 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 transition-colors">
+                    <button className="inline-flex items-center px-3 py-2 bg-teal-600 text-white text-xs font-medium rounded-md hover:bg-teal-700 transition-colors">
                       View Details
                     </button>
                   </div>
@@ -1358,7 +1361,7 @@ export default function RegularTaskManager() {
             <p className="text-gray-600 mb-4">Get started by creating your first regular task.</p>
             <Link href="/tasks/create?type=regular">
               <button
-                className={`inline-flex items-center px-4 py-2 font-medium rounded-lg transition-colors ${RT.btn}`}
+                className={`inline-flex items-center px-4 py-2 font-medium rounded-md transition-colors ${RT.btn}`}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Regular Task

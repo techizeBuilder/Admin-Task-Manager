@@ -6,6 +6,7 @@ import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
+import taskfeedRoutes from "./routes/taskfeedRoutes.js";
 
 const app = express();
 
@@ -110,6 +111,10 @@ const connectToMongoDB = async () => {
 
       registerUserInvitationRoutes(app);
       console.log("User invitation routes registered");
+
+      // Register taskfeed routes
+      app.use("/api", taskfeedRoutes);
+      console.log("Taskfeed routes registered");
     } catch (routeError) {
       console.error("Error registering routes:", routeError);
       throw routeError;

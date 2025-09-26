@@ -181,7 +181,7 @@ export default function TaskAttachments({ taskId }) {
         {files.length > 0 ? (
           <div className="files-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {files.map(file => (
-              <div key={file.id} className="file-card bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 group">
+              <div key={file.id} className="file-card bg-white rounded-md border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-start justify-between mb-4">
                   <div className="file-icon w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl flex items-center justify-center text-xl">
                     {file.icon}
@@ -345,7 +345,7 @@ export default function TaskAttachments({ taskId }) {
         {links.length > 0 ? (
           <div className="links-list space-y-3">
             {links.map(link => (
-              <div key={link.id} className="link-card bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 group">
+              <div key={link.id} className="link-card bg-white rounded-md border border-gray-200 p-6 hover:shadow-ms transition-all duration-300 group">
                 <div className="flex items-start gap-4">
                   <div className="link-favicon w-12 h-12 bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                     {link.favicon}

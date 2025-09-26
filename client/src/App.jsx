@@ -85,6 +85,7 @@ import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
+import QuickTask from "./pages/newComponents/QuickTask";
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
@@ -211,7 +212,7 @@ function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
           <div className="space-y-3">
             <button
               onClick={() => setLocation("/dashboard")}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Return to Dashboard
             </button>
@@ -386,8 +387,8 @@ function App() {
               <Route path="/quick-tasks">
                 <AdminLayout>
                   <ProtectedRoute
-                    component={QuickAddBar}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    component={QuickTask}
+                    allowedRoles={["individual", "employee", "manager", "org_admin", "super_admin"]}
                   />
                 </AdminLayout>
               </Route>

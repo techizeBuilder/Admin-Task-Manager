@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import CustomEditor from '../components/common/CustomEditor';
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
-import { hasAccess } from "../utils/auth";
+// import { hasAccess } from "../utils/auth";
 
 // Advanced Fields Modal Component
 const AdvancedFieldsModal = ({
@@ -188,14 +188,14 @@ const AdvancedFieldsModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors shadow-sm"
               data-testid="button-advanced-cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
               data-testid="button-advanced-save"
             >
               Apply Advanced Options
@@ -240,7 +240,6 @@ const RegularTaskForm = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
   const [advancedData, setAdvancedData] = useState({});
-  const isIndividual = hasAccess(["individual"]);
   const watchedTaskName = watch("taskName");
   const watchedPriority = watch("priority");
 
@@ -286,11 +285,12 @@ const RegularTaskForm = ({
   ];
 
   // Assignment options (for org users)
-  const assignmentOptions = !isIndividual
+  // const assignmentOptions = !isIndividual
+  const assignmentOptions = isOrgUser
     ? [
       { value: "self", label: "Self" },
-      { value: "john_doe", label: "John Doe" },
-      { value: "jane_smith", label: "Jane Smith" },
+      // { value: "john_doe", label: "John Doe" },
+      // { value: "jane_smith", label: "Jane Smith" },
       // Add more team members from API
     ]
     : [{ value: "self", label: "Self" }];
@@ -389,7 +389,7 @@ const RegularTaskForm = ({
                 },
               })}
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter task name..."
               data-testid="input-task-name"
             />
@@ -418,7 +418,7 @@ const RegularTaskForm = ({
                 onChange={field.onChange}
                 placeholder="Describe your task..."
 
-                className="border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             )}
           />
@@ -440,8 +440,10 @@ const RegularTaskForm = ({
                 <Select
                   {...field}
                   options={assignmentOptions}
-                  isSearchable={isIndividual}
-                  isDisabled={isIndividual}
+                  // isSearchable={isIndividual}
+                  // isDisabled={isIndividual}
+                  isSearchable={isOrgUser}
+                  isDisabled={!isOrgUser}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select assignee"
@@ -449,9 +451,6 @@ const RegularTaskForm = ({
                 />
               )}
             />
-            {
-              console.log('isIndividual:', isIndividual)
-            }
             {errors.assignedTo && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.assignedTo.message}
@@ -499,7 +498,7 @@ const RegularTaskForm = ({
               })}
               type="date"
               min={getTodayDate()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               data-testid="input-due-date"
             />
             {errors.dueDate && (
@@ -522,12 +521,14 @@ const RegularTaskForm = ({
                 value="private"
                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 data-testid="radio-private"
-                disabled={isIndividual} // locked for individual
+                // disabled={isIndividual} // locked for individual
+                disabled={!isOrgUser}
               />
               <span className="ml-2 text-sm text-gray-900">Private</span>
             </label>
 
-            {!isIndividual && ( // completely hide Public if individual
+            {/* {!isIndividual && ( // completely hide Public if individual */}
+            {isOrgUser && ( // completely hide Public if not org user  
               <label className="flex items-center">
                 <input
                   {...register("visibility")}
@@ -676,14 +677,14 @@ const RegularTaskForm = ({
           <button
             type="button"
             onClick={() => setShowAdvancedModal(true)}
-            className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors shadow-sm"
+            className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors shadow-sm"
             data-testid="button-more-options"
           >
             More Options ▸
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
             data-testid="button-save"
           >
             Save

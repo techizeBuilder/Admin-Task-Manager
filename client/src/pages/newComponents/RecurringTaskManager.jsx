@@ -795,7 +795,7 @@ const RecurringTaskManager = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 rounded-xl bg-purple-500 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-lg bg-purple-500 flex items-center justify-center">
                 <RecurringTaskIcon className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -805,7 +805,7 @@ const RecurringTaskManager = () => {
             </div>
             <button
               onClick={handleCreateNew}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-md hover:bg-purple-700 transition-colors"
               data-testid="button-create-recurring-task"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -850,7 +850,7 @@ const RecurringTaskManager = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total</p>
@@ -859,7 +859,7 @@ const RecurringTaskManager = () => {
               <RecurringTaskIcon className="h-8 w-8 text-gray-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active</p>
@@ -868,7 +868,7 @@ const RecurringTaskManager = () => {
               <Play className="h-8 w-8 text-green-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Paused</p>
@@ -877,7 +877,7 @@ const RecurringTaskManager = () => {
               <Pause className="h-8 w-8 text-gray-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Due Soon</p>
@@ -886,7 +886,7 @@ const RecurringTaskManager = () => {
               <Clock className="h-8 w-8 text-blue-400" />
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Overdue</p>
@@ -898,7 +898,7 @@ const RecurringTaskManager = () => {
         </div>
 
         {/* Filters and View Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex-1 flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -954,7 +954,7 @@ const RecurringTaskManager = () => {
             </div>
 
             <div className="flex items-center space-x-2 self-start md:self-auto">
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-gray-100 rounded-md p-1">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-purple-600' : 'text-gray-600 hover:text-gray-900'
@@ -980,7 +980,7 @@ const RecurringTaskManager = () => {
             {filteredTasks.map((task) => (
               <div
                 key={task.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                className="flex flex-col justify-between bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
                 data-testid={`recurring-task-card-${task.id}`}
               >
                 {/* Card Header */}
@@ -1095,7 +1095,7 @@ const RecurringTaskManager = () => {
                 </div>
 
                 {/* Card Footer */}
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-md">
                   <div className="flex items-center justify-end gap-1.5">
                     <button
                       onClick={() => handleToggleActive(task.id)}

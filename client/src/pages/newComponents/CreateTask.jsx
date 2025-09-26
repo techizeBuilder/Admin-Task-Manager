@@ -204,7 +204,7 @@ export default function CreateTask({
   return (
     <div className="flex flex-col h-full p-6 bg-gray-50 z-50" >
       {/* Task Type Selection Section */}
-      <div className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+      <div className="bg-white rounded-md p-6 mb-6 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Task Type
@@ -295,13 +295,13 @@ export default function CreateTask({
                   onClick={() =>
                     taskType.available && setSelectedTaskType(taskType.id)
                   }
-                  className={`flex items-center p-4 rounded-xl transition-all group text-left w-full ${colorClasses.button}`}
+                  className={`flex items-center p-4 rounded-lg transition-all group text-left w-full ${colorClasses.button}`}
                   data-testid={`task-type-${taskType.id}`}
                   disabled={!taskType.available}
                   title={!taskType.available ? taskType.restrictedMessage : ""}
                 >
                   <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-lg ${colorClasses.icon} text-white mr-3 flex-shrink-0`}
+                    className={`flex items-center justify-center w-8 h-8 rounded-md ${colorClasses.icon} text-white mr-3 flex-shrink-0`}
                   >
                     <svg
                       className="w-4 h-4"
@@ -352,7 +352,7 @@ export default function CreateTask({
       </div>
 
       {/* Task Details Section */}
-      <div className="bg-white rounded-lg p-6 flex-1 shadow-sm border border-gray-200">
+      <div className="bg-white rounded-md p-6 flex-1 shadow-sm border border-gray-200">
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Task Details
@@ -486,7 +486,7 @@ export default function CreateTask({
             </p>
             <button
               onClick={() => setSelectedTaskType("regular")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Create Regular Task Instead
             </button>
@@ -516,7 +516,7 @@ export default function CreateTask({
             </p>
             <button
               onClick={() => setSelectedTaskType("regular")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Create Regular Task Instead
             </button>

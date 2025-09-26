@@ -472,13 +472,76 @@ export default function AllTasks({
     requiresConfirmation = false,
     reason = null,
   ) => {
-    const task = tasks.find((t) => t.id === taskId);
-    const newStatus = companyStatuses.find(
+    console.log('handleStatusChange called with:', { taskId, newStatusCode, requiresConfirmation, reason });
+
+    // Debug: Show first few tasks with all their ID fields
+    const debugTasks = tasks.slice(0, 3).map(t => ({
+      id: t.id,
+      _id: t._id,
+      title: t.title,
+      status: t.status,
+      allKeys: Object.keys(t)
+    }));
+    console.log('First 3 tasks for debugging:', debugTasks);
+
+    // Log the searched task ID and available IDs for comparison
+    console.log('Searching for task ID:', taskId, '(type:', typeof taskId, ')');
+    console.log('Available task IDs:', tasks.map(t => ({ id: t.id, _id: t._id, idType: typeof t.id, _idType: typeof t._id })));
+
+    // Find task by multiple possible ID fields to handle different ID formats
+    const task = tasks.find((t) => {
+      const matches = t.id === taskId ||
+        t._id === taskId ||
+        String(t.id) === String(taskId) ||
+        t.id === Number(taskId);
+
+      if (matches) {
+        console.log('MATCH FOUND:', { searchId: taskId, task: { id: t.id, _id: t._id, title: t.title } });
+      }
+      return matches;
+    }); const newStatus = companyStatuses.find(
       (s) => s.code === newStatusCode && s.active,
     );
 
+    console.log('Found task:', task ? { id: task.id, _id: task._id, title: task.title, status: task.status } : 'NOT FOUND');
+    console.log('Found status:', newStatus ? { code: newStatus.code, label: newStatus.label } : 'NOT FOUND');
+
     if (!task || !newStatus) {
-      console.error("Invalid task or status code provided");
+      console.error("Invalid task or status code provided", {
+        task: !!task,
+        newStatus: !!newStatus,
+        searchedTaskId: taskId,
+        availableTaskIds: tasks.map(t => ({ id: t.id, _id: t._id })).slice(0, 5)
+      });
+
+      // If we can't find the task locally but we have a valid MongoDB ObjectId and valid status,
+      // we can still proceed with the API call since the backend knows about this task
+      if (!task && newStatus && taskId.match(/^[0-9a-fA-F]{24}$/)) {
+        console.log('Task not found locally but valid ObjectId provided, proceeding with API call');
+        // Create a minimal task object for the API call
+        const minimalTask = {
+          _id: taskId,
+          id: taskId,
+          title: 'Task (ID mismatch)'
+        };
+
+        // Show confirmation for final statuses
+        if (newStatus.isFinal && requiresConfirmation) {
+          setShowStatusConfirmation({
+            taskId,
+            newStatusCode,
+            taskTitle: 'Task',
+            statusLabel: newStatus.label,
+            reason,
+          });
+          return;
+        }
+
+        // Execute status change directly
+        executeStatusChange(minimalTask, newStatusCode, reason);
+        return;
+      }
+
       return;
     }
 
@@ -527,22 +590,50 @@ export default function AllTasks({
       return;
     }
 
-    // Execute status change
-    executeStatusChange(taskId, newStatusCode, reason);
+    // Execute status change - pass the task object to get the correct ID for API
+    executeStatusChange(task, newStatusCode, reason);
   };
 
   // Execute the actual status change
-  const executeStatusChange = async (taskId, newStatusCode, reason = null) => {
+  const executeStatusChange = async (task, newStatusCode, reason = null) => {
     try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/tasks/${taskId}/status`,
-        { statusCode: newStatusCode, reason }
+      // Use the MongoDB ObjectId (_id) for the API call, fallback to numeric id
+      const apiTaskId = task._id || task.id;
+
+      console.log('Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
+
+      // Prepare the request payload according to API spec
+      const payload = {
+        status: newStatusCode,
+        notes: reason || undefined, // Add notes if reason is provided
+      };
+
+      // Add completedDate if status is being set to completed/done
+      if (newStatusCode === "DONE" || newStatusCode === "completed") {
+        payload.completedDate = new Date().toISOString();
+      }
+
+      console.log('Updating task status with payload:', payload);
+
+      // Use PATCH method as per API specification
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/tasks/${apiTaskId}/status`,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          }
+        }
       );
 
-      if (response.status === 200) {
-        // Update local state
-        const task = tasks.find((t) => t.id === taskId);
-        updateTaskStatus(taskId, newStatusCode);
+      console.log('Status update response:', response);
+
+      // Check for successful response
+      if (response.data && response.data.success) {
+        // Update local state using the task's local ID
+        const localTaskId = task.id;
+        updateTaskStatus(localTaskId, newStatusCode);
 
         // Show success toast
         const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
@@ -551,15 +642,29 @@ export default function AllTasks({
 
         // Refetch tasks to ensure consistency
         await refetchTasks();
+      } else {
+        // Handle API error response
+        const errorMessage = response.data?.message || "Failed to update task status.";
+        setToastMessage(errorMessage);
+        setShowToast(true);
       }
     } catch (error) {
       console.error('Error updating task status:', error);
-      setToastMessage('Error updating task status. Please try again.');
+
+      // Handle different error response formats
+      let errorMessage = 'Error updating task status. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = `Network error: ${error.message}`;
+      }
+
+      setToastMessage(errorMessage);
       setShowToast(true);
     }
-  };
-
-  // Permission check for task deletion
+  };  // Permission check for task deletion
   const canDeleteTask = (task) => {
     return (
       task.creatorId === currentUser.id ||
@@ -1517,13 +1622,14 @@ export default function AllTasks({
           </div>
         </div>
       </div>
+
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 space-y-4">
+      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 space-y-4">
         {/* Search Bar */}
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <div className="relative w-50 max-w-md">
+        <div className="flex flex-nowrap overflow-x-auto gap-2">
+          <div className="relative w-50 max-w-md min-w-[270px]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
               fill="none"
@@ -1556,7 +1662,7 @@ export default function AllTasks({
               { value: "completed", label: "Completed" },
             ]}
             placeholder="Filter by Status"
-            className="min-w-[140px]"
+            className="min-w-[180px]"
           />
 
           <SearchableSelect
@@ -1570,7 +1676,7 @@ export default function AllTasks({
               { value: "urgent", label: "Urgent" },
             ]}
             placeholder="Filter by Priority"
-            className="min-w-[140px]"
+            className="min-w-[180px]"
           />
 
           <SearchableSelect
@@ -1584,7 +1690,7 @@ export default function AllTasks({
               { value: "Approval Task", label: "Approval Task" },
             ]}
             placeholder="Filter by Task Type"
-            className="min-w-[180px]"
+            className="min-w-[210px]"
           />
 
           <SearchableSelect
@@ -1620,7 +1726,7 @@ export default function AllTasks({
 
           <SearchableSelect
             placeholder="All Categories"
-            className="min-w-[160px]"
+            className="min-w-[170px]"
           />
         </div>
         {/* Bulk Actions */}
@@ -1840,15 +1946,17 @@ export default function AllTasks({
                         borderLeft: `4px solid ${getTaskColorCode(task)}`,
                       }}
                     >
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedTasks.includes(task.id)}
-                          onChange={(e) =>
-                            handleTaskSelection(task.id, e.target.checked)
-                          }
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
+                      <TableCell className="px-6 py-4 text-nowrap rounded-[inherit]">
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                          <input
+                            type="checkbox"
+                            checked={selectedTasks.includes(task.id)}
+                            onChange={(e) =>
+                              handleTaskSelection(task.id, e.target.checked)
+                            }
+                            className="w-4 h-4 rounded-[inherit] border-gray-300 text-blue-600 focus:ring-blue-500 overflow-hidden"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-nowrap">
                         <div>

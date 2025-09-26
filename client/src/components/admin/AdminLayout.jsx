@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "../../layout/sidebar";
 import Header from "./Header";
+import QuickAddBar from "../tasks/QuickAddBar";
 
 export function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -85,6 +86,9 @@ export function AdminLayout({ children }) {
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
+
+      {/* Quick Add Bar - Global floating button for all pages */}
+      <QuickAddBar />
     </div>
   );
 }
