@@ -165,33 +165,114 @@ export default function AllTasks({
           tasksArr = response.data.data.tasks;
         }
         const mappedTasks = tasksArr.map((task) => {
+          // Debug original task structure
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 Original API Task:', {
+              _id: task._id,
+              id: task.id,
+              _doc_id: task._doc?._id,
+              title: task.title || task._doc?.title,
+              _idType: typeof task._id,
+              idType: typeof task.id,
+              _docIdType: typeof task._doc?._id,
+              _idLength: task._id?.toString().length,
+              idLength: task.id?.toString().length,
+              _docIdLength: task._doc?._id?.toString().length,
+              isMongooseDoc: !!(task._doc || task.$__),
+              allKeys: Object.keys(task)
+            });
+          }
+
+          // Extract data from Mongoose document or plain object
+          let taskData;
+          let taskId;
+
+          if (task._doc) {
+            // It's a Mongoose document - use _doc for actual data
+            console.log('📋 Mongoose document detected, using _doc data');
+            taskData = task._doc;
+            taskId = task._doc._id;
+          } else {
+            // It's a plain object
+            console.log('📋 Plain object detected, using directly');
+            taskData = task;
+            taskId = task._id || task.id;
+          }
+
           const statusMap = {
             todo: "OPEN",
+            "in-progress": "INPROGRESS",
             inprogress: "INPROGRESS",
             done: "DONE",
+            completed: "DONE",
             onhold: "ONHOLD",
+            "on-hold": "ONHOLD",
             cancelled: "CANCELLED",
+            canceled: "CANCELLED"
           };
-          const apiStatus = task.status?.toLowerCase() || "open";
-          const feStatus = statusMap[apiStatus] || apiStatus.toUpperCase();
+          const apiStatus = taskData.status?.toLowerCase() || "todo";
+          const feStatus = statusMap[apiStatus] || "OPEN";
 
-          return {
-            ...task, // Spread the rest of the properties
-            id: task._id,
-            title: task.title,
-            assignee: task.assignedTo
-              ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}`
+          // Debug logging
+          if (process.env.NODE_ENV === 'development') {
+            console.log('API Task Status Mapping:', {
+              originalStatus: taskData.status,
+              apiStatus,
+              mappedStatus: feStatus,
+              taskTitle: taskData.title
+            });
+          }
+
+          const mappedTask = {
+            // CRITICAL: Use the extracted taskId for both id and _id
+            id: taskId, // This will be used for frontend operations
+            _id: taskId, // This will be used for API calls
+
+            // Use taskData for all other properties
+            title: taskData.title,
+            assignee: taskData.assignedTo
+              ? `${taskData.assignedTo.firstName} ${taskData.assignedTo.lastName}`
               : "Unassigned",
-            assigneeId: task.assignedTo?._id,
+            assigneeId: taskData.assignedTo?._id,
             status: feStatus,
-            priority: task.priority
-              ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1)
+            priority: taskData.priority
+              ? taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1)
               : "Medium",
-            dueDate: task.dueDate
-              ? new Date(task.dueDate).toISOString().split("T")[0]
+            dueDate: taskData.dueDate
+              ? new Date(taskData.dueDate).toISOString().split("T")[0]
               : "",
             progress: feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
+
+            // Spread other properties from taskData
+            ...taskData,
+
+            // Map subtasks if they exist
+            subtasks: task.subtasks?.map(subtask => ({
+              ...subtask,
+              id: subtask._id,
+              _id: subtask._id,
+              assignee: subtask.assignedTo
+                ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
+                : "Unassigned",
+              assigneeId: subtask.assignedTo?._id
+            })) || []
           };
+
+          // Debug final mapped task
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 Mapped Task:', {
+              id: mappedTask.id,
+              _id: mappedTask._id,
+              title: mappedTask.title,
+              idType: typeof mappedTask.id,
+              _idType: typeof mappedTask._id,
+              idLength: mappedTask.id?.toString().length,
+              _idLength: mappedTask._id?.toString().length,
+              isObjectId: /^[0-9a-fA-F]{24}$/.test(mappedTask.id?.toString())
+            });
+          }
+
+          return mappedTask;
         });
         setApiTasks(mappedTasks);
       } else {
@@ -475,21 +556,21 @@ export default function AllTasks({
     console.log('handleStatusChange called with:', { taskId, newStatusCode, requiresConfirmation, reason });
 
     // Debug: Show first few tasks with all their ID fields
-    const debugTasks = tasks.slice(0, 3).map(t => ({
+    const debugTasks = apiTasks.slice(0, 3).map(t => ({
       id: t.id,
       _id: t._id,
       title: t.title,
       status: t.status,
       allKeys: Object.keys(t)
     }));
-    console.log('First 3 tasks for debugging:', debugTasks);
+    console.log('First 3 apiTasks for debugging:', debugTasks);
 
     // Log the searched task ID and available IDs for comparison
     console.log('Searching for task ID:', taskId, '(type:', typeof taskId, ')');
-    console.log('Available task IDs:', tasks.map(t => ({ id: t.id, _id: t._id, idType: typeof t.id, _idType: typeof t._id })));
+    console.log('Available apiTask IDs:', apiTasks.map(t => ({ id: t.id, _id: t._id, idType: typeof t.id, _idType: typeof t._id })));
 
     // Find task by multiple possible ID fields to handle different ID formats
-    const task = tasks.find((t) => {
+    const task = apiTasks.find((t) => {
       const matches = t.id === taskId ||
         t._id === taskId ||
         String(t.id) === String(taskId) ||
@@ -511,7 +592,7 @@ export default function AllTasks({
         task: !!task,
         newStatus: !!newStatus,
         searchedTaskId: taskId,
-        availableTaskIds: tasks.map(t => ({ id: t.id, _id: t._id })).slice(0, 5)
+        availableTaskIds: apiTasks.map(t => ({ id: t.id, _id: t._id })).slice(0, 5)
       });
 
       // If we can't find the task locally but we have a valid MongoDB ObjectId and valid status,
@@ -547,8 +628,11 @@ export default function AllTasks({
 
     // Check edit permissions
     if (!canEditTaskStatus(task)) {
-      setToastMessage("You do not have permission to edit this task status.");
-      setShowToast(true);
+      setToast({
+        message: "You do not have permission to edit this task status.",
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -558,11 +642,11 @@ export default function AllTasks({
       const currentStatusObj = companyStatuses.find(
         (s) => s.code === task.status,
       );
-      setToastMessage(
-        `Invalid status transition from "${currentStatusObj?.label || task.status
-        }" to "${newStatus.label}". Please follow the allowed workflow.`
-      );
-      setShowToast(true);
+      setToast({
+        message: `Invalid status transition from "${currentStatusObj?.label || task.status}" to "${newStatus.label}". Please follow the allowed workflow.`,
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -571,10 +655,11 @@ export default function AllTasks({
       const incompleteCount = task.subtasks.filter(
         (s) => s.status !== "completed" && s.status !== "cancelled",
       ).length;
-      setToastMessage(
-        `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`
-      );
-      setShowToast(true);
+      setToast({
+        message: `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -602,22 +687,33 @@ export default function AllTasks({
 
       console.log('Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
 
+      // Map frontend status codes to backend status codes
+      const statusMapping = {
+        'OPEN': 'todo',
+        'INPROGRESS': 'in-progress',
+        'DONE': 'completed',
+        'ONHOLD': 'on-hold',
+        'CANCELLED': 'cancelled'
+      };
+
+      const backendStatus = statusMapping[newStatusCode] || newStatusCode.toLowerCase();
+
       // Prepare the request payload according to API spec
       const payload = {
-        status: newStatusCode,
+        status: backendStatus,
         notes: reason || undefined, // Add notes if reason is provided
       };
 
       // Add completedDate if status is being set to completed/done
-      if (newStatusCode === "DONE" || newStatusCode === "completed") {
+      if (backendStatus === "completed" || newStatusCode === "DONE") {
         payload.completedDate = new Date().toISOString();
       }
 
       console.log('Updating task status with payload:', payload);
 
-      // Use PATCH method as per API specification
+      // Use PATCH method as per API specification  
       const response = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/tasks/${apiTaskId}/status`,
+        `/api/tasks/${apiTaskId}/status`,
         payload,
         {
           headers: {
@@ -629,24 +725,42 @@ export default function AllTasks({
 
       console.log('Status update response:', response);
 
+      // Check if response contains HTML (indicates routing issue)
+      if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+        console.error('API returned HTML instead of JSON - possible routing issue');
+        throw new Error('API endpoint not found - check server routing');
+      }
+
       // Check for successful response
       if (response.data && response.data.success) {
         // Update local state using the task's local ID
         const localTaskId = task.id;
-        updateTaskStatus(localTaskId, newStatusCode);
+        if (typeof updateTaskStatus === 'function') {
+          updateTaskStatus(localTaskId, newStatusCode);
+        }
 
         // Show success toast
         const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
-        setToastMessage(`Task "${task.title}" status updated to "${newStatus.label}"`);
-        setShowToast(true);
+        const message = `Task "${task.title}" status updated to "${newStatus?.label || newStatusCode}"`;
+
+        setToast({
+          message: message,
+          type: 'success',
+          isVisible: true,
+        });
 
         // Refetch tasks to ensure consistency
-        await refetchTasks();
+        if (typeof refetchTasks === 'function') {
+          await refetchTasks();
+        }
       } else {
         // Handle API error response
         const errorMessage = response.data?.message || "Failed to update task status.";
-        setToastMessage(errorMessage);
-        setShowToast(true);
+        setToast({
+          message: errorMessage,
+          type: 'error',
+          isVisible: true,
+        });
       }
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -661,10 +775,15 @@ export default function AllTasks({
         errorMessage = `Network error: ${error.message}`;
       }
 
-      setToastMessage(errorMessage);
-      setShowToast(true);
+      setToast({
+        message: errorMessage,
+        type: 'error',
+        isVisible: true,
+      });
     }
-  };  // Permission check for task deletion
+  };
+
+  // Permission check for task deletion
   const canDeleteTask = (task) => {
     return (
       task.creatorId === currentUser.id ||
@@ -831,7 +950,7 @@ export default function AllTasks({
 
   // Handle bulk status update
   const handleBulkStatusUpdate = (newStatusCode) => {
-    const selectedTaskObjects = tasks.filter((t) =>
+    const selectedTaskObjects = apiTasks.filter((t) =>
       selectedTasks.includes(t.id),
     );
     const errors = [];
@@ -854,8 +973,11 @@ export default function AllTasks({
     });
 
     if (errors.length > 0) {
-      setToastMessage(`Cannot update some tasks:\n${errors.join("\n")}`);
-      setShowToast(true);
+      setToast({
+        message: `Cannot update some tasks:\n${errors.join("\n")}`,
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -1047,7 +1169,7 @@ export default function AllTasks({
   };
 
   const handleViewTask = (taskId) => {
-    const task = tasks.find((t) => t.id === taskId);
+    const task = apiTasks.find((t) => t.id === taskId);
 
     // If it's an approval task, show the approval modal
     if (task && task.isApprovalTask) {
@@ -1159,11 +1281,27 @@ export default function AllTasks({
 
   // Handle subtask status change
   const handleSubtaskStatusChange = (parentTaskId, subtaskId, newStatus) => {
+    // Find the subtask and update it
+    setApiTasks(prev => prev.map(task => {
+      if (task.id === parentTaskId) {
+        return {
+          ...task,
+          subtasks: task.subtasks?.map(subtask =>
+            subtask.id === subtaskId
+              ? { ...subtask, status: newStatus }
+              : subtask
+          )
+        };
+      }
+      return task;
+    }));
+
+    // Also update the Zustand store if needed
     updateSubtask(parentTaskId, subtaskId, { status: newStatus });
   };
 
   const handleAddSubtask = (taskId) => {
-    const task = tasks.find((t) => t.id === taskId);
+    const task = apiTasks.find((t) => t.id === taskId);
     if (task) {
       openSubtaskDrawer(task);
     }
@@ -1308,32 +1446,236 @@ export default function AllTasks({
     }
   };
 
-  // Handle task snooze
-  const handleSnoozeTask = (taskId) => {
-    toggleSnoozeTask(taskId);
-    if (snoozedTasks.has(taskId)) {
-      showToast("Task un-snoozed successfully", "success");
-    } else {
-      showToast("Task snoozed successfully", "success");
+  // Handle task snooze with API integration
+  const handleSnoozeTask = async (taskId, snoozeData = null) => {
+    try {
+      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      // Check if task is currently snoozed
+      const isCurrentlySnoozing = task.isSnooze || snoozedTasks.has(taskId);
+
+      if (isCurrentlySnoozing) {
+        // Unsnooze task
+        const response = await axios.patch(
+          `http://localhost:5000/api/tasks/${taskId}/unsnooze`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          // Update local state
+          setApiTasks(prev => prev.map(t =>
+            (t.id === taskId || t._id === taskId)
+              ? { ...t, isSnooze: false, snoozeUntil: null, snoozeReason: null }
+              : t
+          ));
+
+          toggleSnoozeTask(taskId); // Update Zustand store
+          showToast("Task unsnoozed successfully", "success");
+          await refetchTasks(); // Refresh from server
+        }
+      } else {
+        // Snooze task - if no snoozeData provided, use default (1 hour from now)
+        const defaultSnoozeUntil = new Date();
+        defaultSnoozeUntil.setHours(defaultSnoozeUntil.getHours() + 1);
+
+        const snoozeUntil = snoozeData?.snoozeUntil || defaultSnoozeUntil.toISOString();
+        const reason = snoozeData?.reason || "Task snoozed temporarily";
+
+        const response = await axios.patch(
+          `http://localhost:5000/api/tasks/${taskId}/snooze`,
+          {
+            snoozeUntil,
+            reason
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          // Update local state
+          setApiTasks(prev => prev.map(t =>
+            (t.id === taskId || t._id === taskId)
+              ? {
+                ...t,
+                isSnooze: true,
+                snoozeUntil: snoozeUntil,
+                snoozeReason: reason
+              }
+              : t
+          ));
+
+          toggleSnoozeTask(taskId); // Update Zustand store
+          showToast("Task snoozed successfully", "success");
+          await refetchTasks(); // Refresh from server
+        }
+      }
+    } catch (error) {
+      console.error('Error handling task snooze:', error);
+      showToast(
+        error.response?.data?.message || "Failed to update snooze status",
+        "error"
+      );
     }
   };
 
-  // Handle mark as risk
-  const handleMarkAsRisk = (taskId) => {
-    toggleRiskyTask(taskId);
-    if (riskyTasks.has(taskId)) {
-      showToast("Task risk status removed", "success");
-    } else {
-      showToast("Task marked as risky", "warning");
+  // Handle mark as risk with API integration
+  const handleMarkAsRisk = async (taskId, riskData = null) => {
+    try {
+      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      // Check if task is currently marked as risk
+      const isCurrentlyRisky = task.isRisk || riskyTasks.has(taskId);
+
+      if (isCurrentlyRisky) {
+        // Unmark as risk
+        const response = await axios.patch(
+          `http://localhost:5000/api/tasks/${taskId}/unmark-risk`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          // Update local state
+          setApiTasks(prev => prev.map(t =>
+            (t.id === taskId || t._id === taskId)
+              ? {
+                ...t,
+                isRisk: false,
+                riskLevel: null,
+                riskReason: null
+              }
+              : t
+          ));
+
+          toggleRiskyTask(taskId); // Update Zustand store
+          showToast("Task risk status removed", "success");
+          await refetchTasks(); // Refresh from server
+        }
+      } else {
+        // Mark as risk
+        const riskLevel = riskData?.riskLevel || 'medium';
+        const riskReason = riskData?.riskReason || 'Task requires attention';
+
+        const response = await axios.patch(
+          `http://localhost:5000/api/tasks/${taskId}/mark-risk`,
+          {
+            riskLevel,
+            riskReason
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.success) {
+          // Update local state
+          setApiTasks(prev => prev.map(t =>
+            (t.id === taskId || t._id === taskId)
+              ? {
+                ...t,
+                isRisk: true,
+                riskLevel,
+                riskReason
+              }
+              : t
+          ));
+
+          toggleRiskyTask(taskId); // Update Zustand store
+          showToast("Task marked as risky", "warning");
+          await refetchTasks(); // Refresh from server
+        }
+      }
+    } catch (error) {
+      console.error('Error handling task risk status:', error);
+      showToast(
+        error.response?.data?.message || "Failed to update risk status",
+        "error"
+      );
+    }
+  };
+
+  // Handle quick mark as done with API integration
+  const handleQuickMarkAsDone = async (taskId, completionNotes = null) => {
+    try {
+      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/tasks/${taskId}/quick-done`,
+        {
+          completionNotes: completionNotes || `Task completed quickly by user`
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setApiTasks(prev => prev.map(t =>
+          (t.id === taskId || t._id === taskId)
+            ? {
+              ...t,
+              status: 'DONE',
+              completedDate: new Date().toISOString(),
+              completionNotes: completionNotes
+            }
+            : t
+        ));
+
+        // Update Zustand store  
+        updateTaskStatus(taskId, 'DONE');
+        showToast("Task marked as completed successfully", "success");
+        await refetchTasks(); // Refresh from server
+      }
+    } catch (error) {
+      console.error('Error marking task as done:', error);
+      showToast(
+        error.response?.data?.message || "Failed to mark task as completed",
+        "error"
+      );
     }
   };
 
   // Apply filters to tasks
   const filteredTasks = apiTasks.filter((task) => {
-    // Apply search filter
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(searchTerm.toLowerCase());
+    // Apply search filter with null checks
+    const matchesSearch = !searchTerm ||
+      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.assignee && task.assignee.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Apply status filter
     const matchesStatus =
@@ -1343,10 +1685,10 @@ export default function AllTasks({
       (statusFilter === "review" && task.status === "ONHOLD") ||
       (statusFilter === "completed" && task.status === "DONE");
 
-    // Apply priority filter
+    // Apply priority filter with null check
     const matchesPriority =
       priorityFilter === "all" ||
-      task.priority.toLowerCase() === priorityFilter.toLowerCase();
+      (task.priority && priorityFilter && task.priority.toLowerCase() === priorityFilter.toLowerCase());
 
     // Apply task type filter
     const taskType = getTaskType(task);
@@ -1435,6 +1777,7 @@ export default function AllTasks({
 
   // Function to get task color code
   const getTaskColorCode = (task) => {
+    console.log("Getting color code for task::::::::::::::::::", task);
     const taskInfo = getTaskTypeInfo(task.taskType);
     return task.colorCode || taskInfo.defaultColor || "#ffffff";
   };
@@ -1447,8 +1790,11 @@ export default function AllTasks({
 
   const handleSmartTaskCreated = (newTask) => {
     refetchTasks(); // Refresh tasks list
-    setToastMessage('Task created successfully with smart parsing!');
-    setShowToast(true);
+    setToast({
+      message: 'Task created successfully with smart parsing!',
+      type: 'success',
+      isVisible: true,
+    });
   };
 
   return (
@@ -2041,18 +2387,18 @@ export default function AllTasks({
                                     title="Click to edit"
                                   >
                                     {task.title}
-                                    {riskyTasks.has(task.id) && (
+                                    {(riskyTasks.has(task.id) || task.isRisk) && (
                                       <span
                                         className="ml-2 text-orange-500"
-                                        title="Risky Task"
+                                        title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
                                       >
                                         ⚠️
                                       </span>
                                     )}
-                                    {snoozedTasks.has(task.id) && (
+                                    {(snoozedTasks.has(task.id) || task.isSnooze) && (
                                       <span
                                         className="ml-2 text-yellow-500"
-                                        title="Snoozed Task"
+                                        title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
                                       >
                                         ⏸️
                                       </span>
@@ -2082,14 +2428,14 @@ export default function AllTasks({
                         <div className="flex items-center">
                           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
                             <span className="text-xs font-medium text-gray-600">
-                              {task.assignee
+                              {task.assignee && task.assignee
                                 .split(" ")
                                 .map((n) => n[0])
-                                .join("")}
+                                .join("") || "UN"}
                             </span>
                           </div>
                           <span className="text-sm text-gray-900">
-                            {task.assignee}
+                            {task.assignee || "Unassigned"}
                           </span>
                         </div>
                       </TableCell>
@@ -2106,7 +2452,10 @@ export default function AllTasks({
                         />
                       </TableCell>
                       <TableCell className="px-6 py-4 text-nowrap">
-                        <span className={getTaskPriorityColor(task.priority)}>
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white opacity-70"
+                          style={{ backgroundColor: getTaskPriorityColor(task.priority), }}
+                        >
                           {task.priority}
                         </span>
                       </TableCell>
@@ -2141,21 +2490,20 @@ export default function AllTasks({
                         </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-nowrap">
-                        <div
-                          className="w-6 h-6 rounded-full shadow-md"
+                        <div className="w-6 h-6 rounded-full shadow-md"
                           style={{ backgroundColor: getTaskColorCode(task) }}
                           title={getTaskColorCode(task)}
                         ></div>
                       </TableCell>
                       <TableCell className="px-6 py-4 text-nowrap">
                         <div className="flex items-center justify-center gap-2">
-                          <button
+                          {/* <button
                             onClick={() => handleOpenThread(task)}
                             className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
                             title="Open task thread"
                           >
                             <MessageCircle className="w-4 h-4" />
-                          </button>
+                          </button> */}
                           <TaskActionsDropdown
                             task={task}
                             onSnooze={() => handleSnoozeTask(task.id)}
@@ -2163,6 +2511,7 @@ export default function AllTasks({
                             onMarkAsDone={() =>
                               handleStatusChange(task.id, "DONE", true)
                             }
+                            onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
                             onDelete={() => handleDeleteTask(task.id)}
                           />
                         </div>
@@ -2222,14 +2571,14 @@ export default function AllTasks({
                             <div className="flex items-center">
                               <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
                                 <span className="text-xs font-medium text-gray-600">
-                                  {subtask.assignee
+                                  {subtask.assignee && subtask.assignee
                                     .split(" ")
                                     .map((n) => n[0])
-                                    .join("")}
+                                    .join("") || "UN"}
                                 </span>
                               </div>
                               <span className="text-sm text-gray-700">
-                                {subtask.assignee}
+                                {subtask.assignee || "Unassigned"}
                               </span>
                             </div>
                           </TableCell>
@@ -2403,11 +2752,21 @@ export default function AllTasks({
           taskTitle={showStatusConfirmation.taskTitle}
           statusLabel={showStatusConfirmation.statusLabel}
           onConfirm={() => {
-            executeStatusChange(
-              showStatusConfirmation.taskId,
-              showStatusConfirmation.newStatusCode,
-              showStatusConfirmation.reason
+            // Find the task object using the taskId
+            const task = apiTasks.find(t =>
+              t.id === showStatusConfirmation.taskId ||
+              t._id === showStatusConfirmation.taskId
             );
+
+            if (task) {
+              executeStatusChange(
+                task, // Pass task object, not taskId
+                showStatusConfirmation.newStatusCode,
+                showStatusConfirmation.reason
+              );
+            } else {
+              console.error('Task not found for confirmation:', showStatusConfirmation.taskId);
+            }
             setShowStatusConfirmation(null);
           }}
           onCancel={() => setShowStatusConfirmation(null)}
@@ -2496,7 +2855,7 @@ export default function AllTasks({
       {/* Subtask Creator Modal */}
       {showSubtaskCreator && (
         <SubtaskCreator
-          parentTask={tasks.find((t) => t.id === showSubtaskCreator)}
+          parentTask={apiTasks.find((t) => t.id === showSubtaskCreator)}
           onClose={() => setShowSubtaskCreator(null)}
           onSubmit={(subtaskData) =>
             handleCreateSubtask(showSubtaskCreator, subtaskData)

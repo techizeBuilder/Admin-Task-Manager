@@ -450,13 +450,13 @@ const IndividualDashboard = ({
   };
 
   const filteredTasks = currentTasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = !searchTerm || searchTerm === "" ||
+      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.description &&
         task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.tags &&
         task.tags.some((tag) =>
-          tag.toLowerCase().includes(searchTerm.toLowerCase())
+          tag && tag.toLowerCase().includes(searchTerm.toLowerCase())
         ));
     const matchesFilter =
       selectedFilter === "all"
