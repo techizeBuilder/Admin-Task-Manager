@@ -139,6 +139,7 @@ export default function TaskActionsDropdown({
           </button>
 
           {/* <button
+          {/* <button
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
@@ -148,7 +149,7 @@ export default function TaskActionsDropdown({
           >
             <CheckCircle size={16} className="text-gray-600" />
             <span className="font-medium">Mark as Done</span>
-          </button> */}
+
 
           {/* Quick Mark Done - No confirmation needed */}
           <button

@@ -10,6 +10,7 @@ import SubtaskCreator from "./SubtaskCreator";
 import StatusConfirmationModal from "./StatusConfirmationModal";
 import TaskStatusDropdown from "./TaskStatusDropdown";
 import TaskActionsDropdown from "./TaskActionsDropdown";
+import SubtaskActionsDropdown from "./SubtaskActionsDropdown";
 import ApprovalTaskDetailModal from "./ApprovalTaskDetailModal";
 import CalendarDatePicker from "./CalendarDatePicker";
 import SearchableSelect from "../SearchableSelect";
@@ -41,6 +42,8 @@ import {
   Hash,
   AtSign,
 } from "lucide-react";
+import { useSubtask } from "../../contexts/SubtaskContext";
+
 export default function AllTasks({
   onCreateTask,
   onNavigateToTask,
@@ -81,6 +84,11 @@ export default function AllTasks({
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [selectedApprovalTask, setSelectedApprovalTask] = useState(null);
   const [showCalendarView, setShowCalendarView] = useState(false);
+
+  // Task detail and edit modals
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
 
   // Smart task features
   const [showThreadModal, setShowThreadModal] = useState(false);
@@ -132,8 +140,10 @@ export default function AllTasks({
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
+  const [availableUsers, setAvailableUsers] = useState([]);
   const { activeRole, setActiveRole } = useActiveRole();
   const [currentRole, setCurrentRole] = useState(null);
+  const { openSubtaskDrawer } = useSubtask();
 
   // Get user data to access roles
   const { data: user } = useQuery({
@@ -218,8 +228,8 @@ export default function AllTasks({
           }
 
           const statusMap = {
-            todo: "OPEN",
             open: "OPEN",
+            todo: "OPEN",
             "in-progress": "INPROGRESS",
             inprogress: "INPROGRESS",
             done: "DONE",
@@ -229,7 +239,7 @@ export default function AllTasks({
             cancelled: "CANCELLED",
             canceled: "CANCELLED"
           };
-          const apiStatus = taskData.status?.toLowerCase() || "todo";
+          const apiStatus = taskData.status?.toLowerCase() || "open";
           const feStatus = statusMap[apiStatus] || "OPEN";
 
           // Debug logging
@@ -247,13 +257,16 @@ export default function AllTasks({
             id: taskId, // This will be used for frontend operations
             _id: taskId, // This will be used for API calls
 
-            // Use taskData for all other properties
+            // Spread other properties from taskData FIRST
+            ...taskData,
+
+            // Then override with mapped values
             title: taskData.title,
             assignee: taskData.assignedTo
               ? `${taskData.assignedTo.firstName} ${taskData.assignedTo.lastName}`
               : "Unassigned",
             assigneeId: taskData.assignedTo?._id,
-            status: feStatus,
+            status: feStatus, // This will override the raw status from taskData
             priority: taskData.priority
               ? taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1)
               : "Medium",
@@ -261,20 +274,24 @@ export default function AllTasks({
               ? new Date(taskData.dueDate).toISOString().split("T")[0]
               : "",
             progress: feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
-
-            // Spread other properties from taskData
             ...taskData,
 
             // Map subtasks if they exist
-            subtasks: task.subtasks?.map(subtask => ({
-              ...subtask,
-              id: subtask._id,
-              _id: subtask._id,
-              assignee: subtask.assignedTo
-                ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
-                : "Unassigned",
-              assigneeId: subtask.assignedTo?._id
-            })) || []
+            subtasks: task.subtasks?.map(subtask => {
+              const subtaskApiStatus = subtask.status?.toLowerCase() || "open";
+              const subtaskFeStatus = statusMap[subtaskApiStatus] || "OPEN";
+
+              return {
+                ...subtask,
+                id: subtask._id,
+                _id: subtask._id,
+                status: subtaskFeStatus, // Apply status mapping to subtasks
+                assignee: subtask.assignedTo
+                  ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
+                  : "Unassigned",
+                assigneeId: subtask.assignedTo?._id
+              };
+            }) || []
           };
 
           // Debug final mapped task
@@ -355,6 +372,29 @@ export default function AllTasks({
       fetchTasks();
     }
   }, [activeRole, user]);
+
+  // Fetch available users for task assignment
+  useEffect(() => {
+    const fetchAvailableUsers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await axios.get("http://localhost:5000/api/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.data.success) {
+          setAvailableUsers(response.data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching available users:', error);
+        setAvailableUsers([]);
+      }
+    };
+
+    fetchAvailableUsers();
+  }, []);
 
   // Company-defined statuses with comprehensive management
   const [companyStatuses] = useState([
@@ -711,7 +751,7 @@ export default function AllTasks({
 
       // Map frontend status codes to backend status codes
       const statusMapping = {
-        'OPEN': 'todo',
+        'OPEN': 'open',
         'INPROGRESS': 'in-progress',
         'DONE': 'completed',
         'ONHOLD': 'on-hold',
@@ -1329,6 +1369,21 @@ export default function AllTasks({
     }
   };
 
+  // Handle subtask edit
+  const handleEditSubtask = (subtask) => {
+    const task = apiTasks.find((t) =>
+      t.subtasks?.some(s => s.id === subtask.id || s._id === subtask._id)
+    );
+    if (task) {
+      openSubtaskDrawer(task, subtask, 'edit');
+    }
+  };
+
+  // Handle subtask view - navigate to TaskDetail page
+  const handleViewSubtask = (subtask) => {
+    navigate(`/tasks/${subtask.id || subtask._id}`);
+  };
+
   const handleToggleSubtasks = (taskId) => {
     handleToggleTaskExpansion(taskId);
   };
@@ -1477,7 +1532,13 @@ export default function AllTasks({
         return;
       }
 
+      console.log('DEBUG - Snooze task found:', { id: task.id, _id: task._id, title: task.title });
+
       const token = localStorage.getItem("token");
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('DEBUG - Using task ID for snooze API call:', apiTaskId);
 
       // Check if task is currently snoozed
       const isCurrentlySnoozing = task.isSnooze || snoozedTasks.has(taskId);
@@ -1485,7 +1546,7 @@ export default function AllTasks({
       if (isCurrentlySnoozing) {
         // Unsnooze task
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/unsnooze`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/unsnooze`,
           {},
           {
             headers: {
@@ -1514,8 +1575,10 @@ export default function AllTasks({
         const snoozeUntil = snoozeData?.snoozeUntil || defaultSnoozeUntil.toISOString();
         const reason = snoozeData?.reason || "Task snoozed temporarily";
 
+        console.log('DEBUG - Snooze request payload:', { snoozeUntil, reason });
+
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/snooze`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/snooze`,
           {
             snoozeUntil,
             reason
@@ -1563,7 +1626,13 @@ export default function AllTasks({
         return;
       }
 
+      console.log('DEBUG - Risk task found:', { id: task.id, _id: task._id, title: task.title });
+
       const token = localStorage.getItem("token");
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('DEBUG - Using task ID for risk API call:', apiTaskId);
 
       // Check if task is currently marked as risk
       const isCurrentlyRisky = task.isRisk || riskyTasks.has(taskId);
@@ -1571,7 +1640,7 @@ export default function AllTasks({
       if (isCurrentlyRisky) {
         // Unmark as risk
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/unmark-risk`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/unmark-risk`,
           {},
           {
             headers: {
@@ -1602,8 +1671,10 @@ export default function AllTasks({
         const riskLevel = riskData?.riskLevel || 'medium';
         const riskReason = riskData?.riskReason || 'Task requires attention';
 
+        console.log('DEBUG - Risk request payload:', { riskLevel, riskReason });
+
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/mark-risk`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/mark-risk`,
           {
             riskLevel,
             riskReason
@@ -1817,6 +1888,42 @@ export default function AllTasks({
       type: 'success',
       isVisible: true,
     });
+  };
+
+  // Task modal handlers
+  const handleTaskCreated = async (newTask) => {
+    try {
+      setShowCreateTaskDrawer(false);
+      setSelectedDateForTask(null);
+      showToast("Task created successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task creation:', error);
+      showToast("Task created but failed to refresh list", "warning");
+    }
+  };
+
+  const handleTaskUpdate = async (updatedTask) => {
+    try {
+      setSelectedTask(updatedTask);
+      showToast("Task updated successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task update:', error);
+      showToast("Task updated but failed to refresh", "warning");
+    }
+  };
+
+  const handleTaskUpdated = async (updatedTask) => {
+    try {
+      setShowEditTaskModal(false);
+      setEditingTask(null);
+      showToast("Task updated successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task update:', error);
+      showToast("Task updated but failed to refresh", "warning");
+    }
   };
 
   return (
@@ -2678,12 +2785,11 @@ export default function AllTasks({
                               </span>
                             </TableCell>
                             <TableCell className="px-6 py-3 text-sm text-gray-700">
-                              {/* {subtask.dueDate} */}
                               {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }) : "-"}
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }) : "-"}
                             </TableCell>
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center">
@@ -2740,7 +2846,6 @@ export default function AllTasks({
                   ))
                 )}
               </TableBody>
-
             </Table>
           </div>
         </div>
@@ -2800,13 +2905,10 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
+            <div className="drawer-content">
               <CreateTask
-                onClose={() => {
-                  setShowCreateTaskDrawer(false);
-                  setSelectedDateForTask(null);
-                }}
-                initialTaskType={selectedTaskType}
+                onSubmit={handleTaskCreated}
+                onClose={() => setShowCreateTaskDrawer(false)}
                 preFilledDate={selectedDateForTask}
               />
             </div>
@@ -2814,68 +2916,17 @@ export default function AllTasks({
         </div>
       )}
 
-      {/* Task Edit Modal */}
-      {showEditModal && editingTask && (
-        <TaskEditModal
-          task={editingTask}
-          onSave={handleSaveEditedTask}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingTask(null);
-          }}
-        />
-      )}
-
-      {/* Status Confirmation Modal */}
-      {showStatusConfirmation && (
-        <StatusConfirmationModal
-          taskTitle={showStatusConfirmation.taskTitle}
-          statusLabel={showStatusConfirmation.statusLabel}
-          onConfirm={() => {
-            // Find the task object using the taskId
-            const task = apiTasks.find(t =>
-              t.id === showStatusConfirmation.taskId ||
-              t._id === showStatusConfirmation.taskId
-            );
-
-            if (task) {
-              executeStatusChange(
-                task, // Pass task object, not taskId
-                showStatusConfirmation.newStatusCode,
-                showStatusConfirmation.reason
-              );
-            } else {
-              console.error('Task not found for confirmation:', showStatusConfirmation.taskId);
-            }
-            setShowStatusConfirmation(null);
-          }}
-          onCancel={() => setShowStatusConfirmation(null)}
-        />
-      )}
-
-      {/* Calendar Modal */}
-      {showCalendarModal && (
-        <CalendarDatePicker
-          onClose={() => {
-            setShowCalendarModal(false);
-            setSelectedTaskType("regular");
-          }}
-          onDateSelect={handleCalendarDateSelect}
-          taskType={selectedTaskType}
-        />
-      )}
-
-      {/* Approval Task Creator Modal */}
-      {showApprovalTaskModal && !selectedApprovalTask && (
+      {/* Detail Modal */}
+      {showTaskDetails && selectedTask && (
         <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-black/40 "
-            onClick={() => setShowApprovalTaskModal(false)}
+            onClick={() => setShowTaskDetails(false)}
           ></div>
           <div
-            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
+            className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
             style={{
-              width: "min(90vw, 600px)",
+              width: "min(90vw, 900px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
@@ -2885,21 +2936,9 @@ export default function AllTasks({
             onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create Approval Task
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
+              <h2 className="text-2xl font-bold text-white">Task Details</h2>
               <button
-                onClick={() => setShowApprovalTaskModal(false)}
+                onClick={() => setShowTaskDetails(false)}
                 className="close-btn"
               >
                 <svg
@@ -2917,44 +2956,46 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-              <ApprovalTaskCreator
-                onClose={() => {
-                  setShowApprovalTaskModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateApprovalTask}
-                preFilledDate={selectedDateForTask}
-                selectedDate={selectedDateForTask}
-              />
+            <div className="drawer-content">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Task Details</h3>
+                {selectedTask && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Title</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.title}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.status}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Assignee</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.assignee}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Due Date</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.dueDate || 'No due date'}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Subtask Creator Modal */}
-      {showSubtaskCreator && (
-        <SubtaskCreator
-          parentTask={apiTasks.find((t) => t.id === showSubtaskCreator)}
-          onClose={() => setShowSubtaskCreator(null)}
-          onSubmit={(subtaskData) =>
-            handleCreateSubtask(showSubtaskCreator, subtaskData)
-          }
-          currentUser={currentUser}
-        />
-      )}
-
-      {/* Milestone Creation Modal */}
-      {showMilestoneModal && (
+      {/* Edit Modal */}
+      {showEditTaskModal && editingTask && (
         <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-black/40 "
-            onClick={() => setShowMilestoneModal(false)}
+            onClick={() => setShowEditTaskModal(false)}
           ></div>
           <div
-            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
+            className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
             style={{
-              width: "min(90vw, 800px)",
+              width: "min(90vw, 900px)",
               boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
               borderLeft: "1px solid rgba(255,255,255,0.2)",
             }}
@@ -2964,21 +3005,9 @@ export default function AllTasks({
             onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create Milestone
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
+              <h2 className="text-2xl font-bold text-white">Edit Task</h2>
               <button
-                onClick={() => setShowMilestoneModal(false)}
+                onClick={() => setShowEditTaskModal(false)}
                 className="close-btn"
               >
                 <svg
@@ -2996,123 +3025,15 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-              <MilestoneCreator
-                onClose={() => {
-                  setShowMilestoneModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateMilestone}
-                preFilledDate={selectedDateForTask}
-                selectedDate={selectedDateForTask}
+            <div className="drawer-content">
+              <TaskEditModal
+                task={editingTask}
+                onSave={handleTaskUpdated}
+                onClose={() => setShowEditTaskModal(false)}
               />
             </div>
           </div>
         </div>
-      )}
-
-      {/* Approval Task Detail Modal */}
-      {showApprovalTaskModal && selectedApprovalTask && (
-        <ApprovalTaskDetailModal
-          task={selectedApprovalTask}
-          onClose={() => {
-            setShowApprovalTaskModal(false);
-            setSelectedApprovalTask(null);
-          }}
-          currentUser={currentUser}
-          onApproval={(taskId, approverId, action, comment) => {
-            // Handle approval action
-            setTasks((prevTasks) =>
-              prevTasks.map((task) => {
-                if (task.id !== taskId) return task;
-
-                const updatedApprovers = task.approvers.map((approver) => {
-                  if (approver.id === approverId) {
-                    return {
-                      ...approver,
-                      status: action,
-                      comment: comment || null,
-                      approvedAt: new Date().toISOString(),
-                    };
-                  }
-                  return approver;
-                });
-
-                // Determine overall task status based on approval mode
-                let newStatus = task.status;
-                if (action === "approved") {
-                  if (task.approvalMode === "any") {
-                    newStatus = "DONE";
-                  } else if (task.approvalMode === "all") {
-                    const allApproved = updatedApprovers.every(
-                      (a) => a.status === "approved",
-                    );
-                    if (allApproved) newStatus = "DONE";
-                  }
-                } else if (action === "rejected") {
-                  newStatus = "CANCELLED";
-                }
-
-                return {
-                  ...task,
-                  approvers: updatedApprovers,
-                  status: newStatus,
-                };
-              }),
-            );
-
-            // Close modal after action
-            setShowApprovalTaskModal(false);
-            setSelectedApprovalTask(null);
-          }}
-        />
-      )}
-
-      {/* Custom Confirmation Modal */}
-      {confirmModal.isOpen && (
-        <CustomConfirmationModal
-          isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null })}
-          onConfirm={confirmModal.onConfirm}
-          type={confirmModal.type}
-          title={confirmModal.title}
-          message={confirmModal.message}
-          confirmText={confirmModal.type === 'danger' ? 'Delete' : confirmModal.type === 'edit' ? 'Continue' : 'Confirm'}
-          cancelText="Cancel"
-        />
-      )}
-
-      {/* Success Toast Notification */}
-      <SuccessToast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
-        position="top-right"
-        duration={4000}
-      />
-
-      {/* Smart Task Parser Modal */}
-      {showSmartParser && (
-        <SmartTaskParser
-          isOpen={showSmartParser}
-          onClose={() => setShowSmartParser(false)}
-          onTaskCreated={handleSmartTaskCreated}
-          currentUser={user}
-        />
-      )}
-
-      {/* Task Thread Modal */}
-      {showThreadModal && selectedTaskForThread && (
-        <TaskThreadModal
-          isOpen={showThreadModal}
-          onClose={() => {
-            setShowThreadModal(false);
-            setSelectedTaskForThread(null);
-          }}
-          task={selectedTaskForThread}
-          currentUser={user}
-        />
       )}
     </div>
   );

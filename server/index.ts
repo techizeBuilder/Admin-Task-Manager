@@ -1,7 +1,7 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
-import swagger from "swagger-jsdoc";
+import swaggerJSDoc from "swagger-jsdoc";
 import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
@@ -50,7 +50,7 @@ const swaggerOptions = {
   verbose: true, // Include errors in the console
 };
 
-const swaggerSpec = swagger(swaggerOptions);
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
 // Serve Swagger documentation with custom options
 app.use(
@@ -162,7 +162,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -175,7 +175,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: true,
             requireApproval: false,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -188,7 +188,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
       ];

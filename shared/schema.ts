@@ -71,67 +71,67 @@ export const tasks = pgTable('tasks', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 500 }).notNull(),
   description: text('description'),
-  
+
   // Basic task properties
   organizationId: integer('organization_id').notNull(),
   projectId: integer('project_id'),
   createdById: integer('created_by_id').notNull(),
   assignedToId: integer('assigned_to_id'),
-  
+
   // Status and priority
-  status: varchar('status', { length: 50 }).default('todo'),
+  status: varchar('status', { length: 50 }).default('open'),
   priority: varchar('priority', { length: 20 }).default('medium'),
-  
+
   // Dates
   dueDate: timestamp('due_date'),
   startDate: timestamp('start_date'),
   completedAt: timestamp('completed_at'),
-  
+
   // Task type and behavior
   taskType: varchar('task_type', { length: 50 }).notNull().default('regular'), // regular, recurring, milestone, approval
-  
+
   // Progress and estimation
   progress: integer('progress').default(0),
   estimatedHours: integer('estimated_hours'),
   actualHours: integer('actual_hours'),
-  
+
   // Tags and categorization
   tags: text('tags').array(),
   category: varchar('category', { length: 100 }),
-  
+
   // Visibility and collaboration
   visibility: varchar('visibility', { length: 20 }).default('private'), // private, team, organization
   collaboratorIds: text('collaborator_ids').array(),
-  
+
   // Recurring task properties
   isRecurring: boolean('is_recurring').default(false),
   recurrencePattern: jsonb('recurrence_pattern'), // {frequency: 'weekly', interval: 1, days: [1,2,3], endDate: ...}
   parentTaskId: integer('parent_task_id'), // For recurring task instances
   nextDueDate: timestamp('next_due_date'),
-  
+
   // Milestone properties
   isMilestone: boolean('is_milestone').default(false),
   milestoneType: varchar('milestone_type', { length: 50 }), // standalone, linked
   linkedTaskIds: text('linked_task_ids').array(),
   milestoneData: jsonb('milestone_data'),
-  
+
   // Approval workflow properties
   isApprovalTask: boolean('is_approval_task').default(false),
   approvalData: jsonb('approval_data'), // {mode: 'any'|'all', approvers: [...], autoApprove: {...}}
   approvalStatus: varchar('approval_status', { length: 20 }), // pending, approved, rejected
-  
+
   // Dependencies
   dependsOnTaskIds: text('depends_on_task_ids').array(),
   blockingTaskIds: text('blocking_task_ids').array(),
-  
+
   // Attachments and files
   attachments: jsonb('attachments'), // [{id, name, url, size, type}]
-  
+
   // Additional metadata
   customFields: jsonb('custom_fields'),
   isArchived: boolean('is_archived').default(false),
   isDeleted: boolean('is_deleted').default(false),
-  
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });
@@ -196,44 +196,44 @@ export type TaskStatus = typeof taskStatuses.$inferSelect;
 export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
 
 // Validation schemas using Drizzle Zod
-export const insertUserSchema = createInsertSchema(users).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertOrganizationSchema = createInsertSchema(organizations).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertProjectSchema = createInsertSchema(projects).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertTaskApprovalSchema = createInsertSchema(taskApprovals).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertTaskApprovalSchema = createInsertSchema(taskApprovals).omit({
+  id: true,
+  createdAt: true
 });
 
-export const insertTaskCommentSchema = createInsertSchema(taskComments).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertTaskCommentSchema = createInsertSchema(taskComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertTaskStatusSchema = createInsertSchema(taskStatuses).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertTaskStatusSchema = createInsertSchema(taskStatuses).omit({
+  id: true,
+  createdAt: true
 });
 
 // Extended validation schemas for different task types
@@ -241,7 +241,7 @@ export const regularTaskSchema = insertTaskSchema.extend({
   taskType: z.literal('regular'),
   title: z.string().min(1, 'Title is required'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  status: z.string().default('todo')
+  status: z.string().default('open')
 });
 
 export const recurringTaskSchema = insertTaskSchema.extend({

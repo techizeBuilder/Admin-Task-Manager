@@ -53,8 +53,8 @@ const TaskSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"],
-      default: "todo",
+      enum: ["open", "todo", "in-progress", "completed", "on-hold", "cancelled"],
+      default: "open",
     },
     dueDate: {
       type: Date,
@@ -100,6 +100,46 @@ const TaskSchema = mongoose.Schema(
       type: Object,
       default: {},
     },
+    // Comments and activity
+    comments: [{
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        auto: true,
+      },
+      text: {
+        type: String,
+        required: true,
+      },
+      author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      mentions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }],
+      attachments: [{
+        id: String,
+        name: String,
+        filename: String,
+        size: Number,
+        type: String,
+        url: String,
+      }],
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      isEdited: {
+        type: Boolean,
+        default: false,
+      },
+    }],
     referenceProcess: {
       type: String,
       default: null,
