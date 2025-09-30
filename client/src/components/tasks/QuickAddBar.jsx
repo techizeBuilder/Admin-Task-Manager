@@ -504,7 +504,7 @@ export default function QuickAddBar() {
       ) : (
         <Button
           onClick={() => setIsExpanded(true)}
-          className="bg-blue-600 hover:bg-blue-700 rounded-full h-12 w-12 shadow-lg"
+          className="bg-blue-600 hover:text-white  hover:bg-blue-700 rounded-full h-12 w-12 shadow-lg"
           size="icon"
         >
           <Plus className="h-6 w-6" />
