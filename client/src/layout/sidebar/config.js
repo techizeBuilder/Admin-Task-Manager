@@ -89,6 +89,7 @@ const baseItems = {
     icon: Calendar,
     path: "/calendar",
   },
+
   approvals: {
     id: "approvals",
     label: "Approvals",
@@ -101,7 +102,32 @@ const baseItems = {
     icon: MilestoneTaskIcon,
     path: "/milestones",
   },
-
+  // form modules
+  form: {
+    id: "form",
+    label: "Forms",
+    icon: ClipboardCheck,
+    children: [
+      {
+        id: "form-library",
+        label: "Form Library",
+        icon: ClipboardCheck,
+        path: "/form-library",
+      },
+      {
+        id: "form-builder",
+        label: "Form Builder",
+        icon: ClipboardCheck,
+        path: "/form-builder",
+      },
+      {
+        id: "form-version-history",
+        label: "Form Version History",
+        icon: Clock,
+        path: "/form-version-history",
+      },
+    ],
+  },
   // Settings for employee & manager (view only)
   settingsViewOnly: {
     id: "settings",
@@ -303,6 +329,7 @@ export const sidebarMenus = {
         },
       ],
     },
+    baseItems.form,
     baseItems.settingsManagement,
     baseItems.help,
     baseItems.logout,

@@ -19,6 +19,8 @@ import {
   Mail,
 } from "lucide-react";
 
+// ...existing code...
+
 const OrganizationDashboard = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState("this_month");
   const [selectedTeam, setSelectedTeam] = useState("all");
@@ -413,9 +415,7 @@ const OrganizationDashboard = () => {
           </div>
         </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Team Performance */}
+        {/* Org-wide Completion Metrics */}
         <div
           className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1"
           data-testid="card-on-time-rate"
@@ -442,8 +442,11 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Recent Activity */}
+      {/* Adoption + Overdue + Usage + Health */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Adoption Dashboard */}
         <div
           className="bg-white rounded-lg shadow-sm border"
           data-testid="card-adoption-dashboard"
@@ -543,14 +546,52 @@ const OrganizationDashboard = () => {
               Overdue % by Department
             </h2>
           </div>
-          <div className="p-6">
-            {/* <div className="space-y-4">
-              {recentActivity.map((activity) => (
+          <div className="p-6 space-y-4">
+            {departmentOverdue.map((d) => (
+              <div key={d.name}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-700">{d.name}</span>
+                  <span className="text-gray-900 font-medium">
+                    {d.percent}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-red-500"
+                    style={{ width: `${(d.percent / maxDeptOverdue) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Module Usage + System Health (stacked vertical) */}
+        <div className="space-y-6">
+          {/* Module Usage Report */}
+          <div
+            className="bg-white rounded-lg shadow-sm border"
+            data-testid="card-module-usage"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <BarChart3 className="text-green-600" size={18} />
+                Module Usage
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-gray-700">Quick Tasks</span>
+                <span className="font-medium text-gray-900">
+                  {moduleUsage.quick}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                 <div
                   className="h-3 rounded-l-full bg-emerald-500"
                   style={{ width: `${quickPct}%` }}
                 />
-              </div> */}
+              </div>
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-gray-700">Full Tasks</span>
                 <span className="font-medium text-gray-900">
