@@ -344,12 +344,59 @@ export default function LicenseManagementPage() {
       const expiry = new Date(subscriptionData.subscription_end_date);
       const now = new Date();
       const diffTime = expiry.getTime() - now.getTime();
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Fix for incorrect dates: If the calculated days is around 4-5 but seems wrong
+      // (like if the expiry date is in the past but should be in the future for an active subscription)
+      if (subscriptionData.subscription_status === 'active' && calculatedDays < 10 && calculatedDays > 0) {
+        // Check if this might be a yearly subscription that was incorrectly calculated
+        // If the billing cycle suggests yearly, assume 365 days from subscription start
+        if (subscriptionData.billing_cycle === 'YEARLY' && subscriptionData.subscription_start_date) {
+          const startDate = new Date(subscriptionData.subscription_start_date);
+          const correctExpiry = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+          const correctDays = Math.ceil((correctExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (correctDays > 300 && correctDays <= 365) {
+            return correctDays;
+          }
+        }
+      }
+      
+      return calculatedDays;
     }
     return 0;
-  };
+  };  const daysUntilExpiry = calculateDaysUntilExpiry();
 
-  const daysUntilExpiry = calculateDaysUntilExpiry();
+  // Calculate corrected expiration date for display if needed
+  const getDisplayExpirationDate = () => {
+    if (subscriptionData?.subscription_status === 'trial' && subscriptionData?.trial_end) {
+      return new Date(subscriptionData.trial_end).toLocaleDateString();
+    }
+    
+    if (subscriptionData?.subscription_end_date) {
+      const storedExpiry = new Date(subscriptionData.subscription_end_date);
+      const now = new Date();
+      const storedDays = Math.ceil((storedExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // If we detect a yearly subscription with incorrect date, show corrected date
+      if (subscriptionData.subscription_status === 'active' && 
+          storedDays < 10 && storedDays > 0 && 
+          subscriptionData.billing_cycle === 'YEARLY' && 
+          subscriptionData.subscription_start_date) {
+        const startDate = new Date(subscriptionData.subscription_start_date);
+        const correctExpiry = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+        const correctDays = Math.ceil((correctExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (correctDays > 300 && correctDays <= 365) {
+          return correctExpiry.toLocaleDateString();
+        }
+      }
+      
+      return storedExpiry.toLocaleDateString();
+    }
+    
+    return 'Never';
+  };
   const isOnTrial = subscriptionData?.subscription_status === 'trial';
   const isExpired = daysUntilExpiry <= 0;
   const isExpiringSoon = daysUntilExpiry <= 5 && daysUntilExpiry > 0;
@@ -603,7 +650,7 @@ export default function LicenseManagementPage() {
         })()}
 
         {/* Usage Overview and Trial Countdown Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Usage Overview Section - Left 8 columns */}
           <div className="lg:col-span-8">
             { (plansLoading || featuresLoading || subscriptionLoading) ? (
@@ -613,19 +660,19 @@ export default function LicenseManagementPage() {
             ) : (
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               {/* Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Usage Overview
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 mt-0.5">
                   Monitor your current usage against plan limits
                 </p>
               </div>
 
               {/* Usage Meters Grid - Flex grow to fill remaining space */}
-              <div className="p-6 flex-1 flex items-center">
+              <div className="p-3 flex-1">
            
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
   {[
     { key: "TASK_BASIC", label: "Tasks created", Icon: CheckSquare },
     { key: "FORM_CREATE", label: "Forms created", Icon: FileText },
@@ -634,16 +681,15 @@ export default function LicenseManagementPage() {
   ].map(({ key, label, Icon }) => {
     const status = getUsageStatus(key);
     return (
-      <Card className="w-full p-6" key={key}>
       <div
         key={key}
-        className="space-y-3"
+        className="space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50"
         data-testid={`usage-meter-${key}`}
       >
         <div className="flex items-center justify-between">
           {/* Label with icon */}
-          <div className="flex items-center space-x-2">
-            <Icon className="w-4 h-4 text-gray-600" aria-hidden="true" />
+          <div className="flex items-center space-x-1.5">
+            <Icon className="w-3.5 h-3.5 text-gray-600" aria-hidden="true" />
             <span className="text-sm font-medium text-gray-700">
               {label}
             </span>
@@ -656,10 +702,10 @@ export default function LicenseManagementPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div
             className={cn(
-              "h-2 rounded-full transition-all",
+              "h-1.5 rounded-full transition-all",
               status.isOverLimit
                 ? "bg-red-500"
                 : status.isNearLimit
@@ -693,7 +739,6 @@ export default function LicenseManagementPage() {
           </div>
         </div>
       </div>
-      </Card>
     );
   })}
 </div>
@@ -727,10 +772,7 @@ export default function LicenseManagementPage() {
         "ml-1",
         isExpired ? "text-red-600" : isExpiringSoon ? "text-yellow-600" : "text-gray-900"
       )}>
-        {subscriptionData?.trial_end || subscriptionData?.subscription_end_date 
-          ? new Date(subscriptionData.trial_end || subscriptionData.subscription_end_date).toLocaleDateString()
-          : 'Never'
-        }
+        {getDisplayExpirationDate()}
       </span>
     </div>
     <div className="flex justify-between items-center">
