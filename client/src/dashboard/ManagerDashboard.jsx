@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import ReactECharts from "echarts-for-react";
+
 import {
   Users,
   TrendingUp,
@@ -20,6 +20,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import ReactECharts from "echarts-for-react";
+import QuickTaskWidget from "../components/tasks/QuickTaskWidget";
 /**
  * Manager Dashboard - Team management workspace for managers
  * Displays team metrics, performance stats, and team-focused insights

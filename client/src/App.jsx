@@ -104,6 +104,8 @@ import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
+import FormLibrary from "./components/forms/FormLibrary";
+import FormVersionHistory from "./components/forms/FormVersionHistory";
 // import RecurringTaskEdit from "./pages/newComponents/RecurringTaskEdit";
 
 const queryClient = new QueryClient({
@@ -694,9 +696,19 @@ function App() {
                   <ProtectedRoute component={Projects} />
                 </AdminLayout>
               </Route>
-              <Route path="/forms">
+                 <Route path="/form-library">
+                <AdminLayout>
+                  <ProtectedRoute component={FormLibrary} />
+                </AdminLayout>
+              </Route>
+              <Route path="/form-builder">
                 <AdminLayout>
                   <ProtectedRoute component={FormBuilder} />
+                </AdminLayout>
+              </Route>
+                <Route path="/form-version-history">
+                <AdminLayout>
+                  <ProtectedRoute component={FormVersionHistory} />
                 </AdminLayout>
               </Route>
               <Route path="/integrations">

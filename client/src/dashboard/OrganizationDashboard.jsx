@@ -18,13 +18,6 @@ import {
   FileText,
   Mail,
 } from "lucide-react";
-import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
 
 // ...existing code...
 
