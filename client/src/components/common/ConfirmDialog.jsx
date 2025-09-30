@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
-import Button from "";
-const ConfirmationDeleteFieldModal = ({
+import { Button } from "@/components/ui/button";
+
+export default function ConfirmDialog({
   isOpen,
   title = "Are you sure?",
   description,
@@ -9,7 +10,8 @@ const ConfirmationDeleteFieldModal = ({
   onConfirm,
   onCancel,
   confirmVariant = "destructive",
-}) => {
+  isConfirming = false,
+}) {
   if (!isOpen) return null;
 
   useEffect(() => {
@@ -34,7 +36,7 @@ const ConfirmationDeleteFieldModal = ({
         aria-modal="true"
         className="relative z-10 w-full max-w-md mx-4 rounded-lg bg-white shadow-lg"
       >
-        <div className="p-5 border-b">
+        <div className="mx-5 pt-5">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           {description && (
             <p className="mt-1 text-sm text-gray-600">{description}</p>
@@ -43,20 +45,21 @@ const ConfirmationDeleteFieldModal = ({
         <div className="p-5 flex items-center justify-between gap-3">
           <Button
             onClick={onCancel}
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+            variant="outline"
+            className="px-4 py-2 rounded-md"
+            disabled={isConfirming}
           >
             {cancelLabel}
           </Button>
           <Button
             onClick={onConfirm}
             className={`px-4 py-2 rounded-md ${confirmBtnClasses}`}
+            disabled={isConfirming}
           >
-            {confirmLabel}
+            {isConfirming ? "Please wait..." : confirmLabel}
           </Button>
         </div>
       </div>
     </div>
   );
-};
-
-export default ConfirmationDeleteFieldModal;
+}

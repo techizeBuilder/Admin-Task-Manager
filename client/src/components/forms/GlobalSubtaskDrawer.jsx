@@ -5,17 +5,6 @@ import SubtaskForm from './SubtaskForm';
 const GlobalSubtaskDrawer = () => {
   const { isSubtaskDrawerOpen, parentTask, editData, mode, closeSubtaskDrawer } = useSubtask();
 
-  console.log('🔍 GlobalSubtaskDrawer render:', {
-    isSubtaskDrawerOpen,
-    hasParentTask: !!parentTask,
-    parentTaskType: typeof parentTask,
-    parentTaskId: parentTask?.id,
-    parentTask_id: parentTask?._id,
-    parentTaskDocId: parentTask?._doc?._id,
-    mode,
-    editData
-  });
-
   if (!isSubtaskDrawerOpen || !parentTask) {
     return null;
   }

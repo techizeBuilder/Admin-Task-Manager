@@ -17,13 +17,13 @@ import {
   Edit,
   Trash2,
   X,
-  Download,   // added
+  Download, // added
   ListChecks, // added
 } from "lucide-react";
 import CreateTask from "../pages/newComponents/CreateTask";
-import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
 import ReactECharts from "echarts-for-react"; // added
 import { Button } from "../components/ui/button";
+import QuickTaskWidget from "../components/tasks/QuickTaskWidget";
 
 // --- DEMO MOCK DATA HELPERS ---
 const randPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -205,7 +205,10 @@ function computeStatsFromTasks(tasks) {
   ).length;
 
   const overdue = tasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed"
+    (t) =>
+      t.dueDate &&
+      new Date(t.dueDate) < now &&
+      statusOf(t.status) !== "completed"
   ).length;
 
   const upcoming = tasks.filter(
@@ -217,7 +220,8 @@ function computeStatsFromTasks(tasks) {
   ).length;
 
   const onTimeCompleted = tasks.filter((t) => {
-    if (statusOf(t.status) !== "completed" || !t.completedAt || !t.dueDate) return false;
+    if (statusOf(t.status) !== "completed" || !t.completedAt || !t.dueDate)
+      return false;
     return new Date(t.completedAt) <= new Date(t.dueDate);
   }).length;
 
@@ -255,12 +259,16 @@ const IndividualDashboard = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [quickTaskInput, setQuickTaskInput] = useState("");
-   const [priorityFilter, setPriorityFilter] = useState("all");
- const [dueFrom, setDueFrom] = useState("");
- const [dueTo, setDueTo] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
   const [recurringDone, setRecurringDone] = useState({});
+  // Deletion state
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
 
   // Get current user data
   const { data: user } = useQuery({
@@ -281,14 +289,17 @@ const IndividualDashboard = ({
   });
 
   // Use API data or fallback to passed tasks
-   const demoTasks = useMemo(() => generateMockTasks(), []);
- const currentTasks =
-   apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : demoTasks;
+  const demoTasks = useMemo(() => generateMockTasks(), []);
+  const currentTasks =
+    apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : demoTasks;
 
   // Use API dashboard stats or fallback to userStats (mock)
 
- // Use API stats -> provided userStats -> compute from currentTasks
- const computedStats = useMemo(() => computeStatsFromTasks(currentTasks), [currentTasks]);
+  // Use API stats -> provided userStats -> compute from currentTasks
+  const computedStats = useMemo(
+    () => computeStatsFromTasks(currentTasks),
+    [currentTasks]
+  );
   const currentStats =
     dashboardStats ||
     (userStats && Object.keys(userStats).length ? userStats : computedStats);
@@ -305,15 +316,23 @@ const IndividualDashboard = ({
     (t) => statusOf(t.status) === "completed"
   ).length;
   const overdueCount = currentTasks.filter(
-    (t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed"
+    (t) =>
+      t.dueDate &&
+      new Date(t.dueDate) < now &&
+      statusOf(t.status) !== "completed"
   ).length;
 
   // Recurring adherence (last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const recurringTasksFull = currentTasks.filter((t) => t.isRecurring || t.recurringInterval);
+  const recurringTasksFull = currentTasks.filter(
+    (t) => t.isRecurring || t.recurringInterval
+  );
   const recurringDue = recurringTasksFull.filter(
-    (t) => t.dueDate && new Date(t.dueDate) >= sevenDaysAgo && new Date(t.dueDate) <= now
+    (t) =>
+      t.dueDate &&
+      new Date(t.dueDate) >= sevenDaysAgo &&
+      new Date(t.dueDate) <= now
   );
   const recurringOnTime = recurringDue.filter(
     (t) =>
@@ -329,32 +348,40 @@ const IndividualDashboard = ({
     : 100;
 
   // Efficiency: On-time vs Late (completed tasks)
- const completedOnTimeCount = currentTasks.filter((t) => {
-   if (statusOf(t.status) !== "completed") return false;
-   if (!t.dueDate || !t.completedAt) return false;
-   return new Date(t.completedAt) <= new Date(t.dueDate);
- }).length;
- const completedLateCount = currentTasks.filter((t) => {
-   if (statusOf(t.status) !== "completed") return false;
-   if (!t.dueDate || !t.completedAt) return false;
-   return new Date(t.completedAt) > new Date(t.dueDate);
- }).length;
- const efficiencyPieOptions = {
-   tooltip: { trigger: "item" },
-   series: [
-     {
-       type: "pie",
-       radius: ["45%", "70%"],
-       avoidLabelOverlap: false,
-       label: { show: false },
-       labelLine: { show: false },
-       data: [
-         { value: completedOnTimeCount, name: "On-time", itemStyle: { color: "#16a34a" } },
-         { value: completedLateCount, name: "Late", itemStyle: { color: "#ef4444" } },
-       ],
-     },
-   ],
- };
+  const completedOnTimeCount = currentTasks.filter((t) => {
+    if (statusOf(t.status) !== "completed") return false;
+    if (!t.dueDate || !t.completedAt) return false;
+    return new Date(t.completedAt) <= new Date(t.dueDate);
+  }).length;
+  const completedLateCount = currentTasks.filter((t) => {
+    if (statusOf(t.status) !== "completed") return false;
+    if (!t.dueDate || !t.completedAt) return false;
+    return new Date(t.completedAt) > new Date(t.dueDate);
+  }).length;
+  const efficiencyPieOptions = {
+    tooltip: { trigger: "item" },
+    series: [
+      {
+        type: "pie",
+        radius: ["45%", "70%"],
+        avoidLabelOverlap: false,
+        label: { show: false },
+        labelLine: { show: false },
+        data: [
+          {
+            value: completedOnTimeCount,
+            name: "On-time",
+            itemStyle: { color: "#16a34a" },
+          },
+          {
+            value: completedLateCount,
+            name: "Late",
+            itemStyle: { color: "#ef4444" },
+          },
+        ],
+      },
+    ],
+  };
   // Completion Trend: last 7 days
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -425,7 +452,29 @@ const IndividualDashboard = ({
       setQuickTaskInput("");
     }
   };
+  // Delete handler
+  const handleDeleteTask = async (taskId) => {
+    const id = taskId ?? null;
+    if (!id) return;
+    const confirmed = window.confirm("Delete this task?");
+    if (!confirmed) return;
 
+    setDeleteError("");
+    setDeletingTaskId(id);
+    try {
+      // TODO: integrate API deletion if available, then refetch
+      // Optimistic UI remove
+      setDeletedTaskIds((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    } catch (e) {
+      setDeleteError("Failed to delete. Please try again.");
+    } finally {
+      setDeletingTaskId(null);
+    }
+  };
   const handleCreateTask = () => {
     setShowCreateTaskDrawer(true);
   };
@@ -514,7 +563,9 @@ const IndividualDashboard = ({
       ])
     );
     const csv = rows
-      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      .map((r) =>
+        r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")
+      )
       .join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
@@ -546,8 +597,11 @@ const IndividualDashboard = ({
   };
 
   const filteredTasks = currentTasks.filter((task) => {
-    const matchesSearch = !searchTerm || searchTerm === "" ||
-      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    const matchesSearch =
+      !searchTerm ||
+      searchTerm === "" ||
+      (task.title &&
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.description &&
         task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.tags &&
@@ -562,35 +616,61 @@ const IndividualDashboard = ({
           new Date(task.dueDate) < now &&
           statusOf(task.status) !== "completed"
         : statusOf(task.status) === selectedFilter;
-   const matchesPriority =
-     priorityFilter === "all"
-       ? true
-       : (task.priority || "").toLowerCase() === priorityFilter;
-   const matchesDueFrom = dueFrom ? (task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)) : true;
-   const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
-   
-   return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
- 
+    const matchesPriority =
+      priorityFilter === "all"
+        ? true
+        : (task.priority || "").toLowerCase() === priorityFilter;
+    const matchesDueFrom = dueFrom
+      ? task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)
+      : true;
+    const matchesDueTo = dueTo
+      ? task.dueDate && new Date(task.dueDate) <= new Date(dueTo)
+      : true;
+
+    return (
+      matchesSearch &&
+      matchesFilter &&
+      matchesPriority &&
+      matchesDueFrom &&
+      matchesDueTo
+    );
   });
 
   // Computes basic stats from a list of tasks
   function computeStatsFromTasks(tasks) {
     const now = new Date();
     const statusOf = (s) => (s || "").toLowerCase();
-    const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
-    const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
-    const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
-    const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
+    const openCount = tasks.filter((t) =>
+      ["pending", "todo", "open"].includes(statusOf(t.status))
+    ).length;
+    const inProgressCount = tasks.filter((t) =>
+      ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))
+    ).length;
+    const completedCount = tasks.filter(
+      (t) => statusOf(t.status) === "completed"
+    ).length;
+    const overdueCount = tasks.filter(
+      (t) =>
+        t.dueDate &&
+        new Date(t.dueDate) < now &&
+        statusOf(t.status) !== "completed"
+    ).length;
 
     // Return in the same format as expected by UI
     return {
       completedTasks: completedCount, // Map to expected format
       totalTasks: tasks.length,
       inProgressTasks: inProgressCount,
-      upcomingDeadlines: tasks.filter((t) => t.dueDate && new Date(t.dueDate) > now && statusOf(t.status) !== "completed").length,
+      upcomingDeadlines: tasks.filter(
+        (t) =>
+          t.dueDate &&
+          new Date(t.dueDate) > now &&
+          statusOf(t.status) !== "completed"
+      ).length,
       overdueTasks: overdueCount,
       tasksByPriority: {
-        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high").length
+        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high")
+          .length,
       },
       // Keep original for backward compatibility
       openCount,
@@ -683,14 +763,17 @@ const IndividualDashboard = ({
           <div className="flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={18} />
             <span>
-              You have {overdueCount} overdue {overdueCount === 1 ? "task" : "tasks"} ⚠️
+              You have {overdueCount} overdue{" "}
+              {overdueCount === 1 ? "task" : "tasks"} ⚠️
             </span>
           </div>
           <Button
             onClick={() => {
               setShowFilters(true);
               setSelectedFilter("overdue");
-              document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
+              document
+                .getElementById("my-tasks")
+                ?.scrollIntoView({ behavior: "smooth" });
             }}
             className="text-red-700 hover:text-red-900 "
           >
@@ -703,37 +786,63 @@ const IndividualDashboard = ({
       {overdueCount > 0 ? (
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Overdue Report
+            </h2>
             <span className="text-sm text-gray-600">{overdueCount} items</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Task
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Due Date
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Days Overdue
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Priority
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentTasks
-                  .filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed")
+                  .filter(
+                    (t) =>
+                      t.dueDate &&
+                      new Date(t.dueDate) < now &&
+                      statusOf(t.status) !== "completed"
+                  )
                   .map((t) => ({
                     ...t,
-                    daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
+                    daysOverdue: Math.max(
+                      1,
+                      Math.ceil((now - new Date(t.dueDate)) / 86400000)
+                    ),
                   }))
                   .sort((a, b) => b.daysOverdue - a.daysOverdue)
                   .slice(0, 20)
                   .map((t) => (
                     <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
-                      <td className="py-3 px-6 text-sm text-gray-900">{t.title}</td>
+                      <td className="py-3 px-6 text-sm text-gray-900">
+                        {t.title}
+                      </td>
                       <td className="py-3 px-6 text-sm text-gray-900">
                         {new Date(t.dueDate).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-6 text-sm font-semibold text-red-600">{t.daysOverdue}</td>
+                      <td className="py-3 px-6 text-sm font-semibold text-red-600">
+                        {t.daysOverdue}
+                      </td>
                       <td className="py-3 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(t.priority)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                            t.priority
+                          )}`}
+                        >
                           {t.priority}
                         </span>
                       </td>
@@ -742,7 +851,6 @@ const IndividualDashboard = ({
               </tbody>
             </table>
           </div>
-          
         </div>
       ) : (
         <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -760,11 +868,15 @@ const IndividualDashboard = ({
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">In Progress</p>
-          <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {inProgressCount}
+          </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Completed</p>
-          <p className="text-2xl font-semibold text-gray-900">{completedCount}</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {completedCount}
+          </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Overdue</p>
@@ -772,37 +884,51 @@ const IndividualDashboard = ({
         </div>
       </div>
 
-    {/* Completion Trend (7 days) */}
+      {/* Completion Trend (7 days) */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Completion Trend (7 days)</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Completion Trend (7 days)
+            </h2>
           </div>
-          <ReactECharts option={completionTrendOptions} style={{ height: 220 }} />
+          <ReactECharts
+            option={completionTrendOptions}
+            style={{ height: 220 }}
+          />
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">Efficiency (On-time vs Late)</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Efficiency (On-time vs Late)
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <ReactECharts option={efficiencyPieOptions} style={{ height: 220 }} />
+            <ReactECharts
+              option={efficiencyPieOptions}
+              style={{ height: 220 }}
+            />
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">On-time</span>
-                <span className="font-medium text-gray-900">{completedOnTimeCount}</span>
+                <span className="font-medium text-gray-900">
+                  {completedOnTimeCount}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Late</span>
-                <span className="font-medium text-gray-900">{completedLateCount}</span>
+                <span className="font-medium text-gray-900">
+                  {completedLateCount}
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-  {/* KPI Cards Row */}
-  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div
           className="bg-white p-4 rounded-lg shadow-sm border"
           data-testid="card-completed-today"
@@ -822,7 +948,8 @@ const IndividualDashboard = ({
 
         <div
           className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-completed-before-due" >
+          data-testid="card-completed-before-due"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-md">
               <Clock className="text-blue-600" size={20} />
@@ -923,37 +1050,63 @@ const IndividualDashboard = ({
       {overdueCount > 0 ? (
         <div className="bg-white rounded-md shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Overdue Report
+            </h2>
             <span className="text-sm text-gray-600">{overdueCount} items</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Task
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Due Date
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Days Overdue
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
+                    Priority
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentTasks
-                  .filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed")
+                  .filter(
+                    (t) =>
+                      t.dueDate &&
+                      new Date(t.dueDate) < now &&
+                      statusOf(t.status) !== "completed"
+                  )
                   .map((t) => ({
                     ...t,
-                    daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
+                    daysOverdue: Math.max(
+                      1,
+                      Math.ceil((now - new Date(t.dueDate)) / 86400000)
+                    ),
                   }))
                   .sort((a, b) => b.daysOverdue - a.daysOverdue)
                   .slice(0, 20)
                   .map((t) => (
                     <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
-                      <td className="py-3 px-6 text-sm text-gray-900">{t.title}</td>
+                      <td className="py-3 px-6 text-sm text-gray-900">
+                        {t.title}
+                      </td>
                       <td className="py-3 px-6 text-sm text-gray-900">
                         {new Date(t.dueDate).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-6 text-sm font-semibold text-red-600">{t.daysOverdue}</td>
+                      <td className="py-3 px-6 text-sm font-semibold text-red-600">
+                        {t.daysOverdue}
+                      </td>
                       <td className="py-3 px-6">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(t.priority)}`}>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                            t.priority
+                          )}`}
+                        >
                           {t.priority}
                         </span>
                       </td>
@@ -962,7 +1115,6 @@ const IndividualDashboard = ({
               </tbody>
             </table>
           </div>
-
         </div>
       ) : (
         <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -1033,7 +1185,9 @@ const IndividualDashboard = ({
                     {task.title}
                   </span>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(
+                      task.priority
+                    )}`}
                   >
                     {task.priority}
                   </span>
@@ -1083,60 +1237,68 @@ const IndividualDashboard = ({
 
                 {showFilters && (
                   <div className="flex gap-2 flex-wrap">
-                    {["all", "pending", "in_progress", "completed", "overdue"].map(
-                      (filter) => (
-                        <button
-                          key={filter}
-                          onClick={() => setSelectedFilter(filter)}
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                            selectedFilter === filter
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                          data-testid={`filter-${filter}`}
-                        >
-                          {filter.replace("_", " ")}
-                        </button>
-                      )
-                    )}
-                       <div className="w-full h-0" />
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                  >
-                    <option value="all">All priorities</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600">Due from</label>
-                    <input
-                      type="date"
-                      value={dueFrom}
-                      onChange={(e) => setDueFrom(e.target.value)}
-                      className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-600">to</label>
-                    <input
-                      type="date"
-                      value={dueTo}
-                      onChange={(e) => setDueTo(e.target.value)}
-                      className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                    />
-                  </div>
-                  {(dueFrom || dueTo || priorityFilter !== "all") && (
-                    <button
-                      onClick={() => { setPriorityFilter("all"); setDueFrom(""); setDueTo(""); }}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                    {[
+                      "all",
+                      "pending",
+                      "in_progress",
+                      "completed",
+                      "overdue",
+                    ].map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedFilter(filter)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedFilter === filter
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                        data-testid={`filter-${filter}`}
+                      >
+                        {filter.replace("_", " ")}
+                      </button>
+                    ))}
+                    <div className="w-full h-0" />
+                    <select
+                      value={priorityFilter}
+                      onChange={(e) => setPriorityFilter(e.target.value)}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
                     >
-                      Clear
-                    </button>
-                  )}
+                      <option value="all">All priorities</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">Due from</label>
+                      <input
+                        type="date"
+                        value={dueFrom}
+                        onChange={(e) => setDueFrom(e.target.value)}
+                        className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">to</label>
+                      <input
+                        type="date"
+                        value={dueTo}
+                        onChange={(e) => setDueTo(e.target.value)}
+                        className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                      />
+                    </div>
+                    {(dueFrom || dueTo || priorityFilter !== "all") && (
+                      <button
+                        onClick={() => {
+                          setPriorityFilter("all");
+                          setDueFrom("");
+                          setDueTo("");
+                        }}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
+                      >
+                        Clear
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1216,18 +1378,24 @@ const IndividualDashboard = ({
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-900">
-                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
+                        {task.dueDate
+                          ? new Date(task.dueDate).toLocaleDateString()
+                          : "-"}
                       </td>
                       <td className="py-4 px-6">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
+                            task.priority
+                          )}`}
                         >
                           {task.priority}
                         </span>
                       </td>
                       <td className="py-4 px-6">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            task.status
+                          )}`}
                         >
                           {task.status.replace("_", " ")}
                         </span>
@@ -1241,7 +1409,11 @@ const IndividualDashboard = ({
                             <Edit size={14} />
                           </button>
                           <button
-                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${deletingTaskId === task._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${
+                              deletingTaskId === task._id
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
                             data-testid={`button-delete-${task._id}`}
                             disabled={deletingTaskId === task._id}
                             onClick={() => handleDeleteTask(task._id)}
@@ -1256,7 +1428,9 @@ const IndividualDashboard = ({
                           </button>
                         </div>
                         {deleteError && deletingTaskId === task._id && (
-                          <div className="text-xs text-red-500 mt-1">{deleteError}</div>
+                          <div className="text-xs text-red-500 mt-1">
+                            {deleteError}
+                          </div>
                         )}
                       </td>
                     </tr>

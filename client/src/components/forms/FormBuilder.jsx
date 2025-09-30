@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import {
@@ -29,11 +29,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { FormFieldTypes } from "@/components/forms/FormFieldTypes";
-import { FormPreview } from "@/components/forms/FormPreview";
-import { FormSettings } from "@/components/forms/FormSettings";
-import ConfirmationDeleteFieldModal from "./ConfirmatonDeleteFieldModal";
+const FormPreview = lazy(() => import("@/components/forms/FormPreview").then(m => ({ default: m.FormPreview })));
+const FormSettings = lazy(() => import("@/components/forms/FormSettings").then(m => ({ default: m.FormSettings })));
+
+import ConfirmDialog from "../common/ConfirmDialog";
 
 export default function FormBuilder() {
+    const MAX_HISTORY = 50;
+  const snapshot = (obj) =>
+    typeof structuredClone === "function"
+      ? structuredClone(obj)
+      : JSON.parse(JSON.stringify(obj));
+
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,7 +54,6 @@ export default function FormBuilder() {
       submitMessage: "Thank you for your submission!",
     },
   });
- 
   const [layout, setLayout] = useState("1-column");
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
@@ -55,8 +61,7 @@ export default function FormBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [draggedField, setDraggedField] = useState(null);
-  // Confirm delete field modal state
-  const [confirmFieldDelete, setConfirmFieldDelete] = useState({
+    const [confirmFieldDelete, setConfirmFieldDelete] = useState({
     isOpen: false,
     fieldId: null,
     label: "",
@@ -65,6 +70,7 @@ export default function FormBuilder() {
   const { data: forms = [], isLoading } = useQuery({
     queryKey: ["/api/forms"],
   });
+
   const handleDragStart = (e, field) => {
     setDraggedField(field.id);
     e.dataTransfer.effectAllowed = "move";
@@ -100,23 +106,28 @@ export default function FormBuilder() {
     setForm((prev) => ({ ...prev, fields: newFields }));
     setDraggedField(null);
   };
-  const updateForm = (newForm) => {
-    const newHistory = history.slice(0, currentStep + 1); // Remove future steps
-    setHistory([...newHistory, newForm]);
-    setCurrentStep(newHistory.length);
-    setForm(newForm);
+ const updateForm = (newForm) => {
+    const newHistory = history.slice(0, currentStep + 1);
+    const snap = snapshot(newForm);
+    const nextHistory = [...newHistory, snap].slice(-MAX_HISTORY);
+    const nextStep = Math.min(nextHistory.length - 1, MAX_HISTORY - 1);
+
+    setHistory(nextHistory);
+    setCurrentStep(nextStep);
+    setForm(snap);
   };
   const handleUndo = () => {
     if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
-      setForm(history[currentStep - 1]);
+      const nextStep = currentStep - 1;
+      setCurrentStep(nextStep);
+      setForm(history[nextStep]);
     }
   };
-
-  const handleRedo = () => {
+   const handleRedo = () => {
     if (currentStep < history.length - 1) {
-      setCurrentStep((prev) => prev + 1);
-      setForm(history[currentStep + 1]);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      setForm(history[nextStep]);
     }
   };
   // Create form mutation
@@ -218,10 +229,11 @@ export default function FormBuilder() {
   });
 
   const addField = (fieldType) => {
+    const id = (crypto?.randomUUID && crypto.randomUUID()) || `field_${Date.now()}`;
     const newField = {
-      id: `field_${Date.now()}`,
+      id,
       type: fieldType,
-      label: `New ${fieldType} field`,
+      label: `${displayTypeLabel(fieldType)} field`,
       placeholder: "",
       required: false,
       options:
@@ -229,17 +241,17 @@ export default function FormBuilder() {
           ? ["Option 1"]
           : [],
       order: form.fields.length,
-      ...(fieldType === "signature" && { signature: true }), // Default for signature
-      ...(fieldType === "file_upload" && { accept: "image/*,application/pdf" }), // Default for file upload
-      ...(fieldType === "location_picker" && { location: null }), // Default for location picker
+      ...(fieldType === "signature" && { signature: true }),
+      ...(fieldType === "file_upload" && { accept: "image/*,application/pdf" }),
+      ...(fieldType === "location_picker" && { location: null }),
     };
     updateForm({
       ...form,
       fields: [...form.fields, newField],
     });
-
     setSelectedField(newField.id);
   };
+
   const validateForm = () => {
     const errors = [];
 
@@ -282,6 +294,7 @@ export default function FormBuilder() {
 
     return errors;
   };
+  
   const updateField = (fieldId, updates) => {
     updateForm({
       ...form,
@@ -289,12 +302,6 @@ export default function FormBuilder() {
         field.id === fieldId ? { ...field, ...updates } : field
       ),
     });
-    setForm((prev) => ({
-      ...prev,
-      fields: prev.fields.map((field) =>
-        field.id === fieldId ? { ...field, ...updates } : field
-      ),
-    }));
   };
 
   const removeField = (fieldId) => {
@@ -302,17 +309,27 @@ export default function FormBuilder() {
       ...form,
       fields: form.fields.filter((field) => field.id !== fieldId),
     });
-    setForm((prev) => ({
-      ...prev,
-      fields: prev.fields.filter((field) => field.id !== fieldId),
-    }));
     setSelectedField(null);
+  };
+
+  const openConfirmFieldDelete = (field) => {
+    setConfirmFieldDelete({ isOpen: true, fieldId: field.id, label: field.label || "Untitled field" });
+  };
+
+  const closeConfirmFieldDelete = () => {
+    setConfirmFieldDelete({ isOpen: false, fieldId: null, label: "" });
+  };
+
+  const confirmRemoveField = () => {
+    if (confirmFieldDelete.fieldId) {
+      removeField(confirmFieldDelete.fieldId);
+    }
+    closeConfirmFieldDelete();
   };
 
   const moveField = (fieldId, direction) => {
     const fieldIndex = form.fields.findIndex((f) => f.id === fieldId);
     if (fieldIndex === -1) return;
-
     const newIndex = direction === "up" ? fieldIndex - 1 : fieldIndex + 1;
     if (newIndex < 0 || newIndex >= form.fields.length) return;
 
@@ -322,8 +339,9 @@ export default function FormBuilder() {
       newFields[fieldIndex],
     ];
 
-    setForm((prev) => ({ ...prev, fields: newFields }));
+    updateForm({ ...form, fields: newFields });
   };
+
   const addGroup = (groupLabel) => {
     const newGroup = {
       groupLabel,
@@ -374,23 +392,6 @@ export default function FormBuilder() {
     createFormMutation.mutate(form);
   };
 
-
-
-
-  const openConfirmFieldDelete = (field) => {
-    setConfirmFieldDelete({ isOpen: true, fieldId: field.id, label: field.label });
-  };
-
-  const closeConfirmFieldDelete = () => {
-    setConfirmFieldDelete({ isOpen: false, fieldId: null, label: "" });
-  };
-
-  const confirmRemoveField = () => {
-    if (confirmFieldDelete.fieldId) {
-      removeField(confirmFieldDelete.fieldId);
-    }
-    closeConfirmFieldDelete();
-  };
   const handlePublish = (formId) => {
     publishFormMutation.mutate(formId);
   };
@@ -406,7 +407,22 @@ export default function FormBuilder() {
     navigator.clipboard.writeText(shareUrl);
     toast({ title: "Success", description: "Share link copied to clipboard!" });
   };
-
+  const displayTypeLabel = (type) => {
+    const map = {
+      file_upload: "File Upload",
+      location_picker: "Location Picker",
+    };
+    return (
+      map[type] ||
+      String(type)
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (m) => m.toUpperCase())
+    );
+  };
+   const selectedFieldData = useMemo(
+    () => form.fields.find((f) => f.id === selectedField),
+    [form.fields, selectedField]
+  );
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -594,8 +610,14 @@ export default function FormBuilder() {
                             )}
                           </div>
                           <div className="flex items-center space-x-2 mt-1">
-                            <span className="text-sm text-slate-500 capitalize bg-slate-100 px-2 py-1 rounded">
-                              {field.type.split("_").join(" ")} 
+                            <span
+                              className={`text-sm capitalize px-2 py-1 rounded transition-colors ${
+                                selectedField === field.id
+                                  ? "bg-blue-500 text-white "
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {displayTypeLabel(field.type)}
                             </span>
                             {field.placeholder && (
                               <span className="text-xs text-slate-400 italic">
@@ -635,7 +657,7 @@ export default function FormBuilder() {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openConfirmFieldDelete(field);
+                            openConfirmFieldDelete(field); // use modal instead of immediate delete
                           }}
                           className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                         >
@@ -667,7 +689,7 @@ export default function FormBuilder() {
               </div>
             </CardContent>
           </Card>
-              {/* Actions */}
+          {/* Actions */}
           <div className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
             <div className="flex justify-between">
               <div>
@@ -707,7 +729,6 @@ export default function FormBuilder() {
         {/* Field Types & Properties */}
         <div className="space-y-6">
           <FormFieldTypes onAddField={addField} />
-      
         </div>
       </div>
       {selectedField && (
@@ -722,8 +743,9 @@ export default function FormBuilder() {
             </p>
           </CardHeader>
           <CardContent className="p-6">
-            <FieldProperties
-              field={form.fields.find((f) => f.id === selectedField)}
+             <FieldProperties
+              field={selectedFieldData}
+              fields={form.fields}
               onUpdate={(updates) => updateField(selectedField, updates)}
             />
           </CardContent>
@@ -827,40 +849,74 @@ export default function FormBuilder() {
       </Card>
 
       {showPreview && (
-        <FormPreview
-          form={form}
-          layout={layout}
-          onClose={() => setShowPreview(false)}
-        />
+        <Suspense fallback={<div className="p-6">Loading preview…</div>}>
+          <FormPreview
+            form={form}
+            layout={layout}
+            onClose={() => setShowPreview(false)}
+          />
+        </Suspense>
       )}
 
-      {showSettings && (
-        <FormSettings
-          settings={form.settings}
-          layout={layout}
-          setLayout={setLayout}
-          onUpdate={(newSettings) =>
-            setForm((prev) => ({ ...prev, settings: newSettings }))
-          }
-          onClose={() => setShowSettings(false)}
-        />
+    {showSettings && (
+        <Suspense fallback={<div className="p-6">Loading settings…</div>}>
+          <FormSettings
+            settings={form.settings}
+            layout={layout}
+            setLayout={setLayout}
+            onUpdate={(newSettings) =>
+              setForm((prev) => ({ ...prev, settings: newSettings }))
+            }
+            onClose={() => setShowSettings(false)}
+          />
+        </Suspense>
       )}
-
-      <ConfirmationDeleteFieldModal
+         <ConfirmDialog
         isOpen={confirmFieldDelete.isOpen}
-        title="Confirm Field Deletion"
-        description={`Are you sure you want to delete the field "${confirmFieldDelete.label}"?`}
+        title="Delete this field?"
+        description={confirmFieldDelete.label}
         confirmLabel="Delete"
-        cancelLabel="Cancel"
-        onConfirm={confirmRemoveField}
         onCancel={closeConfirmFieldDelete}
+        onConfirm={confirmRemoveField}
+        confirmVariant="destructive"
       />
     </div>
   );
 }
 function FieldProperties({ field, onUpdate, form }) {
   if (!field) return null;
+// Confirm delete for condition
+  const [confirmCondDelete, setConfirmCondDelete] = useState({
+    isOpen: false,
+    index: null,
+    description: "",
+  });
+    const openConfirmConditionDelete = (index) => {
+    const c = field.conditions?.[index];
+    const otherFieldLabel =
+      form?.fields?.find((f) => f.id === c?.field)?.label || "Selected field";
+    const opText =
+      c?.operator === "equals"
+        ? "equals"
+        : c?.operator === "not_equals"
+        ? "does not equal"
+        : c?.operator === "contains"
+        ? "contains"
+        : c?.operator || "";
+    const desc =
+      c ? `${otherFieldLabel} ${opText} "${c.value ?? ""}"` : "Delete condition?";
+    setConfirmCondDelete({ isOpen: true, index, description: desc });
+  };
 
+  const closeConfirmConditionDelete = () =>
+    setConfirmCondDelete({ isOpen: false, index: null, description: "" });
+
+  const confirmRemoveCondition = () => {
+    if (confirmCondDelete.index !== null) {
+      handleRemoveCondition(confirmCondDelete.index);
+    }
+    closeConfirmConditionDelete();
+  };
   const handleAddCondition = () => {
     const newCondition = { field: "", operator: "equals", value: "" };
     onUpdate({ conditions: [...(field.conditions || []), newCondition] });
@@ -987,8 +1043,8 @@ function FieldProperties({ field, onUpdate, form }) {
 
               {/* Remove Condition */}
               <button
-                onClick={() => handleRemoveCondition(index)}
-                className="text-red-500 hover:text-red-700"
+                 onClick={() => openConfirmConditionDelete(index)}
+               className="text-red-500 hover:text-red-700"
               >
                 <Trash2 className="h-5 w-5" />
               </button>
@@ -1004,6 +1060,16 @@ function FieldProperties({ field, onUpdate, form }) {
           </Button>
         </div>
       </div>
+         {/* Confirm delete condition dialog */}
+      <ConfirmDialog
+        isOpen={confirmCondDelete.isOpen}
+        title="Delete this condition?"
+        description={confirmCondDelete.description}
+        confirmLabel="Delete"
+        onCancel={closeConfirmConditionDelete}
+        onConfirm={confirmRemoveCondition}
+        confirmVariant="destructive"
+      />
     </div>
   );
 }
