@@ -1,0 +1,389 @@
+import React, { useState } from 'react';
+import getStatusLabel from './statusUtils';
+
+function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // Enhanced statuses with comprehensive business rules
+  const statuses = [
+    {
+      value: "OPEN",
+      label: "Open",
+      color: "#6c757d",
+      isFinal: false,
+      description: "Task is created but not yet started",
+      tooltip: "New task ready to be started",
+      allowedTransitions: ["INPROGRESS", "ONHOLD", "CANCELLED"],
+    },
+    {
+      value: "INPROGRESS",
+      label: "In Progress",
+      color: "#3498db",
+      isFinal: false,
+      description: "Task is being actively worked on",
+      tooltip: "Work is currently in progress on this task",
+      allowedTransitions: ["ONHOLD", "DONE", "CANCELLED"],
+    },
+    {
+      value: "ONHOLD",
+      label: "On Hold",
+      color: "#f39c12",
+      isFinal: false,
+      description: "Task is temporarily paused",
+      tooltip: "Task is paused temporarily",
+      allowedTransitions: ["INPROGRESS", "CANCELLED"],
+    },
+    {
+      value: "DONE",
+      label: "Completed",
+      color: "#28a745",
+      isFinal: true,
+      description: "Task has been completed successfully",
+      tooltip: "Task has been successfully completed",
+      allowedTransitions: [],
+    },
+    {
+      value: "CANCELLED",
+      label: "Cancelled",
+      color: "#dc3545",
+      isFinal: true,
+      description: "Task was terminated intentionally",
+      tooltip: "Task was cancelled and will not be completed",
+      allowedTransitions: [],
+    },
+  ];
+
+  const currentStatus = statuses.find((s) => s.value === status) || statuses[0];
+
+  // Get valid transitions based on business rules
+  const getValidTransitions = () => {
+    if (!currentStatus) return [];
+
+    return currentStatus.allowedTransitions.filter((transitionCode) => {
+      // Check sub-task completion logic for DONE status
+      if (
+        transitionCode === "DONE" &&
+        task?.subtasks &&
+        task.subtasks.length > 0
+      ) {
+        const incompleteSubtasks = task.subtasks.filter(
+          (subtask) =>
+            subtask.status !== "DONE" && subtask.status !== "CANCELLED",
+        );
+        return incompleteSubtasks.length === 0;
+      }
+      return true;
+    });
+  };
+
+  const validTransitions = getValidTransitions();
+
+  const canMarkAsCompleted = () => {
+    if (!task?.subtasks || task.subtasks.length === 0) return true;
+
+    const incompleteSubtasks = task.subtasks.filter(
+      (subtask) => subtask.status !== "DONE" && subtask.status !== "CANCELLED",
+    );
+
+    return incompleteSubtasks.length === 0;
+  };
+
+  const handleStatusClick = (statusOption) => {
+    // Validate transition
+    if (!validTransitions.includes(statusOption.value)) {
+      alert(
+        `Invalid transition from "${currentStatus.label}" to "${statusOption.label}". Please follow the allowed workflow.`,
+      );
+      return;
+    }
+
+    // Check sub-task dependencies for completion
+    if (statusOption.value === "DONE" && !canMarkAsCompleted()) {
+      const incompleteCount = task.subtasks.filter(
+        (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+      ).length;
+      alert(
+        `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
+      );
+      return;
+    }
+
+    // Show confirmation for final statuses
+    if (statusOption.isFinal && statusOption.value !== status) {
+      setShowConfirmation({
+        newStatus: statusOption.value,
+        newLabel: statusOption.label,
+        description: statusOption.description,
+      });
+      setIsOpen(false);
+      return;
+    }
+
+    // Direct update for non-final statuses
+    onChange(statusOption.value);
+    setIsOpen(false);
+
+    // Log activity with enhanced details
+    logActivity("status_changed", {
+      oldStatus: getStatusLabel(status),
+      newStatus: statusOption.label,
+      user: currentUser.name,
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      reason: "Manual status change",
+    });
+  };
+
+  const confirmStatusChange = () => {
+    onChange(showConfirmation.newStatus);
+
+    // Log activity with confirmation
+    logActivity("status_changed", {
+      oldStatus: getStatusLabel(status),
+      newStatus: showConfirmation.newLabel,
+      user: currentUser.name,
+      timestamp: new Date().toISOString(),
+      taskId: task.id,
+      reason: "Final status confirmed",
+      confirmed: true,
+    });
+
+    setShowConfirmation(null);
+  };
+
+  const logActivity = (type, details) => {
+    console.log(`🔄 Status Activity:`, details);
+    // In real app, this would be sent to backend for permanent audit trail
+  };
+
+  if (!canEdit) {
+    return (
+      <div className="status-display readonly">
+        <span
+          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white cursor-help"
+          style={{ backgroundColor: currentStatus.color }}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          {getStatusLabel(status)}
+          <svg
+            className="ml-1 w-3 h-3 opacity-50"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </span>
+        {showTooltip && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 max-w-xs">
+            {currentStatus.tooltip} (Read-only)
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="status-dropdown relative">
+        <button
+          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white hover:opacity-80 transition-opacity"
+          style={{ backgroundColor: currentStatus.color }}
+          onClick={() => setIsOpen(!isOpen)}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          {getStatusLabel(status)}
+          <svg className="ml-1 w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+
+        {/* Enhanced tooltip */}
+        {showTooltip && !isOpen && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 max-w-xs">
+            {currentStatus.tooltip}
+          </div>
+        )}
+
+        {isOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setIsOpen(false)}
+            />
+            <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+              {/* Current Status */}
+              <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: currentStatus.color }}
+                  />
+                  <span className="font-medium">
+                    Current: {currentStatus.label}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {currentStatus.description}
+                </div>
+              </div>
+
+              {/* Valid Transitions */}
+              {validTransitions.length > 0 ? (
+                <div className="py-1">
+                  <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Available Actions
+                  </div>
+                  {validTransitions.map((transitionCode) => {
+                    const targetStatus = statuses.find(
+                      (s) => s.value === transitionCode,
+                    );
+                    if (!targetStatus) return null;
+
+                    return (
+                      <button
+                        key={transitionCode}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
+                        onClick={() => handleStatusClick(targetStatus)}
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: targetStatus.color }}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">
+                            {targetStatus.label}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {targetStatus.description}
+                          </div>
+                        </div>
+                        {targetStatus.isFinal && (
+                          <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                            Final
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="px-3 py-4 text-center">
+                  <div className="text-sm text-gray-500">
+                    No actions available
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {task?.subtasks?.length > 0 &&
+                    task.subtasks.some(
+                      (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+                    )
+                      ? "Complete all sub-tasks to proceed"
+                      : "This is a final status"}
+                  </div>
+                </div>
+              )}
+
+              {/* Status Workflow Info */}
+              <div className="border-t border-gray-200 px-3 py-2">
+                <div className="text-xs font-medium text-gray-500 mb-2">
+                  Status Workflow
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-400">
+                  {statuses.map((s, index) => (
+                    <React.Fragment key={s.value}>
+                      <span
+                        className={`px-2 py-1 rounded ${
+                          s.value === status
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        {s.label}
+                      </span>
+                      {index < statuses.length - 1 && <span>→</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Enhanced Status Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overlay-animate">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full modal-animate-fade">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                  <svg
+                    className="w-6 h-6 text-orange-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 15.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Confirm Final Status
+                </h3>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-600 mb-3">
+                  Are you sure you want to mark this task as{" "}
+                  <span className="font-semibold text-gray-900">
+                    {showConfirmation.newLabel}
+                  </span>
+                  ?
+                </p>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    <span className="font-medium">Note:</span>{" "}
+                    {showConfirmation.description} This action cannot be undone
+                    easily.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowConfirmation(null)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStatusChange}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+export default StatusDropdown;

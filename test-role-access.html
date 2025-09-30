@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Role Access Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-case { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .pass { background-color: #d4edda; }
+        .fail { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Role-Based Access Control Test</h1>
+    
+    <div class="test-case">
+        <h3>Individual User (rohit@gmail.com)</h3>
+        <p><strong>Expected Behavior:</strong></p>
+        <ul>
+            <li>❌ Should NOT see "Invite Users" in sidebar</li>
+            <li>❌ Should NOT see "Role Management" in sidebar</li>
+            <li>❌ Should NOT see "Team Members" widget on dashboard</li>
+            <li>✅ Should see "Personal Dashboard" title</li>
+            <li>❌ Direct access to /admin/invite-users should show access denied</li>
+            <li>❌ Direct access to /admin/role-management should show access denied</li>
+        </ul>
+    </div>
+    
+    <div class="test-case">
+        <h3>Organizational User (admin/org_admin)</h3>
+        <p><strong>Expected Behavior:</strong></p>
+        <ul>
+            <li>✅ Should see "Invite Users" in sidebar</li>
+            <li>✅ Should see "Role Management" in sidebar</li>
+            <li>✅ Should see "Team Members" widget on dashboard</li>
+            <li>✅ Should see "Organization Dashboard" title</li>
+            <li>✅ Should have access to /admin/invite-users</li>
+            <li>✅ Should have access to /admin/role-management</li>
+        </ul>
+    </div>
+    
+    <h2>Implementation Summary</h2>
+    <ol>
+        <li>Updated SimpleSidebar.jsx to hide "Invite Users" and "Role Management" for individual users</li>
+        <li>Enhanced ProtectedRoute component with specific access denied messages for individual users</li>
+        <li>Modified CompactDashboard.jsx to conditionally hide Team Members widget</li>
+        <li>Updated route protections to exclude individual users from organizational features</li>
+        <li>Improved layout responsiveness when Team Members widget is hidden</li>
+    </ol>
+</body>
+</html>
