@@ -546,8 +546,8 @@ const IndividualDashboard = ({
   };
 
   const filteredTasks = currentTasks.filter((task) => {
-    const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = !searchTerm || searchTerm === "" ||
+      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.description &&
         task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.tags &&
@@ -573,6 +573,58 @@ const IndividualDashboard = ({
  
   });
 
+  // Computes basic stats from a list of tasks
+  function computeStatsFromTasks(tasks) {
+    const now = new Date();
+    const statusOf = (s) => (s || "").toLowerCase();
+    const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
+    const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
+    const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
+    const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
+
+    // Return in the same format as expected by UI
+    return {
+      completedTasks: completedCount, // Map to expected format
+      totalTasks: tasks.length,
+      inProgressTasks: inProgressCount,
+      upcomingDeadlines: tasks.filter((t) => t.dueDate && new Date(t.dueDate) > now && statusOf(t.status) !== "completed").length,
+      overdueTasks: overdueCount,
+      tasksByPriority: {
+        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high").length
+      },
+      // Keep original for backward compatibility
+      openCount,
+      inProgressCount,
+      completedCount,
+      overdueCount,
+    };
+  }
+  // Simple mock function to generate demo tasks if API data is unavailable
+  function generateMockTasks() {
+    return [
+      {
+        id: 1,
+        title: "Demo Task 1",
+        description: "This is a demo task.",
+        status: "pending",
+        dueDate: new Date().toISOString(),
+        isRecurring: false,
+        priority: "medium",
+      },
+      {
+        id: 2,
+        title: "Demo Task 2",
+        description: "Another demo task.",
+        status: "completed",
+        dueDate: new Date(Date.now() - 86400000).toISOString(),
+        completedAt: new Date().toISOString(),
+        isRecurring: true,
+        recurringInterval: "weekly",
+        priority: "high",
+      },
+    ];
+  }
+
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -587,7 +639,7 @@ const IndividualDashboard = ({
         </div>
         <button
           onClick={handleCreateTask}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-md flex items-center gap-2 transition-colors"
           data-testid="button-create-task"
         >
           <Plus size={18} />
@@ -756,7 +808,7 @@ const IndividualDashboard = ({
           data-testid="card-completed-today"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-lg">
+            <div className="bg-green-100 p-2 rounded-md">
               <CheckSquare className="text-green-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -769,11 +821,10 @@ const IndividualDashboard = ({
         </div>
 
         <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-completed-before-due"
-        >
+          className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-completed-before-due" >
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-lg">
+            <div className="bg-blue-100 p-2 rounded-md">
               <Clock className="text-blue-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -786,11 +837,11 @@ const IndividualDashboard = ({
         </div>
 
         <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
+          className="bg-white p-4 rounded-md shadow-sm border"
           data-testid="card-milestones"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-lg">
+            <div className="bg-purple-100 p-2 rounded-md">
               <Target className="text-purple-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -803,11 +854,11 @@ const IndividualDashboard = ({
         </div>
 
         <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
+          className="bg-white p-4 rounded-md shadow-sm border"
           data-testid="card-collaborator-tasks"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-lg">
+            <div className="bg-orange-100 p-2 rounded-md">
               <Users className="text-orange-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -820,11 +871,11 @@ const IndividualDashboard = ({
         </div>
 
         <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
+          className="bg-white p-4 rounded-md shadow-sm border"
           data-testid="card-past-due"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-lg">
+            <div className="bg-red-100 p-2 rounded-md">
               <AlertTriangle className="text-red-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -837,11 +888,11 @@ const IndividualDashboard = ({
         </div>
 
         <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
+          className="bg-white p-4 rounded-md shadow-sm border"
           data-testid="card-approvals"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-yellow-100 p-2 rounded-lg">
+            <div className="bg-yellow-100 p-2 rounded-md">
               <Bell className="text-yellow-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -854,7 +905,7 @@ const IndividualDashboard = ({
         </div>
 
         {/* Recurring Adherence */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-recurring-adherence">
+        {/* <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-recurring-adherence">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-100 p-2 rounded-lg">
               <Clock className="text-indigo-600" size={20} />
@@ -865,8 +916,62 @@ const IndividualDashboard = ({
               <p className="text-xs text-gray-500">Missed: {recurringMissed} • On-time: {recurringOnTime}</p>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
+
+      {/* Overdue Report (sorted by days overdue) */}
+      {overdueCount > 0 ? (
+        <div className="bg-white rounded-md shadow-sm border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
+            <span className="text-sm text-gray-600">{overdueCount} items</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentTasks
+                  .filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed")
+                  .map((t) => ({
+                    ...t,
+                    daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
+                  }))
+                  .sort((a, b) => b.daysOverdue - a.daysOverdue)
+                  .slice(0, 20)
+                  .map((t) => (
+                    <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
+                      <td className="py-3 px-6 text-sm text-gray-900">{t.title}</td>
+                      <td className="py-3 px-6 text-sm text-gray-900">
+                        {new Date(t.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-6 text-sm font-semibold text-red-600">{t.daysOverdue}</td>
+                      <td className="py-3 px-6">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(t.priority)}`}>
+                          {t.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      ) : (
+        <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="text-green-600" size={18} />
+            <span>All caught up ✅ No overdue tasks.</span>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -908,7 +1013,7 @@ const IndividualDashboard = ({
 
           {/* Pinned Tasks */}
           <div
-            className="bg-white p-6 rounded-lg shadow-sm border"
+            className="bg-white p-6 rounded-md shadow-sm border"
             data-testid="card-pinned-tasks"
           >
             <div className="flex items-center gap-2 mb-4">
@@ -921,7 +1026,7 @@ const IndividualDashboard = ({
               {samplePinnedTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
                   data-testid={`pinned-task-${task.id}`}
                 >
                   <span className="text-sm font-medium text-gray-900 truncate">
@@ -952,7 +1057,7 @@ const IndividualDashboard = ({
                 </h2>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="text-gray-600 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100"
+                  className="text-gray-600 hover:text-gray-900 p-2 rounded-md hover:bg-gray-100"
                   data-testid="button-toggle-filters"
                 >
                   <Filter size={18} />
@@ -971,7 +1076,7 @@ const IndividualDashboard = ({
                     placeholder="Search tasks..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     data-testid="input-search-tasks"
                   />
                 </div>
@@ -1062,9 +1167,9 @@ const IndividualDashboard = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredTasks.map((task) => (
                     <tr
-                      key={task.id}
+                      key={task._id}
                       className="hover:bg-gray-50"
-                      data-testid={`task-row-${task.id}`}
+                      data-testid={`task-row-${task._id}`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
@@ -1131,23 +1236,28 @@ const IndividualDashboard = ({
                         <div className="flex items-center gap-2">
                           <button
                             className="text-gray-600 hover:text-blue-600 p-1 rounded"
-                            data-testid={`button-edit-${task.id}`}
+                            data-testid={`button-edit-${task._id}`}
                           >
                             <Edit size={14} />
                           </button>
                           <button
-                            className="text-gray-600 hover:text-red-600 p-1 rounded"
-                            data-testid={`button-delete-${task.id}`}
+                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${deletingTaskId === task._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            data-testid={`button-delete-${task._id}`}
+                            disabled={deletingTaskId === task._id}
+                            onClick={() => handleDeleteTask(task._id)}
                           >
                             <Trash2 size={14} />
                           </button>
                           <button
                             className="text-gray-600 hover:text-gray-900 p-1 rounded"
-                            data-testid={`button-more-${task.id}`}
+                            data-testid={`button-more-${task._id}`}
                           >
                             <MoreHorizontal size={14} />
                           </button>
                         </div>
+                        {deleteError && deletingTaskId === task._id && (
+                          <div className="text-xs text-red-500 mt-1">{deleteError}</div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1167,13 +1277,13 @@ const IndividualDashboard = ({
 
       {/* Calendar Section */}
       <div
-        className="bg-white rounded-lg shadow-sm border p-6"
+        className="bg-white rounded-md shadow-sm border p-6"
         data-testid="card-calendar"
       >
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Task Calendar
         </h2>
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
+        <div className="bg-gray-50 rounded-md p-8 text-center">
           <Calendar className="mx-auto mb-2 text-gray-400" size={48} />
           <p className="text-gray-600">Calendar view coming soon</p>
           <p className="text-sm text-gray-500 mt-1">

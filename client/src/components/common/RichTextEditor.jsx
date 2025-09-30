@@ -28,7 +28,7 @@ const RichTextEditor = ({
   };
 
   return (
-    <div className={`border border-gray-300 rounded-lg overflow-hidden ${className}`}>
+    <div className={`border border-gray-300 rounded-md overflow-hidden ${className}`}>
       {/* Toolbar */}
       <div className="bg-gray-50 border-b border-gray-200 p-2 flex items-center gap-1">
         <button

@@ -402,7 +402,7 @@ export default function TaskDetail({ taskId, onClose }) {
         {activeTab === "core-info" && (
           <div className="core-info-view">
             {/* Task Overview Section */}
-            <div className="task-overview-card">
+            <div className="task-overview-card rounded-md">
               <div className="overview-header">
                 <div className="overview-icon">
                   <ClipboardList size={24} />

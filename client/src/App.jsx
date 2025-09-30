@@ -18,7 +18,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import TeamMembers from "./pages/admin/TeamMembers";
 import SettingsUserManagement from "./pages/settings/UserManagement";
 import Projects from "./pages/admin/Projects";
-
+import FormBuilder from "./pages/admin/FormBuilder";
 import Integrations from "./pages/admin/Integrations";
 import Roles from "./pages/admin/Roles";
 import Reports from "./pages/admin/Reports";
@@ -85,6 +85,7 @@ import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
+import QuickTask from "./pages/newComponents/QuickTask";
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
@@ -99,15 +100,11 @@ import SidebarDemo from "./layout/sidebar/SidebarDemo";
 import MemberDashboard from "./layout/sidebar/MemberDashboard";
 import CurrentUserSidebar from "./pages/CurrentUserSidebar";
 import DynamicDashboard from "./pages/Dashboard";
-
+import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
-import QuickTaskManage from "./components/quick-task/QuickTaskManage";
-import FormBuilder from "./components/forms/FormBuilder";
-import FormLibrary from "./components/forms/FormLibrary";
-import ExternalFormSubmit from "./components/forms/ExternalFormSubmit";
-import FormVersionHistory from "./components/forms/FormVersionHistory";
+// import RecurringTaskEdit from "./pages/newComponents/RecurringTaskEdit";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -215,7 +212,7 @@ function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
           <div className="space-y-3">
             <button
               onClick={() => setLocation("/dashboard")}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Return to Dashboard
             </button>
@@ -275,8 +272,6 @@ function App() {
               <Route path="/reset-password" component={ResetPassword} />
               <Route path="/accept-invitation" component={SimpleAcceptInvite} />
               <Route path="/accept-invite" component={SimpleAcceptInvite} />
-             <Route path="/public-forms/:token" component={ExternalFormSubmit} />
-
               <Route
                 path="/register/invite/:token"
                 component={SimpleAcceptInvite}
@@ -365,7 +360,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={DynamicDashboard}
-                    allowedRoles={["org_admin", "employee","manager", "individual"]}
+                    allowedRoles={["org_admin", "employee", "manager", "individual"]}
                   />
                 </AdminLayout>
               </Route>
@@ -389,7 +384,15 @@ function App() {
                 </AdminLayout>
               </Route>
 
-                  
+              <Route path="/quick-tasks">
+                <AdminLayout>
+                  <ProtectedRoute
+                    component={QuickTask}
+                    allowedRoles={["individual", "employee", "manager", "org_admin", "super_admin"]}
+                  />
+                </AdminLayout>
+              </Route>
+
               <Route path="/milestones">
                 <AdminLayout>
                   <ProtectedRoute
@@ -414,14 +417,7 @@ function App() {
                   />
                 </AdminLayout>
               </Route>
-    <Route path="/quick-tasks">
-                <AdminLayout>
-                  <ProtectedRoute
-                    component={QuickTaskManage}
-                    allowedRoles={["individual",'manager', "employee", "org_admin"]}
-                  />
-                </AdminLayout>
-              </Route>
+
               <Route path="/calendar">
                 <AdminLayout>
                   <ProtectedRoute
@@ -698,19 +694,9 @@ function App() {
                   <ProtectedRoute component={Projects} />
                 </AdminLayout>
               </Route>
-              <Route path="/form-library">
-                <AdminLayout>
-                  <ProtectedRoute component={FormLibrary} />
-                </AdminLayout>
-              </Route>
-              <Route path="/form-builder">
+              <Route path="/forms">
                 <AdminLayout>
                   <ProtectedRoute component={FormBuilder} />
-                </AdminLayout>
-              </Route>
-                <Route path="/form-version-history">
-                <AdminLayout>
-                  <ProtectedRoute component={FormVersionHistory} />
                 </AdminLayout>
               </Route>
               <Route path="/integrations">

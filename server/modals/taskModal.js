@@ -17,6 +17,12 @@ const TaskSchema = mongoose.Schema(
       enum: ["regular", "recurring", "milestone", "approval"],
       default: "regular",
     },
+    createdByRole: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
     taskTypeAdvanced: {
       type: String,
       enum: ["simple", "complex"],
@@ -125,7 +131,7 @@ const TaskSchema = mongoose.Schema(
         default: 1,
       },
       daysOfWeek: [{
-        type: Number, 
+        type: Number, // 0 = Sunday, 1 = Monday, etc.
       }],
       dayOfMonth: {
         type: Number,
@@ -212,4 +218,4 @@ const TaskSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.model("Task", TaskSchema);
+export default mongoose.models.Task || mongoose.model("Task", TaskSchema);

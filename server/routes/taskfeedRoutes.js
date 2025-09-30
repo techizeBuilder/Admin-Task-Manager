@@ -1,6 +1,6 @@
 import express from "express";
 import { getDashboardStats } from "../controller/taskfeedController.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
+import { authenticateToken } from "../middleware/roleAuth.js";
 
 const router = express.Router();
 

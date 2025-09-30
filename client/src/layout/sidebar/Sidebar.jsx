@@ -4,12 +4,12 @@ import { getMenuByRole } from './config';
 import SidebarItem from './SidebarItem';
 import { useAuth } from '@/features/shared/hooks/useAuth';
 
-const Sidebar = ({ 
-  role = 'individual', 
+const Sidebar = ({
+  role = 'individual',
   onLogout,
   className = '',
   defaultCollapsed = false,
-  showToggle = true 
+  showToggle = true
 }) => {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -19,7 +19,7 @@ const Sidebar = ({
   useEffect(() => {
 
     const menu = getMenuByRole(role);
- 
+
     setMenuItems(menu);
   }, [role]);
 
@@ -27,7 +27,7 @@ const Sidebar = ({
     if (action === 'logout' && onLogout) {
       onLogout();
     }
-    
+
     // Close mobile menu after clicking an item
     if (isMobileOpen) {
       setIsMobileOpen(false);
@@ -47,7 +47,7 @@ const Sidebar = ({
     // Get organization name from user data
     const orgName = user?.organization?.name || user?.organizationName || 'Organization';
     const hasOrganization = user?.organizationId || user?.organization;
-    
+
     switch (role) {
       case 'superadmin':
       case 'super_admin':
@@ -126,11 +126,12 @@ const Sidebar = ({
       {/* Sidebar */}
       <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+          ${isMobileOpen ? 'fixed' : 'relative lg:relative'} 
+          inset-y-0 left-0 z-50 lg:z-auto
           transform transition-all duration-300 ease-in-out
           ${isCollapsed ? 'w-16' : 'w-[280px]'}
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          bg-[#1E1E2D] flex flex-col
+          bg-[#1E1E2D] flex flex-col h-full
           ${className}
         `}
         data-testid="sidebar-container"
@@ -152,7 +153,7 @@ const Sidebar = ({
                 </p>
               </div>
             )}
-            
+
             {showToggle && (
               <button
                 onClick={toggleSidebar}

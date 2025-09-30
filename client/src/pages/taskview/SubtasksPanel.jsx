@@ -104,10 +104,10 @@ function SubtasksPanel({ subtasks, parentTask, currentUser }) {
       : 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg">
+    <div className="bg-white border border-gray-200 rounded-md">
       {/* Compact Header */}
       <div
-        className="flex items-center justify-between px-3 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex items-center justify-between px-3 py-3 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div className="flex items-center gap-2">

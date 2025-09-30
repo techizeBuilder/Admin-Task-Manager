@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ConversionModal from "./ConversionModal";
 import { FullTaskFormModal } from "./FullTaskFormModal";
+import ConfirmationDeleteModal from "./ConfirmationDeleteModal";
 
 const QuickTaskManage = () => {
   const getFutureDate = (days) => {
@@ -59,6 +60,28 @@ const QuickTaskManage = () => {
     isOpen: false,
     data: null,
   });
+  const [confirmArchive, setConfirmArchive] = useState({
+    isOpen: false,
+    task: null,
+  });
+
+  
+ 
+  // Open/close/confirm handlers for archive confirmation
+  const openArchiveConfirm = (task) => {
+    setConfirmArchive({ isOpen: true, task });
+  };
+
+  const closeArchiveConfirm = () => {
+    setConfirmArchive({ isOpen: false, task: null });
+  };
+
+  const confirmArchiveTask = () => {
+    if (confirmArchive.task) {
+      archiveTask(confirmArchive.task.id);
+    }
+    closeArchiveConfirm();
+  };
   const handleAddTask = (e) => {
     if (e.key === "Enter" && newTaskText.trim() !== "") {
       const newTask = {
@@ -274,7 +297,7 @@ const QuickTaskManage = () => {
                         <ArrowUpRight size={14} />
                       </button>
                       <button
-                        onClick={() => archiveTask(task.id)}
+                         onClick={() => openArchiveConfirm(task)}
                         className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700 transition"
                         title="Archive Task"
                       >
@@ -304,6 +327,16 @@ const QuickTaskManage = () => {
           onClose={cancelConversion}
         />
       )}
+
+      <ConfirmationDeleteModal
+        isOpen={confirmArchive.isOpen}
+        title="Delete this task?"
+        description={confirmArchive.task?.text}
+        confirmLabel="Delete"
+        onCancel={closeArchiveConfirm}
+        onConfirm={confirmArchiveTask}
+        confirmVariant="destructive"
+      />
     </div>
   );
 };

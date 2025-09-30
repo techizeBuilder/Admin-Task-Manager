@@ -19,8 +19,7 @@ import {
   FileText,
   CalendarClock,
 } from "lucide-react";
-import QuickTaskWidget from "../components/quick-task/QuickTaskWidget";
-
+import ReactECharts from "echarts-for-react";
 /**
  * Manager Dashboard - Team management workspace for managers
  * Displays team metrics, performance stats, and team-focused insights
@@ -548,7 +547,7 @@ const ManagerDashboard = () => {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-md shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Team Members</p>
@@ -564,7 +563,7 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-md shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Tasks</p>
@@ -606,7 +605,7 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-md shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Avg Completion Time</p>
@@ -698,7 +697,7 @@ const ManagerDashboard = () => {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Members List */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="lg:col-span-2 bg-white rounded-md shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Users className="w-5 h-5 mr-2 text-blue-600" />
@@ -952,7 +951,7 @@ const ManagerDashboard = () => {
             {projectStats.map((project, index) => (
               <div
                 key={index}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="border border-gray-200 rounded-md p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-medium text-gray-900">{project.name}</h3>

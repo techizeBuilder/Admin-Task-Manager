@@ -1,14 +1,31 @@
+
 import express from "express";
 import { authenticateToken } from "../middleware/roleAuth.js";
 import { upload } from "../utils/upload.js";
+
 import {
   createTask,
+  createSubtask,
+  getSubtasks,
+  updateSubtask,
+  deleteSubtask,
+  addSubtaskComment,
+  getSubtaskComments,
+  updateSubtaskComment,
+  deleteSubtaskComment,
   getTasks,
   getTaskById,
   updateTask,
   updateTaskStatus,
   deleteTask,
   approveOrRejectTask,
+  getTasksByType,
+  getMyTasks,
+  snoozeTask,
+  unsnoozeTask,
+  markTaskAsRisk,
+  unmarkTaskAsRisk,
+  quickMarkAsDone
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -18,7 +35,10 @@ const router = express.Router();
  * /api/create-task:
  *   post:
  *     summary: Create a new task (regular, recurring, milestone, approval)
- *     description: Creates a comprehensive task with support for different task types including regular tasks, recurring tasks, milestone tracking, and approval workflows
+ *     description: |
+ *       Creates a comprehensive task with support for different task types including regular tasks, recurring tasks, milestone tracking, and approval workflows.
+ *       
+ *       **Note**: The `createdByRole` field should be provided in the request to specify the role of the user creating the task.
  *     tags:
  *       - Tasks
  *     security:
@@ -42,7 +62,7 @@ const router = express.Router();
  *                 example: "Prepare and submit the Q4 financial report"
  *               taskType:
  *                 type: string
- *                 enum: [regular, recurring, milestone, approval]
+ *                 enum: ["regular", "recurring", "milestone", "approval"]
  *                 description: Type of task
  *                 example: "regular"
  *               dueDate:
@@ -57,7 +77,7 @@ const router = express.Router();
  *                 example: "2025-01-01T09:00:00.000Z"
  *               priority:
  *                 type: string
- *                 enum: [low, medium, high, urgent]
+ *                 enum: ["low", "medium", "high", "urgent"]
  *                 description: Task priority level
  *                 example: "high"
  *               category:
@@ -68,14 +88,19 @@ const router = express.Router();
  *                 type: string
  *                 description: User ID of the assigned person
  *                 example: "507f1f77bcf86cd799439011"
+ *               createdByRole:
+ *                 type: string
+ *                 enum: ["super_admin", "org_admin", "manager", "individual", "employee"]
+ *                 description: Role of the user creating the task
+ *                 example: "manager"
  *               status:
  *                 type: string
- *                 enum: [todo, in-progress, completed, on-hold, cancelled]
+ *                 enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
  *                 description: Current task status
  *                 example: "todo"
  *               visibility:
  *                 type: string
- *                 enum: [private, public, team]
+ *                 enum: ["private", "public", "team"]
  *                 description: Task visibility level
  *                 example: "team"
  *               tags:
@@ -156,6 +181,18 @@ const router = express.Router();
  *                     priority:
  *                       type: string
  *                       example: "high"
+ *                     createdBy:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439010"
+ *                     createdByRole:
+ *                       type: string
+ *                       enum: ["super_admin", "org_admin", "manager", "individual", "employee"]
+ *                       example: "manager"
+ *                       description: "Role of the user who created the task"
+ *                     taskType:
+ *                       type: string
+ *                       enum: ["regular", "recurring", "milestone", "approval"]
+ *                       example: "regular"
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -210,6 +247,1207 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
 
 /**
  * @swagger
+ * /api/tasks/{parentTaskId}/create-subtask:
+ *   post:
+ *     summary: Create a new subtask under a parent task
+ *     description: |
+ *       Creates a subtask that belongs to a parent task. The subtask inherits the organization from the parent task and maintains a reference to it.
+ *       Only users with access to the parent task can create subtasks.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Subtask title
+ *                 example: "Review documentation"
+ *               description:
+ *                 type: string
+ *                 description: Detailed subtask description
+ *                 example: "Review and update the project documentation"
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Subtask due date
+ *                 example: "2025-12-31T23:59:59.000Z"
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Subtask start date
+ *                 example: "2025-01-01T09:00:00.000Z"
+ *               priority:
+ *                 type: string
+ *                 enum: ["low", "medium", "high", "urgent"]
+ *                 description: Subtask priority level
+ *                 example: "medium"
+ *               category:
+ *                 type: string
+ *                 description: Subtask category
+ *                 example: "Documentation"
+ *               assignedTo:
+ *                 type: string
+ *                 description: User ID of the assigned person
+ *                 example: "507f1f77bcf86cd799439011"
+ *               createdByRole:
+ *                 type: string
+ *                 enum: ["super_admin", "org_admin", "manager", "individual", "employee"]
+ *                 description: Role of the user creating the subtask
+ *                 example: "manager"
+ *               status:
+ *                 type: string
+ *                 enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
+ *                 description: Current subtask status
+ *                 example: "todo"
+ *               visibility:
+ *                 type: string
+ *                 enum: ["private", "public", "team"]
+ *                 description: Subtask visibility level
+ *                 example: "private"
+ *               tags:
+ *                 type: string
+ *                 description: JSON array string of subtask tags
+ *                 example: '["review", "documentation"]'
+ *               collaboratorIds:
+ *                 type: string
+ *                 description: JSON array string of collaborator user IDs
+ *                 example: '["507f1f77bcf86cd799439012", "507f1f77bcf86cd799439013"]'
+ *               dependsOnTaskIds:
+ *                 type: string
+ *                 description: JSON array string of task IDs this subtask depends on
+ *                 example: '["507f1f77bcf86cd799439014"]'
+ *               attachments:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: File attachments for the subtask
+ *               referenceProcess:
+ *                 type: string
+ *                 description: Reference to a process or workflow template
+ *                 example: "review-process"
+ *               customForm:
+ *                 type: string
+ *                 description: Custom form data or template reference
+ *                 example: "review-form"
+ *     responses:
+ *       201:
+ *         description: Subtask created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Subtask created successfully"
+ *                 subtask:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439021"
+ *                     title:
+ *                       type: string
+ *                       example: "Review documentation"
+ *                     description:
+ *                       type: string
+ *                       example: "Review and update the project documentation"
+ *                     status:
+ *                       type: string
+ *                       example: "todo"
+ *                     priority:
+ *                       type: string
+ *                       example: "medium"
+ *                     parentTaskId:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439020"
+ *                     taskType:
+ *                       type: string
+ *                       example: "subtask"
+ *                     isSubtask:
+ *                       type: boolean
+ *                       example: true
+ *                     createdBy:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439010"
+ *                     createdByRole:
+ *                       type: string
+ *                       example: "manager"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-09-18T10:30:00.000Z"
+ *                 parentTask:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439020"
+ *                     title:
+ *                       type: string
+ *                       example: "Complete quarterly report"
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input data"
+ *                 error:
+ *                   type: string
+ *                   example: "Title is required"
+ *       403:
+ *         description: Access denied - User doesn't have permission to create subtask for this parent task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied"
+ *       404:
+ *         description: Parent task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Parent task not found"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to create subtask"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.post("/tasks/:parentTaskId/create-subtask", authenticateToken, upload.array('attachments', 5), createSubtask);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks:
+ *   get:
+ *     summary: Get all subtasks for a parent task
+ *     description: Retrieves a paginated list of subtasks that belong to a specific parent task. Access is restricted based on parent task permissions.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
+ *         description: Filter subtasks by status
+ *         example: "in-progress"
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: ["low", "medium", "high", "urgent"]
+ *         description: Filter subtasks by priority level
+ *         example: "high"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of subtasks per page
+ *         example: 20
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search subtasks by title or description
+ *         example: "review"
+ *     responses:
+ *       200:
+ *         description: List of subtasks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Subtasks retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         title:
+ *                           type: string
+ *                           example: "Complete quarterly report"
+ *                         status:
+ *                           type: string
+ *                           example: "in-progress"
+ *                     subtasks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439021"
+ *                           title:
+ *                             type: string
+ *                             example: "Review documentation"
+ *                           description:
+ *                             type: string
+ *                             example: "Review and update the project documentation"
+ *                           status:
+ *                             type: string
+ *                             example: "todo"
+ *                           priority:
+ *                             type: string
+ *                             example: "medium"
+ *                           parentTaskId:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439020"
+ *                           taskType:
+ *                             type: string
+ *                             example: "subtask"
+ *                           isSubtask:
+ *                             type: boolean
+ *                             example: true
+ *                           dueDate:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-12-31T23:59:59.000Z"
+ *                           assignedTo:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439011"
+ *                           createdBy:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439010"
+ *                           createdByRole:
+ *                             type: string
+ *                             example: "manager"
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T10:30:00.000Z"
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T15:45:00.000Z"
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                           example: 1
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *                         totalSubtasks:
+ *                           type: integer
+ *                           example: 45
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *       403:
+ *         description: Access denied - User doesn't have permission to view this parent task
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied"
+ *       404:
+ *         description: Parent task not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Parent task not found"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch subtasks"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get("/tasks/:parentTaskId/subtasks", authenticateToken, getSubtasks);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}:
+ *   put:
+ *     summary: Update a subtask by ID
+ *     description: Updates an existing subtask with new information. Only users with appropriate permissions (parent task access) can update subtasks.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask to update
+ *         example: "507f1f77bcf86cd799439021"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Updated subtask title
+ *                 example: "Review documentation (Updated)"
+ *               description:
+ *                 type: string
+ *                 description: Updated subtask description
+ *                 example: "Review and update the project documentation with latest changes"
+ *               status:
+ *                 type: string
+ *                 enum: [todo, in-progress, completed, on-hold, cancelled]
+ *                 description: Updated subtask status
+ *                 example: "in-progress"
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, urgent]
+ *                 description: Updated subtask priority
+ *                 example: "high"
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Updated due date
+ *                 example: "2025-12-25T23:59:59.000Z"
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Updated start date
+ *                 example: "2025-01-05T09:00:00.000Z"
+ *               assignedTo:
+ *                 type: string
+ *                 description: Updated assignee user ID
+ *                 example: "507f1f77bcf86cd799439012"
+ *               category:
+ *                 type: string
+ *                 description: Updated subtask category
+ *                 example: "Documentation - Review"
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Updated subtask tags
+ *                 example: ["review", "documentation", "updated"]
+ *               visibility:
+ *                 type: string
+ *                 enum: [private, public, team]
+ *                 description: Updated subtask visibility
+ *                 example: "team"
+ *               collaborators:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Updated list of collaborator user IDs
+ *                 example: ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"]
+ *     responses:
+ *       200:
+ *         description: Subtask updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Subtask updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     subtask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439021"
+ *                         title:
+ *                           type: string
+ *                           example: "Review documentation (Updated)"
+ *                         description:
+ *                           type: string
+ *                           example: "Review and update the project documentation with latest changes"
+ *                         status:
+ *                           type: string
+ *                           example: "in-progress"
+ *                         priority:
+ *                           type: string
+ *                           example: "high"
+ *                         parentTaskId:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-09-18T15:45:00.000Z"
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         title:
+ *                           type: string
+ *                           example: "Complete quarterly report"
+ *       400:
+ *         description: Invalid input data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid input data"
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid status value"
+ *       403:
+ *         description: Access denied - User doesn't have permission to update this subtask
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied"
+ *       404:
+ *         description: Parent task or subtask not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Subtask not found or does not belong to this parent task"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to update subtask"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.put("/tasks/:parentTaskId/subtasks/:subtaskId", authenticateToken, updateSubtask);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}:
+ *   delete:
+ *     summary: Delete a subtask by ID
+ *     description: Performs a soft delete on a subtask by marking it as deleted. Only users with appropriate permissions (parent task access) can delete subtasks. This action can be undone by restoring the subtask.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask to delete
+ *         example: "507f1f77bcf86cd799439021"
+ *     responses:
+ *       200:
+ *         description: Subtask deleted successfully (soft delete)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Subtask deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedSubtaskId:
+ *                       type: string
+ *                       example: "507f1f77bcf86cd799439021"
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         title:
+ *                           type: string
+ *                           example: "Complete quarterly report"
+ *       403:
+ *         description: Access denied - User doesn't have permission to delete this subtask
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied"
+ *       404:
+ *         description: Parent task or subtask not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Subtask not found or does not belong to this parent task"
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to delete subtask"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.delete("/tasks/:parentTaskId/subtasks/:subtaskId", authenticateToken, deleteSubtask);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments:
+ *   post:
+ *     summary: Add a comment to a subtask
+ *     description: Adds a new comment to a specific subtask. Only users with access to the parent task can add comments.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask
+ *         example: "507f1f77bcf86cd799439021"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The comment text
+ *                 example: "This subtask looks good, please review the documentation part."
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs mentioned in the comment
+ *                 example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+ *     responses:
+ *       201:
+ *         description: Comment added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Comment added successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     comment:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "1695900000123abc"
+ *                         text:
+ *                           type: string
+ *                           example: "This subtask looks good, please review the documentation part."
+ *                         author:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439010"
+ *                         authorName:
+ *                           type: string
+ *                           example: "John Doe"
+ *                         authorEmail:
+ *                           type: string
+ *                           example: "john.doe@example.com"
+ *                         mentions:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           example: ["507f1f77bcf86cd799439011"]
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-09-27T10:30:00.000Z"
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-09-27T10:30:00.000Z"
+ *                         isEdited:
+ *                           type: boolean
+ *                           example: false
+ *                     subtask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439021"
+ *                         title:
+ *                           type: string
+ *                           example: "Review documentation"
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         title:
+ *                           type: string
+ *                           example: "Complete quarterly report"
+ *       400:
+ *         description: Invalid input - Comment text is required
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Parent task or subtask not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments", authenticateToken, addSubtaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments:
+ *   get:
+ *     summary: Get all comments for a subtask
+ *     description: Retrieves all comments for a specific subtask with pagination support.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask
+ *         example: "507f1f77bcf86cd799439021"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Number of comments per page
+ *         example: 20
+ *     responses:
+ *       200:
+ *         description: Comments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Comments retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     subtask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439021"
+ *                         title:
+ *                           type: string
+ *                           example: "Review documentation"
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "507f1f77bcf86cd799439020"
+ *                         title:
+ *                           type: string
+ *                           example: "Complete quarterly report"
+ *                     comments:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           text:
+ *                             type: string
+ *                           author:
+ *                             type: string
+ *                           authorName:
+ *                             type: string
+ *                           authorEmail:
+ *                             type: string
+ *                           mentions:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                           isEdited:
+ *                             type: boolean
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalComments:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                         limit:
+ *                           type: integer
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Parent task or subtask not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/tasks/:parentTaskId/subtasks/:subtaskId/comments", authenticateToken, getSubtaskComments);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments/{commentId}:
+ *   put:
+ *     summary: Update a comment on a subtask
+ *     description: Updates an existing comment on a subtask. Only the comment author can update their own comments.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask
+ *         example: "507f1f77bcf86cd799439021"
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the comment to update
+ *         example: "1695900000123abc"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The updated comment text
+ *                 example: "Updated comment: This subtask looks great after the changes."
+ *     responses:
+ *       200:
+ *         description: Comment updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Comment updated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     comment:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         text:
+ *                           type: string
+ *                         author:
+ *                           type: string
+ *                         authorName:
+ *                           type: string
+ *                         authorEmail:
+ *                           type: string
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                         isEdited:
+ *                           type: boolean
+ *                           example: true
+ *       400:
+ *         description: Invalid input - Comment text is required
+ *       403:
+ *         description: Access denied - Can only edit own comments
+ *       404:
+ *         description: Parent task, subtask, or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authenticateToken, updateSubtaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete a comment from a subtask
+ *     description: Deletes a comment from a subtask. Only the comment author or organization admin can delete comments.
+ *     tags:
+ *       - Tasks
+ *       - Subtasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the parent task
+ *         example: "507f1f77bcf86cd799439020"
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the subtask
+ *         example: "507f1f77bcf86cd799439021"
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID of the comment to delete
+ *         example: "1695900000123abc"
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Comment deleted successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedCommentId:
+ *                       type: string
+ *                       example: "1695900000123abc"
+ *                     subtask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *                     parentTask:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *       403:
+ *         description: Access denied - Can only delete own comments or need admin privileges
+ *       404:
+ *         description: Parent task, subtask, or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authenticateToken, deleteSubtaskComment);
+
+/**
+ * @swagger
  * /api/tasks:
  *   get:
  *     summary: Get all tasks for the user's organization or created by the user
@@ -223,14 +1461,14 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *         name: type
  *         schema:
  *           type: string
- *           enum: [regular, recurring, milestone, approval]
+ *           enum: ["regular", "recurring", "milestone", "approval"]
  *         description: Filter tasks by type
  *         example: "regular"
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [todo, in-progress, completed, on-hold, cancelled]
+ *           enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
  *         description: Filter tasks by status
  *         example: "in-progress"
  *       - in: query
@@ -249,7 +1487,7 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *         name: priority
  *         schema:
  *           type: string
- *           enum: [low, medium, high, urgent]
+ *           enum: ["low", "medium", "high", "urgent"]
  *         description: Filter tasks by priority level
  *         example: "high"
  *       - in: query
@@ -316,6 +1554,20 @@ router.post("/create-task", authenticateToken, upload.array('attachments', 5), c
  *                           assignedTo:
  *                             type: string
  *                             example: "507f1f77bcf86cd799439011"
+ *                           createdBy:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439010"
+ *                           createdByRole:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                               enum: [super_admin, org_admin, manager, individual, employee]
+ *                             example: ["manager"]
+ *                             description: "Role of the user who created the task"
+ *                           taskType:
+ *                             type: string
+ *                             enum: [regular, recurring, milestone, approval]
+ *                             example: "regular"
  *                           createdAt:
  *                             type: string
  *                             format: date-time
@@ -889,7 +2141,184 @@ router.patch("/tasks/:id/status", authenticateToken, updateTaskStatus);
 
 /**
  * @swagger
- * /api/tasks/{id}:
+ * /api/tasks/{id}/snooze:
+ *   patch:
+ *     summary: Snooze a task
+ *     description: Snooze a task until a specified date and time
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - snoozeUntil
+ *             properties:
+ *               snoozeUntil:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date and time until task is snoozed
+ *               reason:
+ *                 type: string
+ *                 description: Reason for snoozing the task
+ *     responses:
+ *       200:
+ *         description: Task snoozed successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
+ */
+router.patch("/tasks/:taskId/snooze", authenticateToken, snoozeTask);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/unsnooze:
+ *   patch:
+ *     summary: Unsnooze a task
+ *     description: Remove snooze from a task
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task unsnooze successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
+ */
+router.patch("/tasks/:taskId/unsnooze", authenticateToken, unsnoozeTask);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/mark-risk:
+ *   patch:
+ *     summary: Mark task as risk
+ *     description: Mark a task as risky with optional risk level and reason
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               riskLevel:
+ *                 type: string
+ *                 enum: [low, medium, high]
+ *                 description: Risk level
+ *               riskReason:
+ *                 type: string
+ *                 description: Reason for marking as risk
+ *     responses:
+ *       200:
+ *         description: Task marked as risk successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
+ */
+router.patch("/tasks/:taskId/mark-risk", authenticateToken, markTaskAsRisk);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/unmark-risk:
+ *   patch:
+ *     summary: Unmark task as risk
+ *     description: Remove risk marking from a task
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task unmarked as risk successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
+ */
+router.patch("/tasks/:taskId/unmark-risk", authenticateToken, unmarkTaskAsRisk);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/quick-done:
+ *   patch:
+ *     summary: Quick mark task as done
+ *     description: Quickly mark a task as completed with optional completion notes
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               completionNotes:
+ *                 type: string
+ *                 description: Notes about task completion
+ *     responses:
+ *       200:
+ *         description: Task marked as completed successfully
+ *       400:
+ *         description: Cannot complete task due to incomplete subtasks
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
+ */
+router.patch("/tasks/:taskId/quick-done", authenticateToken, quickMarkAsDone);
+
+/**
+ * @swagger
+ * /api/tasks/delete/{id}:
  *   delete:
  *     summary: Delete a task by ID
  *     description: Performs a soft delete on a task by marking it as deleted. Only users with appropriate permissions (task creator, admin, or organization member) can delete tasks. This action can be undone by restoring the task.
@@ -991,7 +2420,7 @@ router.patch("/tasks/:id/status", authenticateToken, updateTaskStatus);
  *                   type: string
  *                   example: "Database connection error"
  */
-router.delete("/tasks/:id", authenticateToken, deleteTask);
+router.delete("/tasks/delete/:id", authenticateToken, deleteTask);
 
 /**
  * @swagger
@@ -1001,7 +2430,7 @@ router.delete("/tasks/:id", authenticateToken, deleteTask);
  *     description: Processes approval or rejection of a task that requires approval. Only designated approvers can perform this action. Supports both 'any' and 'all' approval modes.
  *     tags:
  *       - Tasks
- *       - Approvals
+ *       - Tasks
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -1187,4 +2616,402 @@ router.delete("/tasks/:id", authenticateToken, deleteTask);
  */
 router.post("/tasks/:id/approve", authenticateToken, approveOrRejectTask);
 
-export { router as taskRoutes };
+/**
+ * @swagger
+ * /api/tasks/filter/{type}:
+ *   get:
+ *     summary: Get tasks filtered by task type
+ *     description: Retrieves tasks filtered by specific task type (regular, recurring, milestone, approval) with additional filtering capabilities. Supports pagination and comprehensive search options.
+ *     tags:
+ *       - Tasks
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [regular, recurring, milestone, approval]
+ *         description: Type of tasks to filter by
+ *         example: "regular"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [todo, in-progress, completed, on-hold, cancelled]
+ *         description: Filter by task status
+ *         example: "in-progress"
+ *       - in: query
+ *         name: assignee
+ *         schema:
+ *           type: string
+ *         description: Filter by assignee user ID
+ *         example: "507f1f77bcf86cd799439011"
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, urgent]
+ *         description: Filter by task priority
+ *         example: "high"
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by task category (case-insensitive partial match)
+ *         example: "Finance"
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search in task title, description, and tags
+ *         example: "quarterly report"
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tasks with due date on or after this date
+ *         example: "2025-01-01"
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter tasks with due date on or before this date
+ *         example: "2025-12-31"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of tasks per page
+ *         example: 20
+ *     responses:
+ *       200:
+ *         description: Tasks filtered by type retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Regular tasks retrieved successfully"
+ *                 taskType:
+ *                   type: string
+ *                   example: "regular"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439020"
+ *                           title:
+ *                             type: string
+ *                             example: "Complete quarterly report"
+ *                           description:
+ *                             type: string
+ *                             example: "Prepare and submit the Q4 financial report"
+ *                           taskType:
+ *                             type: string
+ *                             example: "regular"
+ *                           status:
+ *                             type: string
+ *                             example: "in-progress"
+ *                           priority:
+ *                             type: string
+ *                             example: "high"
+ *                           category:
+ *                             type: string
+ *                             example: "Finance"
+ *                           dueDate:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-12-31T23:59:59.000Z"
+ *                           assignedTo:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439011"
+ *                           createdBy:
+ *                             type: string
+ *                             example: "507f1f77bcf86cd799439010"
+ *                           createdByRole:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                               enum: [super_admin, org_admin, manager, individual, employee]
+ *                             example: ["manager"]
+ *                             description: "Role of the user who created the task"
+ *                           tags:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             example: ["urgent", "finance", "quarterly"]
+ *                           isRecurring:
+ *                             type: boolean
+ *                             description: Present for recurring tasks
+ *                             example: false
+ *                           isMilestone:
+ *                             type: boolean
+ *                             description: Present for milestone tasks
+ *                             example: false
+ *                           isApprovalTask:
+ *                             type: boolean
+ *                             description: Present for approval tasks
+ *                             example: false
+ *                           approvalDetails:
+ *                             type: array
+ *                             description: Present only for approval tasks
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 approverId:
+ *                                   type: string
+ *                                 status:
+ *                                   type: string
+ *                                 comment:
+ *                                   type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T10:30:00.000Z"
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2025-09-18T15:45:00.000Z"
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                           example: 1
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *                         totalTasks:
+ *                           type: integer
+ *                           example: 95
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
+ *                         limit:
+ *                           type: integer
+ *                           example: 20
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         taskType:
+ *                           type: string
+ *                           example: "regular"
+ *                         totalCount:
+ *                           type: integer
+ *                           example: 95
+ *                         filters:
+ *                           type: object
+ *                           properties:
+ *                             status:
+ *                               type: string
+ *                               example: "in-progress"
+ *                             assignee:
+ *                               type: string
+ *                               example: "507f1f77bcf86cd799439011"
+ *                             priority:
+ *                               type: string
+ *                               example: "high"
+ *                             category:
+ *                               type: string
+ *                               example: "Finance"
+ *                             search:
+ *                               type: string
+ *                               example: "quarterly report"
+ *                             dateRange:
+ *                               type: object
+ *                               properties:
+ *                                 from:
+ *                                   type: string
+ *                                   example: "2025-01-01"
+ *                                 to:
+ *                                   type: string
+ *                                   example: "2025-12-31"
+ *       400:
+ *         description: Invalid task type parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid task type. Must be one of: regular, recurring, milestone, approval"
+ *                 validTypes:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["regular", "recurring", "milestone", "approval"]
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch tasks by type"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get("/tasks/filter/:type", authenticateToken, getTasksByType);
+
+/**
+ * @swagger
+ * /api/mytasks:
+ *   get:
+ *     summary: Get all tasks created by the user's role
+ *     description: Retrieves a list of tasks where the createdByRole matches the user's role. Supports pagination and filtering.
+ *     tags:
+ *       - Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"]
+ *         description: Filter tasks by status
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: ["low", "medium", "high", "urgent"]
+ *         description: Filter tasks by priority
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of tasks per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search tasks by title or description
+ *     responses:
+ *       200:
+ *         description: List of tasks created by user's role retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalTasks:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                         limit:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized - Invalid or missing authentication token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized access"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to fetch tasks"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection error"
+ */
+router.get("/mytasks", authenticateToken, getMyTasks);
+
+export default router;

@@ -21,17 +21,60 @@ export default function TaskStatusDropdown({
   const buttonRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 176 });
 
-  const currentStatusObj = statuses.find(
+  // Enhanced status matching with fallbacks
+  let currentStatusObj = statuses.find(
     (s) => s.code === currentStatus && s.active,
   );
+
+  // Fallback: try case-insensitive matching
+  if (!currentStatusObj && currentStatus) {
+    currentStatusObj = statuses.find(
+      (s) => s.code.toLowerCase() === currentStatus.toLowerCase() && s.active,
+    );
+  }
+
+  // Fallback: try label matching
+  if (!currentStatusObj && currentStatus) {
+    currentStatusObj = statuses.find(
+      (s) => s.label.toLowerCase() === currentStatus.toLowerCase() && s.active,
+    );
+  }
+
+  // Comprehensive debug logging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('TaskStatusDropdown Debug Info:', {
+        currentStatus,
+        currentStatusType: typeof currentStatus,
+        taskTitle: task?.title || 'Unknown',
+        availableStatuses: statuses.map(s => ({
+          code: s.code,
+          label: s.label,
+          color: s.color,
+          active: s.active
+        })),
+        foundStatusObj: currentStatusObj ? {
+          code: currentStatusObj.code,
+          label: currentStatusObj.label,
+          color: currentStatusObj.color
+        } : null,
+        isMatched: !!currentStatusObj
+      });
+    }
+  }, [currentStatus, statuses, currentStatusObj, task?.title]);
+
   const badgeStyle = currentStatusObj
     ? {
-        backgroundColor: currentStatusObj.color,
-        color: "white",
-      }
-    : {};
-
-  // Calculate valid transitions when dropdown opens
+      backgroundColor: currentStatusObj.color,
+      color: "white",
+      border: `2px solid ${currentStatusObj.color}`,
+      boxShadow: `0 0 0 1px ${currentStatusObj.color}20`
+    }
+    : {
+      backgroundColor: "#6c757d", // Default gray color when status not found
+      color: "white",
+      border: "2px solid #6c757d"
+    };  // Calculate valid transitions when dropdown opens
   useEffect(() => {
     if (isOpen && currentStatusObj) {
       const transitions = currentStatusObj.allowedTransitions.filter(
@@ -96,7 +139,10 @@ export default function TaskStatusDropdown({
       <div className="relative">
         <span
           className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-help"
-          style={badgeStyle}
+          style={{
+            backgroundColor: currentStatusObj?.color || "#6c757d",
+            color: "white"
+          }}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
@@ -177,14 +223,24 @@ export default function TaskStatusDropdown({
                     return (
                       <button
                         key={transitionCode}
-                        className="w-full text-left px-2 py-1 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
+                        className="w-full text-left px-2 py-1 text-sm flex items-center gap-2 transition-all duration-200 group relative overflow-hidden hover:shadow-sm"
                         onClick={() => {
                           onStatusChange(transitionCode);
                           setIsOpen(false);
                         }}
+                        style={{
+                          background: `linear-gradient(90deg, ${targetStatus.color}15 0%, ${targetStatus.color}08 100%)`,
+                          borderLeft: `3px solid ${targetStatus.color}`
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}25 0%, ${targetStatus.color}15 100%)`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}15 0%, ${targetStatus.color}08 100%)`;
+                        }}
                       >
                         <span
-                          className="w-2 h-2 rounded-full"
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: targetStatus.color }}
                         />
                         <span className="font-medium text-gray-900 flex-1">
@@ -206,9 +262,9 @@ export default function TaskStatusDropdown({
                   </div>
                   <div className="text-xs text-gray-400 mt-1">
                     {task.subtasks?.length > 0 &&
-                    task.subtasks.some(
-                      (s) => s.status !== "DONE" && s.status !== "CANCELLED",
-                    )
+                      task.subtasks.some(
+                        (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+                      )
                       ? "Complete all sub-tasks first"
                       : "This status cannot be changed further"}
                   </div>

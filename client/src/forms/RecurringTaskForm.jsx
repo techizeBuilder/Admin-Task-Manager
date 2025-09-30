@@ -148,7 +148,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
   };
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-6">
+    <div className="bg-blue-50 border border-blue-200 rounded-md p-6 space-y-6">
       <div className="flex items-center space-x-2 mb-4">
         <span className="text-2xl">🔁</span>
         <h3 className="text-lg font-semibold text-gray-900">
@@ -198,7 +198,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="number"
             min="1"
-            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="1"
             data-testid="input-repeat-every"
           />
@@ -460,7 +460,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             <input
               {...register("recurrence.customDates")}
               type="date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               data-testid="input-custom-dates"
             />
             <p className="text-xs text-gray-500">
@@ -487,7 +487,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="date"
             min={getTodayDate()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             data-testid="input-start-date"
           />
           {errors.recurrence?.startDate && (
@@ -504,7 +504,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           <input
             {...register("recurrence.startTime")}
             type="time"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             defaultValue="09:00"
             data-testid="input-start-time"
           />
@@ -582,7 +582,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
               })}
               type="date"
               min={watchedStartDate}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               data-testid="input-end-date"
             />
             {errors.recurrence?.endDate && (
@@ -770,7 +770,7 @@ export const RecurringTaskForm = ({
               },
             })}
             type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="Enter task name..."
             data-testid="input-task-name"
           />
@@ -797,7 +797,7 @@ export const RecurringTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="custom-editor border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Describe your recurring task..."
             />
           )}
@@ -969,7 +969,7 @@ export const RecurringTaskForm = ({
               value={field.value}
               onChange={field.onChange}
               modules={quillModules}
-              className="custom-editor border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="custom-editor border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Add any special notes or instructions for this recurring task..."
             />
           )}
@@ -1088,7 +1088,7 @@ export const RecurringTaskForm = ({
       <div className="flex justify-end space-x-3 pt-6">
         <button
           type="submit"
-          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
           data-testid="button-save"
         >
           Save Recurring Task

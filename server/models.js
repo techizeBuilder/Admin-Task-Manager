@@ -83,6 +83,10 @@ const taskStatusSchema = new mongoose.Schema(
 // Task Schema
 const taskSchema = new mongoose.Schema(
   {
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     title: {
       type: String,
       required: true,
@@ -147,14 +151,31 @@ const taskSchema = new mongoose.Schema(
     // Advanced task fields for comprehensive task management
     taskType: {
       type: String,
-      enum: ["regular", "recurring", "milestone", "approval"],
+      enum: ["regular", "recurring", "milestone", "approval", "subtask"],
       default: "regular",
     },
     mainTaskType: {
       type: String,
-      enum: ["regular", "recurring", "milestone", "approval"],
+      enum: ["regular", "recurring", "milestone", "approval", "subtask"],
       default: "regular",
     }, // Clear task category identification
+    // Subtask specific fields
+    parentTaskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+      required: false,
+      index: true
+    },
+    isSubtask: {
+      type: Boolean,
+      default: false
+    },
+    createdByRole: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
     taskTypeAdvanced: {
       type: String,
       enum: ["simple", "complex", "recurring", "milestone", "approval"],
@@ -179,6 +200,19 @@ const taskSchema = new mongoose.Schema(
       },
     ],
     customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
+
+    // Comments array for subtasks and tasks
+    comments: [{
+      _id: { type: String, required: true },
+      text: { type: String, required: true },
+      author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      authorName: { type: String, required: true },
+      authorEmail: { type: String, required: true },
+      mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now },
+      isEdited: { type: Boolean, default: false }
+    }],
 
     // Advanced options fields - always available regardless of task type
     referenceProcess: { type: String, default: null }, // Links to existing process/workflow

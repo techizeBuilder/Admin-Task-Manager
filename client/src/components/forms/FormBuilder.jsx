@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FormFieldTypes } from "@/components/forms/FormFieldTypes";
 import { FormPreview } from "@/components/forms/FormPreview";
 import { FormSettings } from "@/components/forms/FormSettings";
+import ConfirmationDeleteFieldModal from "./ConfirmatonDeleteFieldModal";
 
 export default function FormBuilder() {
   const [, setLocation] = useLocation();
@@ -46,6 +47,7 @@ export default function FormBuilder() {
       submitMessage: "Thank you for your submission!",
     },
   });
+ 
   const [layout, setLayout] = useState("1-column");
   const [history, setHistory] = useState([]);
   const [currentStep, setCurrentStep] = useState(-1);
@@ -53,6 +55,12 @@ export default function FormBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [draggedField, setDraggedField] = useState(null);
+  // Confirm delete field modal state
+  const [confirmFieldDelete, setConfirmFieldDelete] = useState({
+    isOpen: false,
+    fieldId: null,
+    label: "",
+  });
   // Fetch forms
   const { data: forms = [], isLoading } = useQuery({
     queryKey: ["/api/forms"],
@@ -366,6 +374,23 @@ export default function FormBuilder() {
     createFormMutation.mutate(form);
   };
 
+
+
+
+  const openConfirmFieldDelete = (field) => {
+    setConfirmFieldDelete({ isOpen: true, fieldId: field.id, label: field.label });
+  };
+
+  const closeConfirmFieldDelete = () => {
+    setConfirmFieldDelete({ isOpen: false, fieldId: null, label: "" });
+  };
+
+  const confirmRemoveField = () => {
+    if (confirmFieldDelete.fieldId) {
+      removeField(confirmFieldDelete.fieldId);
+    }
+    closeConfirmFieldDelete();
+  };
   const handlePublish = (formId) => {
     publishFormMutation.mutate(formId);
   };
@@ -570,7 +595,7 @@ export default function FormBuilder() {
                           </div>
                           <div className="flex items-center space-x-2 mt-1">
                             <span className="text-sm text-slate-500 capitalize bg-slate-100 px-2 py-1 rounded">
-                              {field.type}
+                              {field.type.split("_").join(" ")} 
                             </span>
                             {field.placeholder && (
                               <span className="text-xs text-slate-400 italic">
@@ -610,7 +635,7 @@ export default function FormBuilder() {
                           variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeField(field.id);
+                            openConfirmFieldDelete(field);
                           }}
                           className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                         >
@@ -820,6 +845,16 @@ export default function FormBuilder() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      <ConfirmationDeleteFieldModal
+        isOpen={confirmFieldDelete.isOpen}
+        title="Confirm Field Deletion"
+        description={`Are you sure you want to delete the field "${confirmFieldDelete.label}"?`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmRemoveField}
+        onCancel={closeConfirmFieldDelete}
+      />
     </div>
   );
 }
