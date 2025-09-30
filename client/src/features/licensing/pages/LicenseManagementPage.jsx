@@ -467,24 +467,24 @@ export default function LicenseManagementPage() {
         )}
 
         {/* Usage Overview and Trial Countdown Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           {/* Usage Overview Section - Left 8 columns */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               {/* Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Usage Overview
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 mt-0.5">
                   Monitor your current usage against plan limits
                 </p>
               </div>
 
               {/* Usage Meters Grid - Flex grow to fill remaining space */}
-              <div className="p-6 flex-1 flex items-center">
+              <div className="p-3 flex-1">
            
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
   {[
     { key: "tasks", label: "Tasks created", Icon: CheckSquare },
     { key: "forms", label: "Forms created", Icon: FileText },
@@ -493,16 +493,15 @@ export default function LicenseManagementPage() {
   ].map(({ key, label, Icon }) => {
     const status = getUsageStatus(key);
     return (
-      <Card className="w-full p-6" key={key}>
       <div
         key={key}
-        className="space-y-3"
+        className="space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50"
         data-testid={`usage-meter-${key}`}
       >
         <div className="flex items-center justify-between">
           {/* Label with icon */}
-          <div className="flex items-center space-x-2">
-            <Icon className="w-4 h-4 text-gray-600" aria-hidden="true" />
+          <div className="flex items-center space-x-1.5">
+            <Icon className="w-3.5 h-3.5 text-gray-600" aria-hidden="true" />
             <span className="text-sm font-medium text-gray-700">
               {label}
             </span>
@@ -515,10 +514,10 @@ export default function LicenseManagementPage() {
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div
             className={cn(
-              "h-2 rounded-full transition-all",
+              "h-1.5 rounded-full transition-all",
               status.isOverLimit
                 ? "bg-red-500"
                 : status.isNearLimit
