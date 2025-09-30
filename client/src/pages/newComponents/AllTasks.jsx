@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useActiveRole } from "../../components/RoleSwitcher";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
@@ -131,8 +132,14 @@ export default function AllTasks({
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
-  const { activeRole } = useActiveRole();
+  const { activeRole, setActiveRole } = useActiveRole();
   const [currentRole, setCurrentRole] = useState(null);
+
+  // Get user data to access roles
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/verify"],
+    enabled: !!localStorage.getItem("token"),
+  });
 
   // Function to refetch tasks from API
   const refetchTasks = async () => {
@@ -154,9 +161,20 @@ export default function AllTasks({
         // If response is grouped by roles, use only current role's tasks
         const rolesObj = response.data.data?.roles;
         let roleToUse = activeRole || null;
+
+        // If no active role set, use user's first role as default
+        if (!roleToUse && user?.role?.[0]) {
+          roleToUse = user.role[0];
+          // Set the active role in context
+          setActiveRole(roleToUse);
+        }
+
+        // Fallback to first available role from response
         if (!roleToUse && rolesObj) {
           roleToUse = Object.keys(rolesObj)[0];
+          setActiveRole(roleToUse);
         }
+
         setCurrentRole(roleToUse);
         let tasksArr = [];
         if (rolesObj && roleToUse && rolesObj[roleToUse]) {
@@ -201,6 +219,7 @@ export default function AllTasks({
 
           const statusMap = {
             todo: "OPEN",
+            open: "OPEN",
             "in-progress": "INPROGRESS",
             inprogress: "INPROGRESS",
             done: "DONE",
@@ -331,8 +350,11 @@ export default function AllTasks({
       setApiLoading(false);
     };
 
-    fetchTasks();
-  }, [activeRole]);
+    // Only fetch if we have user data or activeRole
+    if (user || activeRole) {
+      fetchTasks();
+    }
+  }, [activeRole, user]);
 
   // Company-defined statuses with comprehensive management
   const [companyStatuses] = useState([
@@ -347,7 +369,7 @@ export default function AllTasks({
       active: true,
       order: 1,
       systemMapping: "SYS_OPEN",
-      allowedTransitions: ["INPROGRESS", "ONHOLD", "CANCELLED"],
+      allowedTransitions: ["INPROGRESS", "ONHOLD", "CANCELLED", "DONE"],
       isSystem: false,
       createdAt: "2024-01-01T00:00:00Z",
       tooltip: "New task ready to be started",
@@ -2283,382 +2305,440 @@ export default function AllTasks({
               </TableHeader>
 
               <TableBody>
-                {filteredTasks.map((task) => (
-                  <React.Fragment key={task.id}>
-                    <TableRow
-                      className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
-                        }`}
-                      style={{
-                        borderLeft: `4px solid ${getTaskColorCode(task)}`,
-                      }}
-                    >
-                      <TableCell className="px-6 py-4 text-nowrap rounded-[inherit]">
-                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                          <input
-                            type="checkbox"
-                            checked={selectedTasks.includes(task.id)}
-                            onChange={(e) =>
-                              handleTaskSelection(task.id, e.target.checked)
-                            }
-                            className="w-4 h-4 rounded-[inherit] border-gray-300 text-blue-600 focus:ring-blue-500 overflow-hidden"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            <div className="flex items-center gap-2">
-                              {/* Expansion control for tasks with subtasks */}
-                              {task.subtasks && task.subtasks.length > 0 && (
-                                <button
-                                  onClick={() =>
-                                    handleToggleTaskExpansion(task.id)
-                                  }
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors hover:text-gray-600 transition-colors"
-                                  title={
-                                    expandedTasks.has(task.id)
-                                      ? "Collapse subtasks"
-                                      : "Expand subtasks"
-                                  }
-                                >
-                                  <svg
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
+                {apiLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-8 text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span className="text-gray-500">Loading tasks...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : apiError ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-8 text-center">
+                      <div className="text-red-500">
+                        <svg className="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833-.23 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-lg font-medium">Error loading tasks</p>
+                        <p className="text-sm text-gray-500 mt-1">{apiError}</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredTasks.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-12 text-center">
+                      <div className="text-gray-500">
+                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                        <p className="text-sm mb-4">
+                          {apiTasks.length === 0
+                            ? "You don't have any tasks assigned yet."
+                            : "No tasks match your current filters."
+                          }
+                        </p>
+                        {apiTasks.length === 0 && (
+                          <button
+                            onClick={() => setShowCreateTaskDrawer(true)}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create your first task
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTasks.map((task) => (
+                    <React.Fragment key={task.id}>
+                      <TableRow
+                        className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
+                          }`}
+                        style={{
+                          borderLeft: `4px solid ${getTaskColorCode(task)}`,
+                        }}
+                      >
+                        <TableCell className="px-6 py-4 text-nowrap rounded-[inherit]">
+                          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                            <input
+                              type="checkbox"
+                              checked={selectedTasks.includes(task.id)}
+                              onChange={(e) =>
+                                handleTaskSelection(task.id, e.target.checked)
+                              }
+                              className="w-4 h-4 rounded-[inherit] border-gray-300 text-blue-600 focus:ring-blue-500 overflow-hidden"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              <div className="flex items-center gap-2">
+                                {/* Expansion control for tasks with subtasks */}
+                                {task.subtasks && task.subtasks.length > 0 && (
+                                  <button
+                                    onClick={() =>
+                                      handleToggleTaskExpansion(task.id)
+                                    }
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors hover:text-gray-600 transition-colors"
+                                    title={
+                                      expandedTasks.has(task.id)
+                                        ? "Collapse subtasks"
+                                        : "Expand subtasks"
+                                    }
                                   >
-                                    <circle cx="5" cy="5" r="2" fill="currentColor" />
-                                    <circle cx="5" cy="12" r="2" fill="currentColor" />
-                                    <circle cx="5" cy="19" r="2" fill="currentColor" />
-                                    <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
-                                  </svg>
-                                  {task.subtasks.length}
-                                </button>
-                              )}
+                                    <svg
+                                      width="24"
+                                      height="24"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle cx="5" cy="5" r="2" fill="currentColor" />
+                                      <circle cx="5" cy="12" r="2" fill="currentColor" />
+                                      <circle cx="5" cy="19" r="2" fill="currentColor" />
+                                      <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                    {task.subtasks.length}
+                                  </button>
+                                )}
 
-                              {editingTaskId === task.id ? (
-                                <input
-                                  type="text"
-                                  value={editingTitle}
-                                  onChange={(e) =>
-                                    setEditingTitle(e.target.value)
-                                  }
-                                  onBlur={() => handleTitleSave(task.id)}
-                                  onKeyDown={(e) =>
-                                    handleTitleKeyDown(e, task.id)
-                                  }
-                                  className="w-full px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all duration-200"
-                                  autoFocus
-                                  maxLength={100}
-                                />
-                              ) : (
-                                <>
-                                  {task.isRecurring && (
-                                    <span
-                                      className="text-green-600 cursor-help"
-                                      title="Recurring Task – generated from a pattern"
-                                    >
-                                      🔁
-                                    </span>
-                                  )}
-                                  {task.isApprovalTask && (
-                                    <span
-                                      className="text-orange-600 cursor-help"
-                                      title="Approval Task – requires approval workflow"
-                                    >
-                                      ✅
-                                    </span>
-                                  )}
-                                  {task.type === "milestone" && (
-                                    <span
-                                      className="text-purple-600 cursor-help"
-                                      title="Milestone – project checkpoint"
-                                    >
-                                      🎯
-                                    </span>
-                                  )}
-                                  <span
-                                    className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1 editable-task-title"
-                                    onClick={() => handleTaskTitleClick(task)}
-                                    title="Click to edit"
-                                  >
-                                    {task.title}
-                                    {(riskyTasks.has(task.id) || task.isRisk) && (
+                                {editingTaskId === task.id ? (
+                                  <input
+                                    type="text"
+                                    value={editingTitle}
+                                    onChange={(e) =>
+                                      setEditingTitle(e.target.value)
+                                    }
+                                    onBlur={() => handleTitleSave(task.id)}
+                                    onKeyDown={(e) =>
+                                      handleTitleKeyDown(e, task.id)
+                                    }
+                                    className="w-full px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all duration-200"
+                                    autoFocus
+                                    maxLength={100}
+                                  />
+                                ) : (
+                                  <>
+                                    {task.isRecurring && (
                                       <span
-                                        className="ml-2 text-orange-500"
-                                        title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
+                                        className="text-green-600 cursor-help"
+                                        title="Recurring Task – generated from a pattern"
                                       >
-                                        ⚠️
+                                        🔁
                                       </span>
                                     )}
-                                    {(snoozedTasks.has(task.id) || task.isSnooze) && (
+                                    {task.isApprovalTask && (
                                       <span
-                                        className="ml-2 text-yellow-500"
-                                        title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
+                                        className="text-orange-600 cursor-help"
+                                        title="Approval Task – requires approval workflow"
                                       >
-                                        ⏸️
+                                        ✅
                                       </span>
                                     )}
-                                  </span>
-
-                                  {task.recurringFromTaskId && (
+                                    {task.type === "milestone" && (
+                                      <span
+                                        className="text-purple-600 cursor-help"
+                                        title="Milestone – project checkpoint"
+                                      >
+                                        🎯
+                                      </span>
+                                    )}
                                     <span
-                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-pointer hover:bg-green-200 transition-colors"
-                                      title={`Recurring from Task #${task.recurringFromTaskId}`}
-                                      onClick={() =>
-                                        console.log(
-                                          `View master task ${task.recurringFromTaskId}`,
-                                        )
-                                      }
+                                      className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1 editable-task-title"
+                                      onClick={() => handleTaskTitleClick(task)}
+                                      title="Click to edit"
                                     >
-                                      📋 #{task.recurringFromTaskId}
+                                      {task.title}
+                                      {(riskyTasks.has(task.id) || task.isRisk) && (
+                                        <span
+                                          className="ml-2 text-orange-500"
+                                          title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
+                                        >
+                                          ⚠️
+                                        </span>
+                                      )}
+                                      {(snoozedTasks.has(task.id) || task.isSnooze) && (
+                                        <span
+                                          className="ml-2 text-yellow-500"
+                                          title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
+                                        >
+                                          ⏸️
+                                        </span>
+                                      )}
                                     </span>
-                                  )}
-                                </>
-                              )}
+
+                                    {task.recurringFromTaskId && (
+                                      <span
+                                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-pointer hover:bg-green-200 transition-colors"
+                                        title={`Recurring from Task #${task.recurringFromTaskId}`}
+                                        onClick={() =>
+                                          console.log(
+                                            `View master task ${task.recurringFromTaskId}`,
+                                          )
+                                        }
+                                      >
+                                        📋 #{task.recurringFromTaskId}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                            <span className="text-xs font-medium text-gray-600">
-                              {task.assignee && task.assignee
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("") || "UN"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                              <span className="text-xs font-medium text-gray-600">
+                                {task.assignee && task.assignee
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("") || "UN"}
+                              </span>
+                            </div>
+                            <span className="text-sm text-gray-900">
+                              {task.assignee || "Unassigned"}
                             </span>
                           </div>
-                          <span className="text-sm text-gray-900">
-                            {task.assignee || "Unassigned"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap text-left">
+                          <TaskStatusDropdown
+                            task={task}
+                            currentStatus={task.status}
+                            statuses={companyStatuses}
+                            onStatusChange={(newStatus) =>
+                              handleStatusChange(task.id, newStatus, true)
+                            }
+                            canEdit={canEditTaskStatus(task)}
+                            canMarkCompleted={canMarkAsCompleted(task)}
+                          />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <span
+                            className="inline-flex items-center px-2.5 py-0.5 uppercase text-gray-900" >
+                            {task.priority}
                           </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap text-left">
-                        <TaskStatusDropdown
-                          task={task}
-                          currentStatus={task.status}
-                          statuses={companyStatuses}
-                          onStatusChange={(newStatus) =>
-                            handleStatusChange(task.id, newStatus, true)
-                          }
-                          canEdit={canEditTaskStatus(task)}
-                          canMarkCompleted={canMarkAsCompleted(task)}
-                        />
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <span
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white opacity-70"
-                          style={{ backgroundColor: getTaskPriorityColor(task.priority), }}
-                        >
-                          {task.priority}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
-                        {task.dueDate}
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-xs text-gray-600 min-w-[3rem]">
-                            {task.progress}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex flex-wrap gap-1">
-                          {task.tags &&
-                            task.tags.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-900">
-                            {getTaskType(task)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="w-6 h-6 rounded-full shadow-md"
-                          style={{ backgroundColor: getTaskColorCode(task) }}
-                          title={getTaskColorCode(task)}
-                        ></div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* <button
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
+                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }) : "-"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-600 min-w-[3rem]">
+                              {task.progress}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {task.tags &&
+                              task.tags.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-900">
+                              {getTaskType(task)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="w-6 h-6 rounded-full shadow-md"
+                            style={{ backgroundColor: getTaskColorCode(task) }}
+                            title={getTaskColorCode(task)}
+                          ></div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center justify-center gap-2">
+                            {/* <button
                             onClick={() => handleOpenThread(task)}
                             className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
                             title="Open task thread"
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button> */}
-                          <TaskActionsDropdown
-                            task={task}
-                            onSnooze={() => handleSnoozeTask(task.id)}
-                            onMarkAsRisk={() => handleMarkAsRisk(task.id)}
-                            onMarkAsDone={() =>
-                              handleStatusChange(task.id, "DONE", true)
-                            }
-                            onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
-                            onDelete={() => handleDeleteTask(task.id)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <TaskActionsDropdown
+                              task={task}
+                              onSnooze={() => handleSnoozeTask(task.id)}
+                              onMarkAsRisk={() => handleMarkAsRisk(task.id)}
+                              onMarkAsDone={() =>
+                                handleStatusChange(task.id, "DONE", true)
+                              }
+                              onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
+                              onDelete={() => handleDeleteTask(task.id)}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
 
-                    {/* Subtask Rows */}
-                    {expandedTasks.has(task.id) &&
-                      task.subtasks &&
-                      task.subtasks.map((subtask) => (
-                        <TableRow
-                          key={`subtask-${subtask.id}`}
-                          className="bg-gray-50 hover:bg-gray-100 transition-colors"
-                        >
-                          <TableCell className="px-6 py-3"></TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center gap-2 pl-8">
-                              <span className="text-blue-500">↳</span>
-                              {editingSubtaskId === subtask.id ? (
-                                <input
-                                  type="text"
-                                  value={editingSubtaskTitle}
-                                  onChange={(e) =>
-                                    setEditingSubtaskTitle(e.target.value)
-                                  }
-                                  onBlur={() =>
-                                    handleSubtaskTitleSave(subtask.id, task.id)
-                                  }
-                                  onKeyDown={(e) =>
-                                    handleSubtaskTitleKeyDown(
-                                      e,
-                                      subtask.id,
-                                      task.id,
-                                    )
-                                  }
-                                  className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                                  autoFocus
-                                  onFocus={(e) => e.target.select()}
-                                />
-                              ) : (
-                                <span
-                                  className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
-                                  onClick={() =>
-                                    handleSubtaskTitleClick(subtask, task.id)
-                                  }
-                                  title="Click to edit"
-                                >
-                                  {subtask.title}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500 pl-7">
-                              Sub-task of "{task.title}"
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
-                                <span className="text-xs font-medium text-gray-600">
-                                  {subtask.assignee && subtask.assignee
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("") || "UN"}
+                      {/* Subtask Rows */}
+                      {expandedTasks.has(task.id) &&
+                        task.subtasks &&
+                        task.subtasks.map((subtask) => (
+                          <TableRow
+                            key={`subtask-${subtask.id}`}
+                            className="bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <TableCell className="px-6 py-3"></TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center gap-2 pl-8">
+                                <span className="text-blue-500">↳</span>
+                                {editingSubtaskId === subtask.id ? (
+                                  <input
+                                    type="text"
+                                    value={editingSubtaskTitle}
+                                    onChange={(e) =>
+                                      setEditingSubtaskTitle(e.target.value)
+                                    }
+                                    onBlur={() =>
+                                      handleSubtaskTitleSave(subtask.id, task.id)
+                                    }
+                                    onKeyDown={(e) =>
+                                      handleSubtaskTitleKeyDown(
+                                        e,
+                                        subtask.id,
+                                        task.id,
+                                      )
+                                    }
+                                    className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                                    autoFocus
+                                    onFocus={(e) => e.target.select()}
+                                  />
+                                ) : (
+                                  <span
+                                    className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
+                                    onClick={() =>
+                                      handleSubtaskTitleClick(subtask, task.id)
+                                    }
+                                    title="Click to edit"
+                                  >
+                                    {subtask.title}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 pl-7">
+                                Sub-task of "{task.title}"
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {subtask.assignee && subtask.assignee
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("") || "UN"}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-gray-700">
+                                  {subtask.assignee || "Unassigned"}
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-700">
-                                {subtask.assignee || "Unassigned"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3 text-left">
-                            <TaskStatusDropdown
-                              task={subtask}
-                              currentStatus={subtask.status}
-                              statuses={companyStatuses}
-                              onStatusChange={(newStatus) =>
-                                handleSubtaskStatusChange(
-                                  task.id,
-                                  subtask.id,
-                                  newStatus,
-                                )
-                              }
-                              canEdit={canEditTaskStatus(subtask)}
-                              canMarkCompleted={true}
-                            />
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <span className={getPriorityBadge(subtask.priority)}>
-                              {subtask.priority}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-6 py-3 text-sm text-gray-700">
-                            {subtask.dueDate}
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <span className="text-xs text-gray-600 min-w-[3rem]">
-                                {subtask.progress}%
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3"></TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <span className="text-sm text-gray-700">
-                                {getTaskType(subtask)}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div
-                              className="w-6 h-6 rounded-full shadow-md"
-                              style={{
-                                backgroundColor: getTaskColorCode(subtask),
-                              }}
-                              title={getTaskColorCode(subtask)}
-                            ></div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center justify-center">
-                              <button
-                                className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
-                                onClick={() =>
-                                  handleDeleteSubtask(task.id, subtask.id)
+                            </TableCell>
+                            <TableCell className="px-6 py-3 text-left">
+                              <TaskStatusDropdown
+                                task={subtask}
+                                currentStatus={subtask.status}
+                                statuses={companyStatuses}
+                                onStatusChange={(newStatus) =>
+                                  handleSubtaskStatusChange(
+                                    task.id,
+                                    subtask.id,
+                                    newStatus,
+                                  )
                                 }
-                                title="Delete Sub-task"
-                              >
-                                <svg
-                                  className="w-5 h-5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                                canEdit={canEditTaskStatus(subtask)}
+                                canMarkCompleted={true}
+                              />
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <span className={getPriorityBadge(subtask.priority)}>
+                                {subtask.priority}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-6 py-3 text-sm text-gray-700">
+                              {/* {subtask.dueDate} */}
+                              {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }) : "-"}
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <span className="text-xs text-gray-600 min-w-[3rem]">
+                                  {subtask.progress}%
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3"></TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <span className="text-sm text-gray-700">
+                                  {getTaskType(subtask)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div
+                                className="w-6 h-6 rounded-full shadow-md"
+                                style={{
+                                  backgroundColor: getTaskColorCode(subtask),
+                                }}
+                                title={getTaskColorCode(subtask)}
+                              ></div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center justify-center">
+                                <button
+                                  className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
+                                  onClick={() =>
+                                    handleDeleteSubtask(task.id, subtask.id)
+                                  }
+                                  title="Delete Sub-task"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </React.Fragment>
-                ))}
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </React.Fragment>
+                  ))
+                )}
               </TableBody>
 
             </Table>

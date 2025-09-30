@@ -1663,6 +1663,15 @@ export const snoozeTask = async (req, res) => {
     const { snoozeUntil, reason } = req.body;
     const user = req.user;
 
+    console.log('🔍 SNOOZE API DEBUG:', {
+      taskId,
+      snoozeUntil,
+      reason,
+      userId: user?.id,
+      userIdType: typeof user?.id,
+      userName: user?.firstName + ' ' + user?.lastName
+    });
+
     // Validate required fields
     if (!snoozeUntil) {
       return res.status(400).json({
@@ -1671,7 +1680,7 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1679,9 +1688,16 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
+    console.log('🔍 TASK FOUND:', {
+      taskId: task._id,
+      assignedTo: task.assignedTo,
+      assignedToType: typeof task.assignedTo,
+      collaboratorIds: task.collaboratorIds
+    });
+
     // Check permissions (assignee, collaborator, or org admin)
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1697,9 +1713,9 @@ export const snoozeTask = async (req, res) => {
       isSnooze: true,
       snoozeUntil: new Date(snoozeUntil),
       snoozeReason: reason || null,
-      snoozedBy: user._id,
+      snoozedBy: user.id,
       snoozedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1780,7 +1796,7 @@ export const markTaskAsRisk = async (req, res) => {
     const { riskReason, riskLevel } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1789,8 +1805,8 @@ export const markTaskAsRisk = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1806,9 +1822,9 @@ export const markTaskAsRisk = async (req, res) => {
       isRisk: true,
       riskLevel: riskLevel || 'medium', // low, medium, high
       riskReason: riskReason || null,
-      riskMarkedBy: user._id,
+      riskMarkedBy: user.id,
       riskMarkedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1889,7 +1905,7 @@ export const quickMarkAsDone = async (req, res) => {
     const { completionNotes } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1898,8 +1914,8 @@ export const quickMarkAsDone = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1927,9 +1943,9 @@ export const quickMarkAsDone = async (req, res) => {
     const updatedTask = await storage.updateTask(taskId, {
       status: 'completed',
       completedDate: new Date(),
-      completedBy: user._id,
+      completedBy: user.id,
       completionNotes: completionNotes || null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
