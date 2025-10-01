@@ -1,0 +1,380 @@
+import nodemailer from "nodemailer";
+
+class EmailService {
+  constructor() {
+    if (
+      process.env.MAILTRAP_HOST &&
+      process.env.MAILTRAP_PORT &&
+      process.env.MAILTRAP_USER &&
+      process.env.MAILTRAP_PASS
+    ) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.MAILTRAP_HOST,
+        port: parseInt(process.env.MAILTRAP_PORT),
+        auth: {
+          user: process.env.MAILTRAP_USER,
+          pass: process.env.MAILTRAP_PASS,
+        },
+      });
+      this.isConfigured = true;
+      console.log("Mailtrap email service configured successfully");
+    } else {
+      console.warn("Mailtrap credentials not found - email service disabled");
+      this.isConfigured = false;
+    }
+
+    // Base URL - configurable via environment variable
+    const isLocal = 
+  typeof window !== "undefined"
+    ? window.location.hostname === "localhost"
+    : process.env.NODE_ENV === "development";
+
+this.baseUrl = isLocal
+  ? process.env.LOCAL_BASE_URL
+  : process.env.PRODUCTION_BASE_URL;
+  }
+
+  async sendVerificationEmail(
+    email,
+    verificationCode,
+    firstName,
+    organizationName = null,
+  ) {
+    if (!this.isConfigured) {
+      console.error(
+        "Email service not configured - Mailtrap credentials missing",
+      );
+      return false;
+    }
+
+    try {
+      // Determine if this is organization registration
+      const isOrganization = organizationName !== null && organizationName !== undefined;
+      
+      const mailOptions = {
+        to: email,
+        from: "noreply@tasksetu.com",
+        subject: isOrganization 
+          ? "✅ Verify Your Organization's Account on Tasksetu" 
+          : "✅ Complete Your Tasksetu Registration",
+        html: isOrganization ? `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Organization Account Verification</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { background: #10B981; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Welcome to TaskSetu!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName},</h2>
+                <p>Thank you for registering your organization, <strong>${organizationName}</strong>, with Tasksetu.</p>
+                <p>To complete the setup and define your password, click below:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
+                    Verify & Set Password
+                  </a>
+                </div>
+                
+                <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10B981;">
+                  <p style="margin: 0; color: #166534; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
+                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
+                </div>
+                
+                <p>Once verified, you can invite your team, configure access levels, and start collaborating.</p>
+                <p><strong>Let's make teamwork easier!</strong></p>
+                
+                <p><strong>— Tasksetu Team</strong><br>
+                <a href="https://www.Tasksetu.com" style="color: #10B981;">www.Tasksetu.com</a></p>
+              </div>
+              <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        ` : `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Email Verification</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #3B82F6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { background: #3B82F6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Welcome to TaskSetu!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName},</h2>
+                <p>Thanks for signing up with Tasksetu!</p>
+                <p>To activate your account and set your password, please click the link below:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
+                    👉 Verify Email & Set My Password
+                  </a>
+                </div>
+                
+                <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3B82F6;">
+                  <p style="margin: 0; color: #4a5568; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
+                  <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
+                </div>
+                
+                <p>This link is <strong style="color: #e53e3e;">valid for 24 hours</strong>.</p>
+                <p>Once verified, you'll be able to start managing your tasks and deadlines with ease.</p>
+                <p>See you enrolled in!</p>
+                
+                <p><strong>— The Tasksetu Team</strong><br>
+                <a href="https://www.tasksetu.com" style="color: #3B82F6;">www.Tasksetu.com</a></p>
+              </div>
+              <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Hi ${firstName},
+
+Thanks for signing up with Tasksetu!
+
+To activate your account and set your password, please click the link below:
+👉 Verify Email & Set My Password: ${this.baseUrl}/verify?token=${verificationCode}
+
+(or copy and paste this URL into your browser: ${this.baseUrl}/verify?token=${verificationCode})
+
+This link is valid for 24 hours.
+
+Once verified, you'll be able to start managing your tasks and deadlines with ease.
+
+See you enrolled in!
+
+— The Tasksetu Team
+www.Tasksetu.com`,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      console.log("Verification email sent successfully to:", email);
+      return true;
+    } catch (error) {
+      console.error("Email sending error:", error);
+      return false;
+    }
+  }
+
+  async sendPasswordResetEmail(email, resetToken, firstName) {
+    console.log("Email template using firstName:", firstName);
+    if (!this.isConfigured) {
+      console.error(
+        "Email service not configured - Mailtrap credentials missing",
+      );
+      return false;
+    }
+
+    try {
+      const resetUrl = `${this.baseUrl}/reset-password?token=${resetToken}`;
+
+      const mailOptions = {
+        to: email,
+        from: "noreply@tasksetu.com",
+        subject: "Reset Your Password - TaskSetu",
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Password Reset</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #EF4444; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #EF4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Password Reset Request</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName}!</h2>
+                <p>We received a request to reset your password for your TaskSetu account.</p>
+                
+                <p>Click the button below to reset your password:</p>
+                <a href="${resetUrl}" class="button">Reset Password</a>
+                
+                <p>Or copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+                
+                <p>This link will expire in 1 hour for security reasons.</p>
+                
+                <p>If you didn't request a password reset, please ignore this email or contact support if you have concerns.</p>
+                
+                <p>Best regards,<br>The TaskSetu Team</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Hi ${firstName}!\n\nWe received a request to reset your password for your TaskSetu account.\n\nClick this link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour for security reasons.\n\nIf you didn't request a password reset, please ignore this email.\n\nBest regards,\nThe TaskSetu Team`,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log("Password reset email sent successfully to:", email);
+      console.log("Email result:", result);
+      return true;
+    } catch (error) {
+      console.error("Email sending error:", error.message);
+      if (error.response) {
+        console.error("Email service response:", error.response);
+      }
+      if (error.code) {
+        console.error("Error code:", error.code);
+      }
+      return false;
+    }
+  }
+
+  async sendInvitationEmail(
+    email,
+    inviteToken,
+    organizationName,
+    roles,
+    invitedByName,
+    name = ''
+  ) {
+    if (!this.isConfigured) {
+      console.error(
+        "Email service not configured - Mailtrap credentials missing",
+      );
+      return false;
+    }
+
+    try {
+      const inviteUrl = `${this.baseUrl}/accept-invite?token=${inviteToken}`;
+
+      const mailOptions = {
+        to: email,
+        from: "noreply@tasksetu.com",
+        subject: `You're invited to join ${organizationName} - TaskSetu`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Team Invitation</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #10B981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Team Invitation</h1>
+              </div>
+              <div class="content">
+                <h2>You're invited to join ${organizationName}!</h2>
+                <p>Hi ${name || 'there'},</p>
+                <p><strong>${invitedByName}</strong> has invited you to join their team on TaskSetu.</p>
+                
+              <p>
+  You'll be joining as:
+  <strong>
+  ${Array.isArray(roles)
+    ? roles
+        .map(r => {
+          const roleMap = {
+            org_admin: "Organization Admin",
+            admin: "Company Admin",
+            employee: "Employee",
+            manager: "Manager",
+            individual: "Individual",
+          };
+          return roleMap[r] || r.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        })
+        .join(", ")
+    : (() => {
+        const roleMap = {
+          org_admin: "Organization Admin",
+          admin: "Company Admin",
+          employee: "Employee",
+          manager: "Manager",
+          individual: "Individual",
+        };
+        return roleMap[roles] || roles.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      })()}
+</strong>
+
+</p>
+                <p>Click the button below to accept the invitation and create your account:</p>
+                <a href="${inviteUrl}" class="button">Accept Invitation</a>
+                
+                <p>Or copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #666;">${inviteUrl}</p>
+                
+                <p>This invitation will expire in 7 days.</p>
+                
+                <p>If you don't want to join this team, you can safely ignore this email.</p>
+                
+                <p>Welcome to TaskSetu!<br>The TaskSetu Team</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `You're invited to join ${organizationName}!\n\n${invitedByName} has invited you to join their team on TaskSetu.\n\nYou'll be joining as: ${Array.isArray(roles) ? roles.join(", ") : roles}\n\nClick this link to accept the invitation: ${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nWelcome to TaskSetu!\nThe TaskSetu Team`,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+    
+      return true;
+    } catch (error) {
+      console.error("Email sending error:", error);
+      return false;
+    }
+  }
+
+  isEmailServiceAvailable() {
+    return this.isConfigured;
+  }
+}
+
+export const emailService = new EmailService();

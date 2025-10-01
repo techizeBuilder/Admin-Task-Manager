@@ -1,0 +1,366 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Design homepage mockups",
+      "description": "Create wireframes and high-fidelity mockups for the new homepage design including mobile and desktop versions",
+      "priority": "high",
+      "status": "in_progress",
+      "statusId": "2",
+      "dueDate": "2025-01-15",
+      "createdAt": "2025-01-01T09:00:00Z",
+      "updatedAt": "2025-01-03T14:30:00Z",
+      "assignedTo": ["1", "2"],
+      "projectId": "1",
+      "tags": ["design", "homepage", "ui/ux"],
+      "estimatedHours": 16,
+      "actualHours": 8,
+      "createdBy": "1",
+      "collaborators": ["3"],
+      "attachments": [],
+      "type": "regular"
+    },
+    {
+      "id": 2,
+      "title": "Implement user authentication",
+      "description": "Set up JWT-based authentication system with login, logout, and password reset functionality",
+      "priority": "urgent",
+      "status": "todo",
+      "statusId": "1",
+      "dueDate": "2025-01-10",
+      "createdAt": "2025-01-01T10:00:00Z",
+      "updatedAt": "2025-01-01T10:00:00Z",
+      "assignedTo": ["3"],
+      "projectId": "1",
+      "tags": ["backend", "security", "authentication"],
+      "estimatedHours": 24,
+      "actualHours": 0,
+      "createdBy": "1",
+      "collaborators": ["1"],
+      "attachments": [],
+      "type": "regular"
+    },
+    {
+      "id": 3,
+      "title": "Review Q4 marketing campaign",
+      "description": "Review and approve all marketing materials for Q4 campaign launch including social media assets and email templates",
+      "priority": "medium",
+      "status": "pending_approval",
+      "statusId": "4",
+      "dueDate": "2025-01-20",
+      "createdAt": "2025-01-02T11:00:00Z",
+      "updatedAt": "2025-01-02T11:00:00Z",
+      "assignedTo": ["4"],
+      "projectId": "2",
+      "tags": ["marketing", "approval", "review"],
+      "estimatedHours": 8,
+      "actualHours": 2,
+      "createdBy": "2",
+      "collaborators": ["1", "2"],
+      "attachments": [],
+      "type": "approval",
+      "approvers": ["1", "2"],
+      "approvalMode": "any_one",
+      "approvalStatus": "pending"
+    },
+    {
+      "id": 4,
+      "title": "Database backup system",
+      "description": "Implement automated daily database backup system with restore functionality and monitoring alerts",
+      "priority": "high",
+      "status": "completed",
+      "statusId": "5",
+      "dueDate": "2025-01-05",
+      "createdAt": "2024-12-15T08:00:00Z",
+      "updatedAt": "2025-01-04T16:00:00Z",
+      "assignedTo": ["3"],
+      "projectId": "3",
+      "tags": ["backend", "database", "infrastructure"],
+      "estimatedHours": 12,
+      "actualHours": 14,
+      "createdBy": "1",
+      "collaborators": [],
+      "attachments": [],
+      "type": "regular"
+    },
+    {
+      "id": 5,
+      "title": "Mobile app testing",
+      "description": "Comprehensive testing of mobile app across different devices and OS versions including performance testing",
+      "priority": "medium",
+      "status": "in_progress",
+      "statusId": "2",
+      "dueDate": "2025-01-25",
+      "createdAt": "2025-01-03T13:00:00Z",
+      "updatedAt": "2025-01-03T13:00:00Z",
+      "assignedTo": ["4", "5"],
+      "projectId": "4",
+      "tags": ["testing", "mobile", "qa"],
+      "estimatedHours": 20,
+      "actualHours": 5,
+      "createdBy": "2",
+      "collaborators": ["6"],
+      "attachments": [],
+      "type": "regular"
+    },
+    {
+      "id": 6,
+      "title": "Weekly team standup",
+      "description": "Regular weekly team standup meeting to discuss progress, blockers, and upcoming priorities",
+      "priority": "low",
+      "status": "in_progress",
+      "statusId": "2",
+      "dueDate": "2025-01-08",
+      "createdAt": "2025-01-01T09:00:00Z",
+      "updatedAt": "2025-01-01T09:00:00Z",
+      "assignedTo": ["1", "2", "3", "4", "5"],
+      "projectId": "5",
+      "tags": ["meeting", "team", "recurring"],
+      "estimatedHours": 2,
+      "actualHours": 0,
+      "createdBy": "1",
+      "collaborators": [],
+      "attachments": [],
+      "type": "recurring",
+      "recurringPattern": {
+        "frequency": "weekly",
+        "dayOfWeek": "monday",
+        "time": "09:00"
+      }
+    }
+  ],
+  "users": [
+    {
+      "id": "1",
+      "_id": "1",
+      "firstName": "John",
+      "lastName": "Smith",
+      "email": "john.smith@example.com",
+      "role": "admin",
+      "avatar": null,
+      "isActive": true,
+      "department": "Engineering",
+      "position": "Lead Developer"
+    },
+    {
+      "id": "2",
+      "_id": "2",
+      "firstName": "Sarah",
+      "lastName": "Johnson",
+      "email": "sarah.johnson@example.com",
+      "role": "individual",
+      "avatar": null,
+      "isActive": true,
+      "department": "Design",
+      "position": "UI/UX Designer"
+    },
+    {
+      "id": "3",
+      "_id": "3",
+      "firstName": "Michael",
+      "lastName": "Chen",
+      "email": "michael.chen@example.com",
+      "role": "member",
+      "avatar": null,
+      "isActive": true,
+      "department": "Engineering",
+      "position": "Backend Developer"
+    },
+    {
+      "id": "4",
+      "_id": "4",
+      "firstName": "Emily",
+      "lastName": "Davis",
+      "email": "emily.davis@example.com",
+      "role": "org_admin",
+      "avatar": null,
+      "isActive": true,
+      "department": "Marketing",
+      "position": "Marketing Manager"
+    },
+    {
+      "id": "5",
+      "_id": "5",
+      "firstName": "David",
+      "lastName": "Wilson",
+      "email": "david.wilson@example.com",
+      "role": "member",
+      "avatar": null,
+      "isActive": true,
+      "department": "QA",
+      "position": "QA Engineer"
+    },
+    {
+      "id": "6",
+      "_id": "6",
+      "firstName": "Lisa",
+      "lastName": "Brown",
+      "email": "lisa.brown@example.com",
+      "role": "member",
+      "avatar": null,
+      "isActive": true,
+      "department": "QA",
+      "position": "Senior QA Lead"
+    }
+  ],
+  "projects": [
+    {
+      "id": "1",
+      "_id": "1",
+      "name": "TaskSetu Platform",
+      "description": "Main task management platform development",
+      "status": "active",
+      "createdAt": "2024-12-01T00:00:00Z",
+      "managerId": "1",
+      "teamMembers": ["1", "2", "3"]
+    },
+    {
+      "id": "2",
+      "_id": "2",
+      "name": "Marketing Campaign Q4",
+      "description": "Q4 marketing initiatives and campaigns",
+      "status": "active",
+      "createdAt": "2024-12-15T00:00:00Z",
+      "managerId": "4",
+      "teamMembers": ["4", "1", "2"]
+    },
+    {
+      "id": "3",
+      "_id": "3",
+      "name": "Infrastructure Upgrade",
+      "description": "Server infrastructure and database improvements",
+      "status": "active",
+      "createdAt": "2024-11-01T00:00:00Z",
+      "managerId": "1",
+      "teamMembers": ["1", "3"]
+    },
+    {
+      "id": "4",
+      "_id": "4",
+      "name": "Mobile App Development",
+      "description": "Native mobile app for iOS and Android",
+      "status": "planning",
+      "createdAt": "2025-01-01T00:00:00Z",
+      "managerId": "2",
+      "teamMembers": ["2", "4", "5", "6"]
+    },
+    {
+      "id": "5",
+      "_id": "5",
+      "name": "Team Operations",
+      "description": "General team operations and meetings",
+      "status": "active",
+      "createdAt": "2024-10-01T00:00:00Z",
+      "managerId": "1",
+      "teamMembers": ["1", "2", "3", "4", "5", "6"]
+    }
+  ],
+  "taskStatuses": [
+    {
+      "id": "1",
+      "_id": "1",
+      "name": "To Do",
+      "slug": "todo",
+      "color": "#6B7280",
+      "order": 1
+    },
+    {
+      "id": "2",
+      "_id": "2",
+      "name": "In Progress",
+      "slug": "in_progress",
+      "color": "#3B82F6",
+      "order": 2
+    },
+    {
+      "id": "3",
+      "_id": "3",
+      "name": "Review",
+      "slug": "review",
+      "color": "#F59E0B",
+      "order": 3
+    },
+    {
+      "id": "4",
+      "_id": "4",
+      "name": "Pending Approval",
+      "slug": "pending_approval",
+      "color": "#8B5CF6",
+      "order": 4
+    },
+    {
+      "id": "5",
+      "_id": "5",
+      "name": "Completed",
+      "slug": "completed",
+      "color": "#10B981",
+      "order": 5
+    },
+    {
+      "id": "6",
+      "_id": "6",
+      "name": "Cancelled",
+      "slug": "cancelled",
+      "color": "#EF4444",
+      "order": 6
+    }
+  ],
+  "comments": [
+    {
+      "id": 1,
+      "taskId": "1",
+      "authorId": "2",
+      "content": "Started working on the wireframes. Should have the first draft ready by tomorrow.",
+      "createdAt": "2025-01-03T14:30:00Z",
+      "mentions": []
+    },
+    {
+      "id": 2,
+      "taskId": "1",
+      "authorId": "1",
+      "content": "Great! Please make sure to include the mobile breakpoint designs as well.",
+      "createdAt": "2025-01-03T15:00:00Z",
+      "mentions": ["2"]
+    },
+    {
+      "id": 3,
+      "taskId": "3",
+      "authorId": "4",
+      "content": "All materials are ready for review. Please check the shared drive folder.",
+      "createdAt": "2025-01-02T16:00:00Z",
+      "mentions": ["1", "2"]
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": 1,
+      "taskId": "1",
+      "userId": "1",
+      "action": "created",
+      "description": "Task created",
+      "timestamp": "2025-01-01T09:00:00Z",
+      "oldValue": null,
+      "newValue": null
+    },
+    {
+      "id": 2,
+      "taskId": "1",
+      "userId": "1",
+      "action": "assigned",
+      "description": "Assigned to Sarah Johnson",
+      "timestamp": "2025-01-01T09:05:00Z",
+      "oldValue": null,
+      "newValue": "2"
+    },
+    {
+      "id": 3,
+      "taskId": "1",
+      "userId": "2",
+      "action": "status_changed",
+      "description": "Status changed from To Do to In Progress",
+      "timestamp": "2025-01-03T14:30:00Z",
+      "oldValue": "todo",
+      "newValue": "in_progress"
+    }
+  ]
+}

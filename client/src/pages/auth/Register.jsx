@@ -1,0 +1,875 @@
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import {
+  User,
+  Building2,
+  ArrowRight,
+  Shield,
+  Target,
+  Users,
+  BarChart3,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { set } from "mongoose";
+
+export default function Register() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [selectedType, setSelectedType] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  // Separate form data
+  const [individualData, setIndividualData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
+
+  const [organizationData, setOrganizationData] = useState({
+    organizationName: "",
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const handleReset = () => {
+    setIndividualErrors({});
+    setOrganizationErrors({});
+    setOrganizationData({
+      organizationName: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+    });
+    setIndividualData({
+      firstName: "",
+      lastName: "",
+      email: "",
+    });
+  };
+  // Separate error objects
+  const [individualErrors, setIndividualErrors] = useState({});
+  const [organizationErrors, setOrganizationErrors] = useState({});
+  const handleTypeSelection = (type) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedType(type);
+      setIsTransitioning(false);
+
+      // Clear errors when switching forms
+      if (type === "individual") {
+        setOrganizationErrors({});
+      } else if (type === "organization") {
+        setIndividualErrors({});
+      }
+    }, 200);
+  };
+
+  const validateField = (formType, field, value) => {
+    let error = "";
+    const fieldLabels = {
+      firstName: "First Name",
+
+      email: "Email",
+      organizationName: "Organization Name",
+    };
+
+    if (!value.trim()) {
+      error = `${fieldLabels[field] || field} is required`;
+    } else {
+      if (field === "email") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) error = "Please enter a valid email";
+      }
+    }
+
+    if (formType === "organization") {
+      setOrganizationErrors((prev) => ({ ...prev, [field]: error }));
+    } else if (formType === "individual") {
+      setIndividualErrors((prev) => ({ ...prev, [field]: error }));
+    }
+  };
+  const handleBackToChoice = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedType(null);
+      setIsTransitioning(false);
+    }, 200);
+  };
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+  const handleInputChange = (formType, field, value) => {
+    if (formType === "organization") {
+      setOrganizationData((prev) => ({ ...prev, [field]: value }));
+      validateField("organization", field, value);
+    } else {
+      setIndividualData((prev) => ({ ...prev, [field]: value }));
+      validateField("individual", field, value);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    let newErrors = {};
+    let payload = {};
+
+    if (selectedType === "individual") {
+      const { firstName, lastName, email } = individualData;
+
+      if (!firstName.trim()) newErrors.firstName = "First name is required";
+
+      if (!email) newErrors.email = "Email is required";
+      else if (!validateEmail(email))
+        newErrors.email = "Please enter a valid email";
+
+      if (Object.keys(newErrors).length > 0) {
+        setIndividualErrors(newErrors);
+        return;
+      }
+
+      payload = {
+        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      };
+    }
+
+    if (selectedType === "organization") {
+      const { organizationName, firstName, lastName, email } = organizationData;
+
+      if (!organizationName.trim())
+        newErrors.organizationName = "Organization name is required";
+      else if (organizationName.trim().length < 2)
+        newErrors.organizationName = "At least 2 characters";
+      else if (organizationName.trim().length > 100)
+        newErrors.organizationName = "Max 100 characters";
+
+      if (!firstName.trim()) newErrors.firstName = "First name is required";
+
+      if (!email) newErrors.email = "Email is required";
+      else if (!validateEmail(email))
+        newErrors.email = "Please enter a valid email";
+
+      if (Object.keys(newErrors).length > 0) {
+        setOrganizationErrors(newErrors);
+        return;
+      }
+
+      payload = {
+        organizationName: organizationName.trim(),
+        email,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+
+        isPrimaryAdmin: selectedType === "organization" ? true : false,
+      };
+    }
+
+    setIsLoading(true);
+    try {
+      const endpoint =
+        selectedType === "individual"
+          ? "/api/auth/register/individual"
+          : "/api/auth/register/organization";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.resent) {
+          toast({
+            title: "Verification Email Resent",
+            description:
+              result.message || "We've re-sent your verification link.",
+            variant: "default",
+            className: "bg-green-50 border-green-200 text-green-800",
+          });
+          return;
+        }
+
+        if (result.autoAuthenticated && result.token) {
+          localStorage.setItem("token", result.token);
+          toast({
+            title:
+              selectedType === "organization"
+                ? "Organization created successfully"
+                : "Registration successful",
+            description:
+              result.message ||
+              "Welcome to TaskSetu! Auto-authenticated for testing.",
+          });
+          setLocation("/dashboard");
+        } else {
+          const email =
+            selectedType === "individual"
+              ? individualData.email
+              : organizationData.email;
+
+          localStorage.setItem("verificationEmail", email);
+          localStorage.setItem("registrationEmail", email);
+          localStorage.setItem("registrationType", selectedType);
+
+          setLocation(
+            `/registration-success?email=${encodeURIComponent(
+              email
+            )}&type=${selectedType}`
+          );
+        }
+      } else {
+        const errorMsg = result.message || "Registration failed";
+        selectedType === "individual"
+          ? setIndividualErrors({ submit: errorMsg })
+          : setOrganizationErrors({ submit: errorMsg });
+      }
+    } catch (error) {
+      const errorMsg = "Network error. Please try again.";
+      selectedType === "individual"
+        ? setIndividualErrors({ submit: errorMsg })
+        : setOrganizationErrors({ submit: errorMsg });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const hasOrganizationErrors = Object.values(organizationErrors).some(
+    (v) => v
+  );
+  const hasIndividualErrors = Object.values(individualErrors).some((v) => v);
+  useEffect(() => {
+    console.log("error", individualErrors, organizationErrors, selectedType);
+    handleReset();
+  }, [selectedType]);
+  // Choice Selection View
+  if (!selectedType) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#253140] to-[#1a252f] flex">
+        {/* Left Side - TaskSetu Information */}
+        <div className="flex-1 text-white p-12 flex flex-col justify-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-32 h-32 border border-blue-400 rounded-full"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-40 left-20 w-20 h-20 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-20 right-40 w-16 h-16 border border-blue-400 rounded-full"></div>
+          </div>
+
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h1 className="text-5xl font-bold mb-8 text-blue-400 text-center">
+              Welcome to TaskSetu
+            </h1>
+            <p className="text-2xl text-blue-100 mb-12 text-center leading-relaxed">
+              {/* Streamline your workflow and boost productivity with our
+              comprehensive task management platform */}
+              Smart, Simple Task Management. Let’s set you up!
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-xl mx-auto">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-400 rounded-xl">
+                  <Target className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl text-blue-400 font-semibold mb-2">
+                    Smart Task Management
+                  </h3>
+                  <p className="text-blue-100">
+                    Organize, prioritize, and track tasks with intelligent
+                    automation
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-600 rounded-xl">
+                  <Users className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl text-blue-400 font-semibold mb-2">
+                    Team Collaboration
+                  </h3>
+                  <p className="text-blue-100">
+                    Seamless communication and project coordination
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-600 rounded-xl">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl text-blue-400 font-semibold mb-2">
+                    Analytics & Insights
+                  </h3>
+                  <p className="text-blue-100">
+                    Data-driven decisions with comprehensive reporting
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-600 rounded-xl">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl text-blue-400 font-semibold mb-2">
+                    Enterprise Security
+                  </h3>
+                  <p className="text-blue-100">
+                    Bank-level security with role-based access control
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Registration Options */}
+        <div className="w-96 bg-white flex items-center justify-center p-6 shadow-2xl">
+          <div
+            className={`w-full max-w-sm transition-all duration-300 ease-in-out ${
+              isTransitioning
+                ? "opacity-0 transform scale-95"
+                : "opacity-100 transform scale-100"
+            }`}
+          >
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-[#253140] rounded-xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-white font-bold text-lg">TS</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Get Started
+              </h2>
+
+              <p className="text-sm text-gray-600">
+                Choose your account type to begin
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Individual User Option */}
+              <button
+                onClick={() => handleTypeSelection("individual")}
+                className="w-full text-left p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-2 border-blue-200 hover:border-blue-400 hover:shadow-md transition-all duration-300 group transform hover:scale-[1.02]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-600 rounded-lg group-hover:bg-blue-700 transition-colors">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 text-sm">
+                      Individual User
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      Personal task management
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                </div>
+              </button>
+
+              {/* Organization Option */}
+              <button
+                onClick={() => handleTypeSelection("organization")}
+                className="w-full text-left p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-md transition-all duration-300 group transform hover:scale-[1.02]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-600 rounded-lg group-hover:bg-indigo-700 transition-colors">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 text-sm">
+                      Organization
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      Complete workspace for teams
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                </div>
+              </button>
+            </div>
+
+            {/* Footer Links */}
+            <div className="mt-6 text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Sign in here
+                </Link>
+              </p>
+
+              <div className="text-xs text-gray-500">
+                <Link href="/super-admin" className="hover:text-gray-700">
+                  Platform Administrator Access
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Individual Registration Form
+  if (selectedType === "individual") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#253140] to-[#1a252f] flex">
+        {/* Left Side - TaskSetu Information */}
+        <div className="flex-1 text-white p-12 flex flex-col justify-center items-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-32 h-32 border border-blue-400 rounded-full"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-40 left-20 w-20 h-20 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-20 right-40 w-16 h-16 border border-blue-400 rounded-full"></div>
+          </div>
+
+          <div className="relative z-10 max-w-md">
+            <h1 className="text-4xl font-bold text-blue-400 mb-6">
+              Welcome to TaskSetu
+            </h1>
+            <p className="text-xl text-blue-100 mb-8">
+              Join thousands of professionals managing their tasks efficiently
+            </p>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-400 mb-1">
+                    Personal Task Management
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Organize your personal tasks and collaborate when needed
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-blue-400">
+                    Team Collaboration
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Join organization workspaces and collaborate seamlessly
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-blue-400">
+                    Progress Tracking
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Monitor your productivity and task completion rates
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Registration Form */}
+        <div className="w-[480px] bg-white flex items-center justify-center p-8 shadow-2xl">
+          <div className="w-full max-w-md animate-in slide-in-from-right-5 duration-500 ease-in-out">
+            <div className="mb-6">
+              <button
+                onClick={handleBackToChoice}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to options
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Individual Account
+                  </h2>
+                  <p className="text-gray-600 text-sm">
+                    Create your personal TaskSetu account
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm transition-all duration-500">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Name   <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={individualData.firstName}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "individual",
+                          "firstName",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        individualErrors.firstName
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="First name"
+                    />
+                    {individualErrors.firstName && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {individualErrors.firstName}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={individualData.lastName}
+                      onChange={(e) => {
+                        setIndividualData((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }));
+                      }}
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                        individualErrors.lastName
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address   <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={individualData.email}
+                    onChange={(e) =>
+                      handleInputChange("individual", "email", e.target.value)
+                    }
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      individualErrors.email
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Email address"
+                  />
+                  {individualErrors.email && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {individualErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                {individualErrors.submit && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    {individualErrors.submit}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading || hasIndividualErrors}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
+                  >
+                    {isLoading ? "Creating account..." : "Create Account"}
+                  </button>
+                </div>
+              </form>
+
+              <div className="text-center mt-4 pt-4 border-t border-gray-100">
+                <p className="text-gray-600 text-sm">
+                  Already have an account?{" "}
+                  <Link
+                    href="/login"
+                    className="text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Organization Registration Form
+  if (selectedType === "organization") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#253140] to-[#1a252f] flex">
+        {/* Left Side - TaskSetu Information */}
+        <div className="flex-1 text-white p-12 flex flex-col items-center justify-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-32 h-32 border border-blue-400 rounded-full"></div>
+            <div className="absolute top-40 right-20 w-24 h-24 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-40 left-20 w-20 h-20 border border-blue-400 rounded-full"></div>
+            <div className="absolute bottom-20 right-40 w-16 h-16 border border-blue-400 rounded-full"></div>
+          </div>
+
+          <div className="relative z-10 max-w-md">
+            <h1 className="text-4xl font-bold mb-6 text-blue-400">
+              Welcome to TaskSetu
+            </h1>
+            <p className="text-xl text-blue-100 mb-8">
+              Create your organization workspace and empower your team with
+              comprehensive task management
+            </p>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-400 mb-1">
+                    Enterprise Task Management
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Complete project and task management for your entire
+                    organization
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-blue-400">
+                    Team Management
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Invite team members, assign roles, and manage permissions
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-600 rounded-lg">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1 text-blue-400">
+                    Advanced Analytics
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Comprehensive reporting and insights for data-driven
+                    decisions
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Registration Form */}
+        <div className="w-[480px] bg-white flex items-center justify-center p-8 shadow-2xl">
+          <div className="w-full max-w-md animate-in slide-in-from-right-5 duration-500 ease-in-out">
+            <div className="mb-6">
+              <button
+                onClick={handleBackToChoice}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to options
+              </button>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <Building2 className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Organization Account
+                  </h2>
+                  <p className="text-gray-600 text-sm">
+                    Set up your company workspace
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm transition-all duration-500">
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                     Organization Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={organizationData.organizationName}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "organization",
+                        "organizationName",
+                        e.target.value
+                      )
+                    }
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      organizationErrors.organizationName
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter organization name"
+                  />
+                  {organizationErrors.organizationName && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {organizationErrors.organizationName}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={organizationData.firstName}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "organization",
+                          "firstName",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                        organizationErrors.firstName
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter first name"
+                    />
+                    {organizationErrors.firstName && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {organizationErrors.firstName}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={organizationData.lastName}
+                      onChange={(e) => {
+                        setOrganizationData((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }));
+                      }}
+                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                        organizationErrors.lastName
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                   Admin Email Address  <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={organizationData.email}
+                    onChange={(e) =>
+                      handleInputChange("organization", "email", e.target.value)
+                    }
+                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      organizationErrors.email
+                        ? "border-red-300"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="Enter admin email address"
+                  />
+                  {organizationErrors.email && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {organizationErrors.email}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    This will be the admin account for your organization
+                  </p>
+                </div>
+
+                {organizationErrors.submit && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    {organizationErrors.submit}
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading || hasOrganizationErrors}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 px-4 text-sm rounded-lg hover:from-indigo-700 hover:to-indigo-800 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
+                  >
+                    {isLoading
+                      ? "Creating organization..."
+                      : "Create Organization"}
+                  </button>
+                </div>
+              </form>
+
+              <div className="text-center mt-4 pt-4 border-t border-gray-100">
+                <p className="text-gray-600 text-sm">
+                  Already have an account?{" "}
+                  <Link
+                    href="/login"
+                    className="text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
