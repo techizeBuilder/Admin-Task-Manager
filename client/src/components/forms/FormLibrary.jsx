@@ -11,6 +11,7 @@ import {
   BarChart2,
   File,
   FileText,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -347,7 +348,30 @@ export const mockFormVersions = {
 };
 
 // Optional: detailed payload per version for a details panel
+// ...existing code...
+// Optional: detailed payload per version for a details panel
 export const mockFormVersionDetails = {
+  // Employee Onboarding v1.3.0 (previous)
+  ver_onb_1_3_0: {
+    id: "ver_onb_1_3_0",
+    formId: "frm_onboarding",
+    version: "1.3.0",
+    status: "archived",
+    createdAt: "2025-08-28T12:30:00Z",
+    createdBy: { id: "u_07", name: "Rahul Verma" },
+    publishedAt: "2025-08-29T08:00:00Z",
+    notes: "Added Emergency Contact section.",
+    // minimal snapshot of fields needed to compute diff
+    fields: [
+      { id: "firstName", type: "text", label: "First Name", required: true },
+      { id: "lastName", type: "text", label: "Last Name", required: true },
+      { id: "pan", type: "text", label: "PAN", required: true },
+      { id: "aadhaar", type: "text", label: "Aadhaar", required: true, pattern: "^[0-9]{12}$" }
+      // addressLine2 does NOT exist here (will be added in 1.4.0)
+    ],
+  },
+
+  // Employee Onboarding v1.4.0 (current)
   ver_onb_1_4_0: {
     id: "ver_onb_1_4_0",
     formId: "frm_onboarding",
@@ -362,9 +386,39 @@ export const mockFormVersionDetails = {
       { type: "modified", path: "sections.identity.fields.pan.required", oldValue: true, newValue: false },
       { type: "modified", path: "sections.identity.fields.aadhaar.pattern", oldValue: "^[0-9]{12}$", newValue: "^[2-9][0-9]{11}$" },
     ],
+    // minimal snapshot with applied changes
+    fields: [
+      { id: "firstName", type: "text", label: "First Name", required: true },
+      { id: "lastName", type: "text", label: "Last Name", required: true },
+      { id: "pan", type: "text", label: "PAN", required: false },
+      { id: "aadhaar", type: "text", label: "Aadhaar", required: true, pattern: "^[2-9][0-9]{11}$" },
+      { id: "addressLine2", type: "text", label: "Address Line 2", required: false }
+    ],
     jsonSchemaSnapshot: { /* trimmed example */ title: "Employee Onboarding", type: "object" },
     uiSchemaSnapshot: { /* trimmed example */ "ui:order": ["identity", "address", "emergency"] },
   },
+
+  // Expense Reimbursement v3.0.0 (previous)
+  ver_exp_3_0_0: {
+    id: "ver_exp_3_0_0",
+    formId: "frm_expense",
+    version: "3.0.0",
+    status: "archived",
+    createdAt: "2025-08-20T09:45:00Z",
+    createdBy: { id: "u_03", name: "Anita Gupta" },
+    publishedAt: "2025-08-22T10:15:00Z",
+    notes: "Revamped receipt upload + validation rules.",
+    fields: [
+      { id: "expenseType", type: "dropdown", label: "Expense Type", options: ["Travel","Meals","Software"] },
+      { id: "amount", type: "number", label: "Amount", required: true },
+      { id: "date", type: "date", label: "Date of Expense", required: true },
+      { id: "currency", type: "dropdown", label: "Currency", options: ["INR","USD","EUR"] },
+      { id: "maxKmPerDay", type: "number", label: "Mileage cap (km/day)", required: false, placeholder: "", options: [] },
+      { id: "legacyCategory", type: "text", label: "Legacy Category", required: false }
+    ],
+  },
+
+  // Expense Reimbursement v3.1.0 (current)
   ver_exp_3_1_0: {
     id: "ver_exp_3_1_0",
     formId: "frm_expense",
@@ -379,11 +433,19 @@ export const mockFormVersionDetails = {
       { type: "removed", path: "sections.general.fields.legacyCategory" },
       { type: "modified", path: "sections.general.fields.currency.enum", oldValue: ["INR","USD","EUR"], newValue: ["INR","USD","EUR","GBP"] },
     ],
+    fields: [
+      { id: "expenseType", type: "dropdown", label: "Expense Type", options: ["Travel","Meals","Software"] },
+      { id: "amount", type: "number", label: "Amount", required: true },
+      { id: "date", type: "date", label: "Date of Expense", required: true },
+      { id: "currency", type: "dropdown", label: "Currency", options: ["INR","USD","EUR","GBP"] },
+      { id: "maxKmPerDay", type: "number", label: "Mileage cap (km/day)", required: false, placeholder: "", options: [], /* value change represented by label/options here */ }
+      // legacyCategory removed
+    ],
     jsonSchemaSnapshot: { title: "Expense Reimbursement", type: "object" },
     uiSchemaSnapshot: { "ui:order": ["general", "mileage", "attachments"] },
   },
 };
-
+// ...existing code...
 const ITEMS_PER_PAGE = 7;
 
 const FormLibrary = () => {
@@ -420,6 +482,7 @@ const FormLibrary = () => {
       const searchMatch =
         form.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         form.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (form.category || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         form.tags.some((tag) =>
           tag.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -511,26 +574,42 @@ const FormLibrary = () => {
     setSelectedDraftSchema(null);
   };
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <header className="mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <File className="h-8 w-8 text-blue-600" />
-            Form Library
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Manage, create, and track all your form templates.
-          </p>
+    <>
+     {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 rounded-xl bg-red-500  flex items-center justify-center">
+                <File className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Form Library</h1>
+                <p className="text-sm text-gray-600">Manage, create, and track all your form templates.</p>
+              </div>
+            </div>
+              <Link href="/form-builder">
+            <button
+              
+              className="inline-flex items-center px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Form
+            </button></Link>
+          </div>
         </div>
-      </header>
-
+      </div>
+    
+    <div className="p-6 bg-gray-50 min-h-screen">
+     
+   
       <div className="bg-white p-4 rounded-lg shadow-sm">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4 gap-4">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search by name, owner, or tag..."
+              placeholder="Search by name, owner, category, or tag..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => {
@@ -557,24 +636,32 @@ const FormLibrary = () => {
                 <SelectItem value="Archived">Archived</SelectItem>
               </SelectContent>
             </Select>
-            <Link href="/form-builder">
-              <Button>Create New Form</Button>
-            </Link>
+           
           </div>
         </div>
 
         {/* Table */}
-        <div className="border rounded-lg">
-          <Table className="min-w-full">
-            <TableHeader className="bg-gray-50">
-              <TableRow>
+          <Table className="min-w-full border rounded-lg">
+            <TableHeader >
+              <TableRow className="bg-gray-300">
                 <TableHead
                   onClick={() => handleSort("name")}
                   className="cursor-pointer"
                 >
                   Name{getSortIndicator("name")}
                 </TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead
+                  onClick={() => handleSort("category")}
+                  className="cursor-pointer"
+                >
+                  Category{getSortIndicator("category")}
+                </TableHead>
+                <TableHead
+                  onClick={() => handleSort("status")}
+                  className="cursor-pointer"
+                >
+                  Status{getSortIndicator("status")}
+                </TableHead>
                 <TableHead
                   onClick={() => handleSort("lastUsed")}
                   className="cursor-pointer"
@@ -595,6 +682,7 @@ const FormLibrary = () => {
               {paginatedForms.map((form) => (
                 <TableRow key={form.id}>
                   <TableCell className="font-medium">{form.name}</TableCell>
+                  <TableCell>{form.category}</TableCell>
                   <TableCell>
                     <Badge
                       className={`${statusColors[form.status]} hover:${
@@ -668,7 +756,7 @@ const FormLibrary = () => {
               ))}
             </TableBody>
           </Table>
-        </div>
+   
 
         {/* submission modal  */}
         <FormSubmissionsModal
@@ -700,6 +788,7 @@ const FormLibrary = () => {
         />
       </div>
     </div>
+    </>
   );
 };
 

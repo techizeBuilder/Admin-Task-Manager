@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from "react";
+import { useState, useEffect, Suspense, lazy, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import {
@@ -716,7 +716,7 @@ export default function FormBuilder() {
                     !form.title.trim() ||
                     form.fields.length === 0
                   }
-                  className="bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-300"
+                  className="bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-300 text-black"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {createFormMutation.isPending ? "Saving..." : "Save Form"}
