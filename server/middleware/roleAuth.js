@@ -42,8 +42,7 @@ export const authenticateToken = async (req, res, next) => {
       permissions: user.permissions || [],
     };
 
-    console.log("Auth middleware - Final user object:", req.user);
-    next();
+   next();
   } catch (error) {
     console.log("Auth middleware - Error:", error.message);
     return res.status(403).json({ error: "Invalid token" });

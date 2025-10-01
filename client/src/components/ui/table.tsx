@@ -11,7 +11,6 @@ const Table = React.forwardRef<
   HTMLTableElement,
   TableProps
 >(({ className, wrapperClassName, ...props }, ref) => (
-  // <div className={cn(" overflow-auto", wrapperClassName)}>
   <div className={cn(" max-w-[800px] overflow-auto", wrapperClassName)}>
     <table
       ref={ref}

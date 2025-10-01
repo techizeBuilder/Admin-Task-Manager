@@ -457,7 +457,7 @@ export default function QuickAddBar() {
 
   const handleQuickAdd = () => {
     if (!quickText.trim()) return;
-    
+
     // Create quick task instantly
     const quickTask = {
       title: quickText.trim(),
@@ -465,10 +465,10 @@ export default function QuickAddBar() {
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 days
       status: 'open'
     };
-    
+
     // Mock save - in real app would call API
     console.log('Quick task created:', quickTask);
-    
+
     setQuickText('');
     setIsExpanded(false);
   };

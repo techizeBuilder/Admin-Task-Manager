@@ -102,34 +102,9 @@ const baseItems = {
     icon: MilestoneTaskIcon,
     path: "/milestones",
   },
-  // form modules
-  form: {
-    id: "form",
-    label: "Forms",
-    icon: ClipboardCheck,
-    children: [
-      {
-        id: "form-library",
-        label: "Form Library",
-        icon: ClipboardCheck,
-        path: "/form-library",
-      },
-      {
-        id: "form-builder",
-        label: "Form Builder",
-        icon: ClipboardCheck,
-        path: "/form-builder",
-      },
-      {
-        id: "form-version-history",
-        label: "Form Version History",
-        icon: Clock,
-        path: "/form-version-history",
-      },
-    ],
-  },
-  // Settings for employee & manager (view only)
-  settingsViewOnly: {
+
+  // Settings group
+  settings: {
     id: "settings",
     label: "Settings",
     icon: Settings,
@@ -329,8 +304,18 @@ export const sidebarMenus = {
         },
       ],
     },
-    baseItems.form,
-    baseItems.settingsManagement,
+    {
+      ...baseItems.settings,
+      children: [
+        ...baseItems.settings.children,
+        {
+          id: "billing_invoice",
+          label: "Billing & Invoices",
+          icon: Key,
+          path: "/admin/billing",
+        },
+      ],
+    },
     baseItems.help,
     baseItems.logout,
   ],

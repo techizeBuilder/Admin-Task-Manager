@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User, Edit3, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import ProfileUpdateModal from "./ProfileUpdateModal";
+import { getInitials } from "../../lib/utils";
 
 export default function ProfileWidget({ variant = "card" }) {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -23,26 +24,6 @@ export default function ProfileWidget({ variant = "card" }) {
     return profile?.email?.split('@')[0] || 'User';
   };
 
-  const getInitials = (profile) => {
-    // Priority 1: Use first and last name initials
-    if (profile?.firstName && profile?.lastName) {
-      return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
-    }
-    
-    // Priority 2: Use first name + email prefix if only first name exists
-    if (profile?.firstName && profile?.email) {
-      const emailPrefix = profile.email.split('@')[0];
-      return `${profile.firstName[0]}${emailPrefix[0]}`.toUpperCase();
-    }
-    
-    // Priority 3: Use first two characters of email prefix as fallback
-    if (profile?.email) {
-      const emailPrefix = profile.email.split('@')[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-    
-    return 'U';
-  };
 
   const getRoleDisplayName = (role) => {
     const roleMap = {
@@ -125,7 +106,7 @@ export default function ProfileWidget({ variant = "card" }) {
                   src={profile?.profileImageUrl} 
                   alt={getDisplayName(profile)} 
                 />
-                <AvatarFallback>{getInitials(profile)}</AvatarFallback>
+                <AvatarFallback>{getInitials(profile.firstName)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm truncate">

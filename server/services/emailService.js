@@ -365,7 +365,10 @@ www.Tasksetu.com`,
 
       await this.transporter.sendMail(mailOptions);
     
+<<<<<<< HEAD
       console.log("Invitation email sent successfully to:", email);
+=======
+>>>>>>> 639bd5b (Restore stashed changes)
       return true;
     } catch (error) {
       console.error("Email sending error:", error);

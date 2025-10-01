@@ -8,3 +8,4 @@ vite.config.ts.*
 *.tar.gz
 .env
 .env.example
+package-lock.json

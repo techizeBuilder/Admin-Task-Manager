@@ -1687,17 +1687,43 @@ export class MongoStorage {
   // }
 
   async getTaskById(id) {
-    return await Task.findById(id)
+    console.log('DEBUG - getTaskById called with id:', id);
+    const task = await Task.findById(id)
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName email')
       .populate('project', 'name')
       .populate('organization', 'name');
+
+    console.log('DEBUG - Found task:', task ? 'Yes' : 'No');
+
+    if (task) {
+      console.log('DEBUG - Looking for subtasks with parentTaskId:', id);
+      // Get subtasks for this task
+      const subtasks = await Task.find({
+        parentTaskId: id,
+        isDeleted: { $ne: true }
+      })
+        .populate('assignedTo', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName email')
+        .sort({ createdAt: 1 });
+
+      console.log('DEBUG - Found subtasks count:', subtasks.length);
+      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTaskId: s.parentTaskId })));
+
+      // Convert to plain object and add subtasks
+      const taskObj = task.toObject();
+      taskObj.subtasks = subtasks;
+      console.log('DEBUG - Final taskObj has subtasks:', taskObj.subtasks ? taskObj.subtasks.length : 'undefined');
+      return taskObj;
+    }
+
+    return task;
   }
 
   async getTasksByFilter(filter, options = {}) {
     const { page = 1, limit = 50, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
-
+    
     return await Task.find(filter)
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName email')
@@ -1707,9 +1733,7 @@ export class MongoStorage {
       .limit(limit);
   }
 
-  async countTasksByFilter(filter) {
-    return await Task.countDocuments(filter);
-  }  // async updateTask(id, updateData) {
+  // async updateTask(id, updateData) {
   //   return await Task.findByIdAndUpdate(id, updateData, { new: true });
   // }
 
