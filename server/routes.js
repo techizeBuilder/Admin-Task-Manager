@@ -13,12 +13,14 @@ import {
   processProfileImage,
   deleteOldProfileImage,
 } from "./middleware/upload.js";
+import userRoutes from "./routes/userRoutes.js";
+import superAdminRoutes from "./routes/superAdminRoutes.js";
 import { emailService } from "./services/emailService.js";
 import { registerLoginCustomizationRoutes } from "./routes/loginCustomization.js";
-import { taskRoutes } from "./routes/taskRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
-import rateLimit from 'express-rate-limit';
-
+import rateLimit from "express-rate-limit";
+import authRoutes from "./routes/authRoutes.js";
 export async function registerRoutes(app) {
   // Configure CORS
   app.use(
@@ -33,22 +35,17 @@ export async function registerRoutes(app) {
         "Accept",
         "Origin",
       ],
-    }),
+    })
   );
-// Register rate limiter (10 requests/minute per IP)
-const registerLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  message: { error: "Too many registrations. Please wait a minute." },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Serve static files for uploaded images
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
+  app.use("/api", userRoutes);
+  app.use("/api/super-admin", superAdminRoutes);
+  app.use("/api/auth", authRoutes);
   // Register user invitation routes
   try {
     registerUserInvitationRoutes(app);
@@ -57,581 +54,42 @@ const registerLimiter = rateLimit({
     console.error("Error registering user invitation routes:", error);
   }
 
-  // Auth routes
-  app.post("/api/auth/login", async (req, res) => {
+ 
+
+ 
+
+
+
+
+
+
+
+
+
+
+  app.get("/api/organization/details", authenticateToken, async (req, res) => {
     try {
-      const { email, password } = req.body;
-      const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-      const userAgent = req.get('User-Agent');
-      console.log(`Login attempt for ${email} from IP: ${ipAddress}, User-Agent: ${userAgent}`);
-      const result = await authService.login(email, password, ipAddress, userAgent);
-      res.json(result);
-    } catch (error) {
-      console.error("Login error:", error);
-      
-      // Handle lockout errors specially
-      if (error.isLockout) {
-        return res.status(423).json({ 
-          success: false, 
-          message: error.message,
-          isLockout: true,
-          timeLeft: error.timeLeft,
-          minutes: error.minutes
-        });
+      if (!req.user.organizationId) {
+        return res
+          .status(400)
+          .json({ message: "User not associated with any organization" });
       }
-      
-      // Handle remaining attempts warnings
-      if (error.remainingAttempts !== undefined) {
-        return res.status(401).json({ 
-          success: false, 
-          message: error.message,
-          remainingAttempts: error.remainingAttempts
-        });
-      }
-      
-      res.status(401).json({ 
-        success: false, 
-        message: error.message || 'Authentication failed' 
-      });
-    }
-  });
 
-  // Registration endpoint
-  app.post("/api/auth/register",registerLimiter, async (req, res) => {
-    try {
-      const { firstName, lastName, email, password, confirmPassword, userType } = req.body;
-      
-      // Basic validation
-      if (!firstName  || !email || !password || !confirmPassword) {
-        return res.status(400).json({
-          success: false,
-          message: "All fields are required"
-        });
-      }
-      
-      if (password !== confirmPassword) {
-        return res.status(400).json({
-          success: false,
-          message: "Passwords do not match"
-        });
-      }
-      
-      // Handle individual registration
-      if (userType === 'individual') {
-        const result = await authService.registerIndividual({
-          firstName,
-          lastName,
-          email,
-          password
-        });
-        res.json({ success: true, ...result });
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid user type"
-        });
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(400).json({
-        success: false,
-        message: error.message || "Registration failed"
-      });
-    }
-  });
-
-  // Check lockout status endpoint
-  app.post("/api/auth/check-lockout", async (req, res) => {
-    try {
-      const { email } = req.body;
-      if (!email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Email is required' 
-        });
-      }
-      
-      const lockoutStatus = await authService.isUserLockedOut(email);
-      res.json({
-        success: true,
-        locked: lockoutStatus.locked,
-        timeLeft: lockoutStatus.timeLeft || 0,
-        minutes: lockoutStatus.minutes || 0
-      });
-    } catch (error) {
-      console.error("Check lockout error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Error checking lockout status' 
-      });
-    }
-  });
-
-  app.get("/api/auth/verify", authenticateToken, async (req, res) => {
-    try {
-      res.json(req.user);
-
-      console.log("req user in backend : ", req.user);
-    } catch (error) {
-      console.error("Auth verify error:", error);
-      res.status(401).json({ message: "Invalid token" });
-    }
-  });
-
-  // Generate fresh token endpoint
-  app.post("/api/auth/generate-token", async (req, res) => {
-    try {
-      const { id, email, role, organizationId } = req.body;
-      const jwt = await import("jsonwebtoken");
-      const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-      const token = jwt.default.sign(
-        { id, email, role, organizationId },
-        JWT_SECRET,
-        { expiresIn: "7d" },
+      const organization = await storage.getOrganization(
+        req.user.organizationId
       );
 
-      res.json({ token });
+      if (!organization) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      // Return complete organization object
+      res.json(organization);
     } catch (error) {
-      console.error("Token generation error:", error);
-      res.status(500).json({ message: "Failed to generate token" });
+      console.error("Get organization details error:", error);
+      res.status(500).json({ message: "Failed to fetch organization details" });
     }
   });
-
-  // Forgot password endpoint
-  app.post("/api/auth/forgot-password", async (req, res) => {
-    try {
-      const { email } = req.body;
-
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      const user = await storage.getUserByEmail(email);
-      console.log("User found for forgot password:", user?.email, "firstName:", user?.firstName)
-      if (!user) {
-        // Return user-friendly error message for non-existent emails
-        return res.status(400).json({
-          message: "No account found with this email."
-        });
-      }
-
-      // Generate reset token
-      const resetToken = storage.generatePasswordResetToken();
-      const resetExpiry = new Date(Date.now() + 3600000); // 1 hour from now
-
-      // Save reset token to user
-      await storage.updateUser(user._id, {
-        passwordResetToken: resetToken,
-        passwordResetExpires: resetExpiry,
-      });
-
-      // Send reset email
-      await emailService.sendPasswordResetEmail(email, resetToken, user.firstName || user.lastName || 'User');
-
-      res.json({
-        message: "Password reset link has been sent to your email."
-      });
-    } catch (error) {
-      console.error("Forgot password error:", error);
-      res
-        .status(500)
-        .json({ message: "Failed to process password reset request" });
-    }
-  });
-
-  // Validate reset token endpoint
-  app.post("/api/auth/validate-reset-token", async (req, res) => {
-    try {
-      const { token } = req.body;
-
-      if (!token) {
-        return res.status(400).json({ message: "Reset token is required" });
-      }
-
-      const user = await storage.getUserByResetToken(token);
-      if (!user || user.passwordResetExpires < new Date()) {
-        return res
-          .status(400)
-          .json({ message: "Invalid or expired reset token" });
-      }
-
-      res.json({ message: "Token is valid", userId: user._id });
-    } catch (error) {
-      console.error("Validate reset token error:", error);
-      res.status(500).json({ message: "Failed to validate reset token" });
-    }
-  });
-
-  // Reset password endpoint
-  app.post("/api/auth/reset-password", async (req, res) => {
-    try {
-      const { token, password } = req.body;
-
-      if (!token || !password) {
-        return res
-          .status(400)
-          .json({ message: "Token and password are required" });
-      }
-
-      const user = await storage.getUserByResetToken(token);
-      if (!user || user.passwordResetExpires < new Date()) {
-        return res
-          .status(400)
-          .json({ message: "Invalid or expired reset token" });
-      }
-
-      // Hash new password
-      const passwordHash = await storage.hashPassword(password);
-
-      // Update user with new password and clear reset token
-      await storage.updateUser(user._id, {
-        passwordHash,
-        passwordResetToken: null,
-        passwordResetExpires: null,
-      });
-
-      res.json({ message: "Password has been reset successfully" });
-    } catch (error) {
-      console.error("Reset password error:", error);
-      res.status(500).json({ message: "Failed to reset password" });
-    }
-  });
-
-  // Email verification endpoint
-  app.post("/api/auth/verify-token", async (req, res) => {
-    try {
-      const { token, password } = req.body;
-
-      console.log("Email verification attempt with token:", token);
-
-      if (!token || !password) {
-        return res
-          .status(400)
-          .json({ message: "Token and password are required" });
-      }
-
-      // Debug: Check if any user has this token
-      const { User } = await import("./models.js");
-      const userWithToken = await User.findOne({
-        emailVerificationToken: token,
-      });
-      console.log(
-        "User with token found:",
-        userWithToken
-          ? {
-              id: userWithToken._id,
-              email: userWithToken.email,
-              status: userWithToken.status,
-              hasExpiration: !!userWithToken.emailVerificationExpires,
-              expiration: userWithToken.emailVerificationExpires,
-              isExpired: userWithToken.emailVerificationExpires
-                ? new Date() > userWithToken.emailVerificationExpires
-                : "No expiration set",
-            }
-          : "No user found with this token",
-      );
-
-      // Find user by verification token
-      const user = await storage.getUserByVerificationToken(token);
-      if (!user) {
-        return res
-          .status(400)
-          .json({ message: "Invalid or expired verification token" });
-      }
-
-      // Check if token is expired
-      if (
-        user.emailVerificationExpires &&
-        new Date() > user.emailVerificationExpires
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Verification token has expired" });
-      }
-
-      // Hash the password and update user
-      const hashedPassword = await storage.hashPassword(password);
-
-      await storage.updateUser(user._id, {
-        passwordHash: hashedPassword,
-        status: "active",
-        emailVerified: true,
-        emailVerificationToken: null,
-        emailVerificationExpires: null,
-      });
-
-      console.log("User verification successful:", user.email);
-
-      // Get updated user object with new password
-      const updatedUser = await storage.getUser(user._id);
-
-      // Don't auto-login, just confirm success
-      res.json({
-        message: "Email verified and password set successfully",
-        success: true,
-      });
-    } catch (error) {
-      console.error("Email verification error:", error);
-      res
-        .status(500)
-        .json({ message: "Verification failed. Please try again." });
-    }
-  });
-
-  // Individual registration
-  app.post("/api/auth/register/individual", async (req, res) => {
-    try {
-      const { firstName, lastName, email } = req.body;
-
-    
-      // Validate required fields
-      if (!firstName  || !email) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        // If user exists but is pending verification, resend verification email
-        if (existingUser.status === 'pending' || existingUser.status === 'invited' || !existingUser.emailVerified) {
-          // Generate new verification token
-          const verificationToken = storage.generateEmailVerificationToken();
-          
-          // Update user with new verification token
-          await storage.updateUser(existingUser._id, {
-            emailVerificationToken: verificationToken,
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-          });
-
-          // Resend verification email for individual user
-          const emailSent = await emailService.sendVerificationEmail(
-            email,
-            verificationToken,
-            existingUser.firstName || firstName,
-            null, // Individual registration - no organization
-          );
-
-          if (emailSent) {
-            console.log("Verification email re-sent successfully to:", email);
-          }
-
-          return res.status(200).json({
-            message: "We've re-sent your verification link.",
-            resent: true
-          });
-        }
-
-        // User is fully registered
-        return res
-          .status(400)
-          .json({ message: "This email is already registered. Please Login or Reset Password." });
-      }
-
-      // Create pending user
-      const userData = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.toLowerCase().trim(),
-        role: "individual",
-        status: "pending",
-        accountType: "individual",
-      };
-
-      const user = await storage.createUser(userData);
-
-      console.log("Individual user created:", user._id);
-
-      // Generate verification token and send email
-      const verificationToken = storage.generateEmailVerificationToken();
-
-      // Update user with verification token
-      await storage.updateUser(user._id, {
-        emailVerificationToken: verificationToken,
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      });
-
-      // Send verification email for individual user
-      const emailSent = await emailService.sendVerificationEmail(
-        email,
-        verificationToken,
-        firstName,
-        null, // Individual registration - no organization
-      );
-
-      if (emailSent) {
-        console.log("Verification email sent successfully to:", email);
-      } else {
-        console.log("Failed to send verification email to:", email);
-      }
-
-      res.status(201).json({
-        message:
-          "Registration successful. Please check your email for verification.",
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-        },
-      });
-    } catch (error) {
-      console.error("Individual registration error:", error);
-      res
-        .status(500)
-        .json({ message: "Registration failed. Please try again." });
-    }
-  });
-
-  // Organization registration
-  app.post("/api/auth/register/organization", async (req, res) => {
-  try {
-    const { firstName, lastName, email, organizationName, isPrimaryAdmin } = req.body;
-
-  
-
-    // Validate required fields
-    if (!firstName  || !email || !organizationName) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Validate organization name length
-    if (organizationName.trim().length < 2 || organizationName.trim().length > 100) {
-      return res.status(400).json({ message: "Organization name must be 2-100 characters" });
-    }
-
-    // Check if user already exists
-    const existingUser = await storage.getUserByEmail(email);
-    if (existingUser) {
-      if (
-        existingUser.status === "pending" ||
-        existingUser.status === "invited" ||
-        !existingUser.emailVerified
-      ) {
-        const verificationToken = storage.generateEmailVerificationToken();
-
-        await storage.updateUser(existingUser._id, {
-          emailVerificationToken: verificationToken,
-          emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        });
-
-        const emailSent = await emailService.sendVerificationEmail(
-          email,
-          verificationToken,
-          existingUser.firstName || firstName,
-          organizationName
-        );
-
-        return res.status(200).json({
-          message: "We've re-sent your verification link.",
-          resent: true,
-        });
-      }
-
-      return res.status(400).json({
-        message:
-          "This email is already registered. Please Login or Reset Password.",
-      });
-    }
-
-    // Generate slug
-    const organizationSlug = organizationName
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .trim();
-
-    // Check org slug
-    const existingOrg = await storage.getOrganizationBySlug(organizationSlug);
-    if (existingOrg) {
-      return res
-        .status(400)
-        .json({ message: "Organization name is already taken" });
-    }
-
-    // Create organization
-    const orgData = {
-      name: organizationName.trim(),
-      slug: organizationSlug.toLowerCase().trim(),
-      licenseCount: 10,
-      isActive: true,
-    };
-
-    const organization = await storage.createOrganization(orgData);
-
-    // Create admin user
-    const userData = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.toLowerCase().trim(),
-      role: ["org_admin"],              // ✅ must be an array
-      status: "pending",
-      organization_id: organization._id,   // ✅ match schema field
-      accountType: "organization",
-      isPrimaryAdmin: isPrimaryAdmin === true,
-    };
-
-    const user = await storage.createUser(userData);
-
-    console.log("Organization and admin user created:", {
-      orgId: organization._id,
-      userId: user._id,
-    });
-
-    // Generate verification token and send email
-    const verificationToken = storage.generateEmailVerificationToken();
-
-    await storage.updateUser(user._id, {
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
-
-    const emailSent = await emailService.sendVerificationEmail(
-      email,
-      verificationToken,
-      firstName,
-      organizationName
-    );
-
-    res.status(201).json({
-      message:
-        "Organization registration successful. Please check your email for verification.",
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        organization: organization._id, // ✅ updated
-        organizationName: organization.name,
-      },
-    });
-  } catch (error) {
-    console.error("Organization registration error:", error);
-    res.status(500).json({ message: "Registration failed. Please try again." });
-  }
-});
-
-app.get("/api/organization/details", authenticateToken, async (req, res) => {
-  try {
-    console.log('user<><><>',req.user)
-    if (!req.user.organizationId) {
-      return res.status(400).json({ message: "User not associated with any organization" });
-    }
-
-    const organization = await storage.getOrganization(req.user.organizationId);
-
-    if (!organization) {
-      return res.status(404).json({ message: "Organization not found" });
-    }
-
-    // Return complete organization object
-    res.json(organization);
-  } catch (error) {
-    console.error("Get organization details error:", error);
-    res.status(500).json({ message: "Failed to fetch organization details" });
-  }
-});
 
   // Get team members for current user's organization
   app.get("/api/team-members", authenticateToken, async (req, res) => {
@@ -654,7 +112,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
       // Get all users in the same organization
       console.log("Fetching team members for org:", user.organizationId);
       const teamMembers = await storage.getOrganizationUsersDetailed(
-        user.organizationId,
+        user.organizationId
       );
       console.log("Team members found:", teamMembers.length);
 
@@ -675,7 +133,9 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         invitedBy: member.invitedBy
           ? {
               id: member.invitedBy._id,
-              name: `${member.invitedBy.firstName || ""} ${member.invitedBy.lastName || ""}`.trim(),
+              name: `${member.invitedBy.firstName || ""} ${
+                member.invitedBy.lastName || ""
+              }`.trim(),
             }
           : null,
         invitedAt: member.invitedAt,
@@ -710,7 +170,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
       // Return clean user data without sensitive fields
       const userProfile = {
         _id: user._id,
-    
+
         email: user.email,
         firstName: user.firstName || "",
         lastName: user.lastName || "",
@@ -750,9 +210,6 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         // Validate required fields
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
-        }
-        if (!lastName || !lastName.trim()) {
-          return res.status(400).json({ message: "Last name is required" });
         }
 
         // Build update object
@@ -815,7 +272,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
 
         res.status(500).json({ message: "Failed to update profile" });
       }
-    },
+    }
   );
 
   // Get current user profile
@@ -874,9 +331,6 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         // Validate required fields
         if (!firstName || !firstName.trim()) {
           return res.status(400).json({ message: "First name is required" });
-        }
-        if (!lastName || !lastName.trim()) {
-          return res.status(400).json({ message: "Last name is required" });
         }
 
         // Build update object with only allowed fields
@@ -938,7 +392,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
 
         res.status(500).json({ message: "Failed to update profile" });
       }
-    },
+    }
   );
 
   // Organization routes
@@ -958,20 +412,20 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
     async (req, res) => {
       try {
         const users = await storage.getOrganizationUsersDetailed(
-          req.user.organizationId,
+          req.user.organizationId
         );
         res.json(users);
       } catch (error) {
         console.error("Get organization users detailed error:", error);
         res.status(500).json({ message: "Failed to fetch organization users" });
       }
-    },
+    }
   );
 
   app.get("/api/organization/license", authenticateToken, async (req, res) => {
     try {
       const licenseInfo = await storage.getOrganizationLicenseInfo(
-        req.user.organizationId,
+        req.user.organizationId
       );
       res.json(licenseInfo);
     } catch (error) {
@@ -980,193 +434,10 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
     }
   });
 
-  // Get organization subscription data
-  app.get("/api/organization/subscription", authenticateToken, async (req, res) => {
-    try {
-      const { Organization, License } = await import("./models.js");
-      const organization = await Organization.findById(req.user.organizationId);
-      
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      // Also fetch the license plan details
-      const licenseDetails = await License.findOne({ license_code: organization.current_license });
-
-      // Get actual usage from database (you can implement real counters later)
-      // For now, let's create a basic usage tracking system
-      const { Task, User } = await import("./models.js");
-      
-      // Count actual usage from database
-      const taskCount = await Task.countDocuments({ 
-        organizationId: req.user.organizationId,
-        createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
-      });
-      
-      const userCount = await User.countDocuments({ 
-        organizationId: req.user.organizationId,
-        status: 'active'
-      });
-
-      // Deterministic usage (removed random mock values)
-      // Count forms created in last 30 days (or total if no createdAt index)
-      const { Form, ProcessFlow } = await import('./models.js');
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-      const formCount = await Form.countDocuments({
-        organizationId: req.user.organizationId,
-        createdAt: { $gte: thirtyDaysAgo }
-      }).catch(() => 0);
-
-      // Processes: counting ProcessFlow definitions owned by org (assuming organizationId field may exist)
-      let processCount = 0;
-      try {
-        processCount = await ProcessFlow.countDocuments({
-          organizationId: req.user.organizationId,
-          createdAt: { $gte: thirtyDaysAgo }
-        });
-      } catch (_) {}
-
-      // Reports: No schema yet -> stable 0 (placeholder until implemented)
-      const reportCount = 0;
-
-      const currentUsage = {
-        TASK_BASIC: Math.min(taskCount, 100000), // high cap safeguard
-        FORM_CREATE: formCount,
-        PROC_CREATE: processCount,
-        REPORT_BASIC: reportCount,
-        USERS: userCount
-      };
-
-      res.json({
-        success: true,
-        data: {
-          current_license: organization.current_license,
-          subscription_status: organization.subscription_status,
-          subscription_start_date: organization.subscription_start_date,
-          subscription_end_date: organization.subscription_end_date,
-          trial_end: organization.trial_end_date, // Frontend expects trial_end, not trial_end_date
-          trial_started: organization.subscription_start_date,
-          billing_cycle: organization.billing_cycle,
-          auto_renew: organization.auto_renew,
-          license_expired: organization.subscription_status === 'expired' || 
-                          (organization.subscription_status === 'trial' && 
-                           new Date() > new Date(organization.trial_end_date)),
-          max_users: licenseDetails?.max_users || 10,
-          // Real usage data from database
-          usage: currentUsage
-        }
-      });
-    } catch (error) {
-      console.error("Get organization subscription error:", error);
-      res.status(500).json({ message: "Failed to fetch subscription information" });
-    }
-  });
-
-  // Get available license plans
-  app.get("/api/license/plans", authenticateToken, async (req, res) => {
-    try {
-      const { License } = await import("./models.js");
-      
-      // Fetch all active license plans from database
-      const plans = await License.find({ is_active: true }).sort({ price_monthly: 1 });
-      
-      // Transform to match expected frontend format
-      const formattedPlans = plans.map(plan => ({
-        license_code: plan.license_code,
-        license_name: plan.name,
-        description: plan.description,
-        price_monthly: plan.price_monthly,
-        price_yearly: plan.price_yearly,
-        is_trial: plan.license_code === 'EXPLORE',
-        trial_days: plan.trial_days || 0,
-        max_users: plan.max_users
-      }));
-
-      res.json({
-        success: true,
-        data: formattedPlans
-      });
-    } catch (error) {
-      console.error("Get license plans error:", error);
-      res.status(500).json({ message: "Failed to fetch license plans" });
-    }
-  });
-
-  // Get license features
-  app.get("/api/license/features", authenticateToken, async (req, res) => {
-    try {
-      const { Feature, LicenseFeature } = await import("./models.js");
-      
-      // Fetch all features with their license mappings
-      const features = await Feature.find().sort({ category: 1, feature_code: 1 });
-      const licenseFeatures = await LicenseFeature.find();
-      
-      // Transform to match expected frontend format
-      const formattedFeatures = features.map(feature => {
-        // Get all license-feature mappings for this feature
-        const featureLicenses = licenseFeatures
-          .filter(lf => lf.feature_code === feature.feature_code)
-          .map(lf => ({
-              license_code: lf.license_code,
-              usage_limit: (lf.limit_value ?? lf.usage_limit ?? -1)
-          }));
-        
-        return {
-          feature_code: feature.feature_code,
-          feature_name: feature.name,
-          description: feature.description,
-          category: feature.category,
-          license_features: featureLicenses
-        };
-      });
-
-      res.json({
-        success: true,
-        data: formattedFeatures
-      });
-    } catch (error) {
-      console.error("Get license features error:", error);
-      res.status(500).json({ message: "Failed to fetch license features" });
-    }
-  });
-
-  // Upgrade subscription
-  app.post("/api/organization/upgrade-subscription", authenticateToken, async (req, res) => {
-    try {
-      const { newLicenseCode, billingCycle } = req.body;
-      const { Organization } = await import("./models.js");
-      
-      const organization = await Organization.findById(req.user.organizationId);
-      if (!organization) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      // Update organization with new license
-      const updateData = {
-        current_license: newLicenseCode,
-        subscription_status: 'active',
-        billing_cycle: billingCycle,
-        subscription_start_date: new Date(),
-        subscription_end_date: new Date(Date.now() + (billingCycle === 'YEARLY' ? 365 : 30) * 24 * 60 * 60 * 1000)
-      };
-
-      await Organization.findByIdAndUpdate(req.user.organizationId, updateData);
-
-      res.json({
-        success: true,
-        message: "Subscription upgraded successfully"
-      });
-    } catch (error) {
-      console.error("Upgrade subscription error:", error);
-      res.status(500).json({ message: "Failed to upgrade subscription" });
-    }
-  });
-
   app.post("/api/organization/invite-users", async (req, res) => {
     try {
       const { invites } = req.body;
-
+      console.log("Processing invitation for:", invites);
       if (!invites || !Array.isArray(invites) || invites.length === 0) {
         return res.status(400).json({ message: "Invalid invitation data" });
       }
@@ -1188,10 +459,8 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
           .json({ message: "No organization found for invitations" });
       }
 
-
       for (const invite of invites) {
         try {
-       
           const inviteData = {
             email: invite.email,
             organizationId: defaultOrgId,
@@ -1199,9 +468,15 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
             invitedBy: defaultOrgId, // Use org ID as placeholder
             invitedByName: "TaskSetu Admin",
             organizationName: "TaskSetu Organization",
-            name: invite.name || '',
+            name: invite.name || "",
+            licenseId: invite.licenseId || null,
+            department: invite.department || null,
+            designation: invite.designation || null,
+            location: invite.location || null,
+            phone: invite.phone || null,
+            sendEmail: invite.sendEmail !== false, // default true
           };
-          console.log("Processing invitation for:", invite.name, invite);
+
           await storage.inviteUserToOrganization(inviteData);
           results.successCount++;
           results.details.push({ email: invite.email, status: "success" });
@@ -1210,7 +485,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
             "Invitation error for",
             invite.email,
             ":",
-            error.message,
+            error.message
           );
           results.errors.push({ email: invite.email, error: error.message });
           results.details.push({
@@ -1226,8 +501,8 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         results.successCount === invites.length
           ? "All invitations sent successfully"
           : results.successCount > 0
-            ? "Some invitations sent successfully"
-            : "Failed to send invitations";
+          ? "Some invitations sent successfully"
+          : "Failed to send invitations";
 
       res.status(statusCode).json({
         message,
@@ -1277,355 +552,61 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         });
       }
 
-      console.log("Email is available for invitation");
       res.json({ exists: false });
     } catch (error) {
       console.error("Check invitation error:", error);
-      res
-        .status(500)
-        .json({
-          message: "Failed to check invitation status",
-          error: error.message,
-        });
+      res.status(500).json({
+        message: "Failed to check invitation status",
+        error: error.message,
+      });
     }
   });
 
-  // Validate invitation token
-  // app.get("/api/auth/validate-invite", async (req, res) => {
-  //   try {
-  //     const { token } = req.query;
-
-  //     if (!token) {
-  //       return res
-  //         .status(400)
-  //         .json({ message: "Invitation token is required" });
-  //     }
-
-  //     // Get invitation details by token
-  //     const pendingUser = await storage.getUserByInviteToken(token);
-
-  //     if (!pendingUser) {
-  //       return res
-  //         .status(404)
-  //         .json({ message: "Invalid or expired invitation token" });
-  //     }
-
-  //     // Check if token is expired
-  //     if (
-  //       pendingUser.inviteExpires &&
-  //       new Date() > new Date(pendingUser.inviteExpires)
-  //     ) {
-  //       return res
-  //         .status(400)
-  //         .json({ message: "Invitation token has expired" });
-  //     }
-    
-  //     // Get organization details
-  //     const organization = await storage.getOrganization(
-  //       pendingUser.organization_id,
-  //     );
-  // console.log('Pending user found for invite token>>>:', organization);
-  //     res.json({
-  //       email: pendingUser.email,
-  //       roles: pendingUser.roles,
-  //       organization: {
-  //         name: organization?.name || "Unknown Organization",
-  //         id: organization?._id || pendingUser.organizationId,
-  //       },
-  //       invitedBy: pendingUser.invitedBy,
-  //     });
-  //   } catch (error) {
-  //     console.error("Validate invite error:", error);
-  //     res.status(500).json({ message: "Failed to validate invitation" });
-  //   }
-  // });
-
-  // Accept invitation and complete registration
-  app.post("/api/auth/accept-invite", async (req, res) => {
-    try {
-      const { token, firstName, lastName, password } = req.body;
-
-      if (!token || !firstName || !lastName || !password) {
-        return res.status(400).json({
-          message: "Token, first name, last name, and password are required",
-        });
-      }
-
-      // Complete the invitation
-      const result = await storage.completeUserInvitation(token, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        password,
-      });
-
-      if (!result.success) {
-        return res.status(400).json({ message: result.message });
-      }
-
-      // Generate auth token for the new user
-      const authToken = storage.generateToken(result.user);
-
-      res.json({
-        message: "Account created successfully",
-        token: authToken,
-        user: {
-          id: result.user._id,
-          email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          role: result.user.role,
-          // organizationId: result.user.organizationId,
-        },
-      });
-    } catch (error) {
-      console.error("Accept invite error:", error);
-      res.status(500).json({ message: "Failed to accept invitation" });
-    }
-  });
-// ...existing code...
-  app.get("/api/auth/validate-invite", async (req, res) => {
-    try {
-      const { token } = req.query;
-
-      if (!token) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token is required" });
-      }
-
-      const pendingUser = await storage.getUserByInviteToken(token);
-      if (!pendingUser) {
-        return res
-          .status(404)
-          .json({ message: "Invalid or expired invitation token" });
-      }
-
-      if (
-        pendingUser.inviteExpires &&
-        new Date() > new Date(pendingUser.inviteExpires)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token has expired" });
-      }
-
-      // Unified org id extraction (handles multiple legacy field names)
-      const orgId =
-        pendingUser.organization_id ||
-        null;
-
-      let organization = null;
-      if (orgId) {
-        try {
-          organization = await storage.getOrganization(orgId);
-        } catch (_) {}
-        if (!organization) {
-          // Fallback direct model lookup
-          try {
-            const { Organization } = await import("./models.js");
-            organization = await Organization.findById(orgId).lean();
-          } catch (_) {}
-        }
-      }
-      console.log('Pending user found for invite token>>>:', pendingUser);
-      res.json({
-        email: pendingUser.email,
-        role: pendingUser.role,
-        organization: {
-          id: orgId || null,
-          name: organization?.name || "Unknown Organization",
-          // optional extra snapshot fields if needed later
-          slug: organization?.slug || null,
-        },
-        organizationName: organization?.name || "Unknown Organization", // convenience field
-        invitedBy: pendingUser.invitedBy || null,
-      });
-    } catch (error) {
-      console.error("Validate invite error:", error);
-      res.status(500).json({ message: "Failed to validate invitation" });
-    }
-  });
-// ...existing code...
-  app.post("/api/auth/validate-invite-token", async (req, res) => {
-    try {
-      const { token } = req.body;
-
-      if (!token) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token is required" });
-      }
-
-      const pendingUser = await storage.getUserByInviteToken(token);
-      if (!pendingUser) {
-        return res
-          .status(404)
-          .json({ message: "Invalid or expired invitation token" });
-      }
-
-      if (
-        pendingUser.inviteExpires &&
-        new Date() > new Date(pendingUser.inviteExpires)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token has expired" });
-      }
-
-      const orgId =
-      pendingUser.organization_id ||
-        null;
-
-      let organization = null;
-      if (orgId) {
-        try {
-          organization = await storage.getOrganization(orgId);
-        } catch (_) {}
-        if (!organization) {
-          try {
-            const { Organization } = await import("./models.js");
-            organization = await Organization.findById(orgId).lean();
-          } catch (_) {}
-        }
-      }
-
-      res.json({
-        email: pendingUser.email,
-        roles: Array.isArray(pendingUser.roles)
-          ? pendingUser.roles
-          : pendingUser.role
-            ? [pendingUser.role]
-            : [],
-        organization: {
-          id: orgId || null,
-          name: organization?.name || "Unknown Organization",
-          slug: organization?.slug || null,
-        },
-        organizationName: organization?.name || "Unknown Organization",
-        invitedBy: pendingUser.invitedBy || null,
-      });
-    } catch (error) {
-      console.error("Validate invite token error:", error);
-      res.status(500).json({ message: "Failed to validate invitation token" });
-    }
-  });
-// ...existing code...
-  // Alternative endpoint for validate-invite-token (used by auth/AcceptInvite.jsx)
-  app.post("/api/auth/validate-invite-token", async (req, res) => {
-    try {
-      const { token } = req.body;
-
-      if (!token) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token is required" });
-      }
-
-      const pendingUser = await storage.getUserByInviteToken(token);
-
-      if (!pendingUser) {
-        return res
-          .status(404)
-          .json({ message: "Invalid or expired invitation token" });
-      }
-
-      if (
-        pendingUser.inviteExpires &&
-        new Date() > new Date(pendingUser.inviteExpires)
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Invitation token has expired" });
-      }
-
-      const organization = await storage.getOrganization(
-        pendingUser.organizationId,
-      );
-
-      res.json({
-        email: pendingUser.email,
-        roles: pendingUser.roles,
-        organization: {
-          name: organization?.name || "Unknown Organization",
-          id: organization?._id || pendingUser.organizationId,
-        },
-        invitedBy: pendingUser.invitedBy,
-      });
-    } catch (error) {
-      console.error("Validate invite token error:", error);
-      res.status(500).json({ message: "Failed to validate invitation token" });
-    }
-  });
-
-  // Alternative endpoint for complete-invitation (used by auth/AcceptInvitation.jsx)
-  app.post("/api/auth/complete-invitation", async (req, res) => {
-    try {
-      const { token, firstName, lastName, password } = req.body;
-
-      if (!token || !firstName || !lastName || !password) {
-        return res.status(400).json({
-          message: "Token, first name, last name, and password are required",
-        });
-      }
-
-      const result = await storage.completeUserInvitation(token, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        password,
-      });
-
-      if (!result.success) {
-        return res.status(400).json({ message: result.message });
-      }
-
-      const authToken = storage.generateToken(result.user);
-
-      res.json({
-        message: "Account created successfully",
-        token: authToken,
-        user: {
-          id: result.user._id,
-          email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
-          role: result.user.role,
-          organizationId: result.user.organizationId,
-        },
-      });
-    } catch (error) {
-      console.error("Complete invitation error:", error);
-      res.status(500).json({ message: "Failed to complete invitation" });
-    }
-  });
-
-  // Enhanced User Management Routes for Company Admins
-
+ 
   // Add new user (Company Admin only)
   app.post("/api/organization/users", authenticateToken, async (req, res) => {
     try {
-      const { firstName, lastName, email, role, department, designation, location } = req.body;
+      const {
+        firstName,
+        lastName,
+        email,
+        role,
+        department,
+        designation,
+        location,
+      } = req.body;
       const adminUser = req.user;
 
       // Check if user has admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
+      if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+        return res
+          .status(403)
+          .json({ message: "Insufficient privileges for user management" });
       }
 
       // Validate required fields
       if (!firstName || !lastName || !email || !role) {
-        return res.status(400).json({ message: "Name, email, and role are required" });
+        return res
+          .status(400)
+          .json({ message: "Name, email, and role are required" });
       }
 
       // Check license availability
-      const licenseInfo = await storage.getOrganizationLicenseInfo(adminUser.organizationId);
+      const licenseInfo = await storage.getOrganizationLicenseInfo(
+        adminUser.organizationId
+      );
       if (licenseInfo.availableSlots <= 0) {
-        return res.status(400).json({ message: "No available licenses. Please upgrade your plan." });
+        return res.status(400).json({
+          message: "No available licenses. Please upgrade your plan.",
+        });
       }
 
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: "User with this email already exists" });
+        return res
+          .status(400)
+          .json({ message: "User with this email already exists" });
       }
 
       // Generate invitation token
@@ -1646,7 +627,7 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
         inviteToken: inviteToken,
         inviteTokenExpiry: inviteExpiry,
         invitedBy: adminUser.id,
-        invitedAt: new Date()
+        invitedAt: new Date(),
       };
 
       const newUser = await storage.createUser(userData);
@@ -1662,8 +643,8 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
           lastName: newUser.lastName,
           email: newUser.email,
           role: newUser.role,
-          status: newUser.status
-        }
+          status: newUser.status,
+        },
       });
     } catch (error) {
       console.error("Add user error:", error);
@@ -1672,1067 +653,322 @@ app.get("/api/organization/details", authenticateToken, async (req, res) => {
   });
 
   // Update user details (Company Admin only)
-  app.patch("/api/organization/users/:userId", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const { firstName, lastName, department, designation, location } = req.body;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Update user data
-      const updateData = {};
-      if (firstName) updateData.firstName = firstName.trim();
-      if (lastName) updateData.lastName = lastName.trim();
-      if (department !== undefined) updateData.department = department.trim();
-      if (designation !== undefined) updateData.designation = designation.trim();
-      if (location !== undefined) updateData.location = location.trim();
-
-      const updatedUser = await storage.updateUser(userId, updateData);
-
-      res.json({
-        message: "User updated successfully",
-        user: {
-          id: updatedUser._id,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-          department: updatedUser.department,
-          designation: updatedUser.designation,
-          location: updatedUser.location
-        }
-      });
-    } catch (error) {
-      console.error("Update user error:", error);
-      res.status(500).json({ message: "Failed to update user" });
-    }
-  });
-
-  // Change user role (Company Admin only)
-  app.patch("/api/organization/users/:userId/role", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const { role } = req.body;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate role
-      const validRoles = ['admin', 'manager', 'employee'];
-      if (!validRoles.includes(role)) {
-        return res.status(400).json({ message: "Invalid role specified" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Update user role
-      const updatedUser = await storage.updateUser(userId, { role: role });
-
-      res.json({
-        message: "User role updated successfully",
-        user: {
-          id: updatedUser._id,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-          role: updatedUser.role
-        }
-      });
-    } catch (error) {
-      console.error("Role change error:", error);
-      res.status(500).json({ message: "Failed to change user role" });
-    }
-  });
-
-  // Deactivate user (Company Admin only)
-  app.patch("/api/organization/users/:userId/deactivate", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Cannot deactivate self
-      if (targetUser._id.toString() === adminUser.id) {
-        return res.status(400).json({ message: "Cannot deactivate your own account" });
-      }
-
-      // Update user status
-      const updatedUser = await storage.updateUser(userId, { 
-        status: "inactive",
-        isActive: false
-      });
-
-      res.json({
-        message: "User deactivated successfully",
-        user: {
-          id: updatedUser._id,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-          status: updatedUser.status
-        }
-      });
-    } catch (error) {
-      console.error("Deactivate user error:", error);
-      res.status(500).json({ message: "Failed to deactivate user" });
-    }
-  });
-
-  // Reactivate user (Company Admin only)
-  app.patch("/api/organization/users/:userId/reactivate", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Update user status
-      const updatedUser = await storage.updateUser(userId, { 
-        status: "active",
-        isActive: true
-      });
-
-      res.json({
-        message: "User reactivated successfully",
-        user: {
-          id: updatedUser._id,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-          email: updatedUser.email,
-          status: updatedUser.status
-        }
-      });
-    } catch (error) {
-      console.error("Reactivate user error:", error);
-      res.status(500).json({ message: "Failed to reactivate user" });
-    }
-  });
-
-  // Remove user permanently (Company Admin only)
-  app.delete("/api/organization/users/:userId", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Cannot remove self
-      if (targetUser._id.toString() === adminUser.id) {
-        return res.status(400).json({ message: "Cannot remove your own account" });
-      }
-
-      // Check for assigned tasks (implement task reassignment logic as needed)
-      // For now, we'll allow removal but in production should require task reassignment
-
-      // Remove user
-      await storage.deleteUser(userId);
-
-      res.json({
-        message: "User removed successfully"
-      });
-    } catch (error) {
-      console.error("Remove user error:", error);
-      res.status(500).json({ message: "Failed to remove user" });
-    }
-  });
-
-  // Resend invitation (Company Admin only)
-  app.post("/api/organization/users/:userId/resend-invite", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const adminUser = req.user;
-
-      // Check admin privileges
-      if (!adminUser || !['admin', 'org_admin'].includes(adminUser.role)) {
-        return res.status(403).json({ message: "Insufficient privileges for user management" });
-      }
-
-      // Validate user exists and belongs to same organization
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser || targetUser.organization.toString() !== adminUser.organizationId) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Only resend for invited users
-      if (targetUser.status !== "invited") {
-        return res.status(400).json({ message: "User is not in invited status" });
-      }
-
-      // Generate new invitation token
-      const newInviteToken = storage.generateEmailVerificationToken();
-      const newExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
-
-      // Update user with new token
-      await storage.updateUser(userId, {
-        inviteToken: newInviteToken,
-        inviteTokenExpiry: newExpiry,
-        invitedAt: new Date()
-      });
-
-      // Send new invitation email (placeholder)
-      console.log(`New invitation sent to ${targetUser.email} with token: ${newInviteToken}`);
-
-      res.json({
-        message: "Invitation resent successfully"
-      });
-    } catch (error) {
-      console.error("Resend invite error:", error);
-      res.status(500).json({ message: "Failed to resend invitation" });
-    }
-  });
-
-  // Get user activities (placeholder for user activity tracking)
-  app.get("/api/users/activities/:userId", authenticateToken, async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const adminUser = req.user;
-
-      // Check admin privileges or same user
-      if (!adminUser || (!['admin', 'org_admin'].includes(adminUser.role) && adminUser.id !== userId)) {
-        return res.status(403).json({ message: "Insufficient privileges" });
-      }
-
-      // Placeholder for user activities - implement actual activity tracking as needed
-      const activities = [
-        {
-          description: "Logged in to the system",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          type: "login"
-        },
-        {
-          description: "Completed task: Update user documentation",
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-          type: "task_completion"
-        },
-        {
-          description: "Created new task: Review quarterly reports",
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-          type: "task_creation"
-        }
-      ];
-
-      res.json(activities);
-    } catch (error) {
-      console.error("Get user activities error:", error);
-      res.status(500).json({ message: "Failed to fetch user activities" });
-    }
-  });
-
-  // Super Admin Routes - Add debug endpoint and sample data creation
-  app.get("/api/super-admin/test", async (req, res) => {
-    try {
-      const { Organization, User } = await import('./models.js');
-      const totalOrgs = await Organization.countDocuments() || 0;
-      const totalUsers = await User.countDocuments() || 0;
-      res.json({ 
-        message: "Test endpoint working", 
-        totalOrgs, 
-        totalUsers,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      res.json({ error: error.message, timestamp: new Date().toISOString() });
-    }
-  });
-
-  app.post("/api/super-admin/create-sample-data", async (req, res) => {
-    try {
-      const { Organization, User, Project, Task } = await import('./models.js');
-      
-      // Clear existing data if force flag is set
-      if (req.body.force) {
-        await Promise.all([
-          Task.deleteMany({}),
-          Project.deleteMany({}), 
-          User.deleteMany({ role: { $ne: 'super_admin' } }),
-          Organization.deleteMany({})
-        ]);
-        console.log("Cleared existing sample data");
-      }
-      
-      // Create sample organizations
-      const org1 = await Organization.create({
-        name: "TechCorp Solutions",
-        slug: "techcorp-solutions",
-        description: "Leading technology solutions provider",
-        industry: "Technology",
-        size: "medium",
-        website: "https://techcorp.example.com",
-        status: "active"
-      });
-
-      const org2 = await Organization.create({
-        name: "Design Studio Pro",
-        slug: "design-studio-pro", 
-        description: "Creative design and branding agency",
-        industry: "Design",
-        size: "small",
-        website: "https://designstudio.example.com",
-        status: "active"
-      });
-
-      const org3 = await Organization.create({
-        name: "Global Marketing Inc",
-        slug: "global-marketing-inc",
-        description: "International marketing and advertising firm",
-        industry: "Marketing",
-        size: "large",
-        status: "pending"
-      });
-
-      // Create sample users
-      const users = await User.create([
-        {
-          firstName: "John",
-          lastName: "Smith", 
-          email: "john.smith@techcorp.example.com",
-          role: "admin",
-          organization: org1._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123")
-        },
-        {
-          firstName: "Sarah",
-          lastName: "Johnson",
-          email: "sarah.johnson@techcorp.example.com", 
-          role: "member",
-          organization: org1._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123")
-        },
-        {
-          firstName: "Mike",
-          lastName: "Davis",
-          email: "mike.davis@designstudio.example.com",
-          role: "admin", 
-          organization: org2._id,
-          status: "active",
-          passwordHash: await storage.hashPassword("password123")
-        },
-        {
-          firstName: "Emily",
-          lastName: "Wilson",
-          email: "emily.wilson@designstudio.example.com",
-          role: "member",
-          organization: org2._id, 
-          status: "active",
-          passwordHash: await storage.hashPassword("password123")
-        },
-        {
-          firstName: "David",
-          lastName: "Brown",
-          email: "david.brown@globalmarketing.example.com",
-          role: "admin",
-          organization: org3._id,
-          status: "pending",
-          passwordHash: await storage.hashPassword("password123")
-        },
-        {
-          firstName: "Lisa",
-          lastName: "Taylor",
-          email: "lisa.taylor@individual.example.com",
-          role: "member", 
-          status: "active",
-          passwordHash: await storage.hashPassword("password123")
-        }
-      ]);
-
-      // Create sample projects
-      const projects = await Project.create([
-        {
-          name: "Website Redesign",
-          description: "Complete redesign of company website",
-          organization: org1._id,
-          status: "active"
-        },
-        {
-          name: "Mobile App Development", 
-          description: "iOS and Android mobile application",
-          organization: org1._id,
-          status: "active"
-        },
-        {
-          name: "Brand Identity Project",
-          description: "New brand identity and logo design",
-          organization: org2._id,
-          status: "completed"
-        }
-      ]);
-
-      // Create sample tasks
-      await Task.create([
-        {
-          title: "Design Homepage Mockup",
-          description: "Create initial homepage design mockup",
-          project: projects[0]._id,
-          organization: org1._id,
-          assignedTo: users[1]._id,
-          status: "in-progress"
-        },
-        {
-          title: "Develop User Authentication",
-          description: "Implement user login and registration",
-          project: projects[1]._id, 
-          organization: org1._id,
-          assignedTo: users[0]._id,
-          status: "completed"
-        },
-        {
-          title: "Create Logo Concepts",
-          description: "Design multiple logo concept variations",
-          project: projects[2]._id,
-          organization: org2._id,
-          assignedTo: users[2]._id,
-          status: "completed"
-        }
-      ]);
-
-      const finalCounts = {
-        organizations: await Organization.countDocuments(),
-        users: await User.countDocuments(), 
-        projects: await Project.countDocuments(),
-        tasks: await Task.countDocuments()
-      };
-
-      res.json({
-        message: "Sample data created successfully",
-        counts: finalCounts,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error("Sample data creation error:", error);
-      res.status(500).json({ error: error.message, timestamp: new Date().toISOString() });
-    }
-  });
-
-  app.get(
-    "/api/super-admin/analytics",
+  app.patch(
+    "/api/organization/users/:userId",
     authenticateToken,
-    requireSuperAdmin,
     async (req, res) => {
       try {
-        console.log("Fetching analytics for super admin...");
-        const stats = await storage.getPlatformAnalytics();
-        console.log("Analytics fetched successfully");
-        res.json(stats);
-      } catch (error) {
-        console.error("Platform analytics error:", error);
-        res
-          .status(500)
-          .json({ message: "Failed to fetch platform analytics" });
-      }
-    },
-  );
+        const { userId } = req.params;
+        const { firstName, lastName, department, designation, location } =
+          req.body;
+        const adminUser = req.user;
 
-  // Temporary bypass for debugging - remove auth temporarily
-  app.get("/api/super-admin/companies", async (req, res) => {
-    try {
-      console.log("=== COMPANIES ENDPOINT DEBUG ===");
-      const { Organization, User, Project, Task, Form } = await import('./models.js');
-      
-      const companies = await Organization.find({}).sort({ createdAt: -1 });
-      console.log("Raw companies from DB:", companies.length);
-      
-      const companiesWithStats = await Promise.all(
-        companies.map(async (company) => {
-          const userCount = await User.countDocuments({ 
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id }
-            ]
-          });
-          const projectCount = await Project.countDocuments({ 
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id }
-            ]
-          });
-          const taskCount = await Task.countDocuments({ 
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id }
-            ]
-          });
-          const formCount = await Form.countDocuments({ 
-            $or: [
-              { organizationId: company._id },
-              { organization: company._id }
-            ]
-          });
-
-          return {
-            ...company.toObject(),
-            userCount,
-            projectCount,
-            taskCount,
-            formCount,
-            stats: {
-              users: userCount,
-              projects: projectCount,
-              tasks: taskCount,
-              forms: formCount
-            }
-          };
-        })
-      );
-      
-      console.log("Companies with stats:", companiesWithStats.length);
-      res.json(companiesWithStats);
-    } catch (error) {
-      console.error("Get companies error:", error);
-      res.status(500).json({ message: "Failed to fetch companies", error: error.message });
-    }
-  });
-
-  // Temporary bypass for debugging - remove auth temporarily  
-  app.get("/api/super-admin/users", async (req, res) => {
-    try {
-      console.log("=== USERS ENDPOINT DEBUG ===");
-      const { User, Organization } = await import('./models.js');
-      
-      const users = await User.find({})
-        .populate('organization', 'name slug')
-        .sort({ createdAt: -1 });
-      
-      console.log("Raw users from DB:", users.length);
-      
-      const transformedUsers = users.map(user => {
-        const userObj = user.toObject();
-        
-        let organizationName = 'Individual User';
-        if (userObj.organizationId?.name) {
-          organizationName = userObj.organizationId.name;
-        } else if (userObj.organization?.name) {
-          organizationName = userObj.organization.name;
-        }
-        
-        return {
-          ...userObj,
-          organizationName,
-          status: userObj.status || (userObj.isActive ? 'active' : 'inactive')
-        };
-      });
-      
-      console.log("Transformed users:", transformedUsers.length);
-      res.json(transformedUsers);
-    } catch (error) {
-      console.error("Get all users error:", error);
-      res.status(500).json({ message: "Failed to fetch users", error: error.message });
-    }
-  });
-
-  app.post(
-    "/api/super-admin/create-super-admin",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { firstName, lastName, email, password } = req.body;
-
-        if (!firstName || !lastName || !email || !password) {
-          return res.status(400).json({ message: "All fields are required" });
+        // Check admin privileges
+        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+          return res
+            .status(403)
+            .json({ message: "Insufficient privileges for user management" });
         }
 
-        const superAdmin = await storage.createSuperAdmin({
-          firstName,
-          lastName,
-          email,
-          password,
-        });
+        // Validate user exists and belongs to same organization
+        const targetUser = await storage.getUser(userId);
+        if (
+          !targetUser ||
+          targetUser.organization.toString() !== adminUser.organizationId
+        ) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update user data
+        const updateData = {};
+        if (firstName) updateData.firstName = firstName.trim();
+        if (lastName) updateData.lastName = lastName.trim();
+        if (department !== undefined) updateData.department = department.trim();
+        if (designation !== undefined)
+          updateData.designation = designation.trim();
+        if (location !== undefined) updateData.location = location.trim();
+
+        const updatedUser = await storage.updateUser(userId, updateData);
 
         res.json({
-          message: "Super admin created successfully",
+          message: "User updated successfully",
           user: {
-            id: superAdmin._id,
-            email: superAdmin.email,
-            firstName: superAdmin.firstName,
-            lastName: superAdmin.lastName,
-            role: superAdmin.role,
+            id: updatedUser._id,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            department: updatedUser.department,
+            designation: updatedUser.designation,
+            location: updatedUser.location,
           },
         });
       } catch (error) {
-        console.error("Create super admin error:", error);
-        res
-          .status(500)
-          .json({ message: error.message || "Failed to create super admin" });
+        console.error("Update user error:", error);
+        res.status(500).json({ message: "Failed to update user" });
       }
-    },
+    }
   );
 
-  app.get(
-    "/api/super-admin/logs",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { limit = 100 } = req.query;
-        const logs = await storage.getSystemLogs(parseInt(limit));
-        res.json(logs);
-      } catch (error) {
-        console.error("Get system logs error:", error);
-        res.status(500).json({ message: "Failed to fetch system logs" });
-      }
-    },
-  );
-
-  app.post(
-    "/api/super-admin/assign-admin",
-    authenticateToken,
-    requireSuperAdmin,
-    async (req, res) => {
-      try {
-        const { companyId, userId } = req.body;
-        await storage.assignCompanyAdmin(companyId, userId);
-        res.json({ message: "Company admin assigned successfully" });
-      } catch (error) {
-        console.error("Assign admin error:", error);
-        res.status(500).json({ message: "Failed to assign company admin" });
-      }
-    },
-  );
-
+  // Change user role (Company Admin only)
   app.patch(
-    "/api/super-admin/companies/:id/status",
+    "/api/organization/users/:userId/role",
     authenticateToken,
-    requireSuperAdmin,
     async (req, res) => {
       try {
-        const { id } = req.params;
-        const { status } = req.body;
-        await storage.updateCompanyStatus(id, status);
-        res.json({ message: "Company status updated successfully" });
+        const { userId } = req.params;
+        const { role } = req.body;
+        const adminUser = req.user;
+
+        // Check admin privileges
+        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+          return res
+            .status(403)
+            .json({ message: "Insufficient privileges for user management" });
+        }
+
+        // Validate role
+        const validRoles = ["admin", "manager", "employee"];
+        if (!validRoles.includes(role)) {
+          return res.status(400).json({ message: "Invalid role specified" });
+        }
+
+        // Validate user exists and belongs to same organization
+        const targetUser = await storage.getUser(userId);
+        if (
+          !targetUser ||
+          targetUser.organization.toString() !== adminUser.organizationId
+        ) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update user role
+        const updatedUser = await storage.updateUser(userId, { role: role });
+
+        res.json({
+          message: "User role updated successfully",
+          user: {
+            id: updatedUser._id,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            role: updatedUser.role,
+          },
+        });
       } catch (error) {
-        console.error("Update company status error:", error);
-        res.status(500).json({ message: "Failed to update company status" });
+        console.error("Role change error:", error);
+        res.status(500).json({ message: "Failed to change user role" });
       }
-    },
+    }
   );
 
-  // Super Admin Subscription Management Routes
-  app.get("/api/super-admin/subscription-stats", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Fetching subscription statistics for super admin...");
-      const { Organization, User, License } = await import('./models.js');
-      
-      // Get total organizations count
-      const totalOrganizations = await Organization.countDocuments({});
-      
-      // Count active subscriptions (non-trial, non-expired)
-      const activeSubscriptions = await Organization.countDocuments({
-        subscription_status: { $in: ['active', 'paid'] }
-      });
-      
-      // Count trial organizations
-      const trialOrganizations = await Organization.countDocuments({
-        subscription_status: 'trial'
-      });
-      
-      // Calculate monthly revenue (mock data for now - you can implement real billing later)
-      const monthlyRevenue = activeSubscriptions * 49; // Assuming average $49/month
-      
-      // Get plan distribution
-      const planDistribution = await Organization.aggregate([
-        {
-          $group: {
-            _id: '$current_license_code',
-            count: { $sum: 1 }
-          }
-        },
-        {
-          $lookup: {
-            from: 'licenses',
-            localField: '_id',
-            foreignField: 'license_code',
-            as: 'license'
-          }
-        },
-        {
-          $project: {
-            planName: { 
-              $ifNull: [
-                { $arrayElemAt: ['$license.license_name', 0] },
-                'Unknown Plan'
-              ]
-            },
-            count: 1
-          }
+  // Deactivate user (Company Admin only)
+  app.patch(
+    "/api/organization/users/:userId/deactivate",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { userId } = req.params;
+        const adminUser = req.user;
+
+        // Check admin privileges
+        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+          return res
+            .status(403)
+            .json({ message: "Insufficient privileges for user management" });
         }
-      ]);
-      
-      const totalPlanCount = planDistribution.reduce((sum, plan) => sum + plan.count, 0);
-      const planDistributionWithPercentage = planDistribution.map(plan => ({
-        ...plan,
-        percentage: totalPlanCount > 0 ? Math.round((plan.count / totalPlanCount) * 100) : 0
-      }));
-      
-      // Get recent subscription activity (last 10 activities)
-      const recentActivity = await Organization.find({})
-        .sort({ updatedAt: -1 })
-        .limit(10)
-        .select('name subscription_status current_license_code updatedAt')
-        .then(orgs => orgs.map(org => ({
-          id: org._id,
-          organizationName: org.name,
-          action: `Changed to ${org.current_license_code || 'Unknown'} plan`,
-          timestamp: org.updatedAt ? new Date(org.updatedAt).toLocaleString() : 'N/A'
-        })));
 
-      const stats = {
-        totalOrganizations,
-        activeSubscriptions,
-        trialOrganizations,
-        monthlyRevenue,
-        planDistribution: planDistributionWithPercentage,
-        recentActivity
-      };
-      
-      console.log("Subscription stats fetched successfully");
-      res.json(stats);
-    } catch (error) {
-      console.error("Subscription stats error:", error);
-      res.status(500).json({ message: "Failed to fetch subscription statistics" });
+        // Validate user exists and belongs to same organization
+        const targetUser = await storage.getUser(userId);
+        if (
+          !targetUser ||
+          targetUser.organization.toString() !== adminUser.organizationId
+        ) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Cannot deactivate self
+        if (targetUser._id.toString() === adminUser.id) {
+          return res
+            .status(400)
+            .json({ message: "Cannot deactivate your own account" });
+        }
+
+        // Update user status
+        const updatedUser = await storage.updateUser(userId, {
+          status: "inactive",
+          isActive: false,
+        });
+
+        res.json({
+          message: "User deactivated successfully",
+          user: {
+            id: updatedUser._id,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            status: updatedUser.status,
+          },
+        });
+      } catch (error) {
+        console.error("Deactivate user error:", error);
+        res.status(500).json({ message: "Failed to deactivate user" });
+      }
     }
-  });
+  );
 
-  app.get("/api/super-admin/organization-subscriptions", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Fetching organization subscriptions for super admin...");
-      const { Organization, User, License } = await import('./models.js');
-      
-      const { search, status } = req.query;
-      
-      // Build query
-      let query = {};
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { domain: { $regex: search, $options: 'i' } }
+  // Reactivate user (Company Admin only)
+  app.patch(
+    "/api/organization/users/:userId/reactivate",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { userId } = req.params;
+        const adminUser = req.user;
+
+        // Check admin privileges
+        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+          return res
+            .status(403)
+            .json({ message: "Insufficient privileges for user management" });
+        }
+
+        // Validate user exists and belongs to same organization
+        const targetUser = await storage.getUser(userId);
+        if (
+          !targetUser ||
+          targetUser.organization.toString() !== adminUser.organizationId
+        ) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update user status
+        const updatedUser = await storage.updateUser(userId, {
+          status: "active",
+          isActive: true,
+        });
+
+        res.json({
+          message: "User reactivated successfully",
+          user: {
+            id: updatedUser._id,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            status: updatedUser.status,
+          },
+        });
+      } catch (error) {
+        console.error("Reactivate user error:", error);
+        res.status(500).json({ message: "Failed to reactivate user" });
+      }
+    }
+  );
+
+  // Remove user permanently (Company Admin only)
+  
+
+  // Resend invitation (Company Admin only)
+  app.post(
+    "/api/organization/users/:userId/resend-invite",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { userId } = req.params;
+        const adminUser = req.user;
+
+        // Check admin privileges
+        if (!adminUser || !["admin", "org_admin"].includes(adminUser.role)) {
+          return res
+            .status(403)
+            .json({ message: "Insufficient privileges for user management" });
+        }
+
+        // Validate user exists and belongs to same organization
+        const targetUser = await storage.getUser(userId);
+        if (
+          !targetUser ||
+          targetUser.organization.toString() !== adminUser.organizationId
+        ) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        // Only resend for invited users
+        if (targetUser.status !== "invited") {
+          return res
+            .status(400)
+            .json({ message: "User is not in invited status" });
+        }
+
+        // Generate new invitation token
+        const newInviteToken = storage.generateEmailVerificationToken();
+        const newExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+
+        // Update user with new token
+        await storage.updateUser(userId, {
+          inviteToken: newInviteToken,
+          inviteTokenExpiry: newExpiry,
+          invitedAt: new Date(),
+        });
+
+        // Send new invitation email (placeholder)
+        console.log(
+          `New invitation sent to ${targetUser.email} with token: ${newInviteToken}`
+        );
+
+        res.json({
+          message: "Invitation resent successfully",
+        });
+      } catch (error) {
+        console.error("Resend invite error:", error);
+        res.status(500).json({ message: "Failed to resend invitation" });
+      }
+    }
+  );
+
+  // Get user activities (placeholder for user activity tracking)
+  app.get(
+    "/api/users/activities/:userId",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        const { userId } = req.params;
+        const adminUser = req.user;
+
+        // Check admin privileges or same user
+        if (
+          !adminUser ||
+          (!["admin", "org_admin"].includes(adminUser.role) &&
+            adminUser.id !== userId)
+        ) {
+          return res.status(403).json({ message: "Insufficient privileges" });
+        }
+
+        // Placeholder for user activities - implement actual activity tracking as needed
+        const activities = [
+          {
+            description: "Logged in to the system",
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            type: "login",
+          },
+          {
+            description: "Completed task: Update user documentation",
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+            type: "task_completion",
+          },
+          {
+            description: "Created new task: Review quarterly reports",
+            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+            type: "task_creation",
+          },
         ];
+
+        res.json(activities);
+      } catch (error) {
+        console.error("Get user activities error:", error);
+        res.status(500).json({ message: "Failed to fetch user activities" });
       }
-      if (status && status !== 'all') {
-        query.subscription_status = status;
-      }
-      
-      const organizations = await Organization.find(query)
-        .sort({ createdAt: -1 })
-        .limit(100);
-      
-      const organizationsWithDetails = await Promise.all(
-        organizations.map(async (org) => {
-          const userCount = await User.countDocuments({
-            $or: [
-              { organizationId: org._id },
-              { organization: org._id }
-            ]
-          });
-          
-          // Get license details
-          let licenseDetails = null;
-          if (org.current_license_code) {
-            licenseDetails = await License.findOne({ 
-              license_code: org.current_license_code 
-            });
-          }
-          
-          return {
-            id: org._id,
-            name: org.name,
-            domain: org.domain,
-            currentPlan: licenseDetails?.license_name || org.current_license_code || 'EXPLORE',
-            status: org.subscription_status || 'trial',
-            userCount,
-            expiresAt: org.subscription_end_date,
-            trialEndsAt: org.trial_end_date,
-            monthlyRevenue: org.subscription_status === 'active' ? 49 : 0, // Mock data
-            createdAt: org.createdAt,
-            updatedAt: org.updatedAt
-          };
-        })
-      );
-      
-      console.log(`Found ${organizationsWithDetails.length} organizations`);
-      res.json({ organizations: organizationsWithDetails });
-    } catch (error) {
-      console.error("Organization subscriptions error:", error);
-      res.status(500).json({ message: "Failed to fetch organization subscriptions" });
     }
-  });
-
-  app.get("/api/super-admin/license-plans", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Fetching license plans for super admin...");
-      const { License, LicenseFeature, Feature, Organization } = await import('./models.js');
-      
-      // First, let's see all plans to understand what we're working with
-      const allPlans = await License.find({});
-      console.log(`Total plans in database: ${allPlans.length}`);
-      allPlans.forEach(plan => {
-        console.log(`Plan ${plan.license_code}: is_active=${plan.is_active}, name=${plan.name || plan.license_name}`);
-      });
-      
-      // Exclude expired plans and inactive plans from super admin view
-      const plans = await License.find({ 
-        license_code: { $ne: 'EXPIRED' },
-        is_active: true
-      }).sort({ license_code: 1 });
-      
-      console.log(`Found ${plans.length} active license plans (excluding expired)`);
-      plans.forEach(plan => {
-        console.log(`Returning plan: ${plan.license_code} (${plan.name || plan.license_name})`);
-      });
-      
-      const plansWithDetails = await Promise.all(
-        plans.map(async (plan) => {
-          // Get organization count for this plan
-          const organizationCount = await Organization.countDocuments({
-            current_license_code: plan.license_code
-          });
-          
-          // Get features for this plan
-          const licenseFeatures = await LicenseFeature.find({
-            license_code: plan.license_code
-          });
-          
-          const featuresWithDetails = await Promise.all(
-            licenseFeatures.map(async (lf) => {
-              const feature = await Feature.findOne({
-                feature_code: lf.feature_code
-              });
-              return {
-                feature_code: lf.feature_code,
-                feature_name: feature?.feature_name || lf.feature_code,
-                usage_limit: (lf.limit_value ?? lf.usage_limit ?? -1),
-                is_enabled: lf.is_enabled
-              };
-            })
-          );
-          
-          return {
-            ...plan.toObject(),
-            organizationCount,
-            features: featuresWithDetails,
-            license_name: plan.name, // Map 'name' to 'license_name' for frontend compatibility
-            monthly_price: plan.price_monthly || 0,
-            annual_price: plan.price_yearly || 0
-          };
-        })
-      );
-      
-      console.log(`Found ${plansWithDetails.length} license plans`);
-      console.log("Sample plan structure:", JSON.stringify(plansWithDetails[0], null, 2));
-      res.json({ plans: plansWithDetails });
-    } catch (error) {
-      console.error("License plans error:", error);
-      res.status(500).json({ message: "Failed to fetch license plans" });
-    }
-  });
-
-  app.put("/api/super-admin/organization/:id/subscription", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Updating organization subscription for super admin...");
-      const { Organization } = await import('./models.js');
-      
-      const { id } = req.params;
-      const { license_code, subscription_status, subscription_end_date } = req.body;
-      
-      const updatedOrg = await Organization.findByIdAndUpdate(
-        id,
-        {
-          current_license_code: license_code,
-          subscription_status,
-          subscription_end_date: subscription_end_date ? new Date(subscription_end_date) : null,
-          updatedAt: new Date()
-        },
-        { new: true }
-      );
-      
-      if (!updatedOrg) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-      
-      console.log(`Updated subscription for organization ${updatedOrg.name}`);
-      res.json({ 
-        message: "Subscription updated successfully", 
-        organization: updatedOrg 
-      });
-    } catch (error) {
-      console.error("Update subscription error:", error);
-      res.status(500).json({ message: "Failed to update subscription" });
-    }
-  });
-
-  app.post("/api/super-admin/license-plans", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Creating new license plan for super admin...");
-      console.log("Request body:", req.body);
-      console.log("User making request:", req.user);
-      
-      const { License, LicenseFeature } = await import('./models.js');
-
-      const planData = req.body;
-
-      // Map frontend field names to schema field names
-      const mappedData = {
-        ...planData,
-        ...(planData.license_name && { name: planData.license_name }),
-        ...(planData.monthly_price !== undefined && { price_monthly: planData.monthly_price }),
-        ...(planData.annual_price !== undefined && { price_yearly: planData.annual_price }),
-      };
-      delete mappedData.license_name;
-      delete mappedData.monthly_price;
-      delete mappedData.annual_price;
-
-      // Check if plan already exists
-      const existingPlan = await License.findOne({ license_code: mappedData.license_code });
-      if (existingPlan) {
-        return res.status(400).json({ message: "Plan with this code already exists" });
-      }
-
-      const newPlan = new License({
-        ...mappedData,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-      await newPlan.save();
-
-      // Handle features array
-      if (Array.isArray(planData.features)) {
-        for (const f of planData.features) {
-          await LicenseFeature.findOneAndUpdate(
-            { license_code: newPlan.license_code, feature_code: f.feature_code },
-            {
-              license_code: newPlan.license_code,
-              feature_code: f.feature_code,
-              // Persist to schema's limit_value; treat -1 as unlimited
-              limit_value: (f.usage_limit === undefined || f.usage_limit === null) ? -1 : f.usage_limit,
-              is_enabled: f.is_enabled !== false,
-            },
-            { upsert: true, new: true }
-          );
-        }
-      }
-
-      console.log(`Created new license plan: ${newPlan.name}`);
-      res.status(201).json({
-        message: "License plan created successfully",
-        plan: {
-          ...newPlan.toObject(),
-          license_name: newPlan.name,
-          monthly_price: newPlan.price_monthly,
-          annual_price: newPlan.price_yearly
-        }
-      });
-    } catch (error) {
-      console.error("Create license plan error:", error);
-      res.status(500).json({ message: "Failed to create license plan" });
-    }
-  });
-
-  app.put("/api/super-admin/license-plans/:code", authenticateToken, requireSuperAdmin, async (req, res) => {
-    try {
-      console.log("Updating license plan for super admin...");
-      console.log("Request body:", req.body);
-      const { License, LicenseFeature } = await import('./models.js');
-
-      const { code } = req.params;
-      const updateData = req.body;
-
-      // Map frontend field names to schema field names
-      const mappedData = {
-        ...updateData,
-        ...(updateData.license_name && { name: updateData.license_name }),
-        ...(updateData.monthly_price !== undefined && { price_monthly: updateData.monthly_price }),
-        ...(updateData.annual_price !== undefined && { price_yearly: updateData.annual_price }),
-        updated_at: new Date()
-      };
-      delete mappedData.license_name;
-      delete mappedData.monthly_price;
-      delete mappedData.annual_price;
-
-      console.log("Mapped data for update:", mappedData);
-
-      const updatedPlan = await License.findOneAndUpdate(
-        { license_code: code },
-        mappedData,
-        { new: true }
-      );
-
-      if (!updatedPlan) {
-        return res.status(404).json({ message: "License plan not found" });
-      }
-
-      // Remove all old features for this plan
-      await LicenseFeature.deleteMany({ license_code: code });
-      // Add new features
-      if (Array.isArray(updateData.features)) {
-        for (const f of updateData.features) {
-          await LicenseFeature.findOneAndUpdate(
-            { license_code: code, feature_code: f.feature_code },
-            {
-              license_code: code,
-              feature_code: f.feature_code,
-              limit_value: (f.usage_limit === undefined || f.usage_limit === null) ? -1 : f.usage_limit,
-              is_enabled: f.is_enabled !== false,
-            },
-            { upsert: true, new: true }
-          );
-        }
-      }
-
-      console.log(`Updated license plan: ${updatedPlan.name}`);
-      res.json({
-        message: "License plan updated successfully",
-        plan: updatedPlan
-      });
-    } catch (error) {
-      console.error("Update license plan error:", error);
-      res.status(500).json({ message: "Failed to update license plan" });
-    }
-  });
+  );
 
   // Login customization routes
   registerLoginCustomizationRoutes(app);

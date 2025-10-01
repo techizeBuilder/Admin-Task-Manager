@@ -35,7 +35,8 @@ export function Sidebar({ isOpen, isMobileMenuOpen, onToggle, onMobileToggle }) 
       {/* Desktop Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 bg-sidebarDark border-r border-gray-600/30 transition-all duration-300 shadow-xl ${
         isOpen ? 'w-64' : 'w-16'
-      } hidden lg:block`}>
+        } hidden lg:block`}>
+        
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center h-12 px-3 border-b border-gray-600/30 bg-sidebarDark">

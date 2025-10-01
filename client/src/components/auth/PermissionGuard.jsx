@@ -93,7 +93,7 @@ export const RouteGuard = ({ route, children, fallback }) => {
     // Default unauthorized page
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-lg shadow-lg">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-md shadow-lg">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
               className="w-8 h-8 text-red-600"

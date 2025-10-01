@@ -4,12 +4,12 @@ import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-rea
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
 import { useLocation } from "wouter";
-import { 
-  DeleteTaskModal, 
-  ReassignTaskModal, 
-  SnoozeTaskModal, 
-  MarkRiskModal, 
-  MarkDoneModal 
+import {
+  DeleteTaskModal,
+  ReassignTaskModal,
+  SnoozeTaskModal,
+  MarkRiskModal,
+  MarkDoneModal
 } from '../../components/modals/TaskModals';
 
 export default function TaskActionsDropdown({
@@ -17,6 +17,7 @@ export default function TaskActionsDropdown({
   onSnooze,
   onMarkAsRisk,
   onMarkAsDone,
+  onQuickMarkAsDone, // New prop for quick mark done
   onDelete,
 }) {
   const { openSubtaskDrawer } = useSubtask();
@@ -24,7 +25,7 @@ export default function TaskActionsDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [, navigate] = useLocation();
-  
+
   // Modal states
   const [showSnoozeModal, setShowSnoozeModal] = useState(false);
   const [showMarkRiskModal, setShowMarkRiskModal] = useState(false);
@@ -87,7 +88,13 @@ export default function TaskActionsDropdown({
             onClick={(e) => {
               e.stopPropagation();
               setIsOpen(false);
-              openSubtaskDrawer(task.id);
+              console.log('🚀 TaskActionsDropdown: Creating subtask for task:', {
+                id: task.id,
+                _id: task._id,
+                title: task.title,
+                fullTask: task
+              });
+              openSubtaskDrawer(task); // Pass the full task object, not just the ID
             }}
           >
             <Plus size={16} className="text-gray-600" />
@@ -131,7 +138,8 @@ export default function TaskActionsDropdown({
             <span className="font-medium">Mark as Risk</span>
           </button>
 
-          <button
+          {/* <button
+          {/* <button
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
@@ -140,6 +148,21 @@ export default function TaskActionsDropdown({
             }}
           >
             <CheckCircle size={16} className="text-gray-600" />
+            <span className="font-medium">Mark as Done</span>
+
+
+          {/* Quick Mark Done - No confirmation needed */}
+          <button
+            className="w-full text-left cursor-pointer px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-3 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              if (onQuickMarkAsDone) {
+                onQuickMarkAsDone();
+              }
+            }}
+          >
+            <CheckCircle size={16} className="text-green-600" />
             <span className="font-medium">Mark as Done</span>
           </button>
 
@@ -160,7 +183,7 @@ export default function TaskActionsDropdown({
       )}
 
       {/* Modals rendered at document root level */}
-      {(showSnoozeModal || showMarkRiskModal || showMarkDoneModal || showDeleteModal) && 
+      {(showSnoozeModal || showMarkRiskModal || showMarkDoneModal || showDeleteModal) &&
         createPortal(
           <>
             <SnoozeTaskModal

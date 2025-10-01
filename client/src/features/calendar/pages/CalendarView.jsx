@@ -36,7 +36,7 @@ const CalendarView = () => {
             </button>
           )}
           <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
             data-testid="button-create-event"
           >
             <Plus size={18} />
@@ -46,12 +46,12 @@ const CalendarView = () => {
       </div>
 
       {/* Calendar Controls */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border">
+      <div className="bg-white p-4 rounded-md shadow-sm border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <button 
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-md"
                 onClick={() => {
                   const newDate = new Date(currentDate);
                   newDate.setMonth(newDate.getMonth() - 1);
@@ -64,7 +64,7 @@ const CalendarView = () => {
                 {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h2>
               <button 
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 rounded-md"
                 onClick={() => {
                   const newDate = new Date(currentDate);
                   newDate.setMonth(newDate.getMonth() + 1);
@@ -75,7 +75,7 @@ const CalendarView = () => {
               </button>
             </div>
             <button 
-              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium transition-colors"
               onClick={() => setCurrentDate(new Date())}
             >
               Today
@@ -87,7 +87,7 @@ const CalendarView = () => {
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   viewMode === mode
                     ? 'bg-blue-100 text-blue-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -101,7 +101,7 @@ const CalendarView = () => {
       </div>
 
       {/* Calendar Integration Placeholder */}
-      <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
+      <div className="bg-white rounded-md shadow-sm border p-12 text-center">
         <Calendar className="mx-auto text-gray-400 mb-4" size={64} />
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           Calendar Integration Coming Soon
@@ -112,19 +112,19 @@ const CalendarView = () => {
         </p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-          <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="p-4 bg-blue-50 rounded-md">
             <h4 className="font-medium text-blue-900 mb-2">Task Integration</h4>
             <p className="text-sm text-blue-700">
               View task due dates and recurring schedules
             </p>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg">
+          <div className="p-4 bg-green-50 rounded-md">
             <h4 className="font-medium text-green-900 mb-2">Time Blocking</h4>
             <p className="text-sm text-green-700">
               Schedule focused work sessions
             </p>
           </div>
-          <div className="p-4 bg-purple-50 rounded-lg">
+          <div className="p-4 bg-purple-50 rounded-md">
             <h4 className="font-medium text-purple-900 mb-2">External Sync</h4>
             <p className="text-sm text-purple-700">
               Connect Google, Outlook, and other calendars

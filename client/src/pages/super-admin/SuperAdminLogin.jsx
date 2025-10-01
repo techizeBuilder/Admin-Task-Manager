@@ -103,11 +103,11 @@ export default function SuperAdminLogin() {
 
       if (response.ok) {
         // Check if user is super admin
-        // if (result.user.role !== 'super_admin' && result.user.role !== 'superadmin') {
-        //   setErrors({ submit: "Access denied. Super admin credentials required." });
-        //   setIsLoading(false);
-        //   return;
-        // }
+        if (result.user.role !== 'super_admin' && result.user.role !== 'superadmin') {
+          setErrors({ submit: "Access denied. Super admin credentials required." });
+          setIsLoading(false);
+          return;
+        }
 
         localStorage.setItem("token", result.token);
         localStorage.setItem("user", JSON.stringify(result.user));

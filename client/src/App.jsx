@@ -1,8 +1,8 @@
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { queryClient } from "@/lib/queryClient";
+import { getQueryFn } from "@/lib/queryClient";
 import { RoleProvider } from "./components/RoleSwitcher";
 
 // Role-based Dashboards
@@ -39,7 +39,6 @@ import UsersManagement from "./pages/super-admin/UsersManagement";
 import SystemLogs from "./pages/super-admin/SystemLogs";
 import AdminManagement from "./pages/super-admin/AdminManagement";
 import LoginCustomization from "./pages/super-admin/LoginCustomization";
-import SubscriptionManagement from "./pages/super-admin/SubscriptionManagement";
 
 import { Toaster } from "./components/ui/toaster";
 import { SubtaskProvider } from "./contexts/SubtaskContext";
@@ -86,6 +85,7 @@ import CreateTask from "./pages/newComponents/CreateTask";
 import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
+import QuickTask from "./pages/newComponents/QuickTask";
 import CalendarView from "./features/calendar/pages/CalendarView";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
@@ -104,16 +104,21 @@ import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
+// import RecurringTaskEdit from "./pages/newComponents/RecurringTaskEdit";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 // User Role Check Component
 
 // Route protection wrapper
-function ProtectedRoute({
-  component: Component,
-  requiredRole,
-  allowedRoles = [],
-  ...props
-}) {
+function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
   const { data: user, isLoading, error } = useUserRole();
 
   const [, setLocation] = useLocation();
@@ -154,20 +159,24 @@ function ProtectedRoute({
     return null;
   }
 
-  // Check if user has required role or is in allowed roles
+  // Check if user is in allowed roles
   const hasAccess = () => {
     // Get the current active role or default to first role
     const activeRole = user.activeRole || user.role?.[0];
     const userRoles = user.role || [];
-
-    if (requiredRole) {
-      return userRoles.includes(requiredRole) || activeRole === requiredRole;
-    }
+    console.log("activeRole:", activeRole);
+    console.log("allowedRoles:", allowedRoles);
+    console.log("userRoles:", userRoles);
+    console.log(
+      "allowedRoles.some:",
+      allowedRoles.some((role) => userRoles.includes(role))
+    );
+    console.log(
+      "allowedRoles.includes(activeRole):",
+      allowedRoles.includes(activeRole)
+    );
     if (allowedRoles.length > 0) {
-      return (
-        allowedRoles.some((role) => userRoles.includes(role)) ||
-        allowedRoles.includes(activeRole)
-      );
+      return allowedRoles.includes(activeRole);
     }
     return true; // No role requirement
   };
@@ -203,7 +212,7 @@ function ProtectedRoute({
           <div className="space-y-3">
             <button
               onClick={() => setLocation("/dashboard")}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Return to Dashboard
             </button>
@@ -280,20 +289,20 @@ function App() {
               <Route path="/super-admin">
                 <ProtectedRoute
                   component={LegacySuperAdminDashboard}
-                  requiredRole="super_admin"
+                  allowedRoles={["super_admin"]}
                 />
               </Route>
               <Route path="/super-admin/companies">
                 <ProtectedRoute
                   component={CompaniesManagement}
-                  requiredRole="super_admin"
+                  allowedRoles={["super_admin"]}
                 />
               </Route>
               <Route path="/super-admin/users">
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={UsersManagement}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -301,7 +310,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={SystemLogs}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -309,7 +318,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={AdminManagement}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -317,7 +326,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={TaskAnalytics}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -325,7 +334,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={AdminSettings}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   ></ProtectedRoute>
                 </SuperAdminLayout>
               </Route>
@@ -333,15 +342,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={LoginCustomization}
-                    requiredRole="super_admin"
-                  />
-                </SuperAdminLayout>
-              </Route>
-              <Route path="/super-admin/subscriptions">
-                <SuperAdminLayout>
-                  <ProtectedRoute
-                    component={SubscriptionManagement}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -349,7 +350,7 @@ function App() {
                 <SuperAdminLayout>
                   <ProtectedRoute
                     component={EditProfile}
-                    requiredRole="super_admin"
+                    allowedRoles={["super_admin"]}
                   />
                 </SuperAdminLayout>
               </Route>
@@ -359,7 +360,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={DynamicDashboard}
-                    allowedRoles={["org_admin", "employee", "individual"]}
+                    allowedRoles={["org_admin", "employee", "manager", "individual"]}
                   />
                 </AdminLayout>
               </Route>
@@ -386,8 +387,8 @@ function App() {
               <Route path="/quick-tasks">
                 <AdminLayout>
                   <ProtectedRoute
-                    component={QuickAddBar}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    component={QuickTask}
+                    allowedRoles={["individual", "employee", "manager", "org_admin", "super_admin"]}
                   />
                 </AdminLayout>
               </Route>
@@ -566,19 +567,35 @@ function App() {
               </Route>
               <Route path="/edit-profile">
                 <AdminLayout>
-                  <ProtectedRoute component={EditProfile} />
+                  <ProtectedRoute
+                    component={EditProfile}
+                    allowedRoles={[
+                      "org_admin",
+                      "individual",
+                      "manager",
+                      "employee",
+                    ]}
+                  />
                 </AdminLayout>
               </Route>
               <Route path="/profile">
                 <AdminLayout>
-                  <ProtectedRoute component={EditProfile} />
+                  <ProtectedRoute
+                    component={EditProfile}
+                    allowedRoles={[
+                      "org_admin",
+                      "individual",
+                      "manager",
+                      "employee",
+                    ]}
+                  />
                 </AdminLayout>
               </Route>
               <Route path="/admin/users">
                 <AdminLayout>
                   <ProtectedRoute
                     component={Users}
-                    allowedRoles={["superadmin", "org_admin", "org_admin"]}
+                    allowedRoles={["org_admin"]}
                   />
                 </AdminLayout>
               </Route>
@@ -727,7 +744,7 @@ function App() {
               {/* Settings Routes */}
               <Route path="/settings">
                 <SettingsLayout>
-                  <ProtectedRoute requiredRole="org_admin">
+                  <ProtectedRoute allowedRoles={["org_admin"]}>
                     <div className="p-6">
                       <script>
                         window.location.href = '/settings/user-management';
@@ -741,7 +758,7 @@ function App() {
                 <SettingsLayout>
                   <ProtectedRoute
                     component={GeneralSettings}
-                    requiredRole="org_admin"
+                    allowedRoles={["org_admin"]}
                   />
                 </SettingsLayout>
               </Route>
@@ -757,7 +774,7 @@ function App() {
                 <SettingsLayout>
                   <ProtectedRoute
                     component={Subscription}
-                    requiredRole="org_admin"
+                    allowedRoles={["org_admin"]}
                   />
                 </SettingsLayout>
               </Route>
@@ -780,12 +797,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={BillingPage}
-                    allowedRoles={[
-                      "org_admin",
-                      "manager",
-                      "individual",
-                      "employee",
-                    ]}
+                    allowedRoles={["org_admin", "individual"]}
                   />
                 </AdminLayout>
               </Route>
@@ -804,7 +816,7 @@ function App() {
                 <SettingsLayout>
                   <ProtectedRoute
                     component={SettingsRoles}
-                    requiredRole="org_admin"
+                    allowedRoles={["org_admin"]}
                   />
                 </SettingsLayout>
               </Route>

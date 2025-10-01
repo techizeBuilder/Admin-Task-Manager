@@ -122,7 +122,7 @@ TaskSetu - Streamline your workflow
 
     try {
       await this.transporter.sendMail(mailOptions);
-      console.log(`Invitation email sent successfully to ${email}`);
+     
       return true;
     } catch (error) {
       console.error('Mailtrap email error:', error);
@@ -184,7 +184,7 @@ TaskSetu - Streamline your workflow
               </ul>
               
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${process.env.CLIENT_URL || 'http://localhost:8001'}/login" class="btn">Go to Dashboard</a>
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5000'}/login" class="btn">Go to Dashboard</a>
               </div>
               
               <p>If you need any help getting started, don't hesitate to reach out to your team administrator.</p>
@@ -208,7 +208,7 @@ You're all set to start collaborating with your team on TaskSetu. Here's what yo
 - Track progress and deadlines
 - Generate reports and insights
 
-Login to your dashboard: ${process.env.CLIENT_URL || 'http://localhost:8001'}/login
+Login to your dashboard: ${process.env.CLIENT_URL || 'http://localhost:5000'}/login
 
 If you need any help getting started, don't hesitate to reach out to your team administrator.
 

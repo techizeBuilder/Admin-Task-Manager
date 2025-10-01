@@ -1,132 +1,7 @@
 import mongoose from "mongoose";
 
-// Login Attempt Schema for tracking failed login attempts
-const loginAttemptSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    attemptCount: {
-      type: Number,
-      default: 1,
-    },
-    firstAttemptAt: {
-      type: Date,
-      default: Date.now,
-    },
-    lastAttemptAt: {
-      type: Date,
-      default: Date.now,
-    },
-    isLocked: {
-      type: Boolean,
-      default: false,
-    },
-    lockoutExpiresAt: {
-      type: Date,
-    },
-    ipAddress: {
-      type: String,
-    },
-    userAgent: {
-      type: String,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
-// TTL index to automatically delete records after 24 hours
-loginAttemptSchema.index({ lastAttemptAt: 1 }, { expireAfterSeconds: 86400 }); // 24 hours
 
-// Organization Schema
-const organizationSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-    },
-    description: String,
-    logo: String,
-    maxUsers: {
-      type: Number,
-      default: 10,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    settings: {
-      type: Object,
-      default: {},
-    },
-    industry: String,
-    size: {
-      type: String,
-      enum: ["small", "medium", "large"],
-      default: "medium",
-    },
-    website: String,
-    status: {
-      type: String,
-      enum: ["active", "inactive", "pending"],
-      default: "active",
-    },
-    // License and subscription information
-    current_license: {
-      type: String,
-      ref: "License",
-      required: true,
-      default: "EXPLORE",
-    },
-    subscription_status: {
-      type: String,
-      enum: ["active", "expired", "trial", "suspended", "cancelled"],
-      default: "trial",
-    },
-    subscription_start_date: {
-      type: Date,
-      default: Date.now,
-    },
-    subscription_end_date: {
-      type: Date,
-      required: function() {
-        return this.subscription_status !== 'trial';
-      },
-    },
-    trial_end_date: {
-      type: Date,
-      default: function() {
-        // Set trial to expire in 15 days from creation
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 15);
-        return trialEnd;
-      },
-    },
-    billing_cycle: {
-      type: String,
-      enum: ["MONTHLY", "YEARLY"],
-      default: "MONTHLY",
-    },
-    auto_renew: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
 // Project Schema
 const projectSchema = new mongoose.Schema(
@@ -208,6 +83,10 @@ const taskStatusSchema = new mongoose.Schema(
 // Task Schema
 const taskSchema = new mongoose.Schema(
   {
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     title: {
       type: String,
       required: true,
@@ -234,8 +113,8 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["todo", "in-progress", "review", "completed"],
-      default: "todo",
+      enum: ["open", "todo", "in-progress", "review", "completed"],
+      default: "open",
     },
     priority: {
       type: String,
@@ -272,14 +151,31 @@ const taskSchema = new mongoose.Schema(
     // Advanced task fields for comprehensive task management
     taskType: {
       type: String,
-      enum: ["regular", "recurring", "milestone", "approval"],
+      enum: ["regular", "recurring", "milestone", "approval", "subtask"],
       default: "regular",
     },
     mainTaskType: {
       type: String,
-      enum: ["regular", "recurring", "milestone", "approval"],
+      enum: ["regular", "recurring", "milestone", "approval", "subtask"],
       default: "regular",
     }, // Clear task category identification
+    // Subtask specific fields
+    parentTaskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+      required: false,
+      index: true
+    },
+    isSubtask: {
+      type: Boolean,
+      default: false
+    },
+    createdByRole: {
+      type: [String],
+      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
+      default: ["employee"],
+      required: true,
+    },
     taskTypeAdvanced: {
       type: String,
       enum: ["simple", "complex", "recurring", "milestone", "approval"],
@@ -304,6 +200,19 @@ const taskSchema = new mongoose.Schema(
       },
     ],
     customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
+
+    // Comments array for subtasks and tasks
+    comments: [{
+      _id: { type: String, required: true },
+      text: { type: String, required: true },
+      author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+      authorName: { type: String, required: true },
+      authorEmail: { type: String, required: true },
+      mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now },
+      isEdited: { type: Boolean, default: false }
+    }],
 
     // Advanced options fields - always available regardless of task type
     referenceProcess: { type: String, default: null }, // Links to existing process/workflow
@@ -393,133 +302,7 @@ const taskCommentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-const userSchema = new mongoose.Schema(
-  {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    firstName: {
-      type: String,
-      trim: true,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    lastName: {
-      type: String,
-      trim: true,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    profileImageUrl: String,
-    phone: {
-      type: String,
-      trim: true,
-    },
-    address: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-    },
-    bio: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    passwordHash: {
-      type: String,
-      required: function () {
-        return this.status === "active";
-      },
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    emailVerificationToken: String,
-    emailVerificationExpires: Date,
-    passwordResetToken: String,
-    passwordResetExpires: Date,
-    organization_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
-    },
-    role: {
-      type: [String],
-      enum: ["super_admin", "org_admin", "manager", "individual", "employee"],
-      default: ["employee"],
-      required: true,
-    },
-    isPrimaryAdmin: {
-      type: Boolean,
-      default: false,
-    },
-    permissions: {
-      type: [String],
-      default: [],
-    },
-    status: {
-      type: String,
-      enum: ["pending", "invited", "active", "inactive", "suspended"],
-      default: "pending",
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
 
-    department: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    designation: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    location: {
-      type: String,
-      trim: true,
-      maxlength: 50,
-    },
-    inviteToken: String,
-    inviteTokenExpiry: Date,
-    invitedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    invitedAt: Date,
-    lastLoginAt: Date,
-    preferences: {
-      type: Object,
-      default: {},
-    },
-  
- 
-    assignedTasks: {
-      type: Number,
-      default: 0,
-    },
-    completedTasks: {
-      type: Number,
-      default: 0,
-    },
-    // Legacy fields for backward compatibility
-    roles: {
-      type: [String],
-      default: [],
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 const activitySchema = new mongoose.Schema(
   {
     type: {
@@ -681,9 +464,8 @@ const usageTrackingSchema = new mongoose.Schema(
 );
 
 // Create indexes
-organizationSchema.index({ slug: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ organization: 1 });
+
+
 taskSchema.index({ organization: 1 });
 taskSchema.index({ assignedTo: 1 });
 taskSchema.index({ createdBy: 1 });
@@ -960,271 +742,10 @@ const processInstanceSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-// Pending User Schema for email verification during registration
-const pendingUserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  type: { type: String, enum: ["individual", "organization"], required: true },
-  organizationName: { type: String }, // Only for organization type
-  organizationSlug: { type: String }, // Only for organization type
-  licenseId: {
-    type: String,
-    enum: ["Explore (Free)", "Plan", "Execute", "Optimize"],
-    required: function () {
-      // Only require license when user is active
-      return this.status !== "invited";
-    },
-    default: "Explore (Free)",
-  },
-  department: { type: String, maxlength: 50 },
-  designation: { type: String, maxlength: 50 },
-  location: { type: String, maxlength: 50 },
-  verificationCode: { type: String },
-  verificationExpires: { type: Date },
-  isVerified: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, default: Date.now, expires: 86400 }, // 24 hours
-});
 
-// License Schema - Subscription plan definitions
-const licenseSchema = new mongoose.Schema(
-  {
-    license_code: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-      enum: ["EXPLORE", "PLAN", "EXECUTE", "OPTIMIZE", "EXPIRED"],
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    billing_cycle: {
-      type: String,
-      enum: ["MONTHLY", "YEARLY", "TRIAL", "NONE"],
-      default: "MONTHLY",
-    },
-    price_monthly: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
-    price_yearly: {
-      type: Number,
-      required: true,
-      min: 0,
-      default: 0,
-    },
-    max_users: {
-      type: Number,
-      required: true,
-      validate: {
-        validator: function(value) {
-          // Allow -1 for unlimited users, or any positive number
-          return value === -1 || value >= 1;
-        },
-        message: 'max_users must be -1 (unlimited) or a positive number'
-      },
-    },
-    is_active: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
-  }
-);
 
-// Features Schema - Available features in the system
-const featureSchema = new mongoose.Schema(
-  {
-    feature_code: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 100,
-    },
-    description: {
-      type: String,
-      trim: true,
-    },
-    category: {
-      type: String,
-      enum: ["CORE", "ADVANCED", "PREMIUM", "ENTERPRISE"],
-      default: "CORE",
-    },
-    is_active: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
-// License Features Schema - Junction table linking licenses to features with limits
-const licenseFeatureSchema = new mongoose.Schema(
-  {
-    license_code: {
-      type: String,
-      required: true,
-      ref: "License",
-    },
-    feature_code: {
-      type: String,
-      required: true,
-      ref: "Feature",
-    },
-    limit_value: {
-      type: Number,
-      default: null, // NULL means unlimited
-    },
-    limit_period: {
-      type: String,
-      enum: ["DAY", "MONTH", "YEAR", "LIFETIME"],
-      default: null,
-    },
-    is_enabled: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
 
-// Compound index to ensure unique license-feature combinations
-licenseFeatureSchema.index({ license_code: 1, feature_code: 1 }, { unique: true });
-
-// Organization Subscription History Schema - Track subscription changes and billing
-const subscriptionHistorySchema = new mongoose.Schema(
-  {
-    organization: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
-      required: true,
-    },
-    license_code: {
-      type: String,
-      required: true,
-      ref: "License",
-    },
-    action: {
-      type: String,
-      enum: ["CREATED", "UPGRADED", "DOWNGRADED", "RENEWED", "CANCELLED", "EXPIRED", "TRIAL_STARTED", "TRIAL_EXPIRED"],
-      required: true,
-    },
-    billing_cycle: {
-      type: String,
-      enum: ["MONTHLY", "YEARLY"],
-      required: true,
-    },
-    amount_paid: {
-      type: Number,
-      default: 0,
-    },
-    currency: {
-      type: String,
-      default: "INR",
-    },
-    payment_method: {
-      type: String,
-      enum: ["CREDIT_CARD", "DEBIT_CARD", "UPI", "NET_BANKING", "WALLET", "FREE_TRIAL"],
-      default: "FREE_TRIAL",
-    },
-    payment_status: {
-      type: String,
-      enum: ["PENDING", "COMPLETED", "FAILED", "REFUNDED", "FREE"],
-      default: "FREE",
-    },
-    transaction_id: String,
-    period_start: {
-      type: Date,
-      required: true,
-    },
-    period_end: {
-      type: Date,
-      required: true,
-    },
-    notes: String,
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-// Usage Tracking Schema - Track feature usage against limits
-const organizationUsageSchema = new mongoose.Schema(
-  {
-    organization: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
-      required: true,
-    },
-    feature_code: {
-      type: String,
-      required: true,
-      ref: "Feature",
-    },
-    usage_count: {
-      type: Number,
-      default: 0,
-    },
-    usage_period: {
-      type: String,
-      enum: ["DAY", "MONTH", "YEAR", "LIFETIME"],
-      required: true,
-    },
-    period_start: {
-      type: Date,
-      required: true,
-    },
-    period_end: {
-      type: Date,
-      required: true,
-    },
-    reset_date: {
-      type: Date, // When this counter should reset
-    },
-    last_reset: {
-      type: Date, // When this counter was last reset
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-// Compound indexes for efficient querying
-subscriptionHistorySchema.index({ organization: 1, createdAt: -1 });
-organizationUsageSchema.index({ organization: 1, feature_code: 1, period_start: 1 }, { unique: true });
-
-export const LoginAttempt = mongoose.model("LoginAttempt", loginAttemptSchema);
-export const Organization = mongoose.model("Organization", organizationSchema);
-// User Schema
-export const User = mongoose.model("User", userSchema);
 
 export const Project = mongoose.model("Project", projectSchema);
 export const TaskStatus = mongoose.model("TaskStatus", taskStatusSchema);
@@ -1248,11 +769,4 @@ export const ProcessInstance = mongoose.model(
   "ProcessInstance",
   processInstanceSchema
 );
-export const PendingUser = mongoose.model("PendingUser", pendingUserSchema);
 
-// License and subscription models
-export const License = mongoose.model("License", licenseSchema);
-export const Feature = mongoose.model("Feature", featureSchema);
-export const LicenseFeature = mongoose.model("LicenseFeature", licenseFeatureSchema);
-export const SubscriptionHistory = mongoose.model("SubscriptionHistory", subscriptionHistorySchema);
-export const OrganizationUsage = mongoose.model("OrganizationUsage", organizationUsageSchema);

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { PendingUser } from './models.js';
+import { PendingUser } from './modals/pendingUserModal.js';
 
 async function checkPendingUsers() {
   try {

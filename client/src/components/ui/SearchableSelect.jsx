@@ -55,7 +55,7 @@ export function SearchableSelect({
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <div
-        className={`w-full px-3 py-2 text-sm border rounded-lg cursor-pointer transition-colors ${
+        className={`w-full px-3 py-3 text-sm border rounded-md cursor-pointer transition-colors ${
           disabled 
             ? 'bg-gray-100 border-gray-300 cursor-not-allowed' 
             : 'bg-white border-gray-300 hover:border-gray-400 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500'
@@ -79,7 +79,7 @@ export function SearchableSelect({
       </div>
 
       {isOpen && (
-        <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
+        <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
           <div className="p-2 border-b border-gray-200">
             <input
               ref={inputRef}

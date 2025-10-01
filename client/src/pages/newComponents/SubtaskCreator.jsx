@@ -575,7 +575,7 @@ export default function SubtaskCreator({
               {formData.attachments.map((file) => (
                 <div
                   key={file.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md border"
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">📎</span>

@@ -59,7 +59,8 @@ export const getTaskTypeIcon = (taskType, size = 16, className = "") => {
 export const getTaskPriorityColor = (priority) => {
   switch (priority?.toLowerCase()) {
     case "low":
-      return "#10B981"; // Green
+    return "#10B981"; // Green
+      // return "rgb(220 38 38 / 40%)"; // Light Green
     case "medium":
       return "#F59E0B"; // Yellow
     case "high":

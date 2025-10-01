@@ -35,101 +35,122 @@ const LicenseManagement = () => {
     queryKey: ['/api/auth/me']
   });
 
-  // Get license plans from API
-  const { data: plansResponse, isLoading: plansLoading } = useQuery({
-    queryKey: ['/api/license/plans'],
-    queryFn: async () => {
-      const response = await fetch('/api/license/plans', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch plans');
-      return response.json();
-    }
+  // Get license information
+  const { data: licenseData, isLoading } = useQuery({
+    queryKey: ['/api/organization/license'],
+    refetchInterval: 60000 // Refresh every minute
   });
 
-  // Get current subscription data
-  const { data: subscriptionResponse, isLoading: subscriptionLoading } = useQuery({
-    queryKey: ['/api/organization/subscription'],
-    queryFn: async () => {
-      const response = await fetch('/api/organization/subscription', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch subscription');
-      return response.json();
-    }
+  // Get usage statistics
+  const { data: usageData } = useQuery({
+    queryKey: ['/api/organization/usage'],
+    refetchInterval: 60000
   });
-
-  // Get features data for limits
-  const { data: featuresResponse, isLoading: featuresLoading } = useQuery({
-    queryKey: ['/api/license/features'],
-    queryFn: async () => {
-      const response = await fetch('/api/license/features', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch features');
-      return response.json();
-    }
-  });
-
-  const isLoading = plansLoading || subscriptionLoading || featuresLoading;
-  const plansData = plansResponse?.data || [];
-  const subscriptionData = subscriptionResponse?.data;
-  const featuresData = featuresResponse?.data || [];
 
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'company_admin';
 
-  // Transform API data into the format expected by the UI
-  const plans = plansData.map(plan => ({
-    id: plan.license_code.toLowerCase(),
-    name: plan.license_name,
-    description: plan.description,
-    monthlyPrice: plan.price_monthly,
-    yearlyPrice: plan.price_yearly,
-    features: plan.features || [],
-    limits: {
-      tasks: getFeatureLimit('BASIC_TASKS', plan.license_code),
-      forms: getFeatureLimit('FORM_CREATION', plan.license_code), 
-      processes: getFeatureLimit('PROCESS_CREATION', plan.license_code),
-      reports: getFeatureLimit('REPORTS', plan.license_code)
+  const plans = [
+    {
+      id: 'explore',
+      name: 'Explore (Free)',
+      description: 'Perfect for trying out Tasksetu',
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      features: [
+        '5 Tasks per month',
+        '2 Forms',
+        '1 Process',
+        '5 Reports',
+        'Basic Support'
+      ],
+      limits: {
+        tasks: 5,
+        forms: 2,
+        processes: 1,
+        reports: 5
+      },
+      recommended: false,
+      trial: true,
+      trialDays: 30
     },
-    recommended: plan.license_code === 'EXECUTE',
-    trial: plan.license_code === 'EXPLORE',
-    trialDays: 30
-  }));
+    {
+      id: 'plan',
+      name: 'Plan',
+      description: 'For small teams getting organized',
+      monthlyPrice: 19,
+      yearlyPrice: 190,
+      features: [
+        '100 Tasks per month',
+        '10 Forms',
+        '5 Processes',
+        '25 Reports',
+        'Email Support',
+        'Basic Analytics'
+      ],
+      limits: {
+        tasks: 100,
+        forms: 10,
+        processes: 5,
+        reports: 25
+      },
+      recommended: false
+    },
+    {
+      id: 'execute',
+      name: 'Execute',
+      description: 'For growing teams that need more power',
+      monthlyPrice: 49,
+      yearlyPrice: 490,
+      features: [
+        '500 Tasks per month',
+        '50 Forms',
+        '25 Processes',
+        '100 Reports',
+        'Priority Support',
+        'Advanced Analytics',
+        'Custom Workflows'
+      ],
+      limits: {
+        tasks: 500,
+        forms: 50,
+        processes: 25,
+        reports: 100
+      },
+      recommended: true
+    },
+    {
+      id: 'optimize',
+      name: 'Optimize',
+      description: 'For large organizations with complex needs',
+      monthlyPrice: 99,
+      yearlyPrice: 990,
+      features: [
+        'Unlimited Tasks',
+        'Unlimited Forms',
+        'Unlimited Processes',
+        'Unlimited Reports',
+        '24/7 Support',
+        'Custom Integration',
+        'Dedicated Account Manager'
+      ],
+      limits: {
+        tasks: -1, // -1 means unlimited
+        forms: -1,
+        processes: -1,
+        reports: -1
+      },
+      recommended: false
+    }
+  ];
 
-  // Helper function to get feature limits
-  function getFeatureLimit(featureCode, licenseCode) {
-    const feature = featuresData.find(f => f.feature_code === featureCode);
-    if (!feature) return 0;
-    
-    const planFeature = feature.license_features.find(
-      lf => lf.license_code === licenseCode
-    );
-    return planFeature ? planFeature.usage_limit : 0;
-  }
-
-  const currentPlan = plans.find(plan => plan.id === subscriptionData?.current_license?.toLowerCase()) || plans[0];
+  const currentPlan = plans.find(plan => plan.id === licenseData?.planId) || plans[0];
 
   const calculateDaysUntilExpiry = () => {
-    if (subscriptionData?.trial_end) {
-      const expiry = new Date(subscriptionData.trial_end);
-      const now = new Date();
-      const timeDiff = expiry.getTime() - now.getTime();
-      return Math.ceil(timeDiff / (1000 * 3600 * 24));
-    }
-    if (subscriptionData?.subscription_end_date) {
-      const expiry = new Date(subscriptionData.subscription_end_date);
-      const now = new Date();
-      const timeDiff = expiry.getTime() - now.getTime();
-      return Math.ceil(timeDiff / (1000 * 3600 * 24));
-    }
-    return 0;
+    if (!licenseData?.expiryDate) return 0;
+    const expiry = new Date(licenseData.expiryDate);
+    const now = new Date();
+    const timeDiff = expiry.getTime() - now.getTime();
+    return Math.ceil(timeDiff / (1000 * 3600 * 24));
   };
 
   const daysUntilExpiry = calculateDaysUntilExpiry();
@@ -170,7 +191,7 @@ const LicenseManagement = () => {
         description: 'Your new plan is now active.',
         variant: 'default'
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/organization/subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/organization/license'] });
     },
     onError: (error) => {
       toast({
@@ -203,7 +224,7 @@ const LicenseManagement = () => {
         description: 'Your license has been extended.',
         variant: 'default'
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/organization/subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/organization/license'] });
     },
     onError: (error) => {
       toast({
@@ -303,18 +324,19 @@ const LicenseManagement = () => {
               <div className="text-sm text-gray-500">Expiry Date</div>
               <div className="text-xl font-semibold flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
-                {subscriptionData?.trial_end ? 
-                  new Date(subscriptionData.trial_end).toLocaleDateString() : 
-                  subscriptionData?.subscription_end_date ?
-                  new Date(subscriptionData.subscription_end_date).toLocaleDateString() :
+                {licenseData?.expiryDate ? 
+                  new Date(licenseData.expiryDate).toLocaleDateString() : 
                   'N/A'
                 }
               </div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">License Status</div>
+              <div className="text-sm text-gray-500">Next Renewal</div>
               <div className="text-xl font-semibold">
-                {subscriptionData?.license_expired ? 'Expired' : 'Active'}
+                {licenseData?.renewalDate ? 
+                  new Date(licenseData.renewalDate).toLocaleDateString() : 
+                  'Manual'
+                }
               </div>
             </div>
           </div>
@@ -332,17 +354,17 @@ const LicenseManagement = () => {
                     <Info className="w-3 h-3 ml-1 text-gray-400" />
                   </div>
                   <span className="text-sm text-gray-600">
-                    {subscriptionData?.usage?.tasks || 0}
+                    {usageData?.tasks || 0}
                     {currentPlan.limits.tasks === -1 ? '' : ` / ${currentPlan.limits.tasks}`}
                   </span>
                 </div>
                 <Progress 
-                  value={getUsagePercentage(subscriptionData?.usage?.tasks || 0, currentPlan.limits.tasks)}
+                  value={getUsagePercentage(usageData?.tasks || 0, currentPlan.limits.tasks)}
                   className="h-2"
                 />
                 <div className="text-xs text-gray-500">
                   {currentPlan.limits.tasks === -1 ? 'Unlimited' : 
-                    `${getUsagePercentage(subscriptionData?.usage?.tasks || 0, currentPlan.limits.tasks).toFixed(1)}% used`
+                    `${getUsagePercentage(usageData?.tasks || 0, currentPlan.limits.tasks).toFixed(1)}% used`
                   }
                 </div>
               </div>
@@ -356,17 +378,17 @@ const LicenseManagement = () => {
                     <Info className="w-3 h-3 ml-1 text-gray-400" />
                   </div>
                   <span className="text-sm text-gray-600">
-                    {subscriptionData?.usage?.forms || 0}
+                    {usageData?.forms || 0}
                     {currentPlan.limits.forms === -1 ? '' : ` / ${currentPlan.limits.forms}`}
                   </span>
                 </div>
                 <Progress 
-                  value={getUsagePercentage(subscriptionData?.usage?.forms || 0, currentPlan.limits.forms)}
+                  value={getUsagePercentage(usageData?.forms || 0, currentPlan.limits.forms)}
                   className="h-2"
                 />
                 <div className="text-xs text-gray-500">
                   {currentPlan.limits.forms === -1 ? 'Unlimited' : 
-                    `${getUsagePercentage(subscriptionData?.usage?.forms || 0, currentPlan.limits.forms).toFixed(1)}% used`
+                    `${getUsagePercentage(usageData?.forms || 0, currentPlan.limits.forms).toFixed(1)}% used`
                   }
                 </div>
               </div>
@@ -380,17 +402,17 @@ const LicenseManagement = () => {
                     <Info className="w-3 h-3 ml-1 text-gray-400" />
                   </div>
                   <span className="text-sm text-gray-600">
-                    {subscriptionData?.usage?.processes || 0}
+                    {usageData?.processes || 0}
                     {currentPlan.limits.processes === -1 ? '' : ` / ${currentPlan.limits.processes}`}
                   </span>
                 </div>
                 <Progress 
-                  value={getUsagePercentage(subscriptionData?.usage?.processes || 0, currentPlan.limits.processes)}
+                  value={getUsagePercentage(usageData?.processes || 0, currentPlan.limits.processes)}
                   className="h-2"
                 />
                 <div className="text-xs text-gray-500">
                   {currentPlan.limits.processes === -1 ? 'Unlimited' : 
-                    `${getUsagePercentage(subscriptionData?.usage?.processes || 0, currentPlan.limits.processes).toFixed(1)}% used`
+                    `${getUsagePercentage(usageData?.processes || 0, currentPlan.limits.processes).toFixed(1)}% used`
                   }
                 </div>
               </div>
@@ -404,17 +426,17 @@ const LicenseManagement = () => {
                     <Info className="w-3 h-3 ml-1 text-gray-400" />
                   </div>
                   <span className="text-sm text-gray-600">
-                    {subscriptionData?.usage?.reports || 0}
+                    {usageData?.reports || 0}
                     {currentPlan.limits.reports === -1 ? '' : ` / ${currentPlan.limits.reports}`}
                   </span>
                 </div>
                 <Progress 
-                  value={getUsagePercentage(subscriptionData?.usage?.reports || 0, currentPlan.limits.reports)}
+                  value={getUsagePercentage(usageData?.reports || 0, currentPlan.limits.reports)}
                   className="h-2"
                 />
                 <div className="text-xs text-gray-500">
                   {currentPlan.limits.reports === -1 ? 'Unlimited' : 
-                    `${getUsagePercentage(subscriptionData?.usage?.reports || 0, currentPlan.limits.reports).toFixed(1)}% used`
+                    `${getUsagePercentage(usageData?.reports || 0, currentPlan.limits.reports).toFixed(1)}% used`
                   }
                 </div>
               </div>
@@ -473,7 +495,7 @@ const LicenseManagement = () => {
                   <CardDescription>{plan.description}</CardDescription>
                   <div className="mt-4">
                     <span className="text-3xl font-bold">
-                      ₹{billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice}
+                      ${billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice}
                     </span>
                     <span className="text-gray-500">
                       /{billingPeriod === 'yearly' ? 'year' : 'month'}
@@ -481,7 +503,7 @@ const LicenseManagement = () => {
                   </div>
                   {billingPeriod === 'yearly' && plan.monthlyPrice > 0 && (
                     <div className="text-sm text-gray-500">
-                      ₹{(plan.yearlyPrice / 12).toFixed(2)}/month billed annually
+                      ${(plan.yearlyPrice / 12).toFixed(2)}/month billed annually
                     </div>
                   )}
                 </CardHeader>

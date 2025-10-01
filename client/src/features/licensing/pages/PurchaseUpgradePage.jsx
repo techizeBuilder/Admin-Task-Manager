@@ -1,23 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Link, useLocation } from 'wouter';
-import { 
-  ArrowLeft, 
-  Crown, 
-  Check, 
-  AlertTriangle, 
-  CreditCard,
-  Shield,
-  Zap,
-  Users,
-  Database,
-  FolderOpen,
-  CheckSquare,
-  Star,
-  Gift
+import {
+  ArrowLeft, Crown, Check, AlertTriangle, CreditCard, Shield, Zap,
+  Users, Database, FolderOpen, CheckSquare, Star, Gift
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -39,117 +27,36 @@ export default function PurchaseUpgradePage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
- const [showPlanLimitDialog, setShowPlanLimitDialog] = useState(false);
-   const [showComparisonDialog, setShowComparisonDialog] = useState(false);
+  const [showPlanLimitDialog, setShowPlanLimitDialog] = useState(false);
+  const [showComparisonDialog, setShowComparisonDialog] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
   // Handle URL parameters for plan pre-selection
-   useEffect(() => {
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const actionParam = urlParams.get('action');
     const planParam = urlParams.get('plan');
 
     if (actionParam === 'renew') {
       // If renewing, pick the most popular plan
-      const popularEntry = Object.entries(finalPlans).find(([, p]) => p.popular);
+      const popularEntry = Object.entries(plans).find(([, p]) => p.popular);
       if (popularEntry) {
         setSelectedPlan(popularEntry[0]);
       }
-    } else if (planParam && finalPlans[planParam]) {
+    } else if (planParam && plans[planParam]) {
       // If plan is passed, select it
       setSelectedPlan(planParam);
     }
   }, [location]);
 
-  // Fetch user's organization subscription data
-  const { data: subscriptionData, isLoading: subscriptionLoading } = useQuery({
-    queryKey: ['/api/organization/subscription'],
-    queryFn: async () => {
-      const response = await fetch('/api/organization/subscription', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch subscription');
-      return response.json();
-    }
-  });
-
-  // Fetch license plans
-  const { data: availablePlansResponse, isLoading: availablePlansLoading } = useQuery({
-    queryKey: ['/api/license/plans'],
-    queryFn: async () => {
-      const response = await fetch('/api/license/plans', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch plans');
-      return response.json();
-    }
-  });
-
-  // Calculate days until expiry
-  const calculateDaysUntilExpiry = () => {
-    if (!subscriptionData?.data) return 0;
-    
-    const data = subscriptionData.data;
-    let expiryDate = null;
-    
-    if (data.subscription_status === 'trial' && data.trial_end) {
-      expiryDate = new Date(data.trial_end);
-    } else if (data.subscription_end_date) {
-      expiryDate = new Date(data.subscription_end_date);
-    }
-    
-    if (!expiryDate) return 0;
-    
-    const now = new Date();
-    const diffTime = expiryDate.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Mock current plan data
+  const currentPlan = {
+    name: 'Explore',
+    key: 'explore',
+    price: { monthly: 0, yearly: 0 },
+    expiryDate: '2024-09-23',
+    isOnTrial: true,
+    daysLeft: 5
   };
-
-  // Get current plan data dynamically
-  const getCurrentPlan = () => {
-    if (!subscriptionData?.data || !availablePlansResponse?.data) {
-      return {
-        name: 'Loading...',
-        key: 'explore',
-        price: { monthly: 0, yearly: 0 },
-        expiryDate: 'Loading...',
-        isOnTrial: false,
-        daysLeft: 0
-      };
-    }
-
-    const data = subscriptionData.data;
-    const currentPlanData = availablePlansResponse.data.find(plan => 
-      plan.license_code === data.current_license
-    );
-
-    const daysLeft = calculateDaysUntilExpiry();
-    const isOnTrial = data.subscription_status === 'trial';
-    
-    let expiryDateString = 'No expiry';
-    if (isOnTrial && data.trial_end) {
-      expiryDateString = new Date(data.trial_end).toLocaleDateString();
-    } else if (data.subscription_end_date) {
-      expiryDateString = new Date(data.subscription_end_date).toLocaleDateString();
-    }
-
-    return {
-      name: currentPlanData?.license_name || data.current_license || 'Explore',
-      key: data.current_license?.toLowerCase() || 'explore',
-      price: { 
-        monthly: currentPlanData?.price_monthly || 0, 
-        yearly: currentPlanData?.price_yearly || 0 
-      },
-      expiryDate: expiryDateString,
-      isOnTrial,
-      daysLeft: Math.max(0, daysLeft)
-    };
-  };
-
-  const currentPlan = getCurrentPlan();
   const currentUsage = {
     tasksPerMonth: 1200,
     customForms: 80,
@@ -175,89 +82,64 @@ export default function PurchaseUpgradePage() {
     optimizeLimit: planLimits.optimize[row.key],
     executeOver: isOver(currentUsage[row.key], planLimits.execute[row.key])
   }));
-  // Fetch available license plans
-  const { data: plansResponse, isLoading: plansLoading } = useQuery({
-    queryKey: ['/api/license/plans'],
-    queryFn: async () => {
-      const response = await fetch('/api/license/plans', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch plans');
-      return response.json();
+  // Mock plans data
+  const plans = {
+    plan: {
+      name: 'Plan',
+      description: 'Individuals / small teams',
+      price: { monthly: 19, yearly: 190 },
+      features: [
+        '100 tasks/month',
+        '10 custom forms',
+        '5 processes',
+        'Unlimited reports',
+        'Email support',
+        'Basic analytics'
+      ],
+      popular: false
+    },
+    execute: {
+      name: 'Execute',
+      description: 'Growing teams',
+      price: { monthly: 49, yearly: 490 },
+      features: [
+        '500 tasks/month',
+        '50 custom forms',
+        '25 processes',
+        'Unlimited reports',
+        'Priority support',
+        'Advanced analytics',
+        'Team collaboration',
+        'Custom workflows'
+      ],
+      popular: false
+    },
+    optimize: {
+      name: 'Optimize',
+      description: 'Large organizations',
+      price: { monthly: 99, yearly: 990 },
+      features: [
+        'Unlimited tasks',
+        'Unlimited custom forms',
+        'Unlimited processes',
+        'Unlimited reports',
+        '24/7 priority support',
+        'Dedicated account manager',
+        'Advanced security',
+        'API access',
+        'Custom integrations',
+        'White-label options'
+      ],
+      popular: true
     }
-  });
-
-  // Fetch license features for plan details
-  const { data: featuresResponse } = useQuery({
-    queryKey: ['/api/license/features'],
-    queryFn: async () => {
-      const response = await fetch('/api/license/features', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch features');
-      return response.json();
-    }
-  });
-
-  const plansData = plansResponse?.data || [];
-  const featuresData = featuresResponse?.data || [];
-
-  // Transform backend data to frontend format
-  const plans = plansData.reduce((acc, plan) => {
-    // Skip EXPIRED and EXPLORE (trial) plans from upgrade page
-    if (plan.license_code === 'EXPIRED' || plan.license_code === 'EXPLORE') return acc;
-    
-    const planKey = plan.license_code.toLowerCase();
-    
-    // Get features for this plan
-    const planFeatures = featuresData
-      .map(feature => {
-        const planFeature = feature.license_features?.find(
-          lf => lf.license_code === plan.license_code
-        );
-        if (!planFeature) return null;
-        
-        const limit = planFeature.usage_limit;
-        let displayLimit;
-        if (limit === -1) {
-          displayLimit = 'Unlimited';
-        } else if (limit === null || limit === undefined) {
-          displayLimit = 'Not included';
-        } else {
-          displayLimit = limit.toString();
-        }
-        
-        return `${displayLimit} ${feature.feature_name.toLowerCase()}`;
-      })
-      .filter(Boolean);
-
-    acc[planKey] = {
-      name: plan.license_name || plan.name,
-      description: plan.description || `${plan.license_name} plan`,
-      price: { 
-        monthly: plan.price_monthly || 0, 
-        yearly: plan.price_yearly || 0 
-      },
-      features: planFeatures,
-      popular: plan.license_code === 'OPTIMIZE' // Mark OPTIMIZE as popular
-    };
-    
-    return acc;
-  }, {});
-
-  // Fallback to empty object if no plans data
-  const finalPlans = Object.keys(plans).length > 0 ? plans : {};
+  };
 
   const getSavingsPercentage = () => {
     return Math.round(((12 - 10) / 12) * 100); // 17% savings for yearly
   };
 
   const getSelectedPlanPrice = () => {
-    const plan = finalPlans[selectedPlan];
+    const plan = plans[selectedPlan];
     return plan ? plan.price[billingCycle] : 0;
   };
 
@@ -278,38 +160,25 @@ export default function PurchaseUpgradePage() {
     // Mock payment processing
     setTimeout(() => {
       setIsProcessing(false);
-          setLocation(`/admin/upgrade-success?plan=${finalPlans[selectedPlan]?.name}`);
+      setLocation(`/admin/upgrade-success?plan=${plans[selectedPlan]?.name}`);
       // Redirect to success page or show success state
     }, 2000);
   };
-
-  // Show loading state while fetching data
-  if (subscriptionLoading || availablePlansLoading || plansLoading) {
-    return (
-      <div className="min-h-screen bg-[#F0F2F5] p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-gray-600">Loading subscription data...</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header Section */}
-           <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/subscription">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to License
-              </Link>
-            </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/admin/subscription">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to License
+          </Link>
+        </Button>
         <div className="flex items-center justify-between">
 
           <div className="flex items-center space-x-4">
-         
+
             <div className="p-3 bg-blue-100 rounded-xl">
               <CreditCard className="h-8 w-8 text-blue-600" />
             </div>
@@ -334,7 +203,7 @@ export default function PurchaseUpgradePage() {
               </Badge>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="flex items-center space-x-3">
               <Crown className="h-5 w-5 text-blue-600" />
@@ -343,7 +212,7 @@ export default function PurchaseUpgradePage() {
                 <div className="text-sm text-gray-600">Current plan</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Shield className="h-5 w-5 text-green-600" />
               <div>
@@ -353,7 +222,7 @@ export default function PurchaseUpgradePage() {
                 <div className="text-sm text-gray-600">Current billing</div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
               <div>
@@ -383,8 +252,8 @@ export default function PurchaseUpgradePage() {
                       onClick={() => setBillingCycle('monthly')}
                       className={cn(
                         "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'monthly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
+                        billingCycle === 'monthly'
+                          ? "bg-white text-gray-900 shadow-sm"
                           : "text-gray-600 hover:text-gray-900"
                       )}
                     >
@@ -394,8 +263,8 @@ export default function PurchaseUpgradePage() {
                       onClick={() => setBillingCycle('yearly')}
                       className={cn(
                         "px-3 py-1 text-sm rounded-md transition-colors",
-                        billingCycle === 'yearly' 
-                          ? "bg-white text-gray-900 shadow-sm" 
+                        billingCycle === 'yearly'
+                          ? "bg-white text-gray-900 shadow-sm"
                           : "text-gray-600 hover:text-gray-900"
                       )}
                     >
@@ -409,19 +278,14 @@ export default function PurchaseUpgradePage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Plan Cards */}
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {Object.entries(finalPlans).length === 0 ? (
-                    <div className="col-span-full text-center py-8">
-                      <p className="text-gray-500">No plans available at the moment. Please contact support.</p>
-                    </div>
-                  ) : (
-                    Object.entries(finalPlans).map(([planKey, plan]) => (
-                    <div 
+                  {Object.entries(plans).map(([planKey, plan]) => (
+                    <div
                       key={planKey}
-              onClick={() => {
+                      onClick={() => {
                         if (planKey === 'plan') {
                           setShowPlanLimitDialog(true);
                           return;
@@ -436,8 +300,8 @@ export default function PurchaseUpgradePage() {
                       }}
                       className={cn(
                         "border rounded-lg p-6 cursor-pointer transition-all hover:shadow-md relative",
-                        selectedPlan === planKey 
-                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200" 
+                        selectedPlan === planKey
+                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
                           : "border-gray-200 hover:border-gray-300"
                       )}
                     >
@@ -449,12 +313,12 @@ export default function PurchaseUpgradePage() {
                           </Badge>
                         </div>
                       )}
-                      
+
                       <div className="text-center mb-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
                         <p className="text-sm text-gray-600">{plan.description}</p>
                       </div>
-                      
+
                       <div className="text-center mb-6">
                         <div className="text-3xl font-bold text-gray-900 mb-1">
                           ₹{plan.price[billingCycle]}
@@ -486,8 +350,7 @@ export default function PurchaseUpgradePage() {
                         </div>
                       )}
                     </div>
-                  ))
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
@@ -498,32 +361,32 @@ export default function PurchaseUpgradePage() {
             {/* Order Summary Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Plan</span>
-                  <span className="font-medium">{finalPlans[selectedPlan]?.name}</span>
+                  <span className="font-medium">{plans[selectedPlan]?.name}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Billing</span>
                   <span className="font-medium capitalize">{billingCycle}</span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Price</span>
                   <span className="font-medium">${getSelectedPlanPrice()}</span>
                 </div>
-                
+
                 {billingCycle === 'yearly' && (
                   <div className="flex justify-between items-center text-green-600">
                     <span>Yearly Discount</span>
-                    <span>-₹{(finalPlans[selectedPlan]?.price.monthly * 12) - finalPlans[selectedPlan]?.price.yearly}</span>
+                    <span>-₹{(plans[selectedPlan]?.price.monthly * 12) - plans[selectedPlan]?.price.yearly}</span>
                   </div>
                 )}
-                
+
                 <hr className="border-gray-200" />
-                
+
                 <div className="flex justify-between items-center text-lg font-semibold">
                   <span>Total</span>
                   <span>₹{getSelectedPlanPrice()}</span>
@@ -571,7 +434,7 @@ export default function PurchaseUpgradePage() {
 
             {/* Upgrade Action Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <Button 
+              <Button
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg font-semibold"
                 onClick={handleUpgrade}
                 disabled={isProcessing}
@@ -588,7 +451,7 @@ export default function PurchaseUpgradePage() {
                   </>
                 )}
               </Button>
-              
+
               <div className="mt-4 text-center">
                 <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
                   <Shield className="h-4 w-4" />
@@ -602,9 +465,9 @@ export default function PurchaseUpgradePage() {
         {/* Benefits Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-6 text-center">
-            Why Upgrade to {finalPlans[selectedPlan]?.name}?
+            Why Upgrade to {plans[selectedPlan]?.name}?
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="p-3 bg-blue-100 rounded-xl w-fit mx-auto mb-4">
@@ -615,7 +478,7 @@ export default function PurchaseUpgradePage() {
                 Get faster processing, better reliability, and improved user experience.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="p-3 bg-green-100 rounded-xl w-fit mx-auto mb-4">
                 <Users className="h-8 w-8 text-green-600" />
@@ -625,7 +488,7 @@ export default function PurchaseUpgradePage() {
                 Advanced team features, real-time collaboration, and role-based permissions.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="p-3 bg-purple-100 rounded-xl w-fit mx-auto mb-4">
                 <Shield className="h-8 w-8 text-purple-600" />
@@ -638,7 +501,7 @@ export default function PurchaseUpgradePage() {
           </div>
         </div>
       </div>
-          {/* Plan limit dialog */}
+      {/* Plan limit dialog */}
       <Dialog open={showPlanLimitDialog} onOpenChange={setShowPlanLimitDialog}>
         <DialogContent>
           <DialogHeader>
@@ -650,25 +513,25 @@ export default function PurchaseUpgradePage() {
           <DialogFooter >
             <div className='flex justify-between w-full'>
 
-            <Button variant="outline" onClick={() => setShowPlanLimitDialog(false)}>
-              Close
-            </Button>
-          
-            <Button
-              variant="secondary"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => {
-        
-                setShowPlanLimitDialog(false);
-              }}
-            >
-              Choose Other
-            </Button>
+              <Button variant="outline" onClick={() => setShowPlanLimitDialog(false)}>
+                Close
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+
+                  setShowPlanLimitDialog(false);
+                }}
+              >
+                Choose Other
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-          <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
+      <Dialog open={showComparisonDialog} onOpenChange={setShowComparisonDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center">

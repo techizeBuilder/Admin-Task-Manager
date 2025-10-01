@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form";
 import CustomEditor from '../components/common/CustomEditor';
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
-import { hasAccess } from "../utils/auth";
+// import { hasAccess } from "../utils/auth";
 
 // Advanced Fields Modal Component
 const AdvancedFieldsModal = ({
@@ -52,6 +52,8 @@ const AdvancedFieldsModal = ({
     { value: "Recurring", label: "Recurring" },
     { value: "Approval", label: "Approval" },
   ];
+
+  console.log('onSubmit in AdvancedFieldsModal:', onSubmit);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -186,14 +188,14 @@ const AdvancedFieldsModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
+              className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-md transition-colors shadow-sm"
               data-testid="button-advanced-cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
               data-testid="button-advanced-save"
             >
               Apply Advanced Options
@@ -206,7 +208,7 @@ const AdvancedFieldsModal = ({
 };
 
 // Main Regular Task Form Component
-export const RegularTaskForm = ({
+const RegularTaskForm = ({
   onSubmit,
   onCancel,
   isOrgUser = false,
@@ -238,7 +240,6 @@ export const RegularTaskForm = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [showAdvancedModal, setShowAdvancedModal] = useState(false);
   const [advancedData, setAdvancedData] = useState({});
-const isIndividual = hasAccess(["individual"]);
   const watchedTaskName = watch("taskName");
   const watchedPriority = watch("priority");
 
@@ -284,13 +285,14 @@ const isIndividual = hasAccess(["individual"]);
   ];
 
   // Assignment options (for org users)
-  const assignmentOptions = !isIndividual
+  // const assignmentOptions = !isIndividual
+  const assignmentOptions = isOrgUser
     ? [
-        { value: "self", label: "Self" },
-        { value: "john_doe", label: "John Doe" },
-        { value: "jane_smith", label: "Jane Smith" },
-        // Add more team members from API
-      ]
+      { value: "self", label: "Self" },
+      // { value: "john_doe", label: "John Doe" },
+      // { value: "jane_smith", label: "Jane Smith" },
+      // Add more team members from API
+    ]
     : [{ value: "self", label: "Self" }];
 
   // File upload handler
@@ -351,13 +353,18 @@ const isIndividual = hasAccess(["individual"]);
   };
 
   const onFormSubmit = (data) => {
-    // Combine primary and advanced data
     const formData = {
       ...data,
       ...advancedData,
       attachments: uploadedFiles,
     };
-    onSubmit(formData);
+
+    if (typeof onSubmit === "function") {
+      onSubmit(formData);
+    } else {
+      alert("onSubmit is not a function! regular");
+      console.error("onSubmit is not a function!", onSubmit);
+    }
   };
 
   const getTodayDate = () => {
@@ -382,7 +389,7 @@ const isIndividual = hasAccess(["individual"]);
                 },
               })}
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter task name..."
               data-testid="input-task-name"
             />
@@ -410,8 +417,8 @@ const isIndividual = hasAccess(["individual"]);
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Describe your task..."
-            
-                className="border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+
+                className="border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             )}
           />
@@ -433,8 +440,10 @@ const isIndividual = hasAccess(["individual"]);
                 <Select
                   {...field}
                   options={assignmentOptions}
-                  isSearchable={isIndividual}
-                  isDisabled={isIndividual}
+                  // isSearchable={isIndividual}
+                  // isDisabled={isIndividual}
+                  isSearchable={isOrgUser}
+                  isDisabled={!isOrgUser}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select assignee"
@@ -442,9 +451,6 @@ const isIndividual = hasAccess(["individual"]);
                 />
               )}
             />
-            {
-              console.log('isIndividual:', isIndividual)
-            }
             {errors.assignedTo && (
               <p className="text-red-500 text-xs mt-1">
                 {errors.assignedTo.message}
@@ -492,7 +498,7 @@ const isIndividual = hasAccess(["individual"]);
               })}
               type="date"
               min={getTodayDate()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               data-testid="input-due-date"
             />
             {errors.dueDate && (
@@ -503,37 +509,39 @@ const isIndividual = hasAccess(["individual"]);
           </div>
         </div>
 
-    <div>
-  <label className="block text-sm font-medium text-gray-900 mb-2">
-    Visibility <span className="text-red-500">*</span>
-  </label>
-  <div className="flex space-x-4">
-    <label className="flex items-center">
-      <input
-        {...register("visibility")}
-        type="radio"
-        value="private"
-        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-        data-testid="radio-private"
-        disabled={isIndividual} // locked for individual
-      />
-      <span className="ml-2 text-sm text-gray-900">Private</span>
-    </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Visibility <span className="text-red-500">*</span>
+          </label>
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                {...register("visibility")}
+                type="radio"
+                value="private"
+                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                data-testid="radio-private"
+                // disabled={isIndividual} // locked for individual
+                disabled={!isOrgUser}
+              />
+              <span className="ml-2 text-sm text-gray-900">Private</span>
+            </label>
 
-    {!isIndividual && ( // completely hide Public if individual
-      <label className="flex items-center">
-        <input
-          {...register("visibility")}
-          type="radio"
-          value="public"
-          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-          data-testid="radio-public"
-        />
-        <span className="ml-2 text-sm text-gray-900">Public</span>
-      </label>
-    )}
-  </div>
-</div>
+            {/* {!isIndividual && ( // completely hide Public if individual */}
+            {isOrgUser && ( // completely hide Public if not org user  
+              <label className="flex items-center">
+                <input
+                  {...register("visibility")}
+                  type="radio"
+                  value="organization"
+                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  data-testid="radio-public"
+                />
+                <span className="ml-2 text-sm text-gray-900">Public</span>
+              </label>
+            )}
+          </div>
+        </div>
 
         {/* Tags */}
         <div>
@@ -669,14 +677,14 @@ const isIndividual = hasAccess(["individual"]);
           <button
             type="button"
             onClick={() => setShowAdvancedModal(true)}
-            className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors shadow-sm"
+            className="px-6 py-2 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-md transition-colors shadow-sm"
             data-testid="button-more-options"
           >
             More Options ▸
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
             data-testid="button-save"
           >
             Save

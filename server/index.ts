@@ -1,21 +1,90 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
+import swaggerJSDoc from "swagger-jsdoc";
+import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
+import taskfeedRoutes from "./routes/taskfeedRoutes.js";
 
 const app = express();
 
+// Swagger configuration
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "TaskSetu API Documentation",
+      version: "1.0.0",
+      description: "API documentation for TaskSetu task management system",
+      contact: {
+        name: "API Support",
+        email: "support@tasksetu.com",
+      },
+    },
+    servers: [
+      {
+        url: process.env.API_URL || "http://localhost:5000",
+        description: "API Server",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ["./server/routes/*.js", "./server/models/*.js"],
+  failOnErrors: true, // Whether or not to throw when parsing errors
+  encoding: "utf8", // Encoding for reading files
+  verbose: true, // Include errors in the console
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+// Serve Swagger documentation with custom options
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "TaskSetu API Documentation",
+    customfavIcon: "/favicon.ico",
+    swaggerOptions: {
+      persistAuthorization: true,
+      filter: true,
+      displayRequestDuration: true,
+      docExpansion: "none",
+    },
+  })
+);
+
+// Serve Swagger spec as JSON for third-party tools
+app.get("/api-docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
+
 // Add error handling for uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
 });
 
 // Add error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  console.error("Error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
 });
 
 app.use(express.json());
@@ -26,22 +95,26 @@ const connectToMongoDB = async () => {
   try {
     const mongoUri =
       "mongodb+srv://jeeturadicalloop:Mjvesqnj8gY3t0zP@cluster0.by2xy6x.mongodb.net/TaskSetu";
-    
+
     // Add MongoDB connection options
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    
+
     console.log("Connected to MongoDB TaskSetu database");
-    
+
     // Register routes with error handling
     try {
       await registerRoutes(app);
       console.log("Main routes registered");
-      
+
       registerUserInvitationRoutes(app);
       console.log("User invitation routes registered");
+
+      // Register taskfeed routes
+      app.use("/api", taskfeedRoutes);
+      console.log("Taskfeed routes registered");
     } catch (routeError) {
       console.error("Error registering routes:", routeError);
       throw routeError;
@@ -58,22 +131,15 @@ const connectToMongoDB = async () => {
 // Initialize comprehensive sample data
 async function initializeSampleData() {
   try {
-    const {
-      Organization,
-      User,
-      Project,
-      Task,
-      TaskStatus,
-      Form,
-      ProcessFlow,
-      FormResponse,
-    } = await import("./models.js");
-
+    const { Project, Task, TaskStatus, Form, ProcessFlow, FormResponse } =
+      await import("./models.js");
+    const { User } = await import("./modals/userModal.js");
+    const { Organization } = await import("./modals/organizationModal.js");
     // Check if sample data already exists
     const existingOrgs = await Organization.countDocuments();
     const existingUsers = await User.countDocuments();
     console.log(
-      `Found ${existingOrgs} organizations and ${existingUsers} users in database`,
+      `Found ${existingOrgs} organizations and ${existingUsers} users in database`
     );
 
     if (existingOrgs > 0 && existingUsers > 1) {
@@ -96,7 +162,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -109,7 +175,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: true,
             requireApproval: false,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -122,7 +188,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
       ];
@@ -499,7 +565,7 @@ async function initializeSampleData() {
 
       console.log("Comprehensive sample data initialized successfully");
       console.log(
-        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`,
+        `Created ${savedOrgs.length} organizations, ${savedUsers.length} users, ${savedProjects.length} projects, and ${tasks.length} tasks`
       );
     } catch (error) {
       console.error("Error initializing sample data:", error);
@@ -521,7 +587,7 @@ async function initializeSampleData() {
     await setupVite(app, server);
   }
 
-  const PORT = Number(process.env.PORT) || 8001;
+  const PORT = Number(process.env.PORT) || 5000;
   server.listen(PORT, (err) => {
     if (err) {
       console.error(`Failed to start server on port ${PORT}:`, err);

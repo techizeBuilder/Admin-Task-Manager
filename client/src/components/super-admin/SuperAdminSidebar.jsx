@@ -9,7 +9,6 @@ import {
   Settings,
   Shield,
   Palette,
-  CreditCard,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -36,12 +35,6 @@ export default function SuperAdminSidebar({ isCollapsed, setIsCollapsed }) {
       label: "All Users",
       href: "/super-admin/users",
       active: location === "/super-admin/users",
-    },
-    {
-      icon: CreditCard,
-      label: "Subscriptions",
-      href: "/super-admin/subscriptions",
-      active: location.startsWith("/super-admin/subscriptions"),
     },
     {
       icon: Activity,

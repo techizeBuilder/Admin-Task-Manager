@@ -12,9 +12,9 @@ import {
 import { getInitials } from "@/lib/utils";
 import { Link } from "wouter";
 import { UserAvatar } from "@/components/ui/user-avatar";
-
 export default function SuperAdminHeader() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
+  const [location] = useLocation();
 
   const { data: authUser } = useQuery({
     queryKey: ["/api/auth/verify"],

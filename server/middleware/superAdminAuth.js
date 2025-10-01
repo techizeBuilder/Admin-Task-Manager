@@ -15,8 +15,7 @@ export const requireSuperAdmin = async (req, res, next) => {
     }
 
     // Check if user has super admin role
-    const userRole = Array.isArray(user.role) ? user.role : [user.role];
-    if (!userRole.includes('super_admin')) {
+    if (user.role !== 'super_admin') {
       return res.status(403).json({ 
         message: 'Super admin access required',
         userRole: user.role 
@@ -44,8 +43,7 @@ export const requireSuperAdminOrCompanyAdmin = async (req, res, next) => {
     }
 
     // Allow both super admin and company admin
-    const userRole = Array.isArray(user.role) ? user.role : [user.role];
-    if (!userRole.includes('super_admin') && !userRole.includes('admin')) {
+    if (user.role !== 'super_admin' && user.role !== 'admin') {
       return res.status(403).json({ 
         message: 'Admin access required',
         userRole: user.role 

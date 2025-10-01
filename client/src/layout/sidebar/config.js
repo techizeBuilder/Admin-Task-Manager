@@ -36,8 +36,15 @@ import {
   Layers,
   Flag,
   File,
+  CreditCard,
 } from "lucide-react";
-import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
+import {
+  ApprovalTaskIcon,
+  MilestoneTaskIcon,
+  RecurringTaskIcon,
+  RegularTaskIcon,
+} from "../../components/common/TaskIcons";
+
 // ✅ Define atomic reusable menu items
 const baseItems = {
   dashboard: {
@@ -95,18 +102,46 @@ const baseItems = {
     path: "/milestones",
   },
 
-  // Settings group
-  settings: {
+  // Settings for employee & manager (view only)
+  settingsViewOnly: {
     id: "settings",
     label: "Settings",
     icon: Settings,
     children: [
       { id: "profile", label: "Profile", icon: User, path: "/profile" },
       {
-        id: "license-subscription",
+        id: "license-view",
+        label: "License",
+        icon: Key,
+        path: "/admin/subscription",
+      },
+      {
+        id: "notifications",
+        label: "Notifications",
+        icon: Bell,
+        path: "/notifications",
+      },
+    ],
+  },
+
+  // Settings for individual & org_admin (management access)
+  settingsManagement: {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    children: [
+      { id: "profile", label: "Profile", icon: User, path: "/profile" },
+      {
+        id: "license-management",
         label: "License Management",
         icon: Key,
         path: "/admin/subscription",
+      },
+      {
+        id: "billing-management",
+        label: "Billing Management",
+        icon: CreditCard,
+        path: "/admin/billing",
       },
       {
         id: "notifications",
@@ -125,6 +160,7 @@ const baseItems = {
   },
   logout: { id: "logout", label: "Logout", icon: LogOut, action: "logout" },
 };
+
 // Role → menu mapping
 export const sidebarMenus = {
   employee: [
@@ -135,7 +171,20 @@ export const sidebarMenus = {
     baseItems.regularTasks,
     baseItems.recurring,
     baseItems.calendar,
-    baseItems.settings,
+    baseItems.settingsViewOnly,
+    baseItems.help,
+    baseItems.logout,
+  ],
+
+  individual: [
+    baseItems.dashboard,
+    baseItems.myTasks,
+    baseItems.createTask,
+    baseItems.quickTasks,
+    baseItems.regularTasks,
+    baseItems.recurring,
+    baseItems.calendar,
+    baseItems.settingsManagement,
     baseItems.help,
     baseItems.logout,
   ],
@@ -176,12 +225,12 @@ export const sidebarMenus = {
         },
       ],
     },
-    baseItems.settings,
+    baseItems.settingsViewOnly,
     baseItems.help,
     baseItems.logout,
   ],
 
-  admin: [
+  org_admin: [
     baseItems.dashboard,
     baseItems.myTasks,
     { id: "team-tasks", label: "Team Tasks", icon: Users, path: "/tasks/team" },
@@ -254,18 +303,7 @@ export const sidebarMenus = {
         },
       ],
     },
-    {
-      ...baseItems.settings,
-      children: [
-        ...baseItems.settings.children,
-        {
-          id: "billing_invoice",
-          label: "Billing & Invoices",
-          icon: Key,
-          path: "/admin/billing",
-        },
-      ],
-    },
+    baseItems.settingsManagement,
     baseItems.help,
     baseItems.logout,
   ],
@@ -348,19 +386,22 @@ export const sidebarMenus = {
     baseItems.help,
     baseItems.logout,
   ],
-}; // Role mapping
+};
+
+// Role mapping
 const roleMapping = {
   employee: "employee",
   manager: "manager",
-  individial: "employee",
-  org_admin: "admin",
-
+  individual: "individual",
+  org_admin: "org_admin",
   superadmin: "superadmin",
   super_admin: "superadmin",
 };
 
-export const getMenuByRole = (role) =>
-  sidebarMenus[roleMapping[role]] || sidebarMenus.employee;
+export const getMenuByRole = (role) => {
+  console.log("Getting menu for role:", roleMapping[role]);
+  return sidebarMenus[roleMapping[role]] || sidebarMenus.employee;
+};
 
 export const findActiveItem = (menu, currentPath) => {
   for (const item of menu) {

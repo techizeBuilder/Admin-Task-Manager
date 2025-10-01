@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Users, UserPlus, UserX, Mail, Trash2, Plus, Shield, Clock, CheckCircle, XCircle, AlertCircle, MoreHorizontal, Calendar } from "lucide-react";
-
+import { getInitials } from "@/lib/utils";
 export default function UserManagement() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteUsers, setInviteUsers] = useState([{ email: "", roles: ["member"] }]);
@@ -240,26 +240,7 @@ export default function UserManagement() {
     }).format(date);
   };
 
-  const getInitials = (firstName, lastName, email) => {
-    // Priority 1: Use first and last name initials
-    if (firstName && lastName) {
-      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    }
-    
-    // Priority 2: Use first name + email prefix if only first name exists
-    if (firstName && email) {
-      const emailPrefix = email.split('@')[0];
-      return `${firstName.charAt(0)}${emailPrefix.charAt(0)}`.toUpperCase();
-    }
-    
-    // Priority 3: Use first two characters of email prefix as fallback
-    if (email) {
-      const emailPrefix = email.split('@')[0];
-      return emailPrefix.substring(0, 2).toUpperCase();
-    }
-    
-    return 'U';
-  };
+
 
   const getDisplayName = (user) => {
     if (user.firstName && user.lastName) {

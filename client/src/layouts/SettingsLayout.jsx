@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useRoute } from 'wouter';
-import { 
-  Settings, 
-  User, 
-  Shield, 
-  Bell, 
-  Database, 
-  CreditCard, 
-  Crown, 
-  Users, 
+import {
+  Settings,
+  User,
+  Shield,
+  Bell,
+  Database,
+  CreditCard,
+  Crown,
+  Users,
   Building,
   Lock
 } from 'lucide-react';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 const SettingsLayout = ({ children }) => {
   const [, params] = useRoute('/settings/:section?');
   const [, adminParams] = useRoute('/admin/:section?');
-  
+
   const currentSection = params?.section || adminParams?.section || 'general';
 
   const settingsItems = [
@@ -116,7 +116,7 @@ const SettingsLayout = ({ children }) => {
           <div className="lg:col-span-1">
             <div className="bg-white border border-gray-200 rounded-lg p-4 sticky top-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
-              
+
               {settingsItems.map((category) => (
                 <div key={category.category} className="mb-6">
                   <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
@@ -125,9 +125,9 @@ const SettingsLayout = ({ children }) => {
                   <nav className="space-y-1">
                     {category.items.map((item) => {
                       const Icon = item.icon;
-                      const isActive = currentSection === item.id || 
+                      const isActive = currentSection === item.id ||
                         (item.id === 'general' && !currentSection);
-                      
+
                       return (
                         <Link
                           key={item.id}
