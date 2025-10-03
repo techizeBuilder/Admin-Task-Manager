@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, Users, FolderOpen, FileText, MoreVertical, Eye, Settings, Ban, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SuperAdminLayout from "@/components/super-admin/SuperAdminLayout";
+import axios from "axios";
 
 export default function CompaniesManagement() {
-  const { data: companies = [], isLoading, error } = useQuery({
+  const { data: companies = [], isLoading, error, refetch } = useQuery({
     queryKey: ["/api/super-admin/companies"],
     retry: false,
   });
@@ -21,17 +22,57 @@ export default function CompaniesManagement() {
   console.log("Error state:", error);
   console.log("Auth token exists:", !!localStorage.getItem('token'));
 
-  const handleStatusChange = async (companyId, newStatus) => {
+  const handleStatusChange = async (companyId, isActive) => {
     try {
-      // This would be implemented when status change functionality is needed
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const newStatus = isActive ? 'active' : 'inactive';
+      console.log(`CompaniesManagement: Updating company ${companyId} status to ${newStatus}`);
+
+      // API call to update company status
+      const response = await axios.patch(
+        `http://localhost:5000/api/companies/${companyId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('CompaniesManagement: Status update successful:', response.data);
+
+      // Refetch data to update the UI
+      await refetch();
+
       toast({
-        title: "Info",
-        description: "Status change functionality coming soon",
+        title: "Success",
+        description: `Company status updated to ${newStatus}`,
       });
+
     } catch (error) {
+      console.error('CompaniesManagement: Error updating status:', error);
+      
+      let errorMessage = 'Failed to update company status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update company status.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Company not found.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error",
-        description: "Failed to update company status",
+        description: errorMessage,
         variant: "destructive",
       });
     }

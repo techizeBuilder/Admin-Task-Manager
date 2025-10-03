@@ -1106,9 +1106,9 @@ const IndividualDashboard = ({
             onClick={handleCloseCreateTask}
           />
           <div className="absolute right-0 top-0 bottom-0 w-full max-w-3xl bg-white shadow-xl flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600 flex-shrink-0">
               <h2 className="text-lg font-medium text-white">
-                Create New Task
+                Create New Task hi
               </h2>
               <button
                 onClick={handleCloseCreateTask}

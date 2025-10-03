@@ -373,6 +373,75 @@ export default function AllTasks({
     }
   }, [activeRole, user]);
 
+  // Listen for task status updates from child components
+  useEffect(() => {
+    const handleTaskStatusUpdated = (event) => {
+      const { taskId, newStatus } = event.detail;
+      console.log('AllTasks: Received status update event:', { taskId, newStatus });
+      
+      // Update the specific task in local state immediately with color
+      setApiTasks(prev => prev.map(task => {
+        if (task.id === taskId || task._id === taskId) {
+          // Get color from companyStatuses configuration
+          const statusObj = companyStatuses.find(s => s.code === newStatus);
+          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+          
+          console.log('🎨 Event: Updating task color:', {
+            taskId,
+            newStatus,
+            newColor: newStatusColor,
+            statusObj
+          });
+          
+          return { 
+            ...task, 
+            status: newStatus,
+            statusColor: newStatusColor,
+            colorCode: newStatusColor
+          };
+        }
+        return task;
+      }));
+    };
+
+    // Also listen for color update events
+    const handleTaskColorUpdated = (event) => {
+      const { taskId, newStatus } = event.detail;
+      console.log('AllTasks: Received color update event:', { taskId, newStatus });
+      
+      // Force re-render with updated colors
+      setApiTasks(prev => prev.map(task => {
+        if (task.id === taskId || task._id === taskId) {
+          const statusObj = companyStatuses.find(s => s.code === newStatus);
+          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+          
+          console.log('🎨 Color: Force updating task color:', {
+            taskId,
+            newStatus,
+            newColor: newStatusColor,
+            oldColor: task.statusColor || task.colorCode
+          });
+          
+          return { 
+            ...task, 
+            status: newStatus,
+            statusColor: newStatusColor,
+            colorCode: newStatusColor
+          };
+        }
+        return task;
+      }));
+    };
+
+    window.addEventListener('taskStatusUpdated', handleTaskStatusUpdated);
+    window.addEventListener('taskColorUpdated', handleTaskColorUpdated);
+    
+    return () => {
+      window.removeEventListener('taskStatusUpdated', handleTaskStatusUpdated);
+      window.removeEventListener('taskColorUpdated', handleTaskColorUpdated);
+    };
+  }, []);
+
   // Fetch available users for task assignment
   useEffect(() => {
     const fetchAvailableUsers = async () => {
@@ -499,11 +568,6 @@ export default function AllTasks({
     return status ? status.label : statusCode;
   };
 
-  const getStatusColor = (statusCode) => {
-    const status = companyStatuses.find((s) => s.code === statusCode);
-    return status ? status.color : "#6c757d";
-  };
-
   const getStatusBadge = (statusCode) => {
     const status = companyStatuses.find((s) => s.code === statusCode);
     const baseClass =
@@ -617,55 +681,47 @@ export default function AllTasks({
   ) => {
     console.log('handleStatusChange called with:', { taskId, newStatusCode, requiresConfirmation, reason });
 
-    // Debug: Show first few tasks with all their ID fields
-    const debugTasks = apiTasks.slice(0, 3).map(t => ({
-      id: t.id,
-      _id: t._id,
-      title: t.title,
-      status: t.status,
-      allKeys: Object.keys(t)
-    }));
-    console.log('First 3 apiTasks for debugging:', debugTasks);
-
-    // Log the searched task ID and available IDs for comparison
-    console.log('Searching for task ID:', taskId, '(type:', typeof taskId, ')');
-    console.log('Available apiTask IDs:', apiTasks.map(t => ({ id: t.id, _id: t._id, idType: typeof t.id, _idType: typeof t._id })));
-
     // Find task by multiple possible ID fields to handle different ID formats
     const task = apiTasks.find((t) => {
       const matches = t.id === taskId ||
         t._id === taskId ||
         String(t.id) === String(taskId) ||
+        String(t._id) === String(taskId) ||
         t.id === Number(taskId);
 
       if (matches) {
         console.log('MATCH FOUND:', { searchId: taskId, task: { id: t.id, _id: t._id, title: t.title } });
       }
       return matches;
-    }); const newStatus = companyStatuses.find(
+    });
+
+    const newStatus = companyStatuses.find(
       (s) => s.code === newStatusCode && s.active,
     );
 
     console.log('Found task:', task ? { id: task.id, _id: task._id, title: task.title, status: task.status } : 'NOT FOUND');
     console.log('Found status:', newStatus ? { code: newStatus.code, label: newStatus.label } : 'NOT FOUND');
 
-    if (!task || !newStatus) {
-      console.error("Invalid task or status code provided", {
-        task: !!task,
-        newStatus: !!newStatus,
-        searchedTaskId: taskId,
-        availableTaskIds: apiTasks.map(t => ({ id: t.id, _id: t._id })).slice(0, 5)
+    if (!newStatus) {
+      setToast({
+        message: "Invalid status code provided.",
+        type: 'error',
+        isVisible: true,
       });
+      return;
+    }
 
+    if (!task) {
       // If we can't find the task locally but we have a valid MongoDB ObjectId and valid status,
       // we can still proceed with the API call since the backend knows about this task
-      if (!task && newStatus && taskId.match(/^[0-9a-fA-F]{24}$/)) {
-        console.log('Task not found locally but valid ObjectId provided, proceeding with API call');
+      if (newStatus && taskId && (taskId.match(/^[0-9a-fA-F]{24}$/) || taskId.toString().length > 0)) {
+        console.log('Task not found locally but valid ID provided, proceeding with API call');
         // Create a minimal task object for the API call
         const minimalTask = {
           _id: taskId,
           id: taskId,
-          title: 'Task (ID mismatch)'
+          title: 'Task (Loading...)',
+          status: 'OPEN' // Default status
         };
 
         // Show confirmation for final statuses
@@ -685,6 +741,11 @@ export default function AllTasks({
         return;
       }
 
+      setToast({
+        message: "Task not found. Please refresh the page and try again.",
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -714,9 +775,9 @@ export default function AllTasks({
 
     // Check sub-task completion logic
     if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
-      const incompleteCount = task.subtasks.filter(
-        (s) => s.status !== "completed" && s.status !== "cancelled",
-      ).length;
+      const incompleteCount = task.subtasks?.filter(
+        (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+      ).length || 0;
       setToast({
         message: `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
         type: 'error',
@@ -728,7 +789,7 @@ export default function AllTasks({
     // Show confirmation for final statuses
     if (newStatus.isFinal && requiresConfirmation) {
       setShowStatusConfirmation({
-        taskId,
+        taskId: task._id || task.id,
         newStatusCode,
         taskTitle: task.title,
         statusLabel: newStatus.label,
@@ -743,11 +804,23 @@ export default function AllTasks({
 
   // Execute the actual status change
   const executeStatusChange = async (task, newStatusCode, reason = null) => {
+    console.log('🚀 EXECUTE STATUS CHANGE STARTED:', {
+      task: {
+        id: task.id,
+        _id: task._id,
+        title: task.title,
+        currentStatus: task.status
+      },
+      newStatusCode,
+      reason,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Use the MongoDB ObjectId (_id) for the API call, fallback to numeric id
       const apiTaskId = task._id || task.id;
 
-      console.log('Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
+      console.log('🔧 Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
 
       // Map frontend status codes to backend status codes
       const statusMapping = {
@@ -759,6 +832,12 @@ export default function AllTasks({
       };
 
       const backendStatus = statusMapping[newStatusCode] || newStatusCode.toLowerCase();
+      
+      console.log('🎯 Status mapping:', { 
+        frontendStatus: newStatusCode, 
+        backendStatus,
+        allMappings: statusMapping 
+      });
 
       // Prepare the request payload according to API spec
       const payload = {
@@ -771,11 +850,14 @@ export default function AllTasks({
         payload.completedDate = new Date().toISOString();
       }
 
-      console.log('Updating task status with payload:', payload);
+      console.log('📤 Updating task status with payload:', payload);
+      console.log('🌐 API endpoint URL:', `http://localhost:5000/api/tasks/${apiTaskId}/status`);
+      console.log('🔑 Auth token exists:', !!localStorage.getItem('token'));
 
-      // Use PATCH method as per API specification  
+      // Use correct API endpoint format
+      console.log('🚀 Making API call now...');
       const response = await axios.patch(
-        `/api/tasks/${apiTaskId}/status`,
+        `http://localhost:5000/api/tasks/${apiTaskId}/status`,
         payload,
         {
           headers: {
@@ -784,6 +866,8 @@ export default function AllTasks({
           }
         }
       );
+      
+      console.log('📨 Status update response received:', response);
 
       console.log('Status update response:', response);
 
@@ -795,10 +879,47 @@ export default function AllTasks({
 
       // Check for successful response
       if (response.data && response.data.success) {
-        // Update local state using the task's local ID
-        const localTaskId = task.id;
+        console.log('✅ API call successful, updating local state...');
+        
+        // Update local state optimistically with status color
+        setApiTasks(prev => {
+          const updated = prev.map(t => {
+            if (t.id === task.id || t._id === task._id) {
+              // Get color from companyStatuses configuration
+              const statusObj = companyStatuses.find(s => s.code === newStatusCode);
+              const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatusCode);
+              
+              const updatedTask = { 
+                ...t, 
+                status: newStatusCode,
+                statusColor: newStatusColor,
+                colorCode: newStatusColor, // Also update colorCode field
+                updatedAt: new Date().toISOString(),
+                ...(backendStatus === "completed" && { completedDate: new Date().toISOString() })
+              };
+              
+              console.log('🎨 Updated task with color:', {
+                taskId: t._id || t.id,
+                oldStatus: t.status,
+                newStatus: newStatusCode,
+                backendStatus,
+                newColor: updatedTask.statusColor,
+                colorCode: updatedTask.colorCode,
+                statusObject: statusObj
+              });
+              
+              return updatedTask;
+            }
+            return t;
+          });
+          
+          console.log('📊 Local state updated, total tasks:', updated.length);
+          return updated;
+        });
+
+        // Also update Zustand store if available
         if (typeof updateTaskStatus === 'function') {
-          updateTaskStatus(localTaskId, newStatusCode);
+          updateTaskStatus(task.id, newStatusCode);
         }
 
         // Show success toast
@@ -811,10 +932,8 @@ export default function AllTasks({
           isVisible: true,
         });
 
-        // Refetch tasks to ensure consistency
-        if (typeof refetchTasks === 'function') {
-          await refetchTasks();
-        }
+        // No need to refetch since we're updating optimistically and it's working
+
       } else {
         // Handle API error response
         const errorMessage = response.data?.message || "Failed to update task status.";
@@ -825,7 +944,15 @@ export default function AllTasks({
         });
       }
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error('❌ ERROR in executeStatusChange:', {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+        taskId: task._id || task.id,
+        newStatusCode,
+        timestamp: new Date().toISOString()
+      });
 
       // Handle different error response formats
       let errorMessage = 'Error updating task status. Please try again.';
@@ -835,6 +962,8 @@ export default function AllTasks({
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = `Network error: ${error.message}`;
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network connection failed. Please check your internet connection.';
       }
 
       setToast({
@@ -842,6 +971,9 @@ export default function AllTasks({
         type: 'error',
         isVisible: true,
       });
+
+      // Optionally revert optimistic update on error
+      console.log('Status update failed, you may want to revert the optimistic update');
     }
   };
 
@@ -1869,10 +2001,61 @@ export default function AllTasks({
   };
 
   // Function to get task color code
+  // Status color mapping for consistent colors across components
+  const getStatusColor = (statusCode) => {
+    // First try to get color from companyStatuses (dynamic from API)
+    const statusObj = companyStatuses.find(s => s.code === statusCode);
+    if (statusObj && statusObj.color) {
+      return statusObj.color;
+    }
+
+    // Fallback to hardcoded colors for backward compatibility
+    const statusColorMap = {
+      'OPEN': '#3B82F6',      // Blue
+      'INPROGRESS': '#F59E0B', // Yellow/Orange
+      'DONE': '#10B981',      // Green
+      'COMPLETED': '#10B981', // Green
+      'ONHOLD': '#6B7280',    // Gray
+      'CANCELLED': '#EF4444', // Red
+      'PENDING': '#F97316',   // Orange
+      'APPROVED': '#059669',  // Green
+      'REJECTED': '#DC2626',  // Red
+      'REVIEW': '#8B5CF6',    // Purple
+      // Backend status codes
+      'open': '#3B82F6',
+      'in-progress': '#F59E0B',
+      'completed': '#10B981',
+      'on-hold': '#6B7280',
+      'cancelled': '#EF4444',
+      'pending': '#F97316',
+      'approved': '#059669',
+      'rejected': '#DC2626',
+      'review': '#8B5CF6'
+    };
+    
+    return statusColorMap[statusCode] || '#6B7280'; // Default gray
+  };
+
   const getTaskColorCode = (task) => {
     console.log("Getting color code for task::::::::::::::::::", task);
+    
+    // Priority: statusColor from API > status-based color > taskType color > default
+    if (task.statusColor) {
+      console.log("Using statusColor from API:", task.statusColor);
+      return task.statusColor;
+    }
+    
+    if (task.status) {
+      const statusColor = getStatusColor(task.status);
+      console.log("Using status-based color:", statusColor, "for status:", task.status);
+      return statusColor;
+    }
+    
+    // Fallback to task type color
     const taskInfo = getTaskTypeInfo(task.taskType);
-    return task.colorCode || taskInfo.defaultColor || "#ffffff";
+    const fallbackColor = task.colorCode || taskInfo.defaultColor || "#6B7280";
+    console.log("Using fallback color:", fallbackColor);
+    return fallbackColor;
   };
 
   // Smart task handlers
@@ -1927,13 +2110,13 @@ export default function AllTasks({
   };
 
   return (
-    <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden">
+    <div className="space-y-4 p-6 min-h-0 overflow-hidden">
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">All Tasks</h1>
-          <p className="mt-2 text-lg text-gray-600">
+          <p className="mt-0 text-lg text-gray-600">
             Manage and track all your tasks
           </p>
         </div>
@@ -2005,7 +2188,7 @@ export default function AllTasks({
               <Sparkles className="w-4 h-4 mr-2" />
               Smart Parse
             </button>
-            <button
+            {/* <button
               className="btn btn-primary ml-1 px-2 flex-shrink-0"
               onClick={() => setShowTaskTypeDropdown(!showTaskTypeDropdown)}
             >
@@ -2016,7 +2199,7 @@ export default function AllTasks({
                   clipRule="evenodd"
                 />
               </svg>
-            </button>
+            </button> */}
 
             {showTaskTypeDropdown && (
               <>
@@ -2099,12 +2282,12 @@ export default function AllTasks({
       </div>
 
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 space-y-4">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
         {/* Search Bar */}
 
         {/* Filters */}
         <div className="flex flex-nowrap overflow-x-auto gap-2">
-          <div className="relative w-50 max-w-md min-w-[270px]">
+          <div className="relative w-50 max-w-md min-w-[170px]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
               fill="none"
@@ -2204,6 +2387,35 @@ export default function AllTasks({
             className="min-w-[170px]"
           />
         </div>
+
+        {/* Export Options */}
+        <div className="flex justify-end gap-2">
+          <button className=" btn-md flex ">
+            <img 
+              src="/src/assets/images/csv-export (2).png" 
+              alt="CSV" 
+              className="min-w-9 w-9 h-10"
+              onError={(e) => {
+                // Fallback to text if image not found
+                e.target.style.display = 'none';
+              }}
+            />
+            {/* <span>Export as CSV</span> */}
+          </button>
+          <button className=" btn-md flex ">
+            <img 
+              src="/src/assets/images/export-excel.png" 
+              alt="Excel" 
+              className="min-w-10 w-10 h-10"
+              onError={(e) => {
+                // Fallback to text if image not found
+                e.target.style.display = 'none';
+              }}
+            />
+            {/* <span>Export as Excel</span> */}
+          </button>
+        </div>
+
         {/* Bulk Actions */}
         {selectedTasks.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-md">
@@ -2344,14 +2556,6 @@ export default function AllTasks({
             </div>
           </div>
         )}
-
-      {/* Export Options */}
-      <div className="flex justify-end gap-2 ">
-        <button className="btn btn-secondary btn-md">Export as CSV</button>
-        <button className="btn btn-secondary btn-md">Export as Excel</button>
-      </div>
-
-
 
       {/* Tasks Table */}
       {apiLoading ? (
@@ -2623,9 +2827,21 @@ export default function AllTasks({
                             task={task}
                             currentStatus={task.status}
                             statuses={companyStatuses}
-                            onStatusChange={(newStatus) =>
-                              handleStatusChange(task.id, newStatus, true)
-                            }
+                            onStatusChange={(newStatus) => {
+                              // Only require confirmation for final statuses
+                              const statusObj = companyStatuses.find(s => s.code === newStatus);
+                              const requiresConfirmation = statusObj?.isFinal || false;
+                              
+                              console.log('🎯 TaskStatusDropdown - Status change requested:', {
+                                taskId: task.id,
+                                currentStatus: task.status,
+                                newStatus,
+                                isFinal: statusObj?.isFinal,
+                                requiresConfirmation
+                              });
+                              
+                              handleStatusChange(task.id, newStatus, requiresConfirmation);
+                            }}
                             canEdit={canEditTaskStatus(task)}
                             canMarkCompleted={canMarkAsCompleted(task)}
                           />
@@ -2689,9 +2905,18 @@ export default function AllTasks({
                               task={task}
                               onSnooze={() => handleSnoozeTask(task.id)}
                               onMarkAsRisk={() => handleMarkAsRisk(task.id)}
-                              onMarkAsDone={() =>
-                                handleStatusChange(task.id, "DONE", true)
-                              }
+                              onMarkAsDone={() => {
+                                // DONE is a final status, so require confirmation
+                                const statusObj = companyStatuses.find(s => s.code === 'DONE');
+                                const requiresConfirmation = statusObj?.isFinal || true;
+                                
+                                console.log('🎯 TaskActionsDropdown - Mark as Done clicked:', {
+                                  taskId: task.id,
+                                  requiresConfirmation
+                                });
+                                
+                                handleStatusChange(task.id, "DONE", requiresConfirmation);
+                              }}
                               onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
                               onDelete={() => handleDeleteTask(task.id)}
                             />
@@ -3030,6 +3255,78 @@ export default function AllTasks({
                 task={editingTask}
                 onSave={handleTaskUpdated}
                 onClose={() => setShowEditTaskModal(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Confirmation Modal */}
+      {showStatusConfirmation && (
+        <StatusConfirmationModal
+          isOpen={!!showStatusConfirmation}
+          taskTitle={showStatusConfirmation.taskTitle}
+          statusLabel={showStatusConfirmation.statusLabel}
+          onConfirm={(reason) => {
+            console.log('🎯 Status confirmation - CONFIRMED:', {
+              taskId: showStatusConfirmation.taskId,
+              newStatusCode: showStatusConfirmation.newStatusCode,
+              reason,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Find the task and execute status change
+            const task = apiTasks.find(t => 
+              t._id === showStatusConfirmation.taskId || 
+              t.id === showStatusConfirmation.taskId
+            );
+            
+            if (task) {
+              console.log('🔧 Executing status change after confirmation...');
+              executeStatusChange(task, showStatusConfirmation.newStatusCode, reason);
+            } else {
+              console.error('❌ Task not found for status confirmation:', showStatusConfirmation.taskId);
+            }
+            
+            setShowStatusConfirmation(null);
+          }}
+          onCancel={() => {
+            console.log('❌ Status confirmation - CANCELLED');
+            setShowStatusConfirmation(null);
+          }}
+        />
+      )}
+
+      {/* Calendar Modal for Date Selection */}
+      {showCalendarModal && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowCalendarModal(false)}
+          ></div>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div
+              className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Select Date for Task
+                </h2>
+                <button
+                  onClick={() => setShowCalendarModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <CalendarDatePicker
+                selectedDate={selectedDateForTask}
+                onDateSelect={handleCalendarDateSelect}
+                onClose={() => setShowCalendarModal(false)}
               />
             </div>
           </div>

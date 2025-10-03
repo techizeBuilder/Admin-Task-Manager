@@ -1,6 +1,6 @@
 /* Custom Quill Editor Styles */
 .custom-editor .ql-container {
-  min-height: 120px;
+  min-height: 100px;
   font-size: 14px;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;

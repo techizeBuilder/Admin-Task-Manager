@@ -103,17 +103,24 @@ const TaskSchema = mongoose.Schema(
     // Comments and activity
     comments: [{
       _id: {
-        type: mongoose.Schema.Types.ObjectId,
-        auto: true,
+        type: String, // Changed to String to match your controller implementation
+        required: true,
       },
       text: {
         type: String,
         required: true,
       },
+      content: {
+        type: String, // Added for backward compatibility
+      },
       author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
+      },
+      parentId: {
+        type: String, // Reference to parent comment _id for replies
+        default: null,
       },
       mentions: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -253,6 +260,68 @@ const TaskSchema = mongoose.Schema(
     organization: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
+    },
+    
+    // Snooze Task Fields
+    isSnooze: {
+      type: Boolean,
+      default: false,
+    },
+    snoozeUntil: {
+      type: Date,
+      default: null,
+    },
+    snoozeReason: {
+      type: String,
+      default: null,
+    },
+    snoozedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    snoozedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Risk Task Fields
+    isRisk: {
+      type: Boolean,
+      default: false,
+    },
+    riskLevel: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: null,
+    },
+    riskReason: {
+      type: String,
+      default: null,
+    },
+    riskMarkedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    riskMarkedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Task Completion Fields
+    completedDate: {
+      type: Date,
+      default: null,
+    },
+    completedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    completionNotes: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

@@ -252,16 +252,32 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
         console.log('DEBUG - Comments API response:', result);
         // Handle new API response structure
         if (result.success && result.data && result.data.comments) {
-          setComments(result.data.comments);
+          const fetchedComments = result.data.comments;
+          setComments(fetchedComments);
+          
+          // Calculate total comments including replies
+          const totalCount = result.data.pagination?.totalCommentsWithReplies || 
+                           fetchedComments.reduce((count, comment) => {
+                             return count + 1 + (comment.replies?.length || 0);
+                           }, 0);
+          setCommentsCount(totalCount);
+          
+          console.log('DEBUG - Comments updated:', {
+            topLevelComments: fetchedComments.length,
+            totalWithReplies: totalCount
+          });
         } else if (Array.isArray(result)) {
           // Fallback for old format
           setComments(result);
+          setCommentsCount(result.length);
         } else {
           setComments([]);
+          setCommentsCount(0);
         }
       } else {
         console.error('Failed to fetch comments:', response.status, response.statusText);
         setComments([]);
+        setCommentsCount(0);
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -537,33 +553,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     { id: 4, firstName: "Emily", lastName: "Davis", email: "emily@company.com" },
   ]);
 
-  // Mock comments with rich text content
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      content: "I've started working on the <strong>database schema migration</strong>. The initial analysis shows we need to handle about 2.5M records.",
-      author: { id: 1, firstName: "John", lastName: "Smith", email: "john@company.com" },
-      createdAt: new Date(Date.now() - 391 * 24 * 60 * 60 * 1000).toISOString(),
-      mentions: [],
-      replies: [
-        {
-          id: 2,
-          content: "<strong>@John Smith</strong> - Great! Please make sure to backup the data before starting the migration process. Also, have you considered the downtime window?",
-          author: { id: 2, firstName: "Sarah", lastName: "Wilson", email: "sarah@company.com" },
-          createdAt: new Date(Date.now() - 391 * 24 * 60 * 60 * 1000).toISOString(),
-          mentions: [{ id: 1, firstName: "John", lastName: "Smith", email: "john@company.com" }],
-        }
-      ]
-    },
-    {
-      id: 3,
-      content: "Working on the UI components for the migration status dashboard. <em>Will have updates soon!</em>",
-      author: { id: 3, firstName: "Mike", lastName: "Johnson", email: "mike@company.com" },
-      createdAt: new Date(Date.now() - 390 * 24 * 60 * 60 * 1000).toISOString(),
-      mentions: [],
-      replies: []
-    }
-  ]);
+  // Comments state managed from API
+  const [comments, setComments] = useState([]);
+  const [commentsCount, setCommentsCount] = useState(0);
 
   // Comment handlers
   const handleAddComment = async (commentData) => {
@@ -609,6 +601,51 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     } catch (error) {
       console.error('Error adding comment:', error);
       alert('Error adding comment: ' + error.message);
+    }
+  };
+
+  const handleReplyToComment = async (commentId, replyData) => {
+    try {
+      console.log('DEBUG - handleReplyToComment called with:', { commentId, replyData });
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+      let apiUrl;
+      // Check if this is a subtask
+      if (task?.parentTask || task?.parentTaskId) {
+        const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
+        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}/reply`;
+        console.log('DEBUG - Adding subtask reply to:', apiUrl);
+      } else {
+        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments/${commentId}/reply`;
+        console.log('DEBUG - Adding task reply to:', apiUrl);
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          content: replyData.content,
+          mentions: replyData.mentions || []
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('DEBUG - Reply added successfully:', result);
+
+        // Refresh comments to show the new reply and update count
+        await fetchComments();
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to add reply:', errorData);
+        alert('Failed to add reply: ' + errorData.message);
+      }
+    } catch (error) {
+      console.error('Error adding reply:', error);
+      alert('Error adding reply: ' + error.message);
     }
   };
 
@@ -785,7 +822,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       count: task?.subtasks?.length || 0,
       hasIcon: true
     }]),
-    { id: "comments", label: "Comments", icon: MessageCircle, count: 3, hasIcon: true },
+    { id: "comments", label: "Comments", icon: MessageCircle, count: commentsCount, hasIcon: true },
     { id: "activity", label: "Activity Feed", icon: Activity, hasIcon: true },
     { id: "files", label: "Files & Links", icon: Paperclip, hasIcon: true },
     {
@@ -868,8 +905,79 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     );
   }
 
-  const handleStatusChange = (newStatus) => {
-    setTask({ ...task, status: newStatus });
+  const handleStatusChange = async (newStatus) => {
+    const taskId = task?.id || task?._id;
+    
+    if (!taskId) {
+      console.error('TaskDetail: Task ID not found for status update');
+      alert('Task ID not found. Cannot update status.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      console.log(`TaskDetail: Updating task ${taskId} status to ${newStatus}`, {
+        taskTitle: task?.title || 'Unknown',
+        fromStatus: task?.status,
+        toStatus: newStatus
+      });
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/tasks/${taskId}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('TaskDetail: Status update successful:', response.data);
+      
+      // Update local state after successful API call
+      setTask({ ...task, status: newStatus });
+
+      // Trigger color update events
+      const statusEvent = new CustomEvent('taskStatusUpdated', {
+        detail: { 
+          taskId: taskId, 
+          newStatus: newStatus,
+          immediate: true
+        }
+      });
+      window.dispatchEvent(statusEvent);
+
+      const colorEvent = new CustomEvent('taskColorUpdated', {
+        detail: { 
+          taskId: taskId, 
+          newStatus: newStatus
+        }
+      });
+      window.dispatchEvent(colorEvent);
+      
+    } catch (error) {
+      console.error('TaskDetail: Error updating status:', error);
+      
+      let errorMessage = 'Failed to update task status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this task.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Task not found.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
+    }
   };
 
   const handlePriorityChange = (newPriority) => {
@@ -1221,6 +1329,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
             task={task}
             comments={comments}
             onAddComment={handleAddComment}
+            onReplyToComment={handleReplyToComment}
             onEditComment={handleEditComment}
             onDeleteComment={handleDeleteComment}
             currentUser={currentUser}

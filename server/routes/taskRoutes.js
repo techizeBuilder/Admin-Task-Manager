@@ -13,10 +13,12 @@ import {
   getSubtaskComments,
   updateSubtaskComment,
   deleteSubtaskComment,
+  replyToSubtaskComment,
   addTaskComment,
   getTaskComments,
   updateTaskComment,
   deleteTaskComment,
+  replyToTaskComment,
   getTasks,
   getTaskById,
   updateTask,
@@ -1327,6 +1329,62 @@ router.put("/tasks/:taskId/comments/:commentId", authenticateToken, updateTaskCo
  */
 router.delete("/tasks/:taskId/comments/:commentId", authenticateToken, deleteTaskComment);
 
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}/reply:
+ *   post:
+ *     summary: Reply to a specific comment on a task
+ *     description: Adds a reply to an existing comment on a task. The reply will be linked to the parent comment.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The parent comment ID to reply to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: The reply content
+ *                 example: "Thanks for the feedback! I'll make those changes."
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs mentioned in the reply
+ *     responses:
+ *       201:
+ *         description: Reply added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or parent comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:taskId/comments/:commentId/reply", authenticateToken, replyToTaskComment);
+
 router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments", authenticateToken, addSubtaskComment);
 
 /**
@@ -1629,6 +1687,66 @@ router.put("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authe
  *         description: Internal server error
  */
 router.delete("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authenticateToken, deleteSubtaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments/{commentId}/reply:
+ *   post:
+ *     summary: Reply to a subtask comment
+ *     description: Creates a reply to an existing subtask comment. The reply will be nested under the parent comment.
+ *     tags:
+ *       - Subtask Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Parent task ID
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subtask ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Parent comment ID to reply to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: Reply content
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: Users mentioned in the reply
+ *     responses:
+ *       201:
+ *         description: Reply added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Parent task, subtask, or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId/reply", authenticateToken, replyToSubtaskComment);
 
 /**
  * @swagger

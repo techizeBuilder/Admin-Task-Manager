@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import axios from "axios";
 
 export default function TaskStatusDropdown({
   task,
@@ -20,6 +21,96 @@ export default function TaskStatusDropdown({
   const [validTransitions, setValidTransitions] = useState([]);
   const buttonRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 176 });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Track which specific status is updating
+
+  // API integration function
+  const executeStatusChange = async (newStatusCode) => {
+    const taskId = task?.id || task?._id;
+    
+    if (!taskId) {
+      console.error('TaskStatusDropdown: Task ID not found for status update');
+      return false;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      console.log(`TaskStatusDropdown: Updating task ${taskId} status to ${newStatusCode}`, {
+        taskTitle: task?.title || 'Unknown',
+        fromStatus: currentStatus,
+        toStatus: newStatusCode
+      });
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/tasks/${taskId}/status`,
+        { status: newStatusCode },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('TaskStatusDropdown: Status update successful:', response.data);
+      
+      // Call the parent's status change handler for immediate UI update
+      if (onStatusChange) {
+        onStatusChange(newStatusCode);
+      }
+
+      // Force a UI re-render by updating the current status immediately
+      // This ensures the badge color changes instantly
+      const statusEvent = new CustomEvent('taskStatusUpdated', {
+        detail: { 
+          taskId: task?.id || task?._id, 
+          newStatus: newStatusCode,
+          immediate: true // Flag for immediate color update
+        }
+      });
+      window.dispatchEvent(statusEvent);
+
+      // Also trigger a color update event
+      const colorEvent = new CustomEvent('taskColorUpdated', {
+        detail: { 
+          taskId: task?.id || task?._id, 
+          newStatus: newStatusCode
+        }
+      });
+      window.dispatchEvent(colorEvent);
+
+      return true;
+      
+    } catch (error) {
+      console.error('TaskStatusDropdown: Error updating status:', error);
+      
+      let errorMessage = 'Failed to update task status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this task.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Task not found.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // You can add a toast notification or alert here
+      alert(errorMessage);
+      
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Enhanced status matching with fallbacks
   let currentStatusObj = statuses.find(
@@ -223,20 +314,29 @@ export default function TaskStatusDropdown({
                     return (
                       <button
                         key={transitionCode}
-                        className="w-full text-left px-2 py-1 text-sm flex items-center gap-2 transition-all duration-200 group relative overflow-hidden hover:shadow-sm"
-                        onClick={() => {
-                          onStatusChange(transitionCode);
-                          setIsOpen(false);
+                        className="w-full text-left px-2 py-1 text-sm flex items-center gap-2 transition-all duration-200 group relative overflow-hidden hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={updatingStatus === transitionCode}
+                        onClick={async () => {
+                          setUpdatingStatus(transitionCode);
+                          const success = await executeStatusChange(transitionCode);
+                          setUpdatingStatus(null);
+                          if (success) {
+                            setIsOpen(false);
+                          }
                         }}
                         style={{
                           background: `linear-gradient(90deg, ${targetStatus.color}15 0%, ${targetStatus.color}08 100%)`,
                           borderLeft: `3px solid ${targetStatus.color}`
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}25 0%, ${targetStatus.color}15 100%)`;
+                          if (!isUpdating) {
+                            e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}25 0%, ${targetStatus.color}15 100%)`;
+                          }
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}15 0%, ${targetStatus.color}08 100%)`;
+                          if (!isUpdating) {
+                            e.currentTarget.style.background = `linear-gradient(90deg, ${targetStatus.color}15 0%, ${targetStatus.color}08 100%)`;
+                          }
                         }}
                       >
                         <span
@@ -246,7 +346,10 @@ export default function TaskStatusDropdown({
                         <span className="font-medium text-gray-900 flex-1">
                           {targetStatus.label}
                         </span>
-                        {targetStatus.isFinal && (
+                        {updatingStatus === transitionCode && (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
+                        )}
+                        {targetStatus.isFinal && updatingStatus !== transitionCode && (
                           <span className="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded">
                             Final
                           </span>

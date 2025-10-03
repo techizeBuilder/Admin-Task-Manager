@@ -1,10 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import getStatusLabel from './statusUtils';
+import axios from 'axios';
 
 function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Track which specific status is updating
+  const [currentStatusCode, setCurrentStatusCode] = useState(status); // Track current status for color updates
+
+  // API integration function
+  const executeStatusChange = async (newStatusCode) => {
+    const taskId = task?.id || task?._id;
+    
+    if (!taskId) {
+      console.error('StatusDropdown: Task ID not found for status update');
+      alert('Task ID not found. Cannot update status.');
+      return false;
+    }
+
+    setIsUpdating(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      console.log(`StatusDropdown: Updating task ${taskId} status to ${newStatusCode}`, {
+        taskTitle: task?.title || 'Unknown',
+        fromStatus: status,
+        toStatus: newStatusCode
+      });
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/tasks/${taskId}/status`,
+        { status: newStatusCode },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('StatusDropdown: Status update successful:', response.data);
+      
+      // Call the parent's status change handler for immediate UI update
+      if (onChange) {
+        onChange(newStatusCode);
+      }
+
+      // Force a UI re-render by updating immediately
+      const statusEvent = new CustomEvent('taskStatusUpdated', {
+        detail: { 
+          taskId: task?.id || task?._id, 
+          newStatus: newStatusCode,
+          immediate: true
+        }
+      });
+      window.dispatchEvent(statusEvent);
+
+      // Also emit color update event for immediate color changes
+      const colorEvent = new CustomEvent('taskColorUpdated', {
+        detail: { 
+          taskId: task?.id || task?._id, 
+          newStatus: newStatusCode,
+          immediate: true
+        }
+      });
+      window.dispatchEvent(colorEvent);
+
+      return true;
+      
+    } catch (error) {
+      console.error('StatusDropdown: Error updating status:', error);
+      
+      let errorMessage = 'Failed to update task status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this task.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Task not found.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
+      
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Enhanced statuses with comprehensive business rules
   const statuses = [
@@ -55,7 +147,12 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
     },
   ];
 
-  const currentStatus = statuses.find((s) => s.value === status) || statuses[0];
+  const currentStatus = statuses.find((s) => s.value === currentStatusCode) || statuses[0];
+
+  // Update current status when prop changes
+  useEffect(() => {
+    setCurrentStatusCode(status);
+  }, [status]);
 
   // Get valid transitions based on business rules
   const getValidTransitions = () => {
@@ -90,7 +187,9 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
     return incompleteSubtasks.length === 0;
   };
 
-  const handleStatusClick = (statusOption) => {
+  const handleStatusClick = async (statusOption) => {
+    if (isUpdating) return;
+
     // Validate transition
     if (!validTransitions.includes(statusOption.value)) {
       alert(
@@ -121,36 +220,48 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
       return;
     }
 
-    // Direct update for non-final statuses
-    onChange(statusOption.value);
-    setIsOpen(false);
-
-    // Log activity with enhanced details
-    logActivity("status_changed", {
-      oldStatus: getStatusLabel(status),
-      newStatus: statusOption.label,
-      user: currentUser.name,
-      timestamp: new Date().toISOString(),
-      taskId: task.id,
-      reason: "Manual status change",
-    });
+    // Direct update for non-final statuses with API integration
+    const success = await executeStatusChange(statusOption.value);
+    setUpdatingStatus(null); // Reset updating status after API call
+    if (success) {
+      // Update current status for immediate color change
+      setCurrentStatusCode(statusOption.value);
+      setIsOpen(false);
+      
+      // Log activity with enhanced details
+      logActivity("status_changed", {
+        oldStatus: getStatusLabel(status),
+        newStatus: statusOption.label,
+        user: currentUser?.name || 'Unknown User',
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+        reason: "Manual status change",
+      });
+    }
   };
 
-  const confirmStatusChange = () => {
-    onChange(showConfirmation.newStatus);
+  const confirmStatusChange = async () => {
+    if (isUpdating) return;
 
-    // Log activity with confirmation
-    logActivity("status_changed", {
-      oldStatus: getStatusLabel(status),
-      newStatus: showConfirmation.newLabel,
-      user: currentUser.name,
-      timestamp: new Date().toISOString(),
-      taskId: task.id,
-      reason: "Final status confirmed",
-      confirmed: true,
-    });
+    const success = await executeStatusChange(showConfirmation.newStatus);
+    setUpdatingStatus(null); // Reset updating status after API call
+    if (success) {
+      // Update current status for immediate color change
+      setCurrentStatusCode(showConfirmation.newStatus);
+      
+      // Log activity with confirmation
+      logActivity("status_changed", {
+        oldStatus: getStatusLabel(status),
+        newStatus: showConfirmation.newLabel,
+        user: currentUser?.name || 'Unknown User',
+        timestamp: new Date().toISOString(),
+        taskId: task.id,
+        reason: "Final status confirmed",
+        confirmed: true,
+      });
 
-    setShowConfirmation(null);
+      setShowConfirmation(null);
+    }
   };
 
   const logActivity = (type, details) => {
@@ -254,8 +365,12 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
                     return (
                       <button
                         key={transitionCode}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group"
-                        onClick={() => handleStatusClick(targetStatus)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={updatingStatus === targetStatus.value}
+                                                onClick={() => {
+                          setUpdatingStatus(targetStatus.value);
+                          handleStatusChange(targetStatus);
+                        }}
                       >
                         <span
                           className="w-3 h-3 rounded-full"
@@ -269,7 +384,10 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
                             {targetStatus.description}
                           </div>
                         </div>
-                        {targetStatus.isFinal && (
+                        {updatingStatus === targetStatus.value && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                        )}
+                        {targetStatus.isFinal && updatingStatus !== targetStatus.value && (
                           <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
                             Final
                           </span>
@@ -373,9 +491,13 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
                 </button>
                 <button
                   onClick={confirmStatusChange}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                  disabled={isUpdating}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Confirm
+                  {isUpdating && (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  )}
+                  {isUpdating ? 'Updating...' : 'Confirm'}
                 </button>
               </div>
             </div>

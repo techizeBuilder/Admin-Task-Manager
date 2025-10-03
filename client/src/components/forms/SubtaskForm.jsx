@@ -409,7 +409,7 @@ function SubtaskForm({
         {/* Form */}
         <div className="modal-body">
           <div className="form-card">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Task Title */}
               <div className="form-group">
                 <label className="form-label flex justify-between">

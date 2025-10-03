@@ -19,6 +19,7 @@ export function TaskComments({
   task,
   comments,
   onAddComment,
+  onReplyToComment,
   onEditComment,
   onDeleteComment,
   currentUser,
@@ -74,11 +75,10 @@ export function TaskComments({
       );
     }).filter(Boolean);
 
-    await onAddComment({
+    // Use the new dedicated reply API
+    await onReplyToComment(parentId, {
       content: replyText,
-      mentions: mentionedUsers,
-      taskId,
-      parentId: parentId // Use the parentId directly
+      mentions: mentionedUsers
     });
 
     setReplyText("");
@@ -92,18 +92,14 @@ export function TaskComments({
     }));
   };
 
-  const getReplies = (parentId) => {
-    return Array.isArray(comments) ? comments.filter(comment => {
-      const commentParentId = comment.parentId || comment.parentCommentId;
-      return commentParentId === parentId;
-    }) : [];
+  const getReplies = (comment) => {
+    // Use the nested replies from backend instead of filtering
+    return comment.replies || [];
   };
 
   const getTopLevelComments = () => {
-    return Array.isArray(comments) ? comments.filter(comment => {
-      const parentId = comment.parentId || comment.parentCommentId;
-      return !parentId;
-    }) : [];
+    // All comments from backend are already top-level with nested replies
+    return Array.isArray(comments) ? comments : [];
   };
 
   const handleEdit = (comment) => {
@@ -158,7 +154,11 @@ export function TaskComments({
     // Check if content exists and is a string
     if (!content || typeof content !== 'string') {
       console.log('DEBUG - Content is null, undefined, or not a string:', content);
-      return '<p>No content available</p>';
+      return '<p class="text-gray-500 italic">Comment content is not available</p>';
+    }
+    // If content is empty string
+    if (content.trim() === '') {
+      return '<p class="text-gray-500 italic">Empty comment</p>';
     }
     // Highlight mentions in comments
     return content.replace(/@(\w+)/g, '<span class="text-blue-600 font-medium">@$1</span>');
@@ -248,7 +248,7 @@ export function TaskComments({
       <div className="space-y-3">
         {getTopLevelComments().map((comment) => {
           const commentId = comment._id || comment.id;
-          const replies = getReplies(commentId);
+          const replies = getReplies(comment);
           return (
             <div key={commentId} className="space-y-3">
               <Card className="p-4">
@@ -342,7 +342,7 @@ export function TaskComments({
                       <div
                         className="text-sm text-gray-900  prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{
-                          __html: renderCommentContent(comment.content)
+                          __html: renderCommentContent(comment.content || comment.text)
                         }}
                       />
                     )}
@@ -403,15 +403,15 @@ export function TaskComments({
 
               {/* Replies */}
               {expandedComments[commentId] && replies.length > 0 && (
-                <div className="ml-12 space-y-2">
+                <div className="ml-12 space-y-2 border-l-2 border-blue-200 pl-4">
                   {replies.map((reply) => {
                     const replyId = reply._id || reply.id;
                     return (
-                      <Card key={replyId} className="p-3 bg-gray-900">
+                      <Card key={replyId} className="p-3 bg-blue-50 border-l-4 border-blue-300">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-6 w-6">
                             <AvatarImage src={reply.author?.avatar} />
-                            <AvatarFallback className="text-xs">
+                            <AvatarFallback className="text-xs bg-blue-200">
                               {reply.author?.firstName?.[0]}{reply.author?.lastName?.[0]}
                             </AvatarFallback>
                           </Avatar>
@@ -419,6 +419,10 @@ export function TaskComments({
                           <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                                  <Reply className="h-3 w-3 mr-1" />
+                                  Reply
+                                </Badge>
                                 <span className="font-medium text-xs text-gray-900 ">
                                   {reply.author?.firstName && reply.author?.lastName
                                     ? `${reply.author.firstName} ${reply.author.lastName}`

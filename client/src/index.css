@@ -145,7 +145,7 @@
 
   /* Custom Editor Styles */
   .custom-editor .ql-editor {
-    @apply min-h-[120px] p-3;
+    @apply min-h-[120px] px-3 py-1;
     border: none;
     border-radius: 0 0 0.5rem 0.5rem;
     font-size: 14px;
@@ -542,7 +542,7 @@
   }
 
   .drawer-header {
-    @apply flex items-center justify-between px-6 py-6 border-b border-gray-200/50;
+    @apply flex items-center justify-between px-4 py-4 border-b border-gray-200/50;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
   }
@@ -1388,7 +1388,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 2rem;
+    padding: 1rem;
     border-bottom: 1px solid rgba(233, 236, 239, 0.5);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
