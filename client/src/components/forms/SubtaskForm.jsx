@@ -493,6 +493,7 @@ function SubtaskForm({
                   <input
                     type="date"
                     value={formData.dueDate}
+                    min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => handleChange('dueDate', e.target.value)}
                     className={`form-input ${errors.dueDate ? 'border-red-500 focus:border-red-500' : ''}`}
                   />

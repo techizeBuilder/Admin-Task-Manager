@@ -248,9 +248,59 @@ const RegularTaskForm = ({
     setTaskNameLength(watchedTaskName?.length || 0);
   }, [watchedTaskName]);
 
-  // Auto-set due date based on priority
+  // Prefill form with Quick Task data from local storage (cleaner than URL parameters)
   useEffect(() => {
-    if (watchedPriority?.value) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromQuickTask = searchParams.get("from_quick_task");
+    
+    if (fromQuickTask) {
+      console.log('🔄 Prefilling from Quick Task:', fromQuickTask);
+      
+      // Try to get Quick Task data from localStorage (set during conversion)
+      const quickTaskData = localStorage.getItem(`quick_task_${fromQuickTask}`);
+      
+      if (quickTaskData) {
+        try {
+          const taskData = JSON.parse(quickTaskData);
+          console.log('📋 Quick Task Data:', taskData);
+          
+          if (taskData.title) {
+            console.log('✅ Setting title:', taskData.title);
+            setValue("taskName", taskData.title);
+          }
+          
+          if (taskData.priority) {
+            const priorityValue = taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1).toLowerCase();
+            const priorityOption = priorityOptions.find(option => option.value === priorityValue);
+            console.log('✅ Setting priority:', priorityOption);
+            if (priorityOption) {
+              setValue("priority", priorityOption);
+            }
+          }
+          
+          if (taskData.dueDate && taskData.dueDate !== '') {
+            console.log('✅ Setting due date:', taskData.dueDate);
+            setValue("dueDate", taskData.dueDate);
+          }
+          
+          // Clean up localStorage after use
+          localStorage.removeItem(`quick_task_${fromQuickTask}`);
+        } catch (error) {
+          console.error('❌ Error parsing Quick Task data:', error);
+        }
+      } else {
+        console.log('❌ No Quick Task data found in localStorage');
+      }
+    }
+  }, [setValue]);
+
+  // Auto-set due date based on priority (only if not from Quick Task)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromQuickTask = searchParams.get("from_quick_task");
+    
+    // Only auto-set due date if not converting from Quick Task and priority is selected
+    if (!fromQuickTask && watchedPriority?.value) {
       const today = new Date();
       let daysToAdd = 7; // Default for Low priority
 

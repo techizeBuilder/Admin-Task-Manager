@@ -7,6 +7,7 @@ import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import taskfeedRoutes from "./routes/taskfeedRoutes.js";
+import quickTaskRoutes from "./routes/quickTaskRoutes.js";
 
 const app = express();
 
@@ -44,7 +45,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["./server/routes/*.js", "./server/models/*.js"],
+  apis: ["./server/routes/*.js", "./server/models/*.js", "./server/modals/*.js"],
   failOnErrors: true, // Whether or not to throw when parsing errors
   encoding: "utf8", // Encoding for reading files
   verbose: true, // Include errors in the console
@@ -115,6 +116,10 @@ const connectToMongoDB = async () => {
       // Register taskfeed routes
       app.use("/api", taskfeedRoutes);
       console.log("Taskfeed routes registered");
+
+      // Register Quick Task routes
+      app.use("/api/quick-tasks", quickTaskRoutes);
+      console.log("Quick Task routes registered");
     } catch (routeError) {
       console.error("Error registering routes:", routeError);
       throw routeError;
