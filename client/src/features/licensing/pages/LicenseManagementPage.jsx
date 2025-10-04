@@ -170,6 +170,11 @@ export default function LicenseManagementPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: user, isAdmin } = useUserRole();
+  
+  // Define role-based access
+  const isOrgAdmin = user?.activeRole === "org_admin" || user?.role?.[0] === "org_admin";
+  const isEmployeeOrManager = user?.activeRole === "employee" || user?.activeRole === "manager" || 
+                             user?.role?.[0] === "employee" || user?.role?.[0] === "manager";
 
   // Fetch dynamic license plans
   const { data: plansResponse, isLoading: plansLoading } = useQuery({
@@ -578,7 +583,7 @@ export default function LicenseManagementPage() {
               </p>
             </div>
           </div>
-          {isAdmin && (
+          {isOrgAdmin && (
             <Button
               asChild
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
@@ -650,9 +655,9 @@ export default function LicenseManagementPage() {
         })()}
 
         {/* Usage Overview and Trial Countdown Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Usage Overview Section - Left 8 columns */}
-          <div className="lg:col-span-8">
+        <div className={`grid grid-cols-1 gap-4 ${isOrgAdmin ? 'lg:grid-cols-12' : ''}`}>
+          {/* Usage Overview Section - Responsive width based on user role */}
+          <div className={isOrgAdmin ? "lg:col-span-8" : "w-full"}>
             { (plansLoading || featuresLoading || subscriptionLoading) ? (
               <div className="bg-white rounded-lg border border-gray-200 p-6 text-sm text-gray-500">
                 Loading usage data...
@@ -747,7 +752,8 @@ export default function LicenseManagementPage() {
             )}
           </div>
 
-          {/* Trial Countdown and Quick Actions - Right 4 columns */}
+          {/* Trial Countdown and Quick Actions - Right 4 columns - Only for Org Admin */}
+          {isOrgAdmin && (
         <div className="lg:col-span-4 space-y-4">
   {/* Expiry Card */}
   <div className={cn(
@@ -904,9 +910,11 @@ export default function LicenseManagementPage() {
   </div>
 </div>
 
+        )}
+
         </div>
 {
-  isAdmin && (
+  isOrgAdmin && (
 
     <>
         {/* Added: Plan Selection + Order Summary (top) */}

@@ -17,8 +17,15 @@ const Sidebar = ({
   const [menuItems, setMenuItems] = useState([]);
 
   useEffect(() => {
-    const menu = getMenuByRole(role);
-    setMenuItems(menu);
+    try {
+      const menu = getMenuByRole(role);
+      // Ensure we have a valid array and filter out any undefined/null items
+      const validMenu = Array.isArray(menu) ? menu.filter(item => item && item.id) : [];
+      setMenuItems(validMenu);
+    } catch (error) {
+      console.error('Error loading menu items:', error);
+      setMenuItems([]); // Set empty array as fallback
+    }
   }, [role]);
 
   const handleItemClick = (action) => {
@@ -165,7 +172,7 @@ const Sidebar = ({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2">
-          {menuItems.map((item) => (
+          {menuItems?.filter(item => item && item.id).map((item) => (
             <SidebarItem
               key={item.id}
               item={item}

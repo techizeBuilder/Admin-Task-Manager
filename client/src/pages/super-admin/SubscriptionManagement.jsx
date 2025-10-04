@@ -4,7 +4,7 @@ import {
   TrendingUp, 
   Building2, 
   Users, 
-  DollarSign,
+  IndianRupee,
   Activity,
   Settings,
   Plus,
@@ -28,6 +28,28 @@ const SubscriptionManagement = () => {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
+
+  // Function to convert technical feature codes to user-friendly names
+  const getFeatureDisplayName = (featureName) => {
+    const featureMap = {
+      'API_ACCESS': 'API Access',
+      'FORM_CREATE': 'Form Creation',
+      'NOTIF_ADV': 'Advanced Notifications',
+      'NOTIF_BASIC': 'Basic Notifications',
+      'REPORT_BASIC': 'Basic Reports',
+      'TASK_BASIC': 'Basic Task Management',
+      'DED_SUPPORT': 'Dedicated Support',
+      'USER_MANAGEMENT': 'User Management',
+      'ANALYTICS': 'Analytics Dashboard',
+      'CUSTOM_BRANDING': 'Custom Branding',
+      'INTEGRATIONS': 'Third-party Integrations',
+      'WORKFLOW_AUTOMATION': 'Workflow Automation',
+      'DATA_EXPORT': 'Data Export',
+      'BACKUP_RESTORE': 'Backup & Restore',
+      'PRIORITY_SUPPORT': 'Priority Support'
+    };
+    return featureMap[featureName] || featureName;
+  };
 
   // Fetch subscription overview data
   const { data: subscriptionStats, isLoading: statsLoading } = useQuery({
@@ -73,7 +95,7 @@ const SubscriptionManagement = () => {
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'organizations', label: 'Organization Subscriptions', icon: Building2 },
     { id: 'plans', label: 'License Plans', icon: CreditCard },
-    { id: 'analytics', label: 'Analytics', icon: TrendingUp }
+    { id: 'analytics', label: 'Antics', icon: TrendingUp }
   ];
 
   const renderOverview = () => (
@@ -111,12 +133,12 @@ const SubscriptionManagement = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="p-2 bg-yellow-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-yellow-600" />
+              <IndianRupee className="h-6 w-6 text-yellow-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
               <p className="text-2xl font-semibold text-gray-900">
-                ${subscriptionStats?.monthlyRevenue || 0}
+                ₹{subscriptionStats?.monthlyRevenue || 0}
               </p>
             </div>
           </div>
@@ -281,7 +303,7 @@ const SubscriptionManagement = () => {
                     {org.expiresAt ? new Date(org.expiresAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${org.monthlyRevenue}
+                    ₹{org.monthlyRevenue}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex space-x-2">
@@ -316,7 +338,7 @@ const SubscriptionManagement = () => {
       </div>
 
       {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {licensePlans?.plans?.map(plan => (
           <div key={plan.license_code} className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-start mb-4">
@@ -344,11 +366,11 @@ const SubscriptionManagement = () => {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Monthly Price:</span>
-                <span className="text-sm font-medium text-gray-900">${plan.monthly_price || 'N/A'}</span>
+                <span className="text-sm font-medium text-gray-900">₹{plan.monthly_price || '0'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Annual Price:</span>
-                <span className="text-sm font-medium text-gray-900">${plan.annual_price || 'N/A'}</span>
+                <span className="text-sm font-medium text-gray-900">₹{plan.annual_price || '0'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Active Organizations:</span>
@@ -369,7 +391,7 @@ const SubscriptionManagement = () => {
               <div className="space-y-1">
                 {plan.features?.slice(0, 3).map(feature => (
                   <div key={feature.feature_code} className="text-xs text-gray-600">
-                    • {feature.feature_name}: {feature.usage_limit === -1 ? 'Unlimited' : feature.usage_limit}
+                    • {getFeatureDisplayName(feature.feature_name)}: {feature.usage_limit === -1 ? 'Unlimited' : feature.usage_limit}
                   </div>
                 ))}
                 {plan.features?.length > 3 && (

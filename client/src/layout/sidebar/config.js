@@ -76,12 +76,12 @@ const baseItems = {
     icon: RecurringTaskIcon,
     path: "/recurring",
   },
-  calendar: {
-    id: "calendar",
-    label: "Calendar",
-    icon: Calendar,
-    path: "/calendar",
-  },
+  // calendar: {
+  //   id: "calendar",
+  //   label: "Calendar",
+  //   icon: Calendar,
+  //   path: "/calendar",
+  // },
   approvals: {
     id: "approvals",
     label: "Approvals",
@@ -134,7 +134,7 @@ export const sidebarMenus = {
     baseItems.quickTasks,
     baseItems.regularTasks,
     baseItems.recurring,
-    baseItems.calendar,
+    // baseItems.calendar,
     baseItems.settings,
     baseItems.help,
     baseItems.logout,
@@ -352,7 +352,7 @@ export const sidebarMenus = {
 const roleMapping = {
   employee: "employee",
   manager: "manager",
-  individial: "employee",
+  individual: "employee",
   org_admin: "admin",
 
   superadmin: "superadmin",

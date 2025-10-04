@@ -87,6 +87,7 @@ import AllTasks from "./pages/newComponents/AllTasks";
 import OverdueTasks from "./pages/newComponents/OverdueTasks";
 // import QuickTask from "./pages/newComponents/QuickTask"; // Component doesn't exist yet
 import CalendarView from "./features/calendar/pages/CalendarView";
+import GoogleCalendarCallback from "./components/GoogleCalendarCallback";
 import ApprovalManager from "./pages/newComponents/ApprovalManager";
 import MilestoneManager from "./pages/newComponents/MilestoneManager";
 import StatusManager from "./pages/newComponents/StatusManager";
@@ -424,6 +425,10 @@ function App() {
                     allowedRoles={["individual", "employee", "org_admin"]}
                   />
                 </AdminLayout>
+              </Route>
+
+              <Route path="/google-calendar-callback">
+                <GoogleCalendarCallback />
               </Route>
 
               <Route path="/analytics">

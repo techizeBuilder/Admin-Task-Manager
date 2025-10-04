@@ -17,9 +17,16 @@ import RoleSwitcher from "../RoleSwitcher";
 import { useAuthStore } from "../../stores/useAuthStore";
 
 export default function Header({ user }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
+  
+  // Check if current page is a billing/upgrade/payment page where role switching should be disabled
+  const isBillingPage = location.includes('/billing') || 
+                       location.includes('/upgrade') || 
+                       location.includes('/payment') ||
+                       location.includes('/subscription');
+  
   const [notifications, setNotifications] = React.useState([
     {
       id: 1,
@@ -219,11 +226,21 @@ export default function Header({ user }) {
         </div>
 
         <div className="flex items-center space-x-3">
-          {/* Role Switcher */}
+          {/* Role Switcher - Hidden on billing/upgrade pages */}
           {
-            !profileUser?.role?.includes("individual") &&
+            !profileUser?.role?.includes("individual") && !isBillingPage &&
           <RoleSwitcher />
           }
+          
+          {/* Billing Page Indicator - Show when role switcher is hidden */}
+          {isBillingPage && !profileUser?.role?.includes("individual") && (
+            <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-sm">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Secure Session</span>
+            </div>
+          )}
           
           {/* <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
             <Bell className="h-3 w-3" />
