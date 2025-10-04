@@ -95,6 +95,12 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Activity Feed State
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState(null);
+  const [activityFilter, setActivityFilter] = useState('all');
+
   // Fetch task data from API
   const fetchTaskData = async () => {
     if (!taskId) {
@@ -285,11 +291,76 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     }
   };
 
+  // Fetch activities for the task
+  const fetchActivities = async () => {
+    if (!taskId) return;
+
+    try {
+      setActivitiesLoading(true);
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+      
+      console.log('DEBUG - Fetching activities for task:', taskId);
+      
+      const response = await fetch(`${baseUrl}/api/tasks/${taskId}/activities?limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('DEBUG - Activities API response:', result);
+        
+        if (result.success && result.data && result.data.activities) {
+          const fetchedActivities = result.data.activities;
+          
+          // Format activities for display
+          const formattedActivities = fetchedActivities.map(activity => ({
+            id: activity._id,
+            type: activity.type,
+            description: activity.description,
+            icon: activity.metadata?.icon || '📝',
+            category: activity.metadata?.category || 'general',
+            user: activity.user ? {
+              id: activity.user._id,
+              name: activity.user.name || `${activity.user.firstName || ''} ${activity.user.lastName || ''}`.trim(),
+              email: activity.user.email,
+              avatar: activity.user.avatar
+            } : null,
+            timestamp: activity.createdAt,
+            relatedId: activity.relatedId,
+            relatedType: activity.relatedType,
+            metadata: activity.metadata || {}
+          }));
+
+          setActivities(formattedActivities);
+          setActivitiesError(null);
+          console.log('DEBUG - Activities updated:', formattedActivities.length);
+        } else {
+          setActivities([]);
+          setActivitiesError('No activities found');
+        }
+      } else {
+        console.error('Failed to fetch activities:', response.status, response.statusText);
+        setActivities([]);
+        setActivitiesError('Failed to load activities');
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setActivities([]);
+      setActivitiesError(error.message || 'Failed to load activities');
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
   // Fetch data when component mounts or taskId changes
   useEffect(() => {
     fetchTaskData();
     if (taskId) {
       fetchComments();
+      fetchActivities(); // Add activity fetching
     }
   }, [taskId]);
 
@@ -591,8 +662,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
         const result = await response.json();
         console.log('DEBUG - Comment added successfully:', result);
 
-        // Refresh comments
+        // Refresh comments and activities
         await fetchComments();
+        await fetchActivities();
       } else {
         const errorData = await response.json();
         console.error('Failed to add comment:', errorData);
@@ -636,8 +708,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
         const result = await response.json();
         console.log('DEBUG - Reply added successfully:', result);
 
-        // Refresh comments to show the new reply and update count
+        // Refresh comments and activities to show the new reply and update count
         await fetchComments();
+        await fetchActivities();
       } else {
         const errorData = await response.json();
         console.error('Failed to add reply:', errorData);
@@ -680,8 +753,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
         const result = await response.json();
         console.log('DEBUG - Comment edited successfully:', result);
 
-        // Refresh comments
+        // Refresh comments and activities
         await fetchComments();
+        await fetchActivities();
       } else {
         const errorData = await response.json();
         console.error('Failed to edit comment:', errorData);
@@ -716,8 +790,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       if (response.ok) {
         console.log('DEBUG - Comment deleted successfully');
 
-        // Refresh comments
+        // Refresh comments and activities
         await fetchComments();
+        await fetchActivities();
       } else {
         const errorData = await response.json();
         console.error('Failed to delete comment:', errorData);
@@ -942,6 +1017,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Update local state after successful API call
       setTask({ ...task, status: newStatus });
 
+      // Refresh activities to show the status change
+      fetchActivities();
+
       // Trigger color update events
       const statusEvent = new CustomEvent('taskStatusUpdated', {
         detail: { 
@@ -996,6 +1074,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
     setTask({ ...task, subtasks: updatedSubtasks });
     setShowCreateSubtaskDrawer(false);
+    
+    // Refresh activities to show subtask creation
+    fetchActivities();
   };
 
   const handleMarkDone = () => {
@@ -1343,72 +1424,124 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
             <div className="activity-header">
               <h3>Activity Feed</h3>
               <p>Track all task activities and changes</p>
-              <select className="activity-filter">
-                <option>All Activities</option>
-                <option>Status Changes</option>
-                <option>Comments</option>
-                <option>Assignments</option>
-              </select>
+              <div className="activity-controls">
+                <select 
+                  className="activity-filter"
+                  value={activityFilter}
+                  onChange={(e) => setActivityFilter(e.target.value)}
+                >
+                  <option value="all">All Activities</option>
+                  <option value="task">Task Changes</option>
+                  <option value="subtask">Subtask Changes</option>
+                  <option value="comment">Comments</option>
+                  <option value="approval">Approvals</option>
+                  <option value="file">File Operations</option>
+                  <option value="user">User Actions</option>
+                </select>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={fetchActivities}
+                  disabled={activitiesLoading}
+                >
+                  {activitiesLoading ? <Loader className="w-4 h-4 animate-spin" /> : 'Refresh'}
+                </button>
+              </div>
             </div>
 
             <div className="activity-list">
-              <div className="activity-date">MONDAY, JANUARY 15, 2024</div>
-
-              <div className="activity-item">
-                <div className="activity-avatar green">✓</div>
-                <div className="activity-content">
-                  <strong>John Smith created this task.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+              {activitiesLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Loading activities...</span>
                 </div>
-              </div>
+              )}
 
-              <div className="activity-item">
-                <div className="activity-avatar purple">📝</div>
-                <div className="activity-content">
-                  <strong>Due Date changed from May 1, 2024 to May 7, 2024.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+              {activitiesError && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-red-600">{activitiesError}</p>
+                    <button 
+                      className="btn btn-primary btn-sm mt-2"
+                      onClick={fetchActivities}
+                    >
+                      Try Again
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="activity-item">
-                <div className="activity-avatar red">📝</div>
-                <div className="activity-content">
-                  <strong>Title changed from "Database Setup" to "Database Migration".</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
+              {!activitiesLoading && !activitiesError && activities.length === 0 && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">No activities yet</p>
+                    <p className="text-sm text-gray-500">Activity will appear here as actions are performed on this task</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="activity-item">
-                <div className="activity-avatar yellow">📋</div>
-                <div className="activity-content">
-                  <strong>Subtask 'Design Mockup' added by Jane Smith.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
-                </div>
-              </div>
+              {!activitiesLoading && !activitiesError && activities.length > 0 && (
+                <>
+                  {/* Group activities by date */}
+                  {(() => {
+                    const filteredActivities = activityFilter === 'all' 
+                      ? activities 
+                      : activities.filter(activity => activity.category === activityFilter);
 
-              <div className="activity-item">
-                <div className="activity-avatar blue">📊</div>
-                <div className="activity-content">
-                  <strong>Status updated to 'In Progress'.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
-                </div>
-              </div>
+                    const groupedActivities = filteredActivities.reduce((groups, activity) => {
+                      const date = new Date(activity.timestamp).toDateString();
+                      if (!groups[date]) {
+                        groups[date] = [];
+                      }
+                      groups[date].push(activity);
+                      return groups;
+                    }, {});
 
-              <div className="activity-item">
-                <div className="activity-avatar purple">⚡</div>
-                <div className="activity-content">
-                  <strong>Priority changed to 'High'.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
-                </div>
-              </div>
-
-              <div className="activity-item">
-                <div className="activity-avatar gray">🔔</div>
-                <div className="activity-content">
-                  <strong>Task assigned to Sarah Wilson by Admin User.</strong>
-                  <div className="activity-time">Jan 15, 2024 ⏰</div>
-                </div>
-              </div>
+                    return Object.entries(groupedActivities)
+                      .sort(([a], [b]) => new Date(b) - new Date(a))
+                      .map(([date, dayActivities]) => (
+                        <div key={date}>
+                          <div className="activity-date">
+                            {new Date(date).toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            }).toUpperCase()}
+                          </div>
+                          
+                          {dayActivities
+                            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                            .map((activity) => (
+                              <div key={activity.id} className="activity-item">
+                                <div className={`activity-avatar ${activity.category}`}>
+                                  {activity.icon}
+                                </div>
+                                <div className="activity-content">
+                                  <strong>{activity.description}</strong>
+                                  {activity.user && (
+                                    <div className="activity-user">
+                                      by {activity.user.name || activity.user.email}
+                                    </div>
+                                  )}
+                                  <div className="activity-time">
+                                    {new Date(activity.timestamp).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })} ⏰
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ));
+                  })()}
+                </>
+              )}
             </div>
           </div>
         )}

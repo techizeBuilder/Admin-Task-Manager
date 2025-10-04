@@ -31,7 +31,10 @@ import {
   unsnoozeTask,
   markTaskAsRisk,
   unmarkTaskAsRisk,
-  quickMarkAsDone
+  quickMarkAsDone,
+  getTaskActivities,
+  getOrganizationActivities,
+  getRecentActivities
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -3315,5 +3318,132 @@ router.get("/tasks/filter/:type", authenticateToken, getTasksByType);
  *                   example: "Database connection error"
  */
 router.get("/mytasks", authenticateToken, getMyTasks);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/activities:
+ *   get:
+ *     summary: Get activity feed for a specific task
+ *     description: Retrieves chronological activity feed for a task including all operations performed on the task
+ *     tags:
+ *       - Tasks
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Task activities retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     activities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           type:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               avatar:
+ *                                 type: string
+ *                           metadata:
+ *                             type: object
+ *                             properties:
+ *                               icon:
+ *                                 type: string
+ *                               category:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     taskTitle:
+ *                       type: string
+ *                     taskId:
+ *                       type: string
+ *       404:
+ *         description: Task not found
+ *       403:
+ *         description: Access denied
+ */
+router.get("/tasks/:taskId/activities", authenticateToken, getTaskActivities);
+
+/**
+ * @swagger
+ * /api/activities/organization:
+ *   get:
+ *     summary: Get organization-wide activity feed
+ *     description: Retrieves recent activities across the organization
+ *     tags:
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Organization activities retrieved successfully
+ *       403:
+ *         description: Organization access required
+ */
+router.get("/activities/organization", authenticateToken, getOrganizationActivities);
+
+/**
+ * @swagger
+ * /api/activities/recent:
+ *   get:
+ *     summary: Get recent activities
+ *     description: Retrieves recent activities across the system
+ *     tags:
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Recent activities retrieved successfully
+ */
+router.get("/activities/recent", authenticateToken, getRecentActivities);
 
 export default router;

@@ -2000,6 +2000,10 @@ export const getTaskById = async (req, res) => {
       task.approvalDetails = approvals;
     }
 
+    // Get recent activities for this task
+    const activities = await storage.getActivitiesForTask(id, 20);
+    task.activities = activities;
+
     console.log('DEBUG - Final task response has subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
 
     res.json({
@@ -3082,6 +3086,111 @@ export const quickMarkAsDone = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to mark task as done",
+      error: error.message
+    });
+  }
+};
+
+// Activity Feed Endpoints
+export const getTaskActivities = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { limit = 20 } = req.query;
+    const user = req.user;
+
+    // Check if user has access to this task
+    const task = await storage.getTaskById(taskId);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Check permissions (similar to getTaskById)
+    if (task.organization && user.organizationId) {
+      const taskOrgId = getTaskOrganizationId(task.organization);
+      const userOrgId = user.organizationId?.toString() || user.organizationId;
+
+      if (taskOrgId !== userOrgId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    }
+
+    const activities = await storage.getActivitiesForTask(taskId, parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: {
+        activities,
+        taskTitle: task.title,
+        taskId: taskId
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching task activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch task activities',
+      error: error.message
+    });
+  }
+};
+
+export const getOrganizationActivities = async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const user = req.user;
+
+    if (!user.organizationId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Organization access required'
+      });
+    }
+
+    const activities = await storage.getActivitiesForOrganization(user.organizationId, parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: {
+        activities,
+        organizationId: user.organizationId
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching organization activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch organization activities',
+      error: error.message
+    });
+  }
+};
+
+export const getRecentActivities = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const activities = await storage.getRecentActivities(parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: {
+        activities
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching recent activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent activities',
       error: error.message
     });
   }
