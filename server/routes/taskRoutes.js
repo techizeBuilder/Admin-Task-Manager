@@ -3446,4 +3446,261 @@ router.get("/activities/organization", authenticateToken, getOrganizationActivit
  */
 router.get("/activities/recent", authenticateToken, getRecentActivities);
 
+// Import file controller
+import {
+  upload as fileUpload,
+  getTaskFiles,
+  uploadFile,
+  downloadFile,
+  deleteFile,
+  getTaskLinks,
+  addLink,
+  deleteLink
+} from "../controller/fileController.js";
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files:
+ *   get:
+ *     summary: Get files for a task
+ *     description: Retrieves all files attached to a specific task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Files retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.get("/tasks/:taskId/files", authenticateToken, getTaskFiles);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files:
+ *   post:
+ *     summary: Upload file to task
+ *     description: Uploads a file and attaches it to a specific task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: File to upload (max 2MB)
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *       400:
+ *         description: Invalid file or no file provided
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.post("/tasks/:taskId/files", authenticateToken, fileUpload.single('file'), uploadFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files/{fileId}/download:
+ *   get:
+ *     summary: Download file from task
+ *     description: Downloads a file attached to a task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File downloaded successfully
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or file not found
+ */
+router.get("/tasks/:taskId/files/:fileId/download", authenticateToken, downloadFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files/{fileId}:
+ *   delete:
+ *     summary: Delete file from task
+ *     description: Soft deletes a file attached to a task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or file not found
+ */
+router.delete("/tasks/:taskId/files/:fileId", authenticateToken, deleteFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links:
+ *   get:
+ *     summary: Get links for a task
+ *     description: Retrieves all external links attached to a specific task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Links retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.get("/tasks/:taskId/links", authenticateToken, getTaskLinks);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links:
+ *   post:
+ *     summary: Add link to task
+ *     description: Adds an external link to a specific task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - url
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: External URL
+ *               title:
+ *                 type: string
+ *                 description: Link title (optional)
+ *               description:
+ *                 type: string
+ *                 description: Link description (optional)
+ *     responses:
+ *       200:
+ *         description: Link added successfully
+ *       400:
+ *         description: Invalid URL or missing required fields
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.post("/tasks/:taskId/links", authenticateToken, addLink);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links/{linkId}:
+ *   delete:
+ *     summary: Delete link from task
+ *     description: Soft deletes a link attached to a task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: linkId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Link ID
+ *     responses:
+ *       200:
+ *         description: Link deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or link not found
+ */
+router.delete("/tasks/:taskId/links/:linkId", authenticateToken, deleteLink);
+
 export default router;

@@ -1,6 +1,7 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
+import path from "path";
 import swaggerJSDoc from "swagger-jsdoc";
 import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
@@ -91,6 +92,9 @@ app.use((err, req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
 
 // MongoDB connection
 const connectToMongoDB = async () => {

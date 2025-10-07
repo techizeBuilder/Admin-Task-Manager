@@ -199,6 +199,38 @@ const taskSchema = new mongoose.Schema(
         url: { type: String },
       },
     ],
+    // External links
+    links: [
+      {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        url: {
+          type: String,
+          required: true
+        },
+        title: String,
+        description: String,
+        addedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
     customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
 
     // Comments array for subtasks and tasks

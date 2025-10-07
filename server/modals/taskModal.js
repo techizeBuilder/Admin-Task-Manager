@@ -88,13 +88,96 @@ const TaskSchema = mongoose.Schema(
     ],
     attachments: [
       {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        originalName: String,
+        filename: String,
+        path: String,
+        size: Number,
+        mimetype: String,
+        url: String,
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        },
+        version: {
+          type: Number,
+          default: 1
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        // Legacy fields for backward compatibility
         id: String,
         name: String,
-        filename: String,
-        size: Number,
         type: String,
-        url: String,
       },
+    ],
+    // External links
+    links: [
+      {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        url: {
+          type: String,
+          required: true
+        },
+        title: String,
+        description: String,
+        addedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
+    // Deleted attachments for audit trail
+    deletedAttachments: [
+      {
+        _id: mongoose.Schema.Types.ObjectId,
+        originalName: String,
+        filename: String,
+        path: String,
+        size: Number,
+        mimetype: String,
+        url: String,
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        uploadedAt: Date,
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
     ],
     customFields: {
       type: Object,
