@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Plus,
   Search,
@@ -22,6 +23,8 @@ import {
 } from "lucide-react";
 import CreateTask from "../pages/newComponents/CreateTask";
 import ReactECharts from "../components/ReactECharts";
+import { useActiveRole } from "../components/RoleSwitcher";
+import { quickTasksAPI } from "../services/quickTasksAPI";
 
 /**
  * Individual User Dashboard - Personal workspace for individual users
@@ -42,6 +45,11 @@ const IndividualDashboard = ({
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
   const [recurringDone, setRecurringDone] = useState({});
+  
+  // Quick Task creation states
+  const [isCreatingQuickTask, setIsCreatingQuickTask] = useState(false);
+  const [quickTaskError, setQuickTaskError] = useState(null);
+  const [quickTaskSuccess, setQuickTaskSuccess] = useState(null);
 
   // Get current user data
   const { data: user } = useQuery({
@@ -97,11 +105,25 @@ const IndividualDashboard = ({
     retry: false,
   });
 
-  // Determine active role (customize this if your user object uses a different property)
-  const activeRole = user?.activeRole || user?.role || "employee";
+  // Navigation hook
+  const [, navigate] = useLocation();
+  
+  // Get active role from context
+  const { activeRole, setActiveRole } = useActiveRole();
+  
+  // Initialize active role when user data is loaded
+  React.useEffect(() => {
+    if (user?.role?.[0] && !activeRole) {
+      console.log('🔄 Setting initial active role:', user.role[0]);
+      setActiveRole(user.role[0]);
+    }
+  }, [user, activeRole, setActiveRole]);
+
+  // Determine current role to use
+  const currentRole = activeRole || user?.role?.[0] || "employee";
 
   // Extract tasks for the active role from API response
-  const roleTasks = myTasksData?.data?.roles?.[activeRole] || [];
+  const roleTasks = myTasksData?.data?.roles?.[currentRole] || [];
 
   // Use API data or fallback to passed tasks
   const demoTasks = useMemo(() => generateMockTasks(), []);
@@ -260,10 +282,44 @@ const IndividualDashboard = ({
         { id: 3, title: "Sprint retrospective", priority: "low" },
       ];
 
-  const handleQuickTaskSubmit = () => {
-    if (quickTaskInput.trim()) {
-      console.log("Creating quick task:", quickTaskInput);
+  const handleQuickTaskSubmit = async () => {
+    if (!quickTaskInput.trim()) return;
+    
+    setIsCreatingQuickTask(true);
+    setQuickTaskError(null);
+    setQuickTaskSuccess(null);
+    
+    try {
+      console.log("🚀 Creating quick task:", quickTaskInput);
+      
+      const taskData = {
+        title: quickTaskInput.trim(),
+        priority: 'medium', // Default priority
+        status: 'open'
+      };
+      
+      const result = await quickTasksAPI.createQuickTask(taskData);
+      console.log("✅ Quick task created successfully:", result);
+      
+      // Clear input and show success
       setQuickTaskInput("");
+      setQuickTaskSuccess("Quick task created successfully!");
+      
+      // Redirect to Quick Tasks page after 1.5 seconds
+      setTimeout(() => {
+        navigate('/quick-tasks');
+      }, 1500);
+      
+    } catch (error) {
+      console.error("❌ Error creating quick task:", error);
+      setQuickTaskError(error.message || "Failed to create quick task");
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setQuickTaskError(null);
+      }, 5000);
+    } finally {
+      setIsCreatingQuickTask(false);
     }
   };
 
@@ -842,17 +898,43 @@ const IndividualDashboard = ({
                 onChange={(e) => setQuickTaskInput(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 data-testid="input-quick-task"
-                onKeyPress={(e) => e.key === "Enter" && handleQuickTaskSubmit()}
+                onKeyPress={(e) => e.key === "Enter" && !isCreatingQuickTask && handleQuickTaskSubmit()}
+                disabled={isCreatingQuickTask}
               />
               <button
                 onClick={handleQuickTaskSubmit}
-                disabled={!quickTaskInput.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-2 px-4 rounded-md transition-colors"
+                disabled={!quickTaskInput.trim() || isCreatingQuickTask}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 px-4 rounded-md transition-colors"
                 data-testid="button-add-quick-task"
               >
-                <Plus size={16} className="inline mr-2" />
-                Add Quick Task
+                {isCreatingQuickTask ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} className="inline mr-2" />
+                    Add Quick Task
+                  </>
+                )}
               </button>
+              
+              {/* Success Message */}
+              {quickTaskSuccess && (
+                <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-200 rounded-md p-2">
+                  <CheckSquare size={16} />
+                  {quickTaskSuccess}
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {quickTaskError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
+                  <AlertTriangle size={16} />
+                  {quickTaskError}
+                </div>
+              )}
             </div>
           </div>
 

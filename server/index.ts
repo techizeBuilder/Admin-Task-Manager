@@ -8,6 +8,7 @@ import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import taskfeedRoutes from "./routes/taskfeedRoutes.js";
 import quickTaskRoutes from "./routes/quickTaskRoutes.js";
+import milestoneTaskRoutes from "./routes/milestoneTaskRoutes.js";
 
 const app = express();
 
@@ -120,6 +121,10 @@ const connectToMongoDB = async () => {
       // Register Quick Task routes
       app.use("/api/quick-tasks", quickTaskRoutes);
       console.log("Quick Task routes registered");
+
+      // Register Milestone Task routes
+      app.use("/api/milestone-tasks", milestoneTaskRoutes);
+      console.log("Milestone Task routes registered");
     } catch (routeError) {
       console.error("Error registering routes:", routeError);
       throw routeError;

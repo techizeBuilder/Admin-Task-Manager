@@ -22,7 +22,10 @@ const RoleContext = createContext();
 
 // Role Context Provider
 export const RoleProvider = ({ children }) => {
-  const [activeRole, setActiveRole] = useState(null);
+  const [activeRole, setActiveRole] = useState(() => {
+    // Initialize activeRole from localStorage
+    return localStorage.getItem('activeRole') || null;
+  });
 
   return (
     <RoleContext.Provider value={{ activeRole, setActiveRole }}>
@@ -96,7 +99,9 @@ const RoleSwitcher = () => {
   // Auto-set default role if not already set
   React.useEffect(() => {
     if (user?.role?.[0] && !activeRole) {
-      setActiveRole(user.role[0]);
+      const defaultRole = user.role[0];
+      setActiveRole(defaultRole);
+      localStorage.setItem('activeRole', defaultRole);
     }
   }, [user, activeRole, setActiveRole]);
 
@@ -112,16 +117,18 @@ const RoleSwitcher = () => {
 
   const handleRoleSwitch = (newRole) => {
     setActiveRole(newRole);
+    
+    // Store activeRole in localStorage for persistence
+    localStorage.setItem('activeRole', newRole);
 
     // Update user data in cache with new active role
     queryClient.setQueryData(["/api/auth/verify"], (oldData) => ({
       ...oldData,
       activeRole: newRole
     }));
-    // ✅ Redirect user to dashboard using wouter
-    // navigate("/dashboard");
+    
     // Refresh the page to apply new role context
-
+    // window.location.reload();
   };
 
   const CurrentRoleIcon = getRoleIcon(currentRole);

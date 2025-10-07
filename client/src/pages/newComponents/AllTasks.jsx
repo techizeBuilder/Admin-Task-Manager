@@ -23,6 +23,15 @@ import MilestoneCreator from "../MilestoneCreator";
 import CreateTask from "./CreateTask";
 import ApprovalTaskCreator from "./ApprovalTaskCreator";
 import {
+  createMilestone,
+  getMilestones,
+  updateMilestone,
+  deleteMilestone,
+  linkTaskToMilestone,
+  unlinkTaskFromMilestone,
+  markMilestoneAsAchieved
+} from "../../api/milestoneApi";
+import {
   Table,
   TableHeader,
   TableBody,
@@ -378,23 +387,23 @@ export default function AllTasks({
     const handleTaskStatusUpdated = (event) => {
       const { taskId, newStatus } = event.detail;
       console.log('AllTasks: Received status update event:', { taskId, newStatus });
-      
+
       // Update the specific task in local state immediately with color
       setApiTasks(prev => prev.map(task => {
         if (task.id === taskId || task._id === taskId) {
           // Get color from companyStatuses configuration
           const statusObj = companyStatuses.find(s => s.code === newStatus);
           const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
-          
+
           console.log('🎨 Event: Updating task color:', {
             taskId,
             newStatus,
             newColor: newStatusColor,
             statusObj
           });
-          
-          return { 
-            ...task, 
+
+          return {
+            ...task,
             status: newStatus,
             statusColor: newStatusColor,
             colorCode: newStatusColor
@@ -408,22 +417,22 @@ export default function AllTasks({
     const handleTaskColorUpdated = (event) => {
       const { taskId, newStatus } = event.detail;
       console.log('AllTasks: Received color update event:', { taskId, newStatus });
-      
+
       // Force re-render with updated colors
       setApiTasks(prev => prev.map(task => {
         if (task.id === taskId || task._id === taskId) {
           const statusObj = companyStatuses.find(s => s.code === newStatus);
           const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
-          
+
           console.log('🎨 Color: Force updating task color:', {
             taskId,
             newStatus,
             newColor: newStatusColor,
             oldColor: task.statusColor || task.colorCode
           });
-          
-          return { 
-            ...task, 
+
+          return {
+            ...task,
             status: newStatus,
             statusColor: newStatusColor,
             colorCode: newStatusColor
@@ -435,7 +444,7 @@ export default function AllTasks({
 
     window.addEventListener('taskStatusUpdated', handleTaskStatusUpdated);
     window.addEventListener('taskColorUpdated', handleTaskColorUpdated);
-    
+
     return () => {
       window.removeEventListener('taskStatusUpdated', handleTaskStatusUpdated);
       window.removeEventListener('taskColorUpdated', handleTaskColorUpdated);
@@ -832,11 +841,11 @@ export default function AllTasks({
       };
 
       const backendStatus = statusMapping[newStatusCode] || newStatusCode.toLowerCase();
-      
-      console.log('🎯 Status mapping:', { 
-        frontendStatus: newStatusCode, 
+
+      console.log('🎯 Status mapping:', {
+        frontendStatus: newStatusCode,
         backendStatus,
-        allMappings: statusMapping 
+        allMappings: statusMapping
       });
 
       // Prepare the request payload according to API spec
@@ -866,7 +875,7 @@ export default function AllTasks({
           }
         }
       );
-      
+
       console.log('📨 Status update response received:', response);
 
       console.log('Status update response:', response);
@@ -880,7 +889,7 @@ export default function AllTasks({
       // Check for successful response
       if (response.data && response.data.success) {
         console.log('✅ API call successful, updating local state...');
-        
+
         // Update local state optimistically with status color
         setApiTasks(prev => {
           const updated = prev.map(t => {
@@ -888,16 +897,16 @@ export default function AllTasks({
               // Get color from companyStatuses configuration
               const statusObj = companyStatuses.find(s => s.code === newStatusCode);
               const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatusCode);
-              
-              const updatedTask = { 
-                ...t, 
+
+              const updatedTask = {
+                ...t,
                 status: newStatusCode,
                 statusColor: newStatusColor,
                 colorCode: newStatusColor, // Also update colorCode field
                 updatedAt: new Date().toISOString(),
                 ...(backendStatus === "completed" && { completedDate: new Date().toISOString() })
               };
-              
+
               console.log('🎨 Updated task with color:', {
                 taskId: t._id || t.id,
                 oldStatus: t.status,
@@ -907,12 +916,12 @@ export default function AllTasks({
                 colorCode: updatedTask.colorCode,
                 statusObject: statusObj
               });
-              
+
               return updatedTask;
             }
             return t;
           });
-          
+
           console.log('📊 Local state updated, total tasks:', updated.length);
           return updated;
         });
@@ -987,32 +996,62 @@ export default function AllTasks({
   };
 
   // Handle task deletion with confirmation
-  const handleDeleteTask = (taskId, options = {}) => {
-    const task = apiTasks.find((t) => t.id === taskId);
+  const handleDeleteTask = async (taskId, options = {}) => {
+    try {
+      const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
 
-    if (!task) {
-      showToast("Task not found", "error");
-      return;
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      // Check permissions
+      if (!canDeleteTask(task)) {
+        showToast("You do not have permission to delete this task", "error");
+        return;
+      }
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('🗑️ Deleting task with ID:', apiTaskId, 'from task:', { id: task.id, _id: task._id, title: task.title });
+
+      // Call API to delete task
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/tasks/delete/${apiTaskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('🌐 Delete API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Delete API response:', result);
+
+        if (result.success) {
+          // Remove from local state
+          setApiTasks(prev => prev.filter(t => t.id !== taskId && t._id !== taskId));
+
+          // Show success toast
+          showToast(`Task "${task.title}" deleted successfully`, "success");
+
+          // Refetch tasks to ensure sync
+          await refetchTasks();
+        } else {
+          throw new Error(result.message || "Failed to delete task");
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting task:', error);
+      showToast(error.message || "Error deleting task", "error");
     }
-
-    // Check permissions
-    if (!canDeleteTask(task)) {
-      showToast("You do not have permission to delete this task", "error");
-      return;
-    }
-
-    // Show confirmation modal
-    setConfirmModal({
-      isOpen: true,
-      type: 'danger',
-      title: 'Delete Task',
-      message: `Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`,
-      onConfirm: () => executeTaskDeletion(taskId, options),
-      data: { taskId, options }
-    });
-  };
-
-  // Execute task deletion
+  };  // Execute task deletion
   const executeTaskDeletion = async (taskId, options) => {
     try {
       const task = apiTasks.find((t) => t.id === taskId);
@@ -1419,14 +1458,21 @@ export default function AllTasks({
 
   // Handle subtask deletion with confirmation
   const handleDeleteSubtask = (parentTaskId, subtaskId) => {
-    const parentTask = apiTasks.find((t) => t.id === parentTaskId);
-    const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId);
+    console.log('🗑️ DELETE SUBTASK BUTTON CLICKED:', { parentTaskId, subtaskId });
+
+    const parentTask = apiTasks.find((t) => t.id === parentTaskId || t._id === parentTaskId);
+    console.log('🔍 Found parent task:', parentTask ? { id: parentTask.id, _id: parentTask._id, title: parentTask.title } : 'NOT FOUND');
+
+    const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId || s._id === subtaskId);
+    console.log('🔍 Found subtask:', subtask ? { id: subtask.id, _id: subtask._id, title: subtask.title } : 'NOT FOUND');
 
     if (!subtask) {
+      console.error('❌ Subtask not found:', { parentTaskId, subtaskId, parentTask: parentTask?.title });
       showToast("Subtask not found", "error");
       return;
     }
 
+    console.log('✅ Showing confirmation modal for subtask deletion');
     setConfirmModal({
       isOpen: true,
       type: 'danger',
@@ -1440,35 +1486,69 @@ export default function AllTasks({
   // Execute subtask deletion
   const executeSubtaskDeletion = async (parentTaskId, subtaskId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://localhost:5000/api/tasks/${parentTaskId}/subtasks/${subtaskId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const parentTask = apiTasks.find((t) => t.id === parentTaskId);
+      const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId);
 
-      if (response.data.success) {
-        // Update local state
-        setApiTasks(prev => prev.map(task =>
-          task.id === parentTaskId
-            ? { ...task, subtasks: task.subtasks?.filter(s => s.id !== subtaskId) }
-            : task
-        ));
-
+      if (!parentTask || !subtask) {
+        showToast("Subtask or parent task not found", "error");
         setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
-        showToast("Subtask deleted successfully", "success");
+        return;
+      }
 
-        // Refetch to ensure sync
-        await refetchTasks();
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiParentTaskId = parentTask._id || parentTask.id;
+      const apiSubtaskId = subtask._id || subtask.id;
+
+      console.log('🗑️ Deleting subtask with IDs:', {
+        parentTaskId: apiParentTaskId,
+        subtaskId: apiSubtaskId,
+        originalParentId: parentTaskId,
+        originalSubtaskId: subtaskId
+      });
+
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/tasks/${apiParentTaskId}/subtasks/${apiSubtaskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('🌐 Subtask delete API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Subtask delete API response:', result);
+
+        if (result.success) {
+          // Update local state - remove subtask from parent task
+          setApiTasks(prev => prev.map(task =>
+            (task.id === parentTaskId || task._id === parentTaskId)
+              ? {
+                ...task,
+                subtasks: task.subtasks?.filter(s =>
+                  s.id !== subtaskId && s._id !== subtaskId
+                ) || []
+              }
+              : task
+          ));
+
+          setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+          showToast("Subtask deleted successfully", "success");
+
+          // Refetch to ensure sync
+          await refetchTasks();
+        } else {
+          throw new Error(result.message || "Failed to delete subtask");
+        }
       } else {
-        throw new Error(response.data.message || "Failed to delete subtask");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error deleting subtask:', error);
-      showToast(error.response?.data?.message || "Failed to delete subtask", "error");
+      console.error('❌ Error deleting subtask:', error);
+      showToast(error.message || "Failed to delete subtask", "error");
       setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
     }
   };
@@ -1553,7 +1633,7 @@ export default function AllTasks({
     // Open appropriate task creation modal based on selected type
     if (selectedTaskType === "approval") {
       setShowApprovalTaskModal(true);
-    } else if (selectedTaskType === "milestone") {
+    } else if (selectedTaskType === "milestone") { 
       setShowMilestoneModal(true);
     } else {
       setShowCreateTaskDrawer(true);
@@ -2032,25 +2112,25 @@ export default function AllTasks({
       'rejected': '#DC2626',
       'review': '#8B5CF6'
     };
-    
+
     return statusColorMap[statusCode] || '#6B7280'; // Default gray
   };
 
   const getTaskColorCode = (task) => {
     console.log("Getting color code for task::::::::::::::::::", task);
-    
+
     // Priority: statusColor from API > status-based color > taskType color > default
     if (task.statusColor) {
       console.log("Using statusColor from API:", task.statusColor);
       return task.statusColor;
     }
-    
+
     if (task.status) {
       const statusColor = getStatusColor(task.status);
       console.log("Using status-based color:", statusColor, "for status:", task.status);
       return statusColor;
     }
-    
+
     // Fallback to task type color
     const taskInfo = getTaskTypeInfo(task.taskType);
     const fallbackColor = task.colorCode || taskInfo.defaultColor || "#6B7280";
@@ -2106,6 +2186,67 @@ export default function AllTasks({
     } catch (error) {
       console.error('Error after task update:', error);
       showToast("Task updated but failed to refresh", "warning");
+    }
+  };
+
+  // Milestone-specific handlers
+  const handleMilestoneUpdate = async (milestoneId, updateData) => {
+    try {
+      console.log('Updating milestone:', milestoneId, updateData);
+      await updateMilestone(milestoneId, updateData);
+      showToast("Milestone updated successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      showToast("Failed to update milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleMilestoneDelete = async (milestoneId) => {
+    try {
+      console.log('Deleting milestone:', milestoneId);
+      await deleteMilestone(milestoneId);
+      showToast("Milestone deleted successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      showToast("Failed to delete milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleMilestoneAchieved = async (milestoneId) => {
+    try {
+      console.log('Marking milestone as achieved:', milestoneId);
+      await markMilestoneAsAchieved(milestoneId);
+      showToast("Milestone marked as achieved!", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error marking milestone as achieved:', error);
+      showToast("Failed to mark milestone as achieved: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleLinkTaskToMilestone = async (milestoneId, taskData) => {
+    try {
+      console.log('Linking task to milestone:', milestoneId, taskData);
+      await linkTaskToMilestone(milestoneId, taskData);
+      showToast("Task linked to milestone successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error linking task to milestone:', error);
+      showToast("Failed to link task to milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleUnlinkTaskFromMilestone = async (milestoneId, taskId) => {
+    try {
+      console.log('Unlinking task from milestone:', milestoneId, taskId);
+      await unlinkTaskFromMilestone(milestoneId, taskId);
+      showToast("Task unlinked from milestone successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error unlinking task from milestone:', error);
+      showToast("Failed to unlink task from milestone: " + (error.response?.data?.message || error.message), "error");
     }
   };
 
@@ -2391,9 +2532,9 @@ export default function AllTasks({
         {/* Export Options */}
         <div className="flex justify-end gap-2">
           <button className=" btn-md flex ">
-            <img 
-              src="/src/assets/images/csv-export (2).png" 
-              alt="CSV" 
+            <img
+              src="/src/assets/images/csv-export (2).png"
+              alt="CSV"
               className="min-w-9 w-9 h-10"
               onError={(e) => {
                 // Fallback to text if image not found
@@ -2403,9 +2544,9 @@ export default function AllTasks({
             {/* <span>Export as CSV</span> */}
           </button>
           <button className=" btn-md flex ">
-            <img 
-              src="/src/assets/images/export-excel.png" 
-              alt="Excel" 
+            <img
+              src="/src/assets/images/export-excel.png"
+              alt="Excel"
               className="min-w-10 w-10 h-10"
               onError={(e) => {
                 // Fallback to text if image not found
@@ -2756,7 +2897,7 @@ export default function AllTasks({
                                         ✅
                                       </span>
                                     )}
-                                    {task.type === "milestone" && (
+                                    {task.taskType === "milestone" && (
                                       <span
                                         className="text-purple-600 cursor-help"
                                         title="Milestone – project checkpoint"
@@ -2831,7 +2972,7 @@ export default function AllTasks({
                               // Only require confirmation for final statuses
                               const statusObj = companyStatuses.find(s => s.code === newStatus);
                               const requiresConfirmation = statusObj?.isFinal || false;
-                              
+
                               console.log('🎯 TaskStatusDropdown - Status change requested:', {
                                 taskId: task.id,
                                 currentStatus: task.status,
@@ -2839,7 +2980,7 @@ export default function AllTasks({
                                 isFinal: statusObj?.isFinal,
                                 requiresConfirmation
                               });
-                              
+
                               handleStatusChange(task.id, newStatus, requiresConfirmation);
                             }}
                             canEdit={canEditTaskStatus(task)}
@@ -2909,12 +3050,12 @@ export default function AllTasks({
                                 // DONE is a final status, so require confirmation
                                 const statusObj = companyStatuses.find(s => s.code === 'DONE');
                                 const requiresConfirmation = statusObj?.isFinal || true;
-                                
+
                                 console.log('🎯 TaskActionsDropdown - Mark as Done clicked:', {
                                   taskId: task.id,
                                   requiresConfirmation
                                 });
-                                
+
                                 handleStatusChange(task.id, "DONE", requiresConfirmation);
                               }}
                               onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
@@ -2936,7 +3077,7 @@ export default function AllTasks({
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center gap-2 pl-8">
                                 <span className="text-blue-500">↳</span>
-                                {editingSubtaskId === subtask.id ? (
+                                {editingSubtaskId === (subtask._id || subtask.id) ? (
                                   <input
                                     type="text"
                                     value={editingSubtaskTitle}
@@ -2944,13 +3085,13 @@ export default function AllTasks({
                                       setEditingSubtaskTitle(e.target.value)
                                     }
                                     onBlur={() =>
-                                      handleSubtaskTitleSave(subtask.id, task.id)
+                                      handleSubtaskTitleSave(subtask._id || subtask.id, task._id || task.id)
                                     }
                                     onKeyDown={(e) =>
                                       handleSubtaskTitleKeyDown(
                                         e,
-                                        subtask.id,
-                                        task.id,
+                                        subtask._id || subtask.id,
+                                        task._id || task.id,
                                       )
                                     }
                                     className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
@@ -2961,7 +3102,7 @@ export default function AllTasks({
                                   <span
                                     className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
                                     onClick={() =>
-                                      handleSubtaskTitleClick(subtask, task.id)
+                                      handleSubtaskTitleClick(subtask, task._id || task.id)
                                     }
                                     title="Click to edit"
                                   >
@@ -3045,7 +3186,7 @@ export default function AllTasks({
                                 <button
                                   className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
                                   onClick={() =>
-                                    handleDeleteSubtask(task.id, subtask.id)
+                                    handleDeleteSubtask(task._id || task.id, subtask._id || subtask.id)
                                   }
                                   title="Delete Sub-task"
                                 >
@@ -3080,57 +3221,55 @@ export default function AllTasks({
 
       {/* Slide-in Drawer */}
       {showCreateTaskDrawer && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0 -top-[16px]" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
           <div
-            className=" absolute inset-0 bg-black/40 "
+            className="absolute inset-0 bg-black/40"
             onClick={() => setShowCreateTaskDrawer(false)}
           ></div>
           <div
-            className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
+            className="absolute right-0 top-0 h-full bg-white flex flex-col shadow-xl"
             style={{
               width: "min(90vw, 900px)",
-              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-              borderLeft: "1px solid rgba(255,255,255,0.2)",
+              maxHeight: "100vh",
             }}
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
           >
-            <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create New Task
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
-              <button
-                onClick={() => setShowCreateTaskDrawer(false)}
-                className="close-btn"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <div className="px-6 py-4 bg-blue-600 text-white">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">
+                  Create New Task
+                  {selectedDateForTask &&
+                    ` for ${new Date(selectedDateForTask).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      },
+                    )}`}
+                </h2>
+                <button
+                  onClick={() => setShowCreateTaskDrawer(false)}
+                  className="text-white hover:text-gray-200 p-1"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="drawer-content">
+            <div className="flex-1 overflow-y-auto">
               <CreateTask
                 onSubmit={handleTaskCreated}
                 onClose={() => setShowCreateTaskDrawer(false)}
@@ -3274,20 +3413,20 @@ export default function AllTasks({
               reason,
               timestamp: new Date().toISOString()
             });
-            
+
             // Find the task and execute status change
-            const task = apiTasks.find(t => 
-              t._id === showStatusConfirmation.taskId || 
+            const task = apiTasks.find(t =>
+              t._id === showStatusConfirmation.taskId ||
               t.id === showStatusConfirmation.taskId
             );
-            
+
             if (task) {
               console.log('🔧 Executing status change after confirmation...');
               executeStatusChange(task, showStatusConfirmation.newStatusCode, reason);
             } else {
               console.error('❌ Task not found for status confirmation:', showStatusConfirmation.taskId);
             }
-            
+
             setShowStatusConfirmation(null);
           }}
           onCancel={() => {
@@ -3322,7 +3461,7 @@ export default function AllTasks({
                   </svg>
                 </button>
               </div>
-              
+
               <CalendarDatePicker
                 selectedDate={selectedDateForTask}
                 onDateSelect={handleCalendarDateSelect}
@@ -3331,6 +3470,27 @@ export default function AllTasks({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <CustomConfirmationModal
+          isOpen={confirmModal.isOpen}
+          type={confirmModal.type}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null })}
+        />
+      )}
+
+      {/* Toast Notifications */}
+      {toast.isVisible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, isVisible: false })}
+        />
       )}
     </div>
   );

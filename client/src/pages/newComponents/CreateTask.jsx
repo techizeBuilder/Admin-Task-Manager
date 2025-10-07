@@ -8,6 +8,7 @@ import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 import { useRole } from "../../features/shared/hooks/useRole";
 import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
+import { useAuth } from "../../features/shared/hooks/useAuth";
 import { hasAccess } from "../../utils/auth";
 import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
 import { useLocation } from "wouter";
@@ -31,6 +32,7 @@ export default function CreateTask({
     canAssignToOthers,
     restrictions,
   } = useAssignmentOptions();
+  const { user } = useAuth();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
   const { activeRole } = useActiveRole();
@@ -62,7 +64,7 @@ export default function CreateTask({
         id: "milestone",
         label: "Milestone",
         description: "Project checkpoint",
-        available: hasAccess(["org_admin"]),
+        available: hasAccess(["manager", "org_admin", "super_admin"]),
         color: "red",
         restrictedMessage: "Only Managers and Admins can create milestones",
       },
@@ -70,7 +72,7 @@ export default function CreateTask({
         id: "approval",
         label: "Approval Task",
         description: "Requires approval workflow",
-        available: hasAccess(["org_admin"]),
+        available: hasAccess(["manager", "org_admin", "super_admin"]),
         color: "green",
         restrictedMessage: "Only Managers and Admins can create approval tasks",
       },
@@ -98,8 +100,10 @@ export default function CreateTask({
         assignedTo = assignedTo._id || assignedTo.value || assignedTo.id || "";
       }
       // If assignedTo is "self", use current user's id if available
-      if (assignedTo === "self" && window?.currentUser?._id) {
-        assignedTo = window.currentUser._id;
+      if (assignedTo === "self" && user?.id) {
+        assignedTo = user.id;
+      } else if (assignedTo === "self" && user?._id) {
+        assignedTo = user._id;
       }
       // If still not valid ObjectId, set to empty
       if (assignedTo && !/^[a-fA-F0-9]{24}$/.test(assignedTo)) {
@@ -123,18 +127,21 @@ export default function CreateTask({
         tags = tags.map(t => (typeof t === "object" ? t.value || t.label || "" : t)).filter(Boolean);
       }
 
-      // Debug: log title and data
       // Map taskName to title for backend compatibility
-      data.title = data.taskName;
+      data.title = data.taskName || data.title;
       delete data.taskName;
       console.log("DEBUG: data.title =", data.title);
       console.log("DEBUG: full data =", data);
       if (!data.title || data.title.trim() === "") {
-        setError("Title is required.");
-        setLoading(false);
+        alert("Title is required.");
         return;
       }
 
+      // Auth token
+      const token = localStorage.getItem("token");
+      let response;
+
+      // Use regular task API for ALL task types including milestone
       const submitData = new FormData();
       submitData.append("title", data.title);
       submitData.append("description", data.description || "");
@@ -153,16 +160,31 @@ export default function CreateTask({
         });
       }
 
-      // Add any extra fields for recurring/milestone/approval if needed
+      // Add milestone-specific fields when taskType is milestone
+      if (selectedTaskType === "milestone") {
+        // Add milestone type
+        if (data.milestoneType) submitData.append("milestoneType", data.milestoneType);
+        
+        // Add linked tasks for milestone
+        if (data.linkedTasks && data.linkedTasks.length > 0) {
+          const linkedTaskIds = data.linkedTasks.map(task => task.value || task.id || task);
+          submitData.append("linkedTaskIds", JSON.stringify(linkedTaskIds));
+        }
+        
+        // Add milestone data object
+        const milestoneData = {
+          type: data.milestoneType || "standalone",
+          linkedTaskIds: data.linkedTasks ? data.linkedTasks.map(task => task.value || task.id || task) : [],
+          deliverables: data.deliverables || [],
+          completionCriteria: data.completionCriteria || [],
+          stakeholders: data.stakeholders || []
+        };
+        submitData.append("milestoneData", JSON.stringify(milestoneData));
+      }
+
+      // Add any extra fields for recurring/approval if needed
       if (selectedTaskType === "recurring" && data.recurrencePattern) {
         submitData.append("recurrencePattern", JSON.stringify(data.recurrencePattern));
-      }
-      if (selectedTaskType === "milestone" && data.milestoneData) {
-        submitData.append("milestoneData", JSON.stringify(data.milestoneData));
-        submitData.append("milestoneType", data.milestoneData.type || "standalone");
-        if (data.milestoneData.linkedTaskIds) {
-          submitData.append("linkedTaskIds", JSON.stringify(data.milestoneData.linkedTaskIds));
-        }
       }
       if (selectedTaskType === "approval" && data.approval) {
         submitData.append("approval", JSON.stringify(data.approval));
@@ -173,11 +195,8 @@ export default function CreateTask({
         submitData.append("createdByRole", activeRole);
       }
 
-      // Auth token
-      const token = localStorage.getItem("token");
-
-      // API call
-      const response = await axios.post("/api/create-task", submitData, {
+      // API call to regular task endpoint for ALL task types
+      response = await axios.post("/api/create-task", submitData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: token ? `Bearer ${token}` : "",
@@ -193,11 +212,15 @@ export default function CreateTask({
       // Optionally close modal
       if (onClose) onClose();
 
+      // Show success message
+      alert("Task created successfully!");
+      
       // Redirect to the tasks page
       setLocation("/tasks");
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task: " + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      alert("Failed to create task: " + errorMessage);
     }
   };
 
@@ -852,7 +875,7 @@ function LegacyCreateTask({
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "approval"
                   ? "bg-emerald-500 text-white"
                   : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
-                  }`}
+                }`}
               >
                 <CheckCircle size={16} className="text-amber-600" />
               </div>

@@ -48,6 +48,7 @@ export const authenticateToken = async (req, res, next) => {
     return res.status(403).json({ error: "Invalid token" });
   }
 };
+
 export const roleAuth = (allowedRoles) => (req, res, next) => {
     const userRole = req.user?.role;
     if (!userRole) {

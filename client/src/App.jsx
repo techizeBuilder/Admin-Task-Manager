@@ -161,8 +161,9 @@ function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
 
   // Check if user is in allowed roles
   const hasAccess = () => {
-    // Get the current active role or default to first role
-    const activeRole = user.activeRole || user.role?.[0];
+    // Get the current active role from localStorage, context, or default to first role
+    const activeRoleFromStorage = localStorage.getItem('activeRole');
+    const activeRole = activeRoleFromStorage || user.activeRole || user.role?.[0];
     const userRoles = user.role || [];
     console.log("activeRole:", activeRole);
     console.log("allowedRoles:", allowedRoles);
@@ -370,7 +371,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={RecurringTaskManager}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
                   />
                 </AdminLayout>
               </Route>
@@ -379,7 +380,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={CreateTask}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
                   />
                 </AdminLayout>
               </Route>
@@ -397,7 +398,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={MilestoneManager}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    allowedRoles={["individual", "manager", "org_admin"]}
                   />
                 </AdminLayout>
               </Route>
@@ -405,7 +406,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={RegularTaskManager}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
                   />
                 </AdminLayout>
               </Route>
