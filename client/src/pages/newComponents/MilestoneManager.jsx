@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
+
 // Helper functions moved outside component
 const getStatusColor = (status) => {
   const colors = {
@@ -69,14 +70,21 @@ export default function MilestoneManager() {
   const [error, setError] = useState(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [viewMode, setViewMode] = useState("grid"); // grid or list
+  const [viewMode, setViewMode] = useState("grid");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+
+  // Edit Modal States
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
 
   // Filter milestones
   const filteredMilestones = milestones.filter(milestone => {
     const statusMatch = statusFilter === "all" || milestone.status === statusFilter;
-    const priorityMatch = priorityFilter === "all" || milestone.priority === priorityFilter;
+    const priorityMatch = priorityFilter === "all" || milestone.priority === priorityMatch;
     return statusMatch && priorityMatch;
   });
 
@@ -93,20 +101,18 @@ export default function MilestoneManager() {
       try {
         setLoading(true);
 
-        const filters = { page: 1, limit: 20 }; // pagination
+        const filters = { page: 1, limit: 20 };
 
         const res = await taskService.getTasksByType("milestone", filters);
-
-        // Backend me data.roles.manager me actual milestones hain
         const managerMilestones = res?.data?.roles?.manager || [];
 
-        // map karke frontend ke liye shape bana sakte hain
         const formattedMilestones = managerMilestones.map((m) => ({
           id: m._id,
           taskName: m.title,
           description: m.description,
           assignedTo: `${m.assignedTo.firstName} ${m.assignedTo.lastName}`,
-          status: m.status || "not_started", // agar status missing ho to default
+          assignedToId: m.assignedTo._id,
+          status: m.status || "not_started",
           priority: m.priority || "medium",
           visibility: m.visibility || "public",
           progress: m.progress || 0,
@@ -118,6 +124,8 @@ export default function MilestoneManager() {
           })) || [],
           collaborators: m.collaborators?.map(c => c.firstName.charAt(0)) || [],
           dueDate: m.dueDate || new Date().toISOString(),
+          labels: m.tags || [],
+          attachments: m.attachments || [],
         }));
 
         setMilestones(formattedMilestones);
@@ -133,23 +141,152 @@ export default function MilestoneManager() {
     fetchMilestones();
   }, []);
 
+  // Fetch team members for assignment dropdown
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        // Replace with your actual API call to get team members
+        const response = await taskService.getTeamMembers?.();
+        if (response?.data) {
+          setTeamMembers(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching team members:", err);
+      }
+    };
+
+    fetchTeamMembers();
+  }, []);
+
   // Delete milestone
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this milestone?")) return;
+    if (!window.confirm("Are you sure you want to delete this milestone? This action can be undone by restoring the task.")) return;
 
     try {
-      await taskService.deleteTask(id);
-      setMilestones((prev) => prev.filter((m) => m._id !== id)); // remove locally
+      const response = await taskService.deleteTask(id);
+      
+      if (response.success) {
+        // Remove milestone from local state
+        setMilestones((prev) => prev.filter((m) => m.id !== id));
+        
+        // Show success message (you can replace with a toast notification)
+        alert("Milestone deleted successfully");
+      } else {
+        throw new Error(response.message || 'Failed to delete milestone');
+      }
     } catch (err) {
       console.error("Error deleting milestone:", err);
-      alert("Failed to delete milestone");
+      alert(`Failed to delete milestone: ${err.message}`);
     }
   };
 
-  // ✅ Placeholder for edit (you can open modal etc.)
+  // Edit milestone functions
   const handleEdit = (milestone) => {
-    console.log("Edit milestone:", milestone);
-    // TODO: Add your modal or edit logic here
+    const dueDate = milestone.dueDate ? new Date(milestone.dueDate).toISOString().split('T')[0] : '';
+    
+    setEditForm({
+      id: milestone.id,
+      taskName: milestone.taskName || '',
+      description: milestone.description || '',
+      assignedTo: milestone.assignedTo || '',
+      assignedToId: milestone.assignedToId || '',
+      priority: milestone.priority || 'medium',
+      dueDate: dueDate,
+      visibility: milestone.visibility || 'public',
+      status: milestone.status || 'not_started',
+      labels: milestone.labels || [],
+      labelInput: '',
+      attachments: milestone.attachments || [],
+      milestoneType: milestone.milestoneType || 'standalone',
+    });
+    setEditModalOpen(true);
+    setEditError(null);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditForm(null);
+    setEditError(null);
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleEditLabelsKeyDown = (e) => {
+    if (e.key === 'Enter' && editForm.labelInput.trim()) {
+      e.preventDefault();
+      const newLabel = editForm.labelInput.trim();
+      if (!editForm.labels.includes(newLabel)) {
+        handleEditFormChange('labels', [...editForm.labels, newLabel]);
+      }
+      handleEditFormChange('labelInput', '');
+    }
+  };
+
+  const handleEditRemoveLabel = (labelToRemove) => {
+    handleEditFormChange('labels', editForm.labels.filter(label => label !== labelToRemove));
+  };
+
+  const handleEditFilesSelected = (files) => {
+    if (files) {
+      handleEditFormChange('attachments', Array.from(files));
+    }
+  };
+
+  const handleEditSave = async () => {
+    try {
+      setEditLoading(true);
+      setEditError(null);
+
+      const updateData = {
+        title: editForm.taskName,
+        description: editForm.description,
+        status: editForm.status,
+        priority: editForm.priority,
+        dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
+        assignedTo: editForm.assignedToId || null,
+        visibility: editForm.visibility,
+        tags: editForm.labels,
+      };
+
+      const response = await taskService.updateTask(editForm.id, updateData);
+
+      if (response.success) {
+        // Update the milestone in the local state
+        setMilestones(prev => 
+          prev.map(milestone => 
+            milestone.id === editForm.id 
+              ? {
+                  ...milestone,
+                  taskName: editForm.taskName,
+                  description: editForm.description,
+                  status: editForm.status,
+                  priority: editForm.priority,
+                  dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : milestone.dueDate,
+                  assignedTo: editForm.assignedToId ? 
+                    teamMembers.find(m => m.id === editForm.assignedToId)?.fullName || editForm.assignedTo 
+                    : 'Self',
+                  assignedToId: editForm.assignedToId,
+                  visibility: editForm.visibility,
+                  labels: editForm.labels,
+                }
+              : milestone
+          )
+        );
+        closeEditModal();
+      } else {
+        setEditError(response.message || 'Failed to update milestone');
+      }
+    } catch (err) {
+      console.error("Error updating milestone:", err);
+      setEditError("Failed to update milestone. Please try again.");
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   if (loading) {
@@ -184,13 +321,11 @@ export default function MilestoneManager() {
               </div>
             </div>
             <Link href="/tasks/create?type=milestone">
-              <button
-
-                className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
-              >
+              <button className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Milestone
-              </button></Link>
+              </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -283,15 +418,13 @@ export default function MilestoneManager() {
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"}`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-yellow-600" : "text-gray-600 hover:text-gray-900"}`}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -326,7 +459,7 @@ export default function MilestoneManager() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32 bg-white">
-                      <DropdownMenuItem onClick={() => handleEdit(milestone.id)}>
+                      <DropdownMenuItem onClick={() => handleEdit(milestone)}>
                         <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(milestone.id)}>
@@ -417,7 +550,10 @@ export default function MilestoneManager() {
 
                 {/* Footer */}
                 <div className="px-4 py-2 border-t border-gray-200 flex justify-between items-center">
-                  <button className="text-xs text-gray-600 hover:text-gray-900 flex items-center space-x-1">
+                  <button 
+                    onClick={() => handleEdit(milestone)}
+                    className="text-xs text-gray-600 hover:text-gray-900 flex items-center space-x-1"
+                  >
                     <Edit3 className="h-3 w-3" /> <span>Edit</span>
                   </button>
                   <button className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700">View Details</button>
@@ -476,7 +612,10 @@ export default function MilestoneManager() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleEdit(milestone)}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
                           <Edit3 className="h-4 w-4 text-gray-500" />
                         </button>
 
@@ -498,10 +637,7 @@ export default function MilestoneManager() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">No milestones found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first milestone.</p>
             <Link href="/tasks/create?type=milestone">
-              <button
-
-                className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
-              >
+              <button className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Milestone
               </button>
@@ -510,7 +646,160 @@ export default function MilestoneManager() {
         )}
       </div>
 
-
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4 relative" style={{ maxHeight: '80vh', overflow: 'hidden' }}>
+            <button
+              className="absolute top-2 right-2 p-2 text-gray-500 hover:text-gray-700"
+              onClick={closeEditModal}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Edit Milestone</h2>
+            {editError && <div className="text-red-600 mb-2 text-sm">{editError}</div>}
+            {editForm && (
+              <form
+                onSubmit={e => { e.preventDefault(); handleEditSave(); }}
+                className="space-y-4 overflow-y-auto"
+                style={{ maxHeight: '60vh', paddingRight: '8px' }}
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-1">Milestone Name</label>
+                  <input
+                    type="text"
+                    value={editForm.taskName}
+                    onChange={e => handleEditFormChange("taskName", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                    maxLength={100}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={e => handleEditFormChange("description", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Assigned To</label>
+                  <select
+                    value={editForm.assignedToId || ''}
+                    onChange={e => {
+                      const selectedUserId = e.target.value;
+                      const selectedUser = teamMembers.find(member => member.id === selectedUserId);
+                      handleEditFormChange("assignedToId", selectedUserId);
+                      handleEditFormChange("assignedTo", selectedUser ? selectedUser.fullName : 'Self');
+                    }}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="">Self</option>
+                    {teamMembers.map(member => (
+                      <option key={member.id} value={member.id}>
+                        {member.fullName || `${member.firstName} ${member.lastName}`.trim()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => handleEditFormChange("status", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <select
+                    value={editForm.priority}
+                    onChange={e => handleEditFormChange("priority", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={editForm.dueDate}
+                    onChange={e => handleEditFormChange("dueDate", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Visibility</label>
+                  <select
+                    value={editForm.visibility}
+                    onChange={e => handleEditFormChange("visibility", e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="private">Private</option>
+                    <option value="public">Public</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Labels</label>
+                  <div className="flex gap-2 mb-1 flex-wrap">
+                    {editForm.labels.map((label, idx) => (
+                      <span key={label + idx} className="bg-gray-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        {label}
+                        <button type="button" className="ml-1 text-red-500" onClick={() => handleEditRemoveLabel(label)}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={editForm.labelInput}
+                    onChange={e => handleEditFormChange("labelInput", e.target.value)}
+                    onKeyDown={handleEditLabelsKeyDown}
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Add label and press Enter"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Attachments</label>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={e => handleEditFilesSelected(e.target.files)}
+                    className="w-full border rounded px-3 py-2"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {editForm.attachments.length} file(s) selected
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-200 rounded"
+                    onClick={closeEditModal}
+                  >Cancel</button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+                    disabled={editLoading}
+                  >{editLoading ? "Saving..." : "Save Changes"}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
