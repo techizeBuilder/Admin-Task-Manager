@@ -61,7 +61,7 @@ export const createTask = async (req, res) => {
       createdBy: user.id,
       createdByRole: createdByRole,
       assignedTo: parsedTaskData.assignedTo || user.id,
-      status: parsedTaskData.status || "todo",
+      status: parsedTaskData.status || "open",
       priority: parsedTaskData.priority || "medium",
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
@@ -229,7 +229,7 @@ export const createSubtask = async (req, res) => {
       createdBy: user.id,
       createdByRole: createdByRole,
       assignedTo: parsedTaskData.assignedTo || user.id,
-      status: parsedTaskData.status || "todo",
+      status: parsedTaskData.status || "open",
       priority: parsedTaskData.priority || "medium",
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
@@ -571,17 +571,28 @@ export const deleteSubtask = async (req, res) => {
 export const addSubtaskComment = async (req, res) => {
   try {
     const { parentTaskId, subtaskId } = req.params;
-    const { comment, mentions } = req.body;
+    const { content, comment, mentions, parentId } = req.body;
     const user = req.user;
 
-    if (!comment || comment.trim() === '') {
+    // Handle both 'content' and 'comment' fields for compatibility
+    const commentContent = content || comment;
+
+    console.log('DEBUG - addSubtaskComment called:', {
+      parentTaskId,
+      subtaskId,
+      userId: user.id,
+      content: commentContent,
+      rawBody: req.body,
+      hasContent: !!content,
+      hasComment: !!comment
+    }); if (!commentContent || commentContent.trim() === '') {
       return res.status(400).json({
         success: false,
-        message: 'Comment text is required'
+        message: 'Comment content is required'
       });
     }
 
-    // Validate parent task exists and user has access
+    // Get parent task to check permissions
     const parentTask = await storage.getTaskById(parentTaskId);
     if (!parentTask) {
       return res.status(404).json({
@@ -590,75 +601,63 @@ export const addSubtaskComment = async (req, res) => {
       });
     }
 
-    // Check parent task permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
+    // Get subtask to validate it exists and belongs to parent
     const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+    if (!subtask) {
       return res.status(404).json({
         success: false,
-        message: 'Subtask not found or does not belong to this parent task'
+        message: 'Subtask not found'
       });
     }
 
-    // Create comment object
+    // Check if user has permission to comment
+    const canComment = checkCommentPermission(user, parentTask);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to comment on this subtask'
+      });
+    }
+
+    // Create comment object for MongoDB
     const newComment = {
-      _id: new Date().getTime().toString() + Math.random().toString(36).substr(2, 9),
-      text: comment.trim(),
-      author: user.id,
-      authorName: `${user.firstName} ${user.lastName}`,
-      authorEmail: user.email,
+      _id: new Date().getTime().toString(),
+      content: commentContent.trim(),
+      author: {
+        _id: user.id,
+        id: user.id,
+        firstName: user.firstName || user.name?.split(' ')[0] || 'Unknown',
+        lastName: user.lastName || user.name?.split(' ')[1] || 'User',
+        email: user.email,
+        role: user.role
+      },
       mentions: mentions || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      parentId: parentId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       isEdited: false
     };
 
-    // Add comment to subtask
-    const updatedSubtask = await storage.updateTask(subtaskId, {
-      $push: { comments: newComment },
-      updatedAt: new Date()
-    }, user.id);
+    console.log('DEBUG - Creating subtask comment with data:', newComment);
 
-    res.status(201).json({
+    // Add comment to subtask
+    if (!subtask.comments) subtask.comments = [];
+    subtask.comments.push(newComment);
+
+    // Update subtask with new comment
+    await storage.updateTask(subtaskId, { comments: subtask.comments }, user.id);
+
+    console.log('DEBUG - Subtask comment added successfully'); res.status(201).json({
       success: true,
-      message: 'Comment added successfully',
-      data: {
-        comment: newComment,
-        subtask: {
-          _id: subtask._id,
-          title: subtask.title
-        },
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
+      message: 'Subtask comment added successfully',
+      data: newComment
     });
 
   } catch (error) {
     console.error('Error adding subtask comment:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to add comment',
+      message: 'Failed to add subtask comment',
       error: error.message
     });
   }
@@ -670,7 +669,9 @@ export const getSubtaskComments = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const user = req.user;
 
-    // Validate parent task exists and user has access
+    console.log('DEBUG - getSubtaskComments called:', { parentTaskId, subtaskId, userId: user.id });
+
+    // Get parent task to check permissions
     const parentTask = await storage.getTaskById(parentTaskId);
     if (!parentTask) {
       return res.status(404).json({
@@ -679,77 +680,60 @@ export const getSubtaskComments = async (req, res) => {
       });
     }
 
-    // Check permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
+    // Get subtask to validate it exists
     const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+    if (!subtask) {
       return res.status(404).json({
         success: false,
-        message: 'Subtask not found or does not belong to this parent task'
+        message: 'Subtask not found'
       });
     }
 
-    // Get comments with pagination
-    const comments = subtask.comments || [];
-    const sortedComments = comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Check if user has permission to view comments
+    const canComment = checkCommentPermission(user, parentTask);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
 
+    // Get comments from MongoDB subtask
+    const comments = subtask.comments || [];
+
+    console.log('DEBUG - Found subtask comments:', comments.length);
+
+    // Apply pagination to comments
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + parseInt(limit);
-    const paginatedComments = sortedComments.slice(startIndex, endIndex);
+    const paginatedComments = comments.slice(startIndex, endIndex);
 
-    const totalComments = comments.length;
-    const totalPages = Math.ceil(totalComments / parseInt(limit));
-    const hasNext = parseInt(page) < totalPages;
-    const hasPrev = parseInt(page) > 1;
-
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'Comments retrieved successfully',
       data: {
+        comments: paginatedComments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: comments.length,
+          totalPages: Math.ceil(comments.length / limit)
+        },
         subtask: {
-          _id: subtask._id,
+          id: subtask._id,
           title: subtask.title
         },
         parentTask: {
-          _id: parentTask._id,
+          id: parentTask._id,
           title: parentTask.title
-        },
-        comments: paginatedComments,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalComments,
-          hasNextPage: hasNext,
-          hasPrevPage: hasPrev,
-          limit: parseInt(limit)
         }
       }
     });
 
   } catch (error) {
-    console.error('Error fetching subtask comments:', error);
+    console.error('Error getting subtask comments:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch comments',
+      message: 'Failed to get subtask comments',
       error: error.message
     });
   }
@@ -930,6 +914,420 @@ export const deleteSubtaskComment = async (req, res) => {
   }
 };
 
+// Task Comment Functions
+export const addTaskComment = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { content, comment, mentions, parentId } = req.body;
+    const user = req.user;
+
+    // Handle both 'content' and 'comment' fields for compatibility
+    const commentContent = content || comment;
+
+    console.log('DEBUG - addTaskComment called:', {
+      taskId,
+      userId: user.id,
+      content: commentContent,
+      rawBody: req.body,
+      hasContent: !!content,
+      hasComment: !!comment
+    });
+
+    if (!commentContent || commentContent.trim() === '') {
+      console.log('DEBUG - Task comment validation failed:', { content, comment, commentContent });
+      return res.status(400).json({
+        success: false,
+        message: 'Comment text is required',
+        debug: { receivedContent: content, receivedComment: comment }
+      });
+    }
+
+    // Get the task to check permissions
+    const task = await storage.getTaskById(taskId);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Check if user has permission to comment on this task
+    const canComment = checkCommentPermission(user, task);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to comment on this task'
+      });
+    }
+
+    // Create comment object for MongoDB
+    const newComment = {
+      _id: new Date().getTime().toString(),
+      content: commentContent.trim(),
+      author: {
+        _id: user.id,
+        id: user.id,
+        firstName: user.firstName || user.name?.split(' ')[0] || 'Unknown',
+        lastName: user.lastName || user.name?.split(' ')[1] || 'User',
+        email: user.email,
+        role: user.role
+      },
+      mentions: mentions || [],
+      parentId: parentId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isEdited: false
+    };
+
+    console.log('DEBUG - Creating task comment with data:', newComment);
+
+    // Add comment to task
+    if (!task.comments) task.comments = [];
+    task.comments.push(newComment);
+
+    // Update task with new comment
+    await storage.updateTask(taskId, { comments: task.comments }, user.id);
+
+    console.log('DEBUG - Task comment added successfully');
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment added successfully',
+      data: newComment
+    });
+
+  } catch (error) {
+    console.error('Error adding task comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add comment',
+      error: error.message
+    });
+  }
+};// Helper function to check comment permissions
+function checkCommentPermission(user, task) {
+  console.log('DEBUG - checkCommentPermission:', {
+    userRole: user.role,
+    userId: user.id,
+    taskId: task._id,
+    taskAssignedTo: task.assignedTo,
+    taskCreatedBy: task.createdBy
+  });
+
+  // Handle user role - it might be an array, use first role or check if user has role
+  const userRole = Array.isArray(user.role) ? user.role[0] : user.role;
+  const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+
+  // Tasksetu Admin (platform level)
+  if (userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin')) {
+    console.log('DEBUG - Permission granted: Tasksetu Admin');
+    return true;
+  }
+
+  // Company Admin (org_admin) - all company tasks
+  if (userRoles.includes('org_admin') || userRoles.includes('company-admin') || userRoles.includes('admin')) {
+    console.log('DEBUG - Permission granted: Company Admin');
+    return true;
+  }
+
+  // Extract user ID for comparison
+  const userId = user.id?.toString() || user._id?.toString();
+
+  // Check if user is task assignee or creator
+  // Handle both string IDs and populated objects
+  const getIdFromField = (field) => {
+    if (!field) return null;
+    if (typeof field === 'string') return field;
+    if (field._id) return field._id.toString();
+    if (field.toString) return field.toString();
+    return null;
+  };
+
+  const taskAssignedToId = getIdFromField(task.assignedTo);
+  const taskCreatedById = getIdFromField(task.createdBy);
+
+  const isTaskAssignee = taskAssignedToId === userId;
+  const isTaskCreator = taskCreatedById === userId;
+
+  // Check if user is tagged as contributor
+  const isTaggedContributor = task.contributors && task.contributors.some(c => {
+    const contributorId = getIdFromField(c);
+    return contributorId === userId;
+  });
+
+  // Check if user is tagged as collaborator
+  const isCollaboratorInTask = task.collaborators && task.collaborators.some(c => {
+    const collaboratorId = getIdFromField(c);
+    return collaboratorId === userId;
+  });
+
+  console.log('DEBUG - Permission checks:', {
+    isTaskAssignee,
+    isTaskCreator,
+    isTaggedContributor,
+    isCollaboratorInTask,
+    userId,
+    taskAssignedToId,
+    taskCreatedById,
+    userRole,
+    userRoles
+  });
+
+  // Manager - own tasks + subordinates' tasks
+  if (userRoles.includes('manager')) {
+    // Own task
+    if (isTaskAssignee || isTaskCreator) {
+      console.log('DEBUG - Permission granted: Manager own task');
+      return true;
+    }
+
+    // Subordinate's task (task assigned to employee under this manager)
+    if (task.assignedToRole === 'employee' || task.createdByRole === 'employee') {
+      console.log('DEBUG - Permission granted: Manager subordinate task');
+      return true;
+    }
+
+    // Tagged as contributor/collaborator
+    if (isTaggedContributor || isCollaboratorInTask) {
+      console.log('DEBUG - Permission granted: Manager tagged as contributor');
+      return true;
+    }
+  }
+
+  // Employee (Normal User) - only own tasks or when tagged
+  if (userRoles.includes('employee') || userRoles.includes('normal-user') || userRoles.includes('user') || !userRole) {
+    // Own task
+    if (isTaskAssignee || isTaskCreator) {
+      console.log('DEBUG - Permission granted: Employee own task');
+      return true;
+    }
+
+    // Tagged as contributor/collaborator
+    if (isTaggedContributor || isCollaboratorInTask) {
+      console.log('DEBUG - Permission granted: Employee tagged as contributor');
+      return true;
+    }
+  }
+
+  console.log('DEBUG - Permission denied: No matching conditions');
+  // Default - no permission
+  return false;
+}
+
+export const getTaskComments = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const user = req.user;
+
+    console.log('DEBUG - getTaskComments called:', { taskId, userId: user.id });
+
+    // Get task to check permissions
+    const task = await storage.getTaskById(taskId);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Check if user has permission to view comments
+    const canComment = checkCommentPermission(user, task);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Get comments from MongoDB task
+    const comments = task.comments || [];
+
+    console.log('DEBUG - Found task comments:', comments.length);
+
+    // Apply pagination to comments
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedComments = comments.slice(startIndex, endIndex);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        comments: paginatedComments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: comments.length,
+          totalPages: Math.ceil(comments.length / limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting task comments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get comments',
+      error: error.message
+    });
+  }
+};
+
+export const updateTaskComment = async (req, res) => {
+  try {
+    const { taskId, commentId } = req.params;
+    const { content, mentions } = req.body;
+    const user = req.user;
+
+    console.log('DEBUG - updateTaskComment called:', { taskId, commentId, userId: user.id });
+
+    // Get the task
+    const task = await storage.getTaskById(taskId, user.id);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found or access denied'
+      });
+    }
+
+    // Find the comment
+    const comment = task.comments?.find(c => c._id === commentId || c.id === commentId);
+    if (!comment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    // Check permissions - user can edit own comments or moderators can edit any
+    const canEdit = checkCommentEditPermission(user, task, comment);
+    if (!canEdit) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to edit this comment'
+      });
+    }
+
+    // Update comment
+    comment.content = content;
+    comment.mentions = mentions || comment.mentions;
+    comment.updatedAt = new Date().toISOString();
+    comment.isEdited = true;
+
+    // Update task with modified comment
+    await storage.updateTask(taskId, { comments: task.comments }, user.id);
+
+    console.log('DEBUG - Comment updated successfully');
+
+    res.status(200).json({
+      success: true,
+      message: 'Comment updated successfully',
+      data: comment
+    });
+
+  } catch (error) {
+    console.error('Error updating task comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update comment',
+      error: error.message
+    });
+  }
+};
+
+export const deleteTaskComment = async (req, res) => {
+  try {
+    const { taskId, commentId } = req.params;
+    const user = req.user;
+
+    console.log('DEBUG - deleteTaskComment called:', { taskId, commentId, userId: user.id });
+
+    // Get the task
+    const task = await storage.getTaskById(taskId, user.id);
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found or access denied'
+      });
+    }
+
+    // Find the comment
+    const commentIndex = task.comments?.findIndex(c => c._id === commentId || c.id === commentId);
+    if (commentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    const comment = task.comments[commentIndex];
+
+    // Check permissions - user can delete own comments or moderators can delete any
+    const canDelete = checkCommentDeletePermission(user, task, comment);
+    if (!canDelete) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to delete this comment'
+      });
+    }
+
+    // Remove comment
+    task.comments.splice(commentIndex, 1);
+
+    // Update task without the deleted comment
+    await storage.updateTask(taskId, { comments: task.comments }, user.id);
+
+    console.log('DEBUG - Comment deleted successfully');
+
+    res.status(200).json({
+      success: true,
+      message: 'Comment deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting task comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete comment',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to check comment edit permissions
+function checkCommentEditPermission(user, task, comment) {
+  // Tasksetu Admin or Company Admin can edit any comment
+  if (user.role === 'tasksetu-admin' || user.role === 'super-admin' ||
+    user.role === 'company-admin' || user.role === 'admin') {
+    return true;
+  }
+
+  // User can edit their own comments if they have comment access to the task
+  const isOwnComment = comment.author?.id === user.id || comment.author?._id === user._id;
+  if (isOwnComment && checkCommentPermission(user, task)) {
+    return true;
+  }
+
+  return false;
+}
+
+// Helper function to check comment delete permissions
+function checkCommentDeletePermission(user, task, comment) {
+  // Tasksetu Admin or Company Admin can delete any comment (moderation)
+  if (user.role === 'tasksetu-admin' || user.role === 'super-admin' ||
+    user.role === 'company-admin' || user.role === 'admin') {
+    return true;
+  }
+
+  // User can delete their own comments if they have comment access to the task
+  const isOwnComment = comment.author?.id === user.id || comment.author?._id === user._id;
+  if (isOwnComment && checkCommentPermission(user, task)) {
+    return true;
+  }
+
+  return false;
+}
+
 export const getTasks = async (req, res) => {
   try {
     const user = req.user;
@@ -994,7 +1392,9 @@ export const getTaskById = async (req, res) => {
     const { id } = req.params;
     const user = req.user;
 
+    console.log('DEBUG - getTaskById controller called with id:', id);
     const task = await storage.getTaskById(id);
+    console.log('DEBUG - Controller received task with subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
 
     if (!task) {
       return res.status(404).json({
@@ -1036,6 +1436,8 @@ export const getTaskById = async (req, res) => {
       const approvals = await storage.getTaskApprovals(id);
       task.approvalDetails = approvals;
     }
+
+    console.log('DEBUG - Final task response has subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
 
     res.json({
       success: true,
@@ -1663,6 +2065,15 @@ export const snoozeTask = async (req, res) => {
     const { snoozeUntil, reason } = req.body;
     const user = req.user;
 
+    console.log('🔍 SNOOZE API DEBUG:', {
+      taskId,
+      snoozeUntil,
+      reason,
+      userId: user?.id,
+      userIdType: typeof user?.id,
+      userName: user?.firstName + ' ' + user?.lastName
+    });
+
     // Validate required fields
     if (!snoozeUntil) {
       return res.status(400).json({
@@ -1671,7 +2082,7 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1679,9 +2090,16 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
+    console.log('🔍 TASK FOUND:', {
+      taskId: task._id,
+      assignedTo: task.assignedTo,
+      assignedToType: typeof task.assignedTo,
+      collaboratorIds: task.collaboratorIds
+    });
+
     // Check permissions (assignee, collaborator, or org admin)
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1697,9 +2115,9 @@ export const snoozeTask = async (req, res) => {
       isSnooze: true,
       snoozeUntil: new Date(snoozeUntil),
       snoozeReason: reason || null,
-      snoozedBy: user._id,
+      snoozedBy: user.id,
       snoozedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1734,8 +2152,8 @@ export const unsnoozeTask = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1753,7 +2171,7 @@ export const unsnoozeTask = async (req, res) => {
       snoozeReason: null,
       snoozedBy: null,
       snoozedAt: null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1780,7 +2198,7 @@ export const markTaskAsRisk = async (req, res) => {
     const { riskReason, riskLevel } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1789,8 +2207,8 @@ export const markTaskAsRisk = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1806,9 +2224,9 @@ export const markTaskAsRisk = async (req, res) => {
       isRisk: true,
       riskLevel: riskLevel || 'medium', // low, medium, high
       riskReason: riskReason || null,
-      riskMarkedBy: user._id,
+      riskMarkedBy: user.id,
       riskMarkedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1843,8 +2261,8 @@ export const unmarkTaskAsRisk = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1862,7 +2280,7 @@ export const unmarkTaskAsRisk = async (req, res) => {
       riskReason: null,
       riskMarkedBy: null,
       riskMarkedAt: null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -1889,7 +2307,7 @@ export const quickMarkAsDone = async (req, res) => {
     const { completionNotes } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -1898,8 +2316,8 @@ export const quickMarkAsDone = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -1927,9 +2345,9 @@ export const quickMarkAsDone = async (req, res) => {
     const updatedTask = await storage.updateTask(taskId, {
       status: 'completed',
       completedDate: new Date(),
-      completedBy: user._id,
+      completedBy: user.id,
       completionNotes: completionNotes || null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
