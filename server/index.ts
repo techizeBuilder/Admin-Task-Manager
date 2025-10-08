@@ -1,11 +1,8 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
-<<<<<<< HEAD
-=======
 import swaggerJSDoc from "swagger-jsdoc";
 import * as swaggerUi from "swagger-ui-express";
->>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
@@ -13,8 +10,6 @@ import taskfeedRoutes from "./routes/taskfeedRoutes.js";
 
 const app = express();
 
-<<<<<<< HEAD
-=======
 // Swagger configuration
 const swaggerOptions = {
   swaggerDefinition: {
@@ -81,7 +76,6 @@ app.get("/api-docs.json", (req, res) => {
   res.send(swaggerSpec);
 });
 
->>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 // Add error handling for uncaught exceptions
 process.on("uncaughtException", (error) => {
   console.error("Uncaught Exception:", error);
