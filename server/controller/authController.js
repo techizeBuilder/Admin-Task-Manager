@@ -307,12 +307,12 @@ export const authController = {
       if (orgId) {
         try {
           organization = await storage.getOrganization(orgId);
-        } catch (_) {}
+        } catch (_) { }
         if (!organization) {
           try {
             const { Organization } = await import("../modals/organizationModal.js");
             organization = await Organization.findById(orgId).lean();
-          } catch (_) {}
+          } catch (_) { }
         }
       }
       res.json({
@@ -353,12 +353,12 @@ export const authController = {
       if (orgId) {
         try {
           organization = await storage.getOrganization(orgId);
-        } catch (_) {}
+        } catch (_) { }
         if (!organization) {
           try {
             const { Organization } = await import("../modals/organizationModal.js");
             organization = await Organization.findById(orgId).lean();
-          } catch (_) {}
+          } catch (_) { }
         }
       }
       res.json({
@@ -366,8 +366,8 @@ export const authController = {
         roles: Array.isArray(pendingUser.roles)
           ? pendingUser.roles
           : pendingUser.role
-          ? [pendingUser.role]
-          : [],
+            ? [pendingUser.role]
+            : [],
         organization: {
           id: orgId || null,
           name: organization?.name || "Unknown Organization",
@@ -417,7 +417,7 @@ export const authController = {
     }
   },
 
-// ...existing code...
+  // ...existing code...
 
   async registerIndividual(req, res) {
     try {
@@ -605,5 +605,42 @@ export const authController = {
     }
   },
 
-// ...existing code...
+  async getCurrentUser(req, res) {
+    try {
+      // The user data is already attached to req by the authenticateToken middleware
+      const user = req.user;
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      // Return user data
+      res.json({
+        success: true,
+        data: {
+          _id: user._id,
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role,
+          organizationId: user.organizationId,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }
+      });
+    } catch (error) {
+      console.error("Get current user error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to get current user"
+      });
+    }
+  },
+
+  // ...existing code...
 };

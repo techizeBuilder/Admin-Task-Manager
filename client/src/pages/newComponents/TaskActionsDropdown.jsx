@@ -150,6 +150,7 @@ export default function TaskActionsDropdown({
             <CheckCircle size={16} className="text-gray-600" />
             <span className="font-medium">Mark as Done</span>
 
+<<<<<<< HEAD
 
           {/* Quick Mark Done - No confirmation needed */}
           <button
@@ -165,6 +166,8 @@ export default function TaskActionsDropdown({
             <CheckCircle size={16} className="text-green-600" />
             <span className="font-medium">Mark as Done</span>
           </button>
+=======
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 
           {/* Quick Mark Done - No confirmation needed */}
           <button
@@ -178,7 +181,7 @@ export default function TaskActionsDropdown({
             }}
           >
             <CheckCircle size={16} className="text-green-600" />
-            <span className="font-medium">Quick Done ✓</span>
+            <span className="font-medium">Mark as Done</span>
           </button>
 
           <div className="border-t border-gray-200 my-1"></div>

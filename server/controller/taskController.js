@@ -62,10 +62,14 @@ export const createTask = async (req, res) => {
       createdByRole: createdByRole,
       assignedTo: parsedTaskData.assignedTo || user.id,
 <<<<<<< HEAD
+<<<<<<< HEAD
       status: parsedTaskData.status || "todo",
 =======
       status: parsedTaskData.status || "open",
 >>>>>>> 639bd5b (Restore stashed changes)
+=======
+      status: parsedTaskData.status || "open",
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
       priority: parsedTaskData.priority || "medium",
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
@@ -152,788 +156,6 @@ export const createTask = async (req, res) => {
       error: error.message
     });
 <<<<<<< HEAD
-  }
-};
-
-export const createSubtask = async (req, res) => {
-  try {
-    const user = req.user;
-    const { parentTaskId } = req.params;
-    const taskData = req.body;
-
-    // Validate parent task exists
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Check if user has permission to create subtask for this parent task
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      // For individual users without organization, check if they created the parent task
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Parse JSON fields
-    const parsedTaskData = {
-      ...taskData,
-      tags: taskData.tags ? JSON.parse(taskData.tags) : [],
-      collaboratorIds: taskData.collaboratorIds ? JSON.parse(taskData.collaboratorIds) : [],
-      dependsOnTaskIds: taskData.dependsOnTaskIds
-        ? (typeof taskData.dependsOnTaskIds === "string"
-          ? JSON.parse(taskData.dependsOnTaskIds)
-          : taskData.dependsOnTaskIds)
-        : []
-    };
-
-    // Handle attachments
-    let attachments = [];
-    if (req.files && req.files.length > 0) {
-      attachments = req.files.map((file) => ({
-        id: Date.now() + Math.random(),
-        name: file.originalname,
-        filename: file.filename,
-        size: file.size,
-        type: file.mimetype,
-        url: `/uploads/task-attachments/${file.filename}`
-      }));
-    }
-
-    // Determine the createdByRole
-    let createdByRole = parsedTaskData.createdByRole;
-    if (!createdByRole) {
-      if (Array.isArray(user.role)) {
-        const rolePriority = ["super_admin", "org_admin", "manager", "employee", "individual"];
-        createdByRole = user.role.find(role => rolePriority.includes(role)) || "employee";
-      } else {
-        createdByRole = user.role || "employee";
-      }
-    }
-
-    // Create subtask with parent task reference
-    const subtaskData = {
-      title: parsedTaskData.title,
-      description: parsedTaskData.description || "",
-      createdBy: user.id,
-      createdByRole: createdByRole,
-      assignedTo: parsedTaskData.assignedTo || user.id,
-      status: parsedTaskData.status || "todo",
-      priority: parsedTaskData.priority || "medium",
-      dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
-      startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
-      taskType: "subtask",
-      mainTaskType: "subtask",
-      taskTypeAdvanced: "simple",
-      parentTaskId: parentTaskId, // Reference to parent task
-      tags: parsedTaskData.tags,
-      category: parsedTaskData.category,
-      visibility: parsedTaskData.visibility || "private",
-      collaborators: parsedTaskData.collaboratorIds,
-      dependencies: parsedTaskData.dependsOnTaskIds && parsedTaskData.dependsOnTaskIds.length > 0
-        ? parsedTaskData.dependsOnTaskIds : [],
-      attachments: attachments,
-      customFields: {},
-      referenceProcess: parsedTaskData.referenceProcess || null,
-      customForm: parsedTaskData.customForm || null,
-      isSubtask: true,
-      isArchived: false,
-      isDeleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    // Inherit organization from parent task
-    if (parentTask.organization) {
-      subtaskData.organization = parentTask.organization;
-    }
-
-    // Save subtask
-    const createdSubtask = await storage.createTask(subtaskData);
-
-    res.status(201).json({
-      success: true,
-      message: "Subtask created successfully",
-      subtask: createdSubtask,
-      parentTask: {
-        _id: parentTask._id,
-        title: parentTask.title
-      }
-    });
-  } catch (error) {
-    console.error("Error creating subtask:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create subtask",
-      error: error.message
-    });
-  }
-};
-
-export const getSubtasks = async (req, res) => {
-  try {
-    const user = req.user;
-    const { parentTaskId } = req.params;
-    const {
-      status,
-      priority,
-      page = 1,
-      limit = 50,
-      search
-    } = req.query;
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Check permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Build filter for subtasks
-    const filter = {
-      parentTaskId: parentTaskId,
-      isSubtask: true,
-      isDeleted: { $ne: true }
-    };
-
-    // Apply additional filters
-    if (status) filter.status = status;
-    if (priority) filter.priority = priority;
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Get subtasks
-    const subtasks = await storage.getTasksByFilter(filter, {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { createdAt: -1 }
-    });
-
-    // Count total subtasks for pagination
-    const totalSubtasks = await storage.countTasksByFilter(filter);
-    const totalPages = Math.ceil(totalSubtasks / parseInt(limit));
-    const hasNext = parseInt(page) < totalPages;
-    const hasPrev = parseInt(page) > 1;
-
-    res.json({
-      success: true,
-      message: 'Subtasks retrieved successfully',
-      data: {
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title,
-          status: parentTask.status
-        },
-        subtasks: subtasks,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalSubtasks,
-          hasNextPage: hasNext,
-          hasPrevPage: hasPrev,
-          limit: parseInt(limit)
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching subtasks:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch subtasks',
-      error: error.message
-    });
-  }
-};
-
-export const updateSubtask = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId } = req.params;
-    const user = req.user;
-    const updates = req.body;
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Check parent task permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    // Prepare update data
-    const updateData = {
-      ...updates,
-      updatedAt: new Date()
-    };
-
-    // Handle date fields
-    if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
-    if (updates.startDate) updateData.startDate = new Date(updates.startDate);
-
-    // Update subtask
-    const updatedSubtask = await storage.updateTask(subtaskId, updateData, user.id);
-
-    res.json({
-      success: true,
-      message: 'Subtask updated successfully',
-      data: {
-        subtask: updatedSubtask,
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error updating subtask:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update subtask',
-      error: error.message
-    });
-  }
-};
-
-export const deleteSubtask = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId } = req.params;
-    const user = req.user;
-
-    console.log('=== DELETE SUBTASK DEBUG ===');
-    console.log('Parent Task ID:', parentTaskId);
-    console.log('Subtask ID to delete:', subtaskId);
-    console.log('User attempting delete:', { id: user.id, organizationId: user.organizationId });
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      console.log('Parent task not found');
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    console.log('Found parent task:', {
-      id: parentTask._id,
-      title: parentTask.title,
-      organization: parentTask.organization
-    });
-
-    // Check parent task permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-      console.log('Organization check:', { taskOrgId, userOrgId, match: taskOrgId === userOrgId });
-
-      if (taskOrgId !== userOrgId) {
-        console.log('Access denied: Organization mismatch');
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      const taskCreatedBy = parentTask.createdBy?.toString();
-      const userId = user.id?.toString();
-      console.log('Individual user check:', { taskCreatedBy, userId, match: taskCreatedBy === userId });
-
-      if (parentTask.createdBy && user.id && taskCreatedBy !== userId) {
-        console.log('Access denied: Not the creator');
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    console.log('Found subtask:', subtask ? {
-      id: subtask._id,
-      title: subtask.title,
-      parentTaskId: subtask.parentTaskId,
-      isSubtask: subtask.isSubtask,
-      isDeleted: subtask.isDeleted
-    } : 'Not found');
-
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      console.log('Subtask validation failed');
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    console.log('Permissions passed, proceeding with soft delete...');
-
-    // Soft delete subtask
-    const updateResult = await storage.updateTask(subtaskId, {
-      isDeleted: true,
-      deletedAt: new Date(),
-      updatedAt: new Date()
-    }, user.id);
-
-    console.log('Subtask soft delete result:', updateResult);
-    console.log('=== DELETE SUBTASK COMPLETE ===');
-
-    res.json({
-      success: true,
-      message: 'Subtask deleted successfully',
-      data: {
-        deletedSubtaskId: subtaskId,
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error deleting subtask:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete subtask',
-      error: error.message
-    });
-  }
-};
-
-// Subtask Comment Functions
-export const addSubtaskComment = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId } = req.params;
-    const { comment, mentions } = req.body;
-    const user = req.user;
-
-    if (!comment || comment.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Comment text is required'
-      });
-    }
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Check parent task permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    // Create comment object
-    const newComment = {
-      _id: new Date().getTime().toString() + Math.random().toString(36).substr(2, 9),
-      text: comment.trim(),
-      author: user.id,
-      authorName: `${user.firstName} ${user.lastName}`,
-      authorEmail: user.email,
-      mentions: mentions || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isEdited: false
-    };
-
-    // Add comment to subtask
-    const updatedSubtask = await storage.updateTask(subtaskId, {
-      $push: { comments: newComment },
-      updatedAt: new Date()
-    }, user.id);
-
-    res.status(201).json({
-      success: true,
-      message: 'Comment added successfully',
-      data: {
-        comment: newComment,
-        subtask: {
-          _id: subtask._id,
-          title: subtask.title
-        },
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error adding subtask comment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add comment',
-      error: error.message
-    });
-  }
-};
-
-export const getSubtaskComments = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-    const user = req.user;
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Check permissions
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
-
-      if (taskOrgId !== userOrgId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
-        });
-      }
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    // Get comments with pagination
-    const comments = subtask.comments || [];
-    const sortedComments = comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + parseInt(limit);
-    const paginatedComments = sortedComments.slice(startIndex, endIndex);
-
-    const totalComments = comments.length;
-    const totalPages = Math.ceil(totalComments / parseInt(limit));
-    const hasNext = parseInt(page) < totalPages;
-    const hasPrev = parseInt(page) > 1;
-
-    res.json({
-      success: true,
-      message: 'Comments retrieved successfully',
-      data: {
-        subtask: {
-          _id: subtask._id,
-          title: subtask.title
-        },
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        },
-        comments: paginatedComments,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalComments,
-          hasNextPage: hasNext,
-          hasPrevPage: hasPrev,
-          limit: parseInt(limit)
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching subtask comments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch comments',
-      error: error.message
-    });
-  }
-};
-
-export const updateSubtaskComment = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId, commentId } = req.params;
-    const { comment } = req.body;
-    const user = req.user;
-
-    if (!comment || comment.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Comment text is required'
-      });
-    }
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    // Find the comment
-    const comments = subtask.comments || [];
-    const commentIndex = comments.findIndex(c => c._id === commentId);
-
-    if (commentIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Comment not found'
-      });
-    }
-
-    const existingComment = comments[commentIndex];
-
-    // Check if user is the author of the comment
-    if (existingComment.author.toString() !== user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only edit your own comments'
-      });
-    }
-
-    // Update the comment
-    comments[commentIndex] = {
-      ...existingComment,
-      text: comment.trim(),
-      updatedAt: new Date(),
-      isEdited: true
-    };
-
-    // Update the subtask with modified comments
-    await storage.updateTask(subtaskId, {
-      comments: comments,
-      updatedAt: new Date()
-    }, user.id);
-
-    res.json({
-      success: true,
-      message: 'Comment updated successfully',
-      data: {
-        comment: comments[commentIndex],
-        subtask: {
-          _id: subtask._id,
-          title: subtask.title
-        },
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error updating subtask comment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update comment',
-      error: error.message
-    });
-  }
-};
-
-export const deleteSubtaskComment = async (req, res) => {
-  try {
-    const { parentTaskId, subtaskId, commentId } = req.params;
-    const user = req.user;
-
-    // Validate parent task exists and user has access
-    const parentTask = await storage.getTaskById(parentTaskId);
-    if (!parentTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent task not found'
-      });
-    }
-
-    // Get and validate subtask
-    const subtask = await storage.getTaskById(subtaskId);
-    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtask not found or does not belong to this parent task'
-      });
-    }
-
-    // Find the comment
-    const comments = subtask.comments || [];
-    const commentIndex = comments.findIndex(c => c._id === commentId);
-
-    if (commentIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Comment not found'
-      });
-    }
-
-    const existingComment = comments[commentIndex];
-
-    // Check if user is the author of the comment or has admin privileges
-    const canDelete = existingComment.author.toString() === user.id.toString() ||
-      user.role === 'org_admin' ||
-      Array.isArray(user.role) && user.role.includes('org_admin');
-
-    if (!canDelete) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only delete your own comments or need admin privileges'
-      });
-    }
-
-    // Remove the comment
-    comments.splice(commentIndex, 1);
-
-    // Update the subtask with modified comments
-    await storage.updateTask(subtaskId, {
-      comments: comments,
-      updatedAt: new Date()
-    }, user.id);
-
-    res.json({
-      success: true,
-      message: 'Comment deleted successfully',
-      data: {
-        deletedCommentId: commentId,
-        subtask: {
-          _id: subtask._id,
-          title: subtask.title
-        },
-        parentTask: {
-          _id: parentTask._id,
-          title: parentTask.title
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error deleting subtask comment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete comment',
-      error: error.message
-    });
-=======
->>>>>>> 639bd5b (Restore stashed changes)
   }
 };
 
@@ -1698,9 +920,778 @@ export const deleteSubtaskComment = async (req, res) => {
       message: 'Failed to delete comment',
       error: error.message
     });
+=======
+>>>>>>> 639bd5b (Restore stashed changes)
   }
 };
 
+<<<<<<< HEAD
+export const createSubtask = async (req, res) => {
+  try {
+    const user = req.user;
+    const { parentTaskId } = req.params;
+    const taskData = req.body;
+
+    // Validate parent task exists
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Check if user has permission to create subtask for this parent task
+    if (parentTask.organization && user.organizationId) {
+      const taskOrgId = getTaskOrganizationId(parentTask.organization);
+      const userOrgId = user.organizationId?.toString() || user.organizationId;
+
+      if (taskOrgId !== userOrgId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    } else if (!parentTask.organization && !user.organizationId) {
+      // For individual users without organization, check if they created the parent task
+      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    }
+
+    // Parse JSON fields
+    const parsedTaskData = {
+      ...taskData,
+      tags: taskData.tags ? JSON.parse(taskData.tags) : [],
+      collaboratorIds: taskData.collaboratorIds ? JSON.parse(taskData.collaboratorIds) : [],
+      dependsOnTaskIds: taskData.dependsOnTaskIds
+        ? (typeof taskData.dependsOnTaskIds === "string"
+          ? JSON.parse(taskData.dependsOnTaskIds)
+          : taskData.dependsOnTaskIds)
+        : []
+    };
+
+    // Handle attachments
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      attachments = req.files.map((file) => ({
+        id: Date.now() + Math.random(),
+        name: file.originalname,
+        filename: file.filename,
+        size: file.size,
+        type: file.mimetype,
+        url: `/uploads/task-attachments/${file.filename}`
+      }));
+    }
+
+    // Determine the createdByRole
+    let createdByRole = parsedTaskData.createdByRole;
+    if (!createdByRole) {
+      if (Array.isArray(user.role)) {
+        const rolePriority = ["super_admin", "org_admin", "manager", "employee", "individual"];
+        createdByRole = user.role.find(role => rolePriority.includes(role)) || "employee";
+      } else {
+        createdByRole = user.role || "employee";
+      }
+    }
+
+    // Create subtask with parent task reference
+    const subtaskData = {
+      title: parsedTaskData.title,
+      description: parsedTaskData.description || "",
+      createdBy: user.id,
+      createdByRole: createdByRole,
+      assignedTo: parsedTaskData.assignedTo || user.id,
+      status: parsedTaskData.status || "open",
+      priority: parsedTaskData.priority || "medium",
+      dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
+      startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
+      taskType: "subtask",
+      mainTaskType: "subtask",
+      taskTypeAdvanced: "simple",
+      parentTaskId: parentTaskId, // Reference to parent task
+      tags: parsedTaskData.tags,
+      category: parsedTaskData.category,
+      visibility: parsedTaskData.visibility || "private",
+      collaborators: parsedTaskData.collaboratorIds,
+      dependencies: parsedTaskData.dependsOnTaskIds && parsedTaskData.dependsOnTaskIds.length > 0
+        ? parsedTaskData.dependsOnTaskIds : [],
+      attachments: attachments,
+      customFields: {},
+      referenceProcess: parsedTaskData.referenceProcess || null,
+      customForm: parsedTaskData.customForm || null,
+      isSubtask: true,
+      isArchived: false,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Inherit organization from parent task
+    if (parentTask.organization) {
+      subtaskData.organization = parentTask.organization;
+    }
+
+    // Save subtask
+    const createdSubtask = await storage.createTask(subtaskData);
+
+    res.status(201).json({
+      success: true,
+      message: "Subtask created successfully",
+      subtask: createdSubtask,
+      parentTask: {
+        _id: parentTask._id,
+        title: parentTask.title
+      }
+    });
+  } catch (error) {
+    console.error("Error creating subtask:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create subtask",
+      error: error.message
+    });
+  }
+};
+
+export const getSubtasks = async (req, res) => {
+  try {
+    const user = req.user;
+    const { parentTaskId } = req.params;
+    const {
+      status,
+      priority,
+      page = 1,
+      limit = 50,
+      search
+    } = req.query;
+
+    // Validate parent task exists and user has access
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Check permissions
+    if (parentTask.organization && user.organizationId) {
+      const taskOrgId = getTaskOrganizationId(parentTask.organization);
+      const userOrgId = user.organizationId?.toString() || user.organizationId;
+
+      if (taskOrgId !== userOrgId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    } else if (!parentTask.organization && !user.organizationId) {
+      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    }
+
+    // Build filter for subtasks
+    const filter = {
+      parentTaskId: parentTaskId,
+      isSubtask: true,
+      isDeleted: { $ne: true }
+    };
+
+    // Apply additional filters
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get subtasks
+    const subtasks = await storage.getTasksByFilter(filter, {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort: { createdAt: -1 }
+    });
+
+    // Count total subtasks for pagination
+    const totalSubtasks = await storage.countTasksByFilter(filter);
+    const totalPages = Math.ceil(totalSubtasks / parseInt(limit));
+    const hasNext = parseInt(page) < totalPages;
+    const hasPrev = parseInt(page) > 1;
+
+    res.json({
+      success: true,
+      message: 'Subtasks retrieved successfully',
+      data: {
+        parentTask: {
+          _id: parentTask._id,
+          title: parentTask.title,
+          status: parentTask.status
+        },
+        subtasks: subtasks,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalSubtasks,
+          hasNextPage: hasNext,
+          hasPrevPage: hasPrev,
+          limit: parseInt(limit)
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching subtasks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch subtasks',
+      error: error.message
+    });
+  }
+};
+
+export const updateSubtask = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId } = req.params;
+    const user = req.user;
+    const updates = req.body;
+
+    // Validate parent task exists and user has access
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Check parent task permissions
+    if (parentTask.organization && user.organizationId) {
+      const taskOrgId = getTaskOrganizationId(parentTask.organization);
+      const userOrgId = user.organizationId?.toString() || user.organizationId;
+
+      if (taskOrgId !== userOrgId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    } else if (!parentTask.organization && !user.organizationId) {
+      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    }
+
+    // Get and validate subtask
+    const subtask = await storage.getTaskById(subtaskId);
+    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found or does not belong to this parent task'
+      });
+    }
+
+    // Prepare update data
+    const updateData = {
+      ...updates,
+      updatedAt: new Date()
+    };
+
+    // Handle date fields
+    if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
+    if (updates.startDate) updateData.startDate = new Date(updates.startDate);
+
+    // Update subtask
+    const updatedSubtask = await storage.updateTask(subtaskId, updateData, user.id);
+
+    res.json({
+      success: true,
+      message: 'Subtask updated successfully',
+      data: {
+        subtask: updatedSubtask,
+        parentTask: {
+          _id: parentTask._id,
+          title: parentTask.title
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating subtask:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update subtask',
+      error: error.message
+    });
+  }
+};
+
+export const deleteSubtask = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId } = req.params;
+    const user = req.user;
+
+    console.log('=== DELETE SUBTASK DEBUG ===');
+    console.log('Parent Task ID:', parentTaskId);
+    console.log('Subtask ID to delete:', subtaskId);
+    console.log('User attempting delete:', { id: user.id, organizationId: user.organizationId });
+
+    // Validate parent task exists and user has access
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      console.log('Parent task not found');
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    console.log('Found parent task:', {
+      id: parentTask._id,
+      title: parentTask.title,
+      organization: parentTask.organization
+    });
+
+    // Check parent task permissions
+    if (parentTask.organization && user.organizationId) {
+      const taskOrgId = getTaskOrganizationId(parentTask.organization);
+      const userOrgId = user.organizationId?.toString() || user.organizationId;
+      console.log('Organization check:', { taskOrgId, userOrgId, match: taskOrgId === userOrgId });
+
+      if (taskOrgId !== userOrgId) {
+        console.log('Access denied: Organization mismatch');
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    } else if (!parentTask.organization && !user.organizationId) {
+      const taskCreatedBy = parentTask.createdBy?.toString();
+      const userId = user.id?.toString();
+      console.log('Individual user check:', { taskCreatedBy, userId, match: taskCreatedBy === userId });
+
+      if (parentTask.createdBy && user.id && taskCreatedBy !== userId) {
+        console.log('Access denied: Not the creator');
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+    }
+
+    // Get and validate subtask
+    const subtask = await storage.getTaskById(subtaskId);
+    console.log('Found subtask:', subtask ? {
+      id: subtask._id,
+      title: subtask.title,
+      parentTaskId: subtask.parentTaskId,
+      isSubtask: subtask.isSubtask,
+      isDeleted: subtask.isDeleted
+    } : 'Not found');
+
+    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+      console.log('Subtask validation failed');
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found or does not belong to this parent task'
+      });
+    }
+
+    console.log('Permissions passed, proceeding with soft delete...');
+
+    // Soft delete subtask
+    const updateResult = await storage.updateTask(subtaskId, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      updatedAt: new Date()
+    }, user.id);
+
+    console.log('Subtask soft delete result:', updateResult);
+    console.log('=== DELETE SUBTASK COMPLETE ===');
+
+    res.json({
+      success: true,
+      message: 'Subtask deleted successfully',
+      data: {
+        deletedSubtaskId: subtaskId,
+        parentTask: {
+          _id: parentTask._id,
+          title: parentTask.title
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting subtask:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete subtask',
+      error: error.message
+    });
+  }
+};
+
+// Subtask Comment Functions
+export const addSubtaskComment = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId } = req.params;
+    const { content, comment, mentions, parentId } = req.body;
+    const user = req.user;
+
+    // Handle both 'content' and 'comment' fields for compatibility
+    const commentContent = content || comment;
+
+    console.log('DEBUG - addSubtaskComment called:', {
+      parentTaskId,
+      subtaskId,
+      userId: user.id,
+      content: commentContent,
+      rawBody: req.body,
+      hasContent: !!content,
+      hasComment: !!comment
+    }); if (!commentContent || commentContent.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment content is required'
+      });
+    }
+
+    // Get parent task to check permissions
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Get subtask to validate it exists and belongs to parent
+    const subtask = await storage.getTaskById(subtaskId);
+    if (!subtask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found'
+      });
+    }
+
+    // Check if user has permission to comment
+    const canComment = checkCommentPermission(user, parentTask);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to comment on this subtask'
+      });
+    }
+
+    // Create comment object for MongoDB
+    const newComment = {
+      _id: new Date().getTime().toString(),
+      content: commentContent.trim(),
+      author: {
+        _id: user.id,
+        id: user.id,
+        firstName: user.firstName || user.name?.split(' ')[0] || 'Unknown',
+        lastName: user.lastName || user.name?.split(' ')[1] || 'User',
+        email: user.email,
+        role: user.role
+      },
+      mentions: mentions || [],
+      parentId: parentId || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isEdited: false
+    };
+
+    console.log('DEBUG - Creating subtask comment with data:', newComment);
+
+    // Add comment to subtask
+    if (!subtask.comments) subtask.comments = [];
+    subtask.comments.push(newComment);
+
+    // Update subtask with new comment
+    await storage.updateTask(subtaskId, { comments: subtask.comments }, user.id);
+
+    console.log('DEBUG - Subtask comment added successfully'); res.status(201).json({
+      success: true,
+      message: 'Subtask comment added successfully',
+      data: newComment
+    });
+
+  } catch (error) {
+    console.error('Error adding subtask comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add subtask comment',
+      error: error.message
+    });
+  }
+};
+
+export const getSubtaskComments = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const user = req.user;
+
+    console.log('DEBUG - getSubtaskComments called:', { parentTaskId, subtaskId, userId: user.id });
+
+    // Get parent task to check permissions
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Get subtask to validate it exists
+    const subtask = await storage.getTaskById(subtaskId);
+    if (!subtask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found'
+      });
+    }
+
+    // Check if user has permission to view comments
+    const canComment = checkCommentPermission(user, parentTask);
+    if (!canComment) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Get comments from MongoDB subtask
+    const comments = subtask.comments || [];
+
+    console.log('DEBUG - Found subtask comments:', comments.length);
+
+    // Apply pagination to comments
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedComments = comments.slice(startIndex, endIndex);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        comments: paginatedComments,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: comments.length,
+          totalPages: Math.ceil(comments.length / limit)
+        },
+        subtask: {
+          id: subtask._id,
+          title: subtask.title
+        },
+        parentTask: {
+          id: parentTask._id,
+          title: parentTask.title
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting subtask comments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get subtask comments',
+      error: error.message
+    });
+  }
+};
+
+export const updateSubtaskComment = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId, commentId } = req.params;
+    const { comment } = req.body;
+    const user = req.user;
+
+    if (!comment || comment.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment text is required'
+      });
+    }
+
+    // Validate parent task exists and user has access
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Get and validate subtask
+    const subtask = await storage.getTaskById(subtaskId);
+    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found or does not belong to this parent task'
+      });
+    }
+
+    // Find the comment
+    const comments = subtask.comments || [];
+    const commentIndex = comments.findIndex(c => c._id === commentId);
+
+    if (commentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    const existingComment = comments[commentIndex];
+
+    // Check if user is the author of the comment
+    if (existingComment.author.toString() !== user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only edit your own comments'
+      });
+    }
+
+    // Update the comment
+    comments[commentIndex] = {
+      ...existingComment,
+      text: comment.trim(),
+      updatedAt: new Date(),
+      isEdited: true
+    };
+
+    // Update the subtask with modified comments
+    await storage.updateTask(subtaskId, {
+      comments: comments,
+      updatedAt: new Date()
+    }, user.id);
+
+    res.json({
+      success: true,
+      message: 'Comment updated successfully',
+      data: {
+        comment: comments[commentIndex],
+        subtask: {
+          _id: subtask._id,
+          title: subtask.title
+        },
+        parentTask: {
+          _id: parentTask._id,
+          title: parentTask.title
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating subtask comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update comment',
+      error: error.message
+    });
+  }
+};
+
+export const deleteSubtaskComment = async (req, res) => {
+  try {
+    const { parentTaskId, subtaskId, commentId } = req.params;
+    const user = req.user;
+
+    // Validate parent task exists and user has access
+    const parentTask = await storage.getTaskById(parentTaskId);
+    if (!parentTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent task not found'
+      });
+    }
+
+    // Get and validate subtask
+    const subtask = await storage.getTaskById(subtaskId);
+    if (!subtask || !subtask.isSubtask || subtask.parentTaskId?.toString() !== parentTaskId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subtask not found or does not belong to this parent task'
+      });
+    }
+
+    // Find the comment
+    const comments = subtask.comments || [];
+    const commentIndex = comments.findIndex(c => c._id === commentId);
+
+    if (commentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Comment not found'
+      });
+    }
+
+    const existingComment = comments[commentIndex];
+
+    // Check if user is the author of the comment or has admin privileges
+    const canDelete = existingComment.author.toString() === user.id.toString() ||
+      user.role === 'org_admin' ||
+      Array.isArray(user.role) && user.role.includes('org_admin');
+
+    if (!canDelete) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own comments or need admin privileges'
+      });
+    }
+
+    // Remove the comment
+    comments.splice(commentIndex, 1);
+
+    // Update the subtask with modified comments
+    await storage.updateTask(subtaskId, {
+      comments: comments,
+      updatedAt: new Date()
+    }, user.id);
+
+    res.json({
+      success: true,
+      message: 'Comment deleted successfully',
+      data: {
+        deletedCommentId: commentId,
+        subtask: {
+          _id: subtask._id,
+          title: subtask.title
+        },
+        parentTask: {
+          _id: parentTask._id,
+          title: parentTask.title
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error deleting subtask comment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete comment',
+      error: error.message
+    });
+  }
+};
+
+=======
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 // Task Comment Functions
 export const addTaskComment = async (req, res) => {
   try {
@@ -2180,12 +2171,18 @@ export const getTaskById = async (req, res) => {
     const user = req.user;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     const task = await storage.getTaskById(id);
 =======
     console.log('DEBUG - getTaskById controller called with id:', id);
     const task = await storage.getTaskById(id);
     console.log('DEBUG - Controller received task with subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
 >>>>>>> 639bd5b (Restore stashed changes)
+=======
+    console.log('DEBUG - getTaskById controller called with id:', id);
+    const task = await storage.getTaskById(id);
+    console.log('DEBUG - Controller received task with subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 
     if (!task) {
       return res.status(404).json({
@@ -2229,10 +2226,15 @@ export const getTaskById = async (req, res) => {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     console.log('DEBUG - Final task response has subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
 
 >>>>>>> 639bd5b (Restore stashed changes)
+=======
+    console.log('DEBUG - Final task response has subtasks:', task?.subtasks ? task.subtasks.length : 'undefined');
+
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
     res.json({
       success: true,
       data: task
@@ -3417,6 +3419,15 @@ export const snoozeTask = async (req, res) => {
     const { snoozeUntil, reason } = req.body;
     const user = req.user;
 
+    console.log('🔍 SNOOZE API DEBUG:', {
+      taskId,
+      snoozeUntil,
+      reason,
+      userId: user?.id,
+      userIdType: typeof user?.id,
+      userName: user?.firstName + ' ' + user?.lastName
+    });
+
     // Validate required fields
     if (!snoozeUntil) {
       return res.status(400).json({
@@ -3425,7 +3436,7 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -3433,9 +3444,16 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
+    console.log('🔍 TASK FOUND:', {
+      taskId: task._id,
+      assignedTo: task.assignedTo,
+      assignedToType: typeof task.assignedTo,
+      collaboratorIds: task.collaboratorIds
+    });
+
     // Check permissions (assignee, collaborator, or org admin)
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -3451,9 +3469,9 @@ export const snoozeTask = async (req, res) => {
       isSnooze: true,
       snoozeUntil: new Date(snoozeUntil),
       snoozeReason: reason || null,
-      snoozedBy: user._id,
+      snoozedBy: user.id,
       snoozedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -3488,8 +3506,8 @@ export const unsnoozeTask = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -3507,7 +3525,7 @@ export const unsnoozeTask = async (req, res) => {
       snoozeReason: null,
       snoozedBy: null,
       snoozedAt: null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -3534,7 +3552,7 @@ export const markTaskAsRisk = async (req, res) => {
     const { riskReason, riskLevel } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -3543,8 +3561,8 @@ export const markTaskAsRisk = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -3560,9 +3578,9 @@ export const markTaskAsRisk = async (req, res) => {
       isRisk: true,
       riskLevel: riskLevel || 'medium', // low, medium, high
       riskReason: riskReason || null,
-      riskMarkedBy: user._id,
+      riskMarkedBy: user.id,
       riskMarkedAt: new Date(),
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -3597,8 +3615,8 @@ export const unmarkTaskAsRisk = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -3616,7 +3634,7 @@ export const unmarkTaskAsRisk = async (req, res) => {
       riskReason: null,
       riskMarkedBy: null,
       riskMarkedAt: null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 
@@ -3643,7 +3661,7 @@ export const quickMarkAsDone = async (req, res) => {
     const { completionNotes } = req.body;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -3652,8 +3670,8 @@ export const quickMarkAsDone = async (req, res) => {
     }
 
     // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user._id.toString() ||
-      task.collaboratorIds?.includes(user._id.toString()) ||
+    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
+      task.collaboratorIds?.includes(user.id.toString()) ||
       user.role === "org_admin" ||
       Array.isArray(user.role) && user.role.includes("org_admin");
 
@@ -3681,9 +3699,9 @@ export const quickMarkAsDone = async (req, res) => {
     const updatedTask = await storage.updateTask(taskId, {
       status: 'completed',
       completedDate: new Date(),
-      completedBy: user._id,
+      completedBy: user.id,
       completionNotes: completionNotes || null,
-      updatedBy: user._id,
+      updatedBy: user.id,
       updatedAt: new Date()
     });
 

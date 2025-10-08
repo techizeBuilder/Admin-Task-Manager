@@ -89,7 +89,6 @@ const baseItems = {
     icon: Calendar,
     path: "/calendar",
   },
-
   approvals: {
     id: "approvals",
     label: "Approvals",
@@ -103,8 +102,13 @@ const baseItems = {
     path: "/milestones",
   },
 
+<<<<<<< HEAD
   // Settings group
   settings: {
+=======
+  // Settings for employee & manager (view only)
+  settingsViewOnly: {
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
     id: "settings",
     label: "Settings",
     icon: Settings,
@@ -304,6 +308,7 @@ export const sidebarMenus = {
         },
       ],
     },
+<<<<<<< HEAD
     {
       ...baseItems.settings,
       children: [
@@ -316,6 +321,9 @@ export const sidebarMenus = {
         },
       ],
     },
+=======
+    baseItems.settingsManagement,
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
     baseItems.help,
     baseItems.logout,
   ],

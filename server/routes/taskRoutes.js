@@ -14,12 +14,18 @@ import {
   updateSubtaskComment,
   deleteSubtaskComment,
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
   addTaskComment,
   getTaskComments,
   updateTaskComment,
   deleteTaskComment,
+<<<<<<< HEAD
 >>>>>>> 639bd5b (Restore stashed changes)
+=======
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
   getTasks,
   getTaskById,
   updateTask,
@@ -1151,6 +1157,189 @@ router.delete("/tasks/:parentTaskId/subtasks/:subtaskId", authenticateToken, del
  *         description: Internal server error
  */
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+// Task Comment Routes
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments:
+ *   post:
+ *     summary: Add a comment to a task
+ *     description: Adds a new comment to a specific task. Users need access to the task to add comments.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The comment text
+ *                 example: "This task needs more clarification on requirements"
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs mentioned in the comment
+ *     responses:
+ *       201:
+ *         description: Comment added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:taskId/comments", authenticateToken, addTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments:
+ *   get:
+ *     summary: Get all comments for a task
+ *     description: Retrieves all comments for a specific task with pagination support.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of comments per page
+ *     responses:
+ *       200:
+ *         description: Comments retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/tasks/:taskId/comments", authenticateToken, getTaskComments);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}:
+ *   put:
+ *     summary: Update a comment
+ *     description: Updates a specific comment. Only the comment author can update it.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The comment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The updated comment text
+ *     responses:
+ *       200:
+ *         description: Comment updated successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied - can only edit own comments
+ *       404:
+ *         description: Task or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/tasks/:taskId/comments/:commentId", authenticateToken, updateTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete a comment
+ *     description: Deletes a specific comment. Only the comment author or admin can delete it.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The comment ID
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *       403:
+ *         description: Access denied - can only delete own comments
+ *       404:
+ *         description: Task or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/tasks/:taskId/comments/:commentId", authenticateToken, deleteTaskComment);
+
+>>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
 router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments", authenticateToken, addSubtaskComment);
 
 /**
