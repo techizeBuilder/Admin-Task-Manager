@@ -1723,13 +1723,8 @@ export class MongoStorage {
   async getTasksByFilter(filter, options = {}) {
     const { page = 1, limit = 50, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
-<<<<<<< HEAD
-    
-    return await Task.find(filter)
-=======
 
     const tasks = await Task.find(filter)
->>>>>>> 73e620fbbdc27d5ac07af04346b3549d5be74615
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName email')
       .populate('project', 'name')
