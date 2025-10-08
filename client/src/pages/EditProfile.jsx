@@ -97,6 +97,7 @@ export default function EditProfile() {
   const [errors, setErrors] = useState({
     phoneNumber: "",
     firstName: "",
+    lastName: "",
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
@@ -354,10 +355,10 @@ export default function EditProfile() {
       [name]: newValue,
     }));
 
-    if (name === "firstName") {
+    if (name === "firstName" || name === "lastName") {
       setErrors((prev) => ({
         ...prev,
-        firstName: value.trim() ? "" : "This field is required",
+        [name]: value.trim() ? "" : "This field is required",
       }));
     }
 
@@ -527,7 +528,9 @@ export default function EditProfile() {
     if (!formData.firstName.trim()) {
       newErrors.firstName = "First name is required";
     }
-    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
     if (errors.phoneNumber) {
       newErrors.phoneNumber =
         "Please fix the phone number error before submitting";
@@ -541,7 +544,7 @@ export default function EditProfile() {
     setErrors((prev) => ({
       ...prev,
       firstName: "",
-
+      lastName: "",
     }));
 
     const dataToSend = { ...formData };
@@ -627,7 +630,30 @@ export default function EditProfile() {
     });
   };
 
+  const getInitials = () => {
+    // Priority 1: Use first and last name initials
+    if (currentUser?.firstName && currentUser?.lastName) {
+      return `${currentUser.firstName.charAt(0)}${currentUser.lastName.charAt(
+        0
+      )}`.toUpperCase();
+    }
 
+    // Priority 2: Use first name + email prefix if only first name exists
+    if (currentUser?.firstName && currentUser?.email) {
+      const emailPrefix = currentUser.email.split("@")[0];
+      return `${currentUser.firstName.charAt(0)}${emailPrefix.charAt(
+        0
+      )}`.toUpperCase();
+    }
+
+    // Priority 3: Use first two characters of email prefix as fallback
+    if (currentUser?.email) {
+      const emailPrefix = currentUser.email.split("@")[0];
+      return emailPrefix.substring(0, 2).toUpperCase();
+    }
+
+    return "U";
+  };
 
   const getCurrentProfileImage = () => {
     if (imagePreview) return imagePreview;
@@ -722,7 +748,7 @@ export default function EditProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
                   <div className="w-full">
-                    <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
                       name="firstName"
@@ -750,18 +776,31 @@ export default function EditProfile() {
                   </div>
 
                   <div className="w-full">
-                    <Label htmlFor="lastName">Last Name </Label>
+                    <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                     
+                      onBlur={(e) =>
+                        setErrors((p) => ({
+                          ...p,
+                          lastName: e.target.value.trim()
+                            ? ""
+                            : "Last name is required",
+                        }))
+                      }
                       placeholder="Last name"
                       data-testid="input-last-name"
-                      className={`w-full  p-2  `}
+                      className={`w-full  p-2  ${
+                        errors.lastName ? "border-red-500" : ""
+                      }`}
                     />
-                   
+                    {errors.lastName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.lastName}
+                      </p>
+                    )}
                   </div>
                   {/* Email */}
                   <div className="w-full">

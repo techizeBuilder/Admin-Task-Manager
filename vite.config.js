@@ -34,6 +34,13 @@ export default defineConfig({
       "@features-tasks": path.resolve(__dirname, "./client/src/features/tasks"),
       "@features-calendar": path.resolve(__dirname, "./client/src/features/calendar"),
       "@features-auth": path.resolve(__dirname, "./client/src/features/auth"),
+      // Force single React instance between root and client workspaces
+      'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'zustand'],
+    dedupe: ['react', 'react-dom']
+  }
 });

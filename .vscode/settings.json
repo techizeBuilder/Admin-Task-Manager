@@ -1,0 +1,9 @@
+{
+  "tools": [
+    {
+      "custom": {
+        "name": "Admin_Task_Manager"
+      }
+    }
+  ]
+}

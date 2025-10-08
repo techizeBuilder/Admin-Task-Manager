@@ -149,7 +149,7 @@ const SimpleFileUploader = ({
           {files.map((file) => (
             <div
               key={file.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-md border"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">

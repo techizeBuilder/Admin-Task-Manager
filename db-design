@@ -2,12 +2,6 @@ Based on the provided sources and our conversation, here's a database design str
 
 In Mongoose, each primary entity below would typically correspond to a **collection** in MongoDB and a **schema** in your backend. Relationships (e.g., "ref: 'User'") indicate that one document links to another document's `_id` in a different (or sometimes the same) collection.
 
-
-<!-- user table  -->
-http://localhost:5000/api/organization/68c7b212e70a5ea02a4b0abe/users?page=1&search=role6@m.com
-
-
-
 ### **Tasksetu Database Design (Mongoose Collection Schemas)**
 
 *   **Users & Access**

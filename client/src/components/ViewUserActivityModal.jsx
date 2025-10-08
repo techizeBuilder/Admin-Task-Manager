@@ -24,8 +24,6 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getInitials, } from "../lib/utils";
-import { renderRoles, roleLabels } from "../utils/roleBadge";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
   const { toast } = useToast();
@@ -43,8 +41,8 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
       'Designation': user.designation || 'N/A',
       'Location': user.location || 'N/A',
       'Status': user.status,
-      'Date Joined': new Date(user.createdAt).toLocaleDateString(),
-      'Last Login': user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(): 'Never',
+      'Date Joined': new Date(user.dateCreated).toLocaleDateString(),
+      'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
       'Tasks Assigned': user.tasksAssigned,
       'Tasks Completed': user.tasksCompleted,
       'Forms Created': user.formsCreated,
@@ -79,18 +77,24 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active':
+      case 'Active':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'inactive':
+      case 'Inactive':
         return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">Inactive</Badge>;
-      case 'invited':
+      case 'Pending':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-console.log('user in modal.........',user)
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .slice(0, 2);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -126,8 +130,8 @@ console.log('user in modal.........',user)
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm ">
-                    <strong >Role:</strong> {user.role.map(r => roleLabels[r]).join(', ')}
+                  <span className="text-sm">
+                    <strong>Role:</strong> {user.role}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -170,10 +174,10 @@ console.log('user in modal.........',user)
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-bold">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {new Date(user.dateCreated).toLocaleDateString()}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24))} days ago
+                  {Math.floor((new Date() - new Date(user.dateCreated)) / (1000 * 60 * 60 * 24))} days ago
                 </p>
               </CardContent>
             </Card>
@@ -185,11 +189,11 @@ console.log('user in modal.........',user)
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-bold">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {user.lastLoginAt 
-                    ? `${Math.floor((new Date() - new Date(user.lastLoginAt)) / (1000 * 60 * 60 * 24))} days ago`
+                  {user.lastLogin 
+                    ? `${Math.floor((new Date() - new Date(user.lastLogin)) / (1000 * 60 * 60 * 24))} days ago`
                     : 'No login recorded'
                   }
                 </p>
@@ -202,7 +206,7 @@ console.log('user in modal.........',user)
                 <CheckCircle className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.tasksAssigned || 0}</div>
+                <div className="text-2xl font-bold">{user.tasksAssigned}</div>
                 <p className="text-xs text-gray-500">
                   Total assigned tasks
                 </p>
@@ -217,7 +221,7 @@ console.log('user in modal.........',user)
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{completionRate}%</div>
                 <p className="text-xs text-gray-500">
-                  {user.tasksCompleted || 0}/{user.tasksAssigned || 0} completed
+                  {user.tasksCompleted}/{user.tasksAssigned} completed
                 </p>
               </CardContent>
             </Card>
@@ -231,7 +235,7 @@ console.log('user in modal.........',user)
                 <FileText className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.formsCreated || 0}</div>
+                <div className="text-2xl font-bold">{user.formsCreated}</div>
                 <p className="text-xs text-gray-500">
                   Total forms created
                 </p>
@@ -244,7 +248,7 @@ console.log('user in modal.........',user)
                 <Settings className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{user.activeProcesses || 0}</div>
+                <div className="text-2xl font-bold text-orange-600">{user.activeProcesses}</div>
                 <p className="text-xs text-gray-500">
                   Currently running
                 </p>
@@ -262,7 +266,7 @@ console.log('user in modal.........',user)
                 </div>
                 <p className="text-xs text-gray-500">
                   {user.tasksAssigned > 0 
-                    ? `${completionRate|| 0}% completion rate`
+                    ? `${completionRate}% completion rate`
                     : 'No tasks assigned yet'
                   }
                 </p>

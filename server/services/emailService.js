@@ -365,6 +365,7 @@ www.Tasksetu.com`,
 
       await this.transporter.sendMail(mailOptions);
     
+      console.log("Invitation email sent successfully to:", email);
       return true;
     } catch (error) {
       console.error("Email sending error:", error);

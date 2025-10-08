@@ -241,7 +241,6 @@ export default function UserManagement() {
   };
 
 
-
   const getDisplayName = (user) => {
     if (user.firstName && user.lastName) {
       return `${user.firstName} ${user.lastName}`;

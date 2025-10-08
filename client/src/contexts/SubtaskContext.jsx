@@ -17,14 +17,6 @@ export const SubtaskProvider = ({ children }) => {
   const [mode, setMode] = useState('create'); // 'create' or 'edit'
 
   const openSubtaskDrawer = (task, editSubtask = null) => {
-    console.log('🚀 SubtaskContext: Opening subtask drawer with task:', {
-      task,
-      taskType: typeof task,
-      taskId: task?.id,
-      task_id: task?._id,
-      editSubtask
-    });
-
     setParentTask(task);
     setEditData(editSubtask);
     setMode(editSubtask ? 'edit' : 'create');

@@ -457,7 +457,7 @@ export default function QuickAddBar() {
 
   const handleQuickAdd = () => {
     if (!quickText.trim()) return;
-
+    
     // Create quick task instantly
     const quickTask = {
       title: quickText.trim(),
@@ -465,10 +465,10 @@ export default function QuickAddBar() {
       dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 days
       status: 'open'
     };
-
+    
     // Mock save - in real app would call API
     console.log('Quick task created:', quickTask);
-
+    
     setQuickText('');
     setIsExpanded(false);
   };
@@ -504,7 +504,7 @@ export default function QuickAddBar() {
       ) : (
         <Button
           onClick={() => setIsExpanded(true)}
-          className="bg-blue-600 hover:text-white  hover:bg-blue-700 rounded-full h-12 w-12 shadow-lg"
+          className="bg-blue-600 hover:bg-blue-700 rounded-full h-12 w-12 shadow-lg"
           size="icon"
         >
           <Plus className="h-6 w-6" />

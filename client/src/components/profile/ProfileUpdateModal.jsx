@@ -17,7 +17,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Upload, Camera, Trash2, User, Loader2 } from "lucide-react";
-import { getInitials } from "../../lib/utils";
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -174,7 +173,26 @@ export default function ProfileUpdateModal({ isOpen, onClose }) {
     return profile?.email?.split('@')[0] || 'User';
   };
 
-
+  const getInitials = (profile) => {
+    // Priority 1: Use first and last name initials
+    if (profile?.firstName && profile?.lastName) {
+      return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+    }
+    
+    // Priority 2: Use first name + email prefix if only first name exists
+    if (profile?.firstName && profile?.email) {
+      const emailPrefix = profile.email.split('@')[0];
+      return `${profile.firstName[0]}${emailPrefix[0]}`.toUpperCase();
+    }
+    
+    // Priority 3: Use first two characters of email prefix as fallback
+    if (profile?.email) {
+      const emailPrefix = profile.email.split('@')[0];
+      return emailPrefix.substring(0, 2).toUpperCase();
+    }
+    
+    return 'U';
+  };
 
   const currentImageUrl = previewUrl || profile?.profileImageUrl;
 
@@ -203,7 +221,7 @@ export default function ProfileUpdateModal({ isOpen, onClose }) {
                     alt={getDisplayName(profile)} 
                   />
                   <AvatarFallback className="text-lg">
-                    {getInitials(profile?.firstName, profile?.lastName)}
+                    {getInitials(profile)}
                   </AvatarFallback>
                 </Avatar>
                 
