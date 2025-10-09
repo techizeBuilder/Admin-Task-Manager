@@ -1,0 +1,492 @@
+import React, { useState } from "react";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
+
+function StatusFormModal({
+  status,
+  onSubmit,
+  onClose,
+  existingStatuses,
+  systemStatuses,
+  isEdit = false,
+}) {
+  const [formData, setFormData] = useState({
+    code: status?.code || "",
+    label: status?.label || "",
+    color: status?.color || "#667eea",
+    systemMapping: status?.systemMapping || "",
+    isFinal: status?.isFinal || false,
+    assignedTo: status?.assignedTo || "",
+    assignedToId: status?.assignedToId || null,
+    allowedTransitions: status?.allowedTransitions || [],
+  });
+
+  const teamMembers = [
+    { id: 1, name: "Current User" },
+    { id: 2, name: "John Smith" },
+    { id: 3, name: "Jane Smith" },
+    { id: 4, name: "Mike Johnson" },
+    { id: 5, name: "Sarah Wilson" },
+    { id: 6, name: "Emily Davis" },
+  ];
+
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.code.trim()) {
+      newErrors.code = "Status code is required";
+    } else if (!/^[A-Z_]+$/.test(formData.code)) {
+      newErrors.code =
+        "Status code must contain only uppercase letters and underscores";
+    }
+
+    if (!formData.label.trim()) {
+      newErrors.label = "Display label is required";
+    }
+
+    if (!formData.systemMapping) {
+      newErrors.systemMapping = "System mapping is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const handleAssigneeChange = (selectedOption) => {
+    const member = teamMembers.find((m) => m.id === selectedOption?.value);
+    setFormData((prev) => ({
+      ...prev,
+      assignedToId: member?.id || null,
+      assignedTo: member?.name || "",
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      onSubmit(formData);
+      onClose();
+    }
+  };
+
+  const colorPresets = [
+    "#667eea",
+    "#764ba2",
+    "#f093fb",
+    "#f5576c",
+    "#4facfe",
+    "#00f2fe",
+    "#43e97b",
+    "#38f9d7",
+    "#ffecd2",
+    "#fcb69f",
+    "#a8edea",
+    "#fed6e3",
+    "#d299c2",
+    "#fef9d7",
+    "#dee5fe",
+    "#b3d8ff",
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 rounded-t-lg flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-white">
+              {isEdit ? "Edit Status" : "Create New Status"}
+            </h2>
+          </div>
+          <button 
+            className="text-white/80 hover:text-white transition-colors text-2xl leading-none" 
+            onClick={onClose} 
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto">
+          <form onSubmit={handleSubmit} >
+            {/* Status Code & Label Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="form-group">
+                <label
+                  htmlFor="code"
+                  className="form-label flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                    />
+                  </svg>
+                  Status Code*
+                </label>
+                <input
+                  type="text"
+                  id="code"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleChange}
+                  required
+                  disabled={isEdit}
+                  className={`form-input ${errors.code ? "border-red-500 ring-red-200" : ""} ${isEdit ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                  placeholder="e.g., IN_PROGRESS"
+                />
+                {errors.code && (
+                  <span className="text-red-500 text-sm mt-1 block">
+                    {errors.code}
+                  </span>
+                )}
+                <small className="form-hint">
+                  {isEdit
+                    ? "Status code cannot be changed after creation"
+                    : "Use UPPERCASE letters and underscores only"}
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label
+                  htmlFor="label"
+                  className="form-label flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z"
+                    />
+                  </svg>
+                  Display Label*
+                </label>
+                <input
+                  type="text"
+                  id="label"
+                  name="label"
+                  value={formData.label}
+                  onChange={handleChange}
+                  required
+                  className={`form-input ${errors.label ? "border-red-500 ring-red-200" : ""}`}
+                  placeholder="e.g., In Progress"
+                />
+                {errors.label && (
+                  <span className="text-red-500 text-sm mt-1 block">
+                    {errors.label}
+                  </span>
+                )}
+                <small className="form-hint">
+                  User-friendly name shown in the interface
+                </small>
+              </div>
+            </div>
+
+            {/* Color Selection */}
+            <div className="form-group">
+              <label className="form-label flex items-center gap-2">
+                <svg
+                  className="w-4 h-4 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2a2 2 0 002-2V5a2 2 0 00-2-2z"
+                  />
+                </svg>
+                Status Color
+              </label>
+
+              <div className="flex flex-col gap-4">
+                {/* Color Presets */}
+                <div className="grid grid-cols-8 gap-2">
+                  {colorPresets.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`w-8 h-8 rounded-lg border-2 transition-all duration-200 hover:scale-110 ${
+                        formData.color === color
+                          ? "border-blue-500 ring-2 ring-blue-200"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setFormData({ ...formData, color })}
+                      title={color}
+                    />
+                  ))}
+                </div>
+
+                {/* Custom Color Input */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    id="color"
+                    name="color"
+                    value={formData.color}
+                    onChange={handleChange}
+                    className="w-12 h-12 rounded-lg border-2 border-gray-200 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={formData.color}
+                    onChange={(e) =>
+                      setFormData({ ...formData, color: e.target.value })
+                    }
+                    className="form-input flex-1"
+                    placeholder="#667eea"
+                    pattern="^#[0-9A-Fa-f]{6}$"
+                  />
+                  <div
+                    className="w-12 h-12 rounded-lg border-2 border-gray-200 flex items-center justify-center font-bold text-white text-xs shadow-inner"
+                    style={{ backgroundColor: formData.color }}
+                  >
+                    {formData.label
+                      ? formData.label.charAt(0).toUpperCase()
+                      : "A"}
+                  </div>
+                </div>
+              </div>
+              <small className="form-hint">
+                Choose a color that represents this status visually
+              </small>
+            </div>
+
+            {/* System Mapping & Final Status Row */}
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+              <div className="form-group">
+                <label
+                  htmlFor="systemMapping"
+                  className="form-label flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  System Mapping*
+                </label>
+                <select
+                  id="systemMapping"
+                  name="systemMapping"
+                  value={formData.systemMapping}
+                  onChange={handleChange}
+                  required
+                  className={`form-select ${errors.systemMapping ? "border-red-500 ring-red-200" : ""}`}
+                >
+                  <option value="">Select system status...</option>
+                  {systemStatuses.map((sysStatus) => (
+                    <option key={sysStatus.code} value={sysStatus.code}>
+                      {sysStatus.label} ({sysStatus.code})
+                    </option>
+                  ))}
+                </select>
+                {errors.systemMapping && (
+                  <span className="text-red-500 text-sm mt-1 block">
+                    {errors.systemMapping}
+                  </span>
+                )}
+                <small className="form-hint">
+                  Links this status to core system functionality
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label flex items-center gap-2 mb-3">
+                  <svg
+                    className="w-4 h-4 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Status Properties
+                </label>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="isFinal"
+                      checked={formData.isFinal}
+                      onChange={handleChange}
+                      className="w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900 mb-1">
+                        Final Status
+                      </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        No further transitions allowed from this status
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="form-group">
+              <label
+                htmlFor="description"
+                className="form-label flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="Optional description for this status..."
+              />
+              <small className="form-hint">
+                Provide additional details about this status
+              </small>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label flex items-center gap-2">
+                <svg
+                  className="w-4 h-4 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4.5v15m7.5-7.5h-15"
+                  />
+                </svg>
+                Assigned To
+              </label>
+              <SearchableSelect
+                options={teamMembers.map((member) => ({
+                  value: member.id,
+                  label: `👤 ${member.name}`,
+                }))}
+                value={
+                  formData.assignedToId
+                    ? {
+                        value: formData.assignedToId,
+                        label: `👤 ${formData.assignedTo}`,
+                      }
+                    : null
+                }
+                onChange={handleAssigneeChange}
+                placeholder="Select assignee"
+                isClearable
+              />
+              <small className="form-hint">
+                Select a team member to assign this status to
+              </small>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between space-x-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                {isEdit ? "Update Status" : "Create Status"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default StatusFormModal;

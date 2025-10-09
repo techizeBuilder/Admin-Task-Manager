@@ -1,0 +1,88 @@
+1.8.1.2. Edit User Details
+Editable fields: Name, Role, Department, Designation, Location, License.
+Email ID cannot be edited (use "Replace User" process for email change).
+Role changes trigger a confirmation modal warning about access rights impact.
+1.8.1.3. Deactivate / Reactivate User
+Deactivation:
+Status changes to “Inactive”.
+User cannot log in.
+All assigned tasks remain but show Owner Inactive label.
+Reactivation:
+Status changes to Active.
+If last login > 90 days ago, invitation email is resent.
+1.8.1.4. Remove User
+Permanently removes user from organization.
+System prompts to reassign tasks before removal.
+License is freed and returned to available pool.
+1.8.1.5. View User Activity
+Displays summary table for each user:
+Date Joined
+Last Login
+Tasks Assigned (count)
+Tasks Completed (count)
+Forms Created (count)
+Active Processes
+Option to export activity data as CSV.
+
+1.8.2. Data Structure
+Field
+Type
+Mandatory
+Notes
+Name
+String
+Yes
+Max 50 chars
+Email ID
+Email
+Yes
+Unique
+Role
+Enum
+Yes
+Regular / Manager / Company Admin
+License ID
+Reference
+Yes
+From license pool
+Department
+String
+No
+Max 50 chars
+Designation
+String
+No
+Max 50 chars
+Location
+String
+No
+Max 50 chars
+Status
+Enum
+Yes
+Active / Inactive / Pending
+Date Created
+Timestamp
+Yes
+System-generated
+Last Login
+Timestamp
+No
+Updated on each login
+
+
+1.8.3. System Behaviours
+Adding a user decreases available license count.
+Deactivating a user does not free the license unless explicitly unassigned.
+Removing a user instantly frees the license.
+Invitation links expire in 72 hours.
+
+1.8.4. Use Case Examples
+UC-8.1: Adding a New User
+Priya (Company Admin) logs into Tasksetu and navigates to the Users tab in Admin Dashboard. She clicks Add User. In the modal, she enters Name = "Arjun Mehta", Email = "arjun@company.com", Role = "Manager", License = "Pro License – 12 months". She leaves Send Invitation Email checked. Upon saving, Arjun is added to the user list with status "Pending" and receives an activation link by email. License count decreases by 1.
+UC-8.2: Editing User Role
+Priya edits Arjun’s profile, changing his Role from "Manager" to "Company Admin". A warning modal appears. She confirms, and Arjun instantly gains admin access.
+UC-8.3: Deactivating a User
+Priya deactivates Rohan’s account. His status changes to "Inactive", he is locked out of the system, and his 4 active tasks display the "Owner Inactive" label.
+UC-8.4: Removing a User and Freeing License
+Priya removes Sneha. Before confirmation, the system prompts to reassign her 3 active tasks. Once reassigned, Sneha’s account is deleted, and her license returns to the available pool.
