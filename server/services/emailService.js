@@ -2,20 +2,28 @@ import nodemailer from "nodemailer";
 
 class EmailService {
   constructor() {
+          console.log('>process.env.SMTP_USERNAME',process.env.SMTP_USERNAME);
+      console.log('>process.env.SMTP_PASSWORD',process.env.SMTP_PASSWORD);
     if (
-      process.env.MAILTRAP_HOST &&
-      process.env.MAILTRAP_PORT &&
-      process.env.MAILTRAP_USER &&
-      process.env.MAILTRAP_PASS
+      // process.env.MAILTRAP_HOST &&
+      // process.env.MAILTRAP_PORT &&
+      process.env.SMTP_USERNAME &&
+      process.env.SMTP_PASSWORD
     ) {
+
+       
+
+
       this.transporter = nodemailer.createTransport({
-        host: process.env.MAILTRAP_HOST,
-        port: parseInt(process.env.MAILTRAP_PORT),
-        auth: {
-          user: process.env.MAILTRAP_USER,
-          pass: process.env.MAILTRAP_PASS,
-        },
-      });
+      service: "gmail",
+      port: 587,
+      host: "smtp.gmail.com",
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USERNAME,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
       this.isConfigured = true;
       console.log("Mailtrap email service configured successfully");
     } else {
@@ -365,10 +373,6 @@ www.Tasksetu.com`,
 
       await this.transporter.sendMail(mailOptions);
     
-<<<<<<< HEAD
-      console.log("Invitation email sent successfully to:", email);
-=======
->>>>>>> 639bd5b (Restore stashed changes)
       return true;
     } catch (error) {
       console.error("Email sending error:", error);
