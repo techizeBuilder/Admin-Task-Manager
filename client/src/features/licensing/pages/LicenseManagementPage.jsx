@@ -197,13 +197,61 @@ export default function LicenseManagementPage() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const { data: user, isAdmin } = useUserRole();
-  const currentPlan = getCurrentPlan();
-  const isOnTrial = currentPlanKey === "explore";
-  const warnings = getLimitWarnings;
-  const hasWarnings = warnings.length > 0;
-  const detailedKeys = ["tasks", "forms", "processes", "reports"];
-  const overLimitKeys = detailedKeys.filter(
-    (k) => getUsageStatus(k).isOverLimit
+  
+  // Define role-based access
+  const isOrgAdmin = user?.activeRole === "org_admin" || user?.role?.[0] === "org_admin";
+  const isEmployeeOrManager = user?.activeRole === "employee" || user?.activeRole === "manager" || 
+                             user?.role?.[0] === "employee" || user?.role?.[0] === "manager";
+
+  // Fetch dynamic license plans
+  const { data: plansResponse, isLoading: plansLoading } = useQuery({
+    queryKey: ['/api/license/plans'],
+    queryFn: async () => {
+      const response = await fetch('/api/license/plans', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch plans');
+      return response.json();
+    }
+  });
+
+  // Fetch current subscription data
+  const { data: subscriptionResponse, isLoading: subscriptionLoading, error: subscriptionError } = useQuery({
+    queryKey: ['/api/organization/subscription'],
+    queryFn: async () => {
+      const response = await fetch('/api/organization/subscription', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch subscription');
+      return response.json();
+    }
+  });
+
+  // Fetch features data
+  const { data: featuresResponse, isLoading: featuresLoading } = useQuery({
+    queryKey: ['/api/license/features'],
+    queryFn: async () => {
+      const response = await fetch('/api/license/features', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch features');
+      return response.json();
+    }
+  });
+
+  const plansData = plansResponse?.data || [];
+  const subscriptionData = subscriptionResponse?.data;
+  const featuresData = featuresResponse?.data || [];
+
+  // Find current plan - the organization stores current_license as a string like "EXPLORE"
+  const currentPlan = plansData.find(plan => 
+    plan.license_code === subscriptionData?.current_license
   );
 
   const hasAnyOverLimit = overLimitKeys.length > 0;
@@ -426,7 +474,7 @@ export default function LicenseManagementPage() {
               </p>
             </div>
           </div>
-          {isAdmin && (
+          {isOrgAdmin && (
             <Button
               asChild
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
@@ -467,9 +515,14 @@ export default function LicenseManagementPage() {
         )}
 
         {/* Usage Overview and Trial Countdown Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Usage Overview Section - Left 8 columns */}
-          <div className="lg:col-span-8">
+        <div className={`grid grid-cols-1 gap-4 ${isOrgAdmin ? 'lg:grid-cols-12' : ''}`}>
+          {/* Usage Overview Section - Responsive width based on user role */}
+          <div className={isOrgAdmin ? "lg:col-span-8" : "w-full"}>
+            { (plansLoading || featuresLoading || subscriptionLoading) ? (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 text-sm text-gray-500">
+                Loading usage data...
+              </div>
+            ) : (
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
@@ -545,9 +598,11 @@ export default function LicenseManagementPage() {
 </div>
               </div>
             </div>
+            )}
           </div>
 
-          {/* Trial Countdown and Quick Actions - Right 4 columns */}
+          {/* Trial Countdown and Quick Actions - Right 4 columns - Only for Org Admin */}
+          {isOrgAdmin && (
         <div className="lg:col-span-4 space-y-4">
   {/* Expiry Card */}
   <div className="bg-red-50 border border-red-300 rounded-lg p-5 shadow-sm">
@@ -626,9 +681,11 @@ export default function LicenseManagementPage() {
   </div>
 </div>
 
+        )}
+
         </div>
 {
-  isAdmin && (
+  isOrgAdmin && (
 
     <>
         {/* Added: Plan Selection + Order Summary (top) */}
