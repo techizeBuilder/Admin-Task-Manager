@@ -571,7 +571,7 @@ export default function QuickTasks() {
           <div className="modal-container max-w-2xl">
             
             {/* Header */}
-            <div className="modal-header" style={{ background: '#059669' }}>
+            <div className="modal-header" style={{ background: '#4f46d6' }}>
               <div className="modal-title-section">
                 <div className="modal-icon">
                   <Edit3 size={20} />
@@ -694,7 +694,7 @@ export default function QuickTasks() {
       )}
 
       {/* Search and Filters */}
-      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-2 mb-4 gap-2">
         {/* Search Bar */}
         <div className="relative w-50 max-w-md min-w-[170px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />

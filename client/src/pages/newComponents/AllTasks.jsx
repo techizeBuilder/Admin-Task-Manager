@@ -2423,7 +2423,7 @@ export default function AllTasks({
       </div>
 
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-2 mb-2 gap-2">
         {/* Search Bar */}
 
         {/* Filters */}
