@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from "react-dom";
-import { 
+import {
   Plus,
   CheckCircle,
   XCircle,
@@ -112,13 +112,13 @@ export default function ApprovalManager() {
     const pending = approvers.filter(a => a.status === 'pending');
 
     if (rejected.length > 0 && mode !== 'any') return 'rejected';
-    
+
     switch (mode) {
       case 'any':
         return approved.length > 0 ? 'approved' : pending.length > 0 ? 'pending' : 'waiting';
       case 'all':
-        return approved.length === approvers.length ? 'approved' : 
-               rejected.length > 0 ? 'rejected' : 'pending';
+        return approved.length === approvers.length ? 'approved' :
+          rejected.length > 0 ? 'rejected' : 'pending';
       case 'sequential':
         const currentIndex = approved.length;
         if (currentIndex === approvers.length) return 'approved';
@@ -142,7 +142,7 @@ export default function ApprovalManager() {
   const handleApproval = (taskId, approverId, action, comment) => {
     setApprovalTasks(tasks => tasks.map(task => {
       if (task.id !== taskId) return task;
-      
+
       const updatedApprovers = task.approvers.map(approver => {
         if (approver.id === approverId) {
           return {
@@ -241,14 +241,14 @@ export default function ApprovalManager() {
                 <p className="text-sm text-gray-600">Manage approval workflows and tasks</p>
               </div>
             </div>
-              <Link href="/tasks/create?type=approval">
-            <button
-           
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Approval Task
-            </button></Link>
+            <Link href="/tasks/create?type=approval">
+              <button
+
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Approval Task
+              </button></Link>
           </div>
         </div>
       </div>
@@ -311,7 +311,7 @@ export default function ApprovalManager() {
                 <Filter className="h-4 w-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Filters:</span>
               </div>
-              
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -340,17 +340,15 @@ export default function ApprovalManager() {
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === "grid" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "grid" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <Grid3X3 className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`p-2 rounded-md transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -363,9 +361,9 @@ export default function ApprovalManager() {
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredTasks.map(task => (
-              <ApprovalTaskCard 
-                key={task.id} 
-                task={task} 
+              <ApprovalTaskCard
+                key={task.id}
+                task={task}
                 currentUser={currentUser}
                 onApproval={handleApproval}
                 getApprovalStatus={getApprovalStatus}
@@ -402,20 +400,20 @@ export default function ApprovalManager() {
             <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No approval tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first approval task.</p>
-         <Link href="/tasks/create?type=approval">
-            <button
-       
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Approval Task
-            </button>
+            <Link href="/tasks/create?type=approval">
+              <button
+
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Approval Task
+              </button>
             </Link>
           </div>
         )}
       </div>
 
-    
+
     </div>
   );
 }
@@ -448,132 +446,128 @@ function ApprovalTaskCard({ task, currentUser, onApproval, getApprovalStatus, ca
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-        {/* Card Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200">
+        {/* Header */}
+        <div className="p-3 border-b border-gray-200">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-blue-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                <p className="text-sm text-gray-600">{task.creator}</p>
+                <h3 className="text-sm font-semibold text-gray-900 leading-tight">{task.title}</h3>
+                <p className="text-xs text-gray-500">{task.creator}</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                 {/* Actions - now in 3-dot menu */}
-        <DropdownMenu className='bg-white'>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <MoreVerticalIcon className="h-5 w-5 text-gray-600" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-white">
-        
-            <DropdownMenuItem onClick={() => handleEdit(task.id)}>
-              <Edit3 className="h-4 w-4 mr-2 text-gray-600" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDelete(task.id)}>
-              <Trash2 className="h-4 w-4 mr-2 text-red-600" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-            </button>
+
+            {/* Actions */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-1 hover:bg-gray-100 rounded-md transition-colors">
+                  <MoreVerticalIcon className="h-4 w-4 text-gray-600" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-36 bg-white">
+                <DropdownMenuItem onClick={() => handleEdit(task.id)}>
+                  <Edit3 className="h-3.5 w-3.5 mr-2 text-gray-600" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleDelete(task.id)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-2 text-red-600" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          <p className="text-sm text-gray-600 mb-4">{task.description}</p>
+          {/* Description */}
+          <p className="text-xs text-gray-600 mt-2 line-clamp-2">{task.description}</p>
 
-          {/* Status and Priority */}
-          <div className="flex items-center space-x-2 mb-4">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(overallStatus)}`}>
+          {/* Status & Priority */}
+          <div className="flex items-center space-x-1 mt-2 flex-wrap">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(overallStatus)}`}>
               {getStatusIcon(overallStatus)}
               <span className="ml-1 capitalize">{overallStatus}</span>
             </span>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getPriorityColor(task.priority)}`}>
               {task.priority.toUpperCase()}
             </span>
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
               {getModeIcon(task.mode)}
               <span className="ml-1 capitalize">{task.mode}</span>
             </span>
           </div>
         </div>
 
-        {/* Card Body */}
-        <div className="p-6 space-y-4">
+        {/* Body */}
+        <div className="p-3 space-y-2 text-xs">
           {/* Details */}
-          <div className="grid grid-cols-1 gap-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center space-x-2 text-gray-600">
-                <Calendar className="h-4 w-4" />
-                <span>Due Date:</span>
-              </span>
-              <span className="font-medium text-gray-900">{task.dueDate}</span>
+          <div className="grid grid-cols-2 gap-1">
+            <div className="flex items-center space-x-1 text-gray-600">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{task.dueDate}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center space-x-2 text-gray-600">
-                <Users className="h-4 w-4" />
-                <span>Approvers:</span>
-              </span>
-              <span className="font-medium text-gray-900">{task.approvers.length}</span>
+            <div className="flex items-center space-x-1 text-gray-600 justify-end">
+              <Users className="h-3.5 w-3.5" />
+              <span>{task.approvers.length} Approvers</span>
             </div>
           </div>
 
           {/* Approval Chain */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Approval Chain</h4>
-            <div className="space-y-2">
-              {task.approvers.map((approver, index) => (
-                <div key={approver.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                      approver.status === 'approved' ? 'bg-green-100' :
-                      approver.status === 'rejected' ? 'bg-red-100' :
-                      approver.status === 'pending' ? 'bg-yellow-100' : 'bg-gray-100'
-                    }`}>
+            <h4 className="text-xs font-semibold text-gray-700 mb-1">Approval Chain</h4>
+            <div className="space-y-1.5">
+              {task.approvers.map((approver) => (
+                <div key={approver.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className={`h-6 w-6 rounded-full flex items-center justify-center ${approver.status === 'approved'
+                          ? 'bg-green-100'
+                          : approver.status === 'rejected'
+                            ? 'bg-red-100'
+                            : approver.status === 'pending'
+                              ? 'bg-yellow-100'
+                              : 'bg-gray-100'
+                        }`}
+                    >
                       {approver.status === 'approved' ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-3 w-3 text-green-600" />
                       ) : approver.status === 'rejected' ? (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-3 w-3 text-red-600" />
                       ) : approver.status === 'pending' ? (
-                        <Clock className="h-4 w-4 text-yellow-600" />
+                        <Clock className="h-3 w-3 text-yellow-600" />
                       ) : (
-                        <User className="h-4 w-4 text-gray-600" />
+                        <User className="h-3 w-3 text-gray-600" />
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{approver.name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{approver.role}</p>
+                      <p className="text-xs font-medium text-gray-900">{approver.name}</p>
+                      <p className="text-[10px] text-gray-500 capitalize">{approver.role}</p>
                     </div>
                   </div>
-                  
-                  {approver.status === 'pending' && canUserApprove(task, approver) && approver.id === currentUser.id && (
-                    <button 
-                      className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-                      onClick={() => handleApproveClick(approver)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Review
-                    </button>
-                  )}
+
+                  {approver.status === 'pending' &&
+                    canUserApprove(task, approver) &&
+                    approver.id === currentUser.id && (
+                      <button
+                        className="inline-flex items-center px-2 py-0.5 bg-blue-600 text-white text-[10px] rounded hover:bg-blue-700"
+                        onClick={() => handleApproveClick(approver)}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Review
+                      </button>
+                    )}
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Card Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 text-xs text-gray-500">
-              <span>Created: {task.createdAt}</span>
-            </div>
-            <button className="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
-              <FileText className="h-4 w-4 mr-1" />
-              View Details
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="px-3 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[11px]">
+          <span className="text-gray-500">Created: {task.createdAt}</span>
+          <button className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium">
+            <FileText className="h-3.5 w-3.5 mr-1" />
+            View
+          </button>
         </div>
       </div>
 
@@ -650,7 +644,7 @@ function ApprovalTaskListItem({ task, currentUser, onApproval, getApprovalStatus
             </div>
             <div className="flex items-center space-x-2">
               {canApprove && (
-                <button 
+                <button
                   className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
                   onClick={() => handleApproveClick(userApprover)}
                 >

@@ -559,7 +559,6 @@ export default function MilestoneManager() {
                   <button className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700">View Details</button>
                 </div>
               </div>
-
             ))}
           </div>
         ) : (

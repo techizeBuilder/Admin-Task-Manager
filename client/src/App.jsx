@@ -414,7 +414,7 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={ApprovalManager}
-                    allowedRoles={["individual", "employee", "org_admin"]}
+                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
                   />
                 </AdminLayout>
               </Route>
