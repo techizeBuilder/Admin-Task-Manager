@@ -97,7 +97,10 @@ const connectToMongoDB = async () => {
       "mongodb+srv://jeeturadicalloop:Mjvesqnj8gY3t0zP@cluster0.by2xy6x.mongodb.net/TaskSetu";
 
     // Add MongoDB connection options
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
 
     console.log("Connected to MongoDB TaskSetu database");
 
