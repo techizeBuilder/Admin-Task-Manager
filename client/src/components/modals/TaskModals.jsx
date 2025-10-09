@@ -8,11 +8,19 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
     deleteForms: false,
     irreversible: false
   });
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleConfirm = () => {
-    if (confirmChecks.irreversible) {
-      onConfirm();
-      onClose();
+  const handleConfirm = async () => {
+    if (confirmChecks.irreversible && !isDeleting) {
+      setIsDeleting(true);
+      try {
+        await onConfirm();
+        onClose();
+      } catch (error) {
+        console.error('Error in delete confirmation:', error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -88,12 +96,19 @@ export function DeleteTaskModal({ isOpen, onClose, onConfirm, task }) {
         <div className="modal-actions flex justify-between">
           <button className="modal-btn-secondary" onClick={onClose}>Cancel</button>
           <button 
-            className={`modal-btn-primary ${!confirmChecks.irreversible ? 'disabled' : ''}`}
+            className={`modal-btn-primary ${!confirmChecks.irreversible || isDeleting ? 'disabled' : ''}`}
             onClick={handleConfirm}
-            disabled={!confirmChecks.irreversible}
-            style={{ background: !confirmChecks.irreversible ? '#9ca3af' : '#ef4444' }}
+            disabled={!confirmChecks.irreversible || isDeleting}
+            style={{ background: !confirmChecks.irreversible || isDeleting ? '#9ca3af' : '#ef4444' }}
           >
-            Delete Task
+            {isDeleting ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Deleting...
+              </>
+            ) : (
+              'Delete Task'
+            )}
           </button>
         </div>
       </div>

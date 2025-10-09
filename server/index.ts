@@ -1,12 +1,15 @@
 import "./env.ts"; // Load environment variables first
 import express from "express";
 import mongoose from "mongoose";
-import swagger from "swagger-jsdoc";
+import path from "path";
+import swaggerJSDoc from "swagger-jsdoc";
 import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import taskfeedRoutes from "./routes/taskfeedRoutes.js";
+import quickTaskRoutes from "./routes/quickTaskRoutes.js";
+import milestoneTaskRoutes from "./routes/milestoneTaskRoutes.js";
 
 const app = express();
 
@@ -44,13 +47,13 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["./server/routes/*.js", "./server/models/*.js"],
+  apis: ["./server/routes/*.js", "./server/models/*.js", "./server/modals/*.js"],
   failOnErrors: true, // Whether or not to throw when parsing errors
   encoding: "utf8", // Encoding for reading files
   verbose: true, // Include errors in the console
 };
 
-const swaggerSpec = swagger(swaggerOptions);
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
 // Serve Swagger documentation with custom options
 app.use(
@@ -90,6 +93,9 @@ app.use((err, req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+
 // MongoDB connection
 const connectToMongoDB = async () => {
   try {
@@ -115,6 +121,14 @@ const connectToMongoDB = async () => {
       // Register taskfeed routes
       app.use("/api", taskfeedRoutes);
       console.log("Taskfeed routes registered");
+
+      // Register Quick Task routes
+      app.use("/api/quick-tasks", quickTaskRoutes);
+      console.log("Quick Task routes registered");
+
+      // Register Milestone Task routes
+      app.use("/api/milestone-tasks", milestoneTaskRoutes);
+      console.log("Milestone Task routes registered");
     } catch (routeError) {
       console.error("Error registering routes:", routeError);
       throw routeError;
@@ -162,7 +176,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -175,7 +189,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: true,
             requireApproval: false,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
         {
@@ -188,7 +202,7 @@ async function initializeSampleData() {
           settings: {
             allowGuestAccess: false,
             requireApproval: true,
-            defaultTaskStatus: "todo",
+            defaultTaskStatus: "open",
           },
         },
       ];

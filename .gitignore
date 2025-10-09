@@ -7,4 +7,12 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
+.env.examplenode_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+.env
 .env.example
+package-lock.json

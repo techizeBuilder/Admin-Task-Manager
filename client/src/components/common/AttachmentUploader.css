@@ -40,4 +40,43 @@
 /* Force white background for all child elements */
 .attachment-uploader-white-bg * {
   background-color: inherit !important;
+}/* Custom styles for AttachmentUploader when used in TaskAttachments */
+.attachment-uploader-white-bg .border-2,
+.attachment-uploader-white-bg div[class*="border-2"],
+.attachment-uploader-white-bg div[class*="border-dashed"] {
+  background-color: white;
+  border-color: #d1d5db;
+}
+
+.attachment-uploader-white-bg .border-2:hover,
+.attachment-uploader-white-bg div[class*="border-2"]:hover,
+.attachment-uploader-white-bg div[class*="border-dashed"]:hover {
+  background-color: #f9fafb;
+  border-color: #6b7280;
+}
+
+.attachment-uploader-white-bg .border-2.border-blue-500,
+.attachment-uploader-white-bg div[class*="border-blue-500"] {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+
+/* Override dark mode styles specifically - more specific selectors */
+.attachment-uploader-white-bg .dark\\:bg-blue-950,
+.attachment-uploader-white-bg .dark\\:hover\\:bg-gray-800,
+.attachment-uploader-white-bg .bg-gray-800,
+.attachment-uploader-white-bg .bg-gray-900 {
+  background-color: white;
+}
+
+.attachment-uploader-white-bg .dark\\:bg-blue-950:hover,
+.attachment-uploader-white-bg .dark\\:hover\\:bg-gray-800:hover,
+.attachment-uploader-white-bg .bg-gray-800:hover,
+.attachment-uploader-white-bg .bg-gray-900:hover {
+  background-color: #f9fafb;
+}
+
+/* Improved specificity without universal selector */
+.attachment-uploader-white-bg .attachment-uploader-content {
+  background-color: white;
 }

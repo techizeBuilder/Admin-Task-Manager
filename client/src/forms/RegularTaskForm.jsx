@@ -58,7 +58,7 @@ const AdvancedFieldsModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
             Advanced Options
           </h3>
@@ -83,10 +83,10 @@ const AdvancedFieldsModal = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {/* Reference Process */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Reference Process
             </label>
             <Controller
@@ -109,7 +109,7 @@ const AdvancedFieldsModal = ({
 
           {/* Custom Form */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Custom Form
             </label>
             <Controller
@@ -132,7 +132,7 @@ const AdvancedFieldsModal = ({
 
           {/* Dependencies */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Dependencies
             </label>
             <Controller
@@ -158,7 +158,7 @@ const AdvancedFieldsModal = ({
 
           {/* Task Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Task Type <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -248,9 +248,59 @@ const RegularTaskForm = ({
     setTaskNameLength(watchedTaskName?.length || 0);
   }, [watchedTaskName]);
 
-  // Auto-set due date based on priority
+  // Prefill form with Quick Task data from local storage (cleaner than URL parameters)
   useEffect(() => {
-    if (watchedPriority?.value) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromQuickTask = searchParams.get("from_quick_task");
+    
+    if (fromQuickTask) {
+      console.log('🔄 Prefilling from Quick Task:', fromQuickTask);
+      
+      // Try to get Quick Task data from localStorage (set during conversion)
+      const quickTaskData = localStorage.getItem(`quick_task_${fromQuickTask}`);
+      
+      if (quickTaskData) {
+        try {
+          const taskData = JSON.parse(quickTaskData);
+          console.log('📋 Quick Task Data:', taskData);
+          
+          if (taskData.title) {
+            console.log('✅ Setting title:', taskData.title);
+            setValue("taskName", taskData.title);
+          }
+          
+          if (taskData.priority) {
+            const priorityValue = taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1).toLowerCase();
+            const priorityOption = priorityOptions.find(option => option.value === priorityValue);
+            console.log('✅ Setting priority:', priorityOption);
+            if (priorityOption) {
+              setValue("priority", priorityOption);
+            }
+          }
+          
+          if (taskData.dueDate && taskData.dueDate !== '') {
+            console.log('✅ Setting due date:', taskData.dueDate);
+            setValue("dueDate", taskData.dueDate);
+          }
+          
+          // Clean up localStorage after use
+          localStorage.removeItem(`quick_task_${fromQuickTask}`);
+        } catch (error) {
+          console.error('❌ Error parsing Quick Task data:', error);
+        }
+      } else {
+        console.log('❌ No Quick Task data found in localStorage');
+      }
+    }
+  }, [setValue]);
+
+  // Auto-set due date based on priority (only if not from Quick Task)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const fromQuickTask = searchParams.get("from_quick_task");
+    
+    // Only auto-set due date if not converting from Quick Task and priority is selected
+    if (!fromQuickTask && watchedPriority?.value) {
       const today = new Date();
       let daysToAdd = 7; // Default for Low priority
 
@@ -373,10 +423,10 @@ const RegularTaskForm = ({
 
   return (
     <>
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         {/* Task Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900  mb-0">
             Task Name <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -406,7 +456,7 @@ const RegularTaskForm = ({
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900  mb-0">
             Description
           </label>
           <Controller
@@ -429,7 +479,7 @@ const RegularTaskForm = ({
 
           {/* Assigned To */}
           <div>
-            <label className=" block text-sm font-medium text-gray-900 mb-2">
+            <label className=" block text-sm font-medium text-gray-900  mb-0">
               Assigned To <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -458,7 +508,7 @@ const RegularTaskForm = ({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Priority <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -485,7 +535,7 @@ const RegularTaskForm = ({
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-gray-900  mb-0">
               Due Date <span className="text-red-500">*</span>
             </label>
             <input
@@ -510,7 +560,7 @@ const RegularTaskForm = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900  mb-0">
             Visibility <span className="text-red-500">*</span>
           </label>
           <div className="flex space-x-4">
@@ -545,7 +595,7 @@ const RegularTaskForm = ({
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900  mb-0">
             Labels / Tags
           </label>
           <Controller
@@ -578,7 +628,7 @@ const RegularTaskForm = ({
 
         {/* Attachments */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900  mb-0">
             Attachments
             <span className="text-xs text-gray-500 ml-2">(Max 5MB total)</span>
           </label>

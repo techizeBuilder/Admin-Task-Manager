@@ -53,8 +53,8 @@ const TaskSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["todo", "in-progress", "completed", "on-hold", "cancelled"],
-      default: "todo",
+      enum: ["open", "todo", "in-progress", "completed", "on-hold", "cancelled"],
+      default: "open",
     },
     dueDate: {
       type: Date,
@@ -88,18 +88,148 @@ const TaskSchema = mongoose.Schema(
     ],
     attachments: [
       {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        originalName: String,
+        filename: String,
+        path: String,
+        size: Number,
+        mimetype: String,
+        url: String,
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        },
+        version: {
+          type: Number,
+          default: 1
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        // Legacy fields for backward compatibility
+        id: String,
+        name: String,
+        type: String,
+      },
+    ],
+    // External links
+    links: [
+      {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        url: {
+          type: String,
+          required: true
+        },
+        title: String,
+        description: String,
+        addedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
+    // Deleted attachments for audit trail
+    deletedAttachments: [
+      {
+        _id: mongoose.Schema.Types.ObjectId,
+        originalName: String,
+        filename: String,
+        path: String,
+        size: Number,
+        mimetype: String,
+        url: String,
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        uploadedAt: Date,
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
+    customFields: {
+      type: Object,
+      default: {},
+    },
+    // Comments and activity
+    comments: [{
+      _id: {
+        type: String, // Changed to String to match your controller implementation
+        required: true,
+      },
+      text: {
+        type: String,
+        required: true,
+      },
+      content: {
+        type: String, // Added for backward compatibility
+      },
+      author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      parentId: {
+        type: String, // Reference to parent comment _id for replies
+        default: null,
+      },
+      mentions: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }],
+      attachments: [{
         id: String,
         name: String,
         filename: String,
         size: Number,
         type: String,
         url: String,
+      }],
+      createdAt: {
+        type: Date,
+        default: Date.now,
       },
-    ],
-    customFields: {
-      type: Object,
-      default: {},
-    },
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      isEdited: {
+        type: Boolean,
+        default: false,
+      },
+    }],
     referenceProcess: {
       type: String,
       default: null,
@@ -213,6 +343,68 @@ const TaskSchema = mongoose.Schema(
     organization: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
+    },
+    
+    // Snooze Task Fields
+    isSnooze: {
+      type: Boolean,
+      default: false,
+    },
+    snoozeUntil: {
+      type: Date,
+      default: null,
+    },
+    snoozeReason: {
+      type: String,
+      default: null,
+    },
+    snoozedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    snoozedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Risk Task Fields
+    isRisk: {
+      type: Boolean,
+      default: false,
+    },
+    riskLevel: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: null,
+    },
+    riskReason: {
+      type: String,
+      default: null,
+    },
+    riskMarkedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    riskMarkedAt: {
+      type: Date,
+      default: null,
+    },
+    
+    // Task Completion Fields
+    completedDate: {
+      type: Date,
+      default: null,
+    },
+    completedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    completionNotes: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }

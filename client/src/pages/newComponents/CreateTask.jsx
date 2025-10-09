@@ -8,6 +8,7 @@ import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
 import ApprovalTaskForm from "../../forms/ApprovalTaskForm";
 import { useRole } from "../../features/shared/hooks/useRole";
 import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
+import { useAuth } from "../../features/shared/hooks/useAuth";
 import { hasAccess } from "../../utils/auth";
 import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
 import { useLocation } from "wouter";
@@ -31,6 +32,7 @@ export default function CreateTask({
     canAssignToOthers,
     restrictions,
   } = useAssignmentOptions();
+  const { user } = useAuth();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
   const { activeRole } = useActiveRole();
@@ -62,7 +64,7 @@ export default function CreateTask({
         id: "milestone",
         label: "Milestone",
         description: "Project checkpoint",
-        available: hasAccess(["org_admin"]),
+        available: hasAccess(["manager", "org_admin", "super_admin"]),
         color: "red",
         restrictedMessage: "Only Managers and Admins can create milestones",
       },
@@ -70,7 +72,7 @@ export default function CreateTask({
         id: "approval",
         label: "Approval Task",
         description: "Requires approval workflow",
-        available: hasAccess(["org_admin"]),
+        available: hasAccess(["manager", "org_admin", "super_admin"]),
         color: "green",
         restrictedMessage: "Only Managers and Admins can create approval tasks",
       },
@@ -98,8 +100,10 @@ export default function CreateTask({
         assignedTo = assignedTo._id || assignedTo.value || assignedTo.id || "";
       }
       // If assignedTo is "self", use current user's id if available
-      if (assignedTo === "self" && window?.currentUser?._id) {
-        assignedTo = window.currentUser._id;
+      if (assignedTo === "self" && user?.id) {
+        assignedTo = user.id;
+      } else if (assignedTo === "self" && user?._id) {
+        assignedTo = user._id;
       }
       // If still not valid ObjectId, set to empty
       if (assignedTo && !/^[a-fA-F0-9]{24}$/.test(assignedTo)) {
@@ -123,18 +127,21 @@ export default function CreateTask({
         tags = tags.map(t => (typeof t === "object" ? t.value || t.label || "" : t)).filter(Boolean);
       }
 
-      // Debug: log title and data
       // Map taskName to title for backend compatibility
-      data.title = data.taskName;
+      data.title = data.taskName || data.title;
       delete data.taskName;
       console.log("DEBUG: data.title =", data.title);
       console.log("DEBUG: full data =", data);
       if (!data.title || data.title.trim() === "") {
-        setError("Title is required.");
-        setLoading(false);
+        alert("Title is required.");
         return;
       }
 
+      // Auth token
+      const token = localStorage.getItem("token");
+      let response;
+
+      // Use regular task API for ALL task types including milestone
       const submitData = new FormData();
       submitData.append("title", data.title);
       submitData.append("description", data.description || "");
@@ -153,16 +160,31 @@ export default function CreateTask({
         });
       }
 
-      // Add any extra fields for recurring/milestone/approval if needed
+      // Add milestone-specific fields when taskType is milestone
+      if (selectedTaskType === "milestone") {
+        // Add milestone type
+        if (data.milestoneType) submitData.append("milestoneType", data.milestoneType);
+        
+        // Add linked tasks for milestone
+        if (data.linkedTasks && data.linkedTasks.length > 0) {
+          const linkedTaskIds = data.linkedTasks.map(task => task.value || task.id || task);
+          submitData.append("linkedTaskIds", JSON.stringify(linkedTaskIds));
+        }
+        
+        // Add milestone data object
+        const milestoneData = {
+          type: data.milestoneType || "standalone",
+          linkedTaskIds: data.linkedTasks ? data.linkedTasks.map(task => task.value || task.id || task) : [],
+          deliverables: data.deliverables || [],
+          completionCriteria: data.completionCriteria || [],
+          stakeholders: data.stakeholders || []
+        };
+        submitData.append("milestoneData", JSON.stringify(milestoneData));
+      }
+
+      // Add any extra fields for recurring/approval if needed
       if (selectedTaskType === "recurring" && data.recurrencePattern) {
         submitData.append("recurrencePattern", JSON.stringify(data.recurrencePattern));
-      }
-      if (selectedTaskType === "milestone" && data.milestoneData) {
-        submitData.append("milestoneData", JSON.stringify(data.milestoneData));
-        submitData.append("milestoneType", data.milestoneData.type || "standalone");
-        if (data.milestoneData.linkedTaskIds) {
-          submitData.append("linkedTaskIds", JSON.stringify(data.milestoneData.linkedTaskIds));
-        }
       }
       if (selectedTaskType === "approval" && data.approval) {
         submitData.append("approval", JSON.stringify(data.approval));
@@ -173,11 +195,8 @@ export default function CreateTask({
         submitData.append("createdByRole", activeRole);
       }
 
-      // Auth token
-      const token = localStorage.getItem("token");
-
-      // API call
-      const response = await axios.post("/api/create-task", submitData, {
+      // API call to regular task endpoint for ALL task types
+      response = await axios.post("/api/create-task", submitData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: token ? `Bearer ${token}` : "",
@@ -193,20 +212,24 @@ export default function CreateTask({
       // Optionally close modal
       if (onClose) onClose();
 
+      // Show success message
+      alert("Task created successfully!");
+      
       // Redirect to the tasks page
       setLocation("/tasks");
     } catch (error) {
       console.error("Error creating task:", error);
-      alert("Failed to create task: " + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      alert("Failed to create task: " + errorMessage);
     }
   };
 
   return (
-    <div className="flex flex-col h-full p-6 bg-gray-50 z-50" >
+    <div className="flex flex-col h-full p-5 bg-gray-50 z-50" >
       {/* Task Type Selection Section */}
-      <div className="bg-white rounded-md p-6 mb-6 shadow-sm border border-gray-200">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-white rounded-md p-5 mb-2 shadow-sm border border-gray-200">
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-gray-900">
             Task Type
           </h3>
           <p className="text-gray-600 text-sm">
@@ -214,7 +237,7 @@ export default function CreateTask({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-stretch">
           {taskTypes.map((taskType) => {
             const isSelected = selectedTaskType === taskType.id;
             const colorClass =
@@ -230,7 +253,7 @@ export default function CreateTask({
               if (!taskType.available) {
                 return {
                   button:
-                    "bg-gray-100 border-2 border-gray-300 cursor-not-allowed opacity-60",
+                    "bg-gray-100 border border-gray-300 cursor-not-allowed opacity-60",
                   icon: "bg-gray-400",
                   text: "text-gray-500",
                 };
@@ -239,22 +262,22 @@ export default function CreateTask({
               const colors = {
                 blue: {
                   button: isSelected
-                    ? "bg-blue-100 border-2 border-blue-500"
-                    : "bg-white border-2 border-gray-200 hover:border-blue-300",
+                    ? "bg-blue-50 border border-blue-400"
+                    : "bg-white border hover:border-blue-300",
                   icon: "bg-blue-500",
                   text: "text-gray-900",
                 },
                 red: {
                   button: isSelected
-                    ? "bg-red-100 border-2 border-red-500"
-                    : "bg-white border-2 border-gray-200 hover:border-red-300",
+                    ? "bg-red-50 border border-red-400"
+                    : "bg-white border hover:border-red-300",
                   icon: "bg-red-500",
                   text: "text-gray-900",
                 },
                 green: {
                   button: isSelected
-                    ? "bg-green-100 border-2 border-green-500"
-                    : "bg-white border-2 border-gray-200 hover:border-green-300",
+                    ? "bg-green-50 border border-green-400"
+                    : "bg-white border hover:border-green-300",
                   icon: "bg-green-500",
                   text: "text-gray-900",
                 },
@@ -267,62 +290,56 @@ export default function CreateTask({
             const getTaskIcon = () => {
               switch (taskType.id) {
                 case "regular":
-                  return (
-                    <RegularTaskIcon size={25} className="text-white" />
-                  );
+                  return <RegularTaskIcon size={18} className="text-white" />;
                 case "recurring":
-                  return (
-                    <RecurringTaskIcon size={25} className="text-white" />
-                  );
+                  return <RecurringTaskIcon size={18} className="text-white" />;
                 case "milestone":
-                  return (
-                    <>
-                      <MilestoneTaskIcon size={25} className="text-white" />
-                    </>
-                  );
+                  return <MilestoneTaskIcon size={18} className="text-white" />;
                 case "approval":
-                  return (
-                    <ApprovalTaskIcon size={25} className="text-white" />
-                  );
+                  return <ApprovalTaskIcon size={18} className="text-white" />;
                 default:
                   return null;
               }
             };
 
             return (
-              <div key={taskType.id} className="relative">
+              <div key={taskType.id} className="relative h-full">
                 <button
                   onClick={() =>
                     taskType.available && setSelectedTaskType(taskType.id)
                   }
-                  className={`flex items-center p-4 rounded-lg transition-all group text-left w-full ${colorClasses.button}`}
+                  className={`flex flex-col justify-between h-full p-3 rounded-md transition-all group text-left w-full ${colorClasses.button}`}
                   data-testid={`task-type-${taskType.id}`}
                   disabled={!taskType.available}
                   title={!taskType.available ? taskType.restrictedMessage : ""}
                 >
-                  <div
-                    className={`flex items-center justify-center w-8 h-8 rounded-md ${colorClasses.icon} text-white mr-3 flex-shrink-0`}
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  {/* Top section: Icon + Label */}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`flex items-center justify-center w-7 h-7 rounded ${colorClasses.icon} flex-shrink-0`}
                     >
                       {getTaskIcon()}
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className={`font-medium ${colorClasses.text}`}>
+                    </div>
+                    <h4
+                      className={`font-medium text-sm leading-tight truncate ${colorClasses.text}`}
+                      title={taskType.label}
+                    >
                       {taskType.label}
                     </h4>
+                  </div>
+
+                  {/* Bottom: Description & restriction */}
+                  <div className="mt-2 overflow-hidden">
                     <p
-                      className={`text-xs ${taskType.available ? "text-gray-600" : "text-gray-400"}`}
+                      className={`text-xs truncate ${taskType.available ? "text-gray-600" : "text-gray-400"
+                        }`}
+                      title={taskType.description}
                     >
                       {taskType.description}
                     </p>
+
                     {!taskType.available && (
-                      <p className="text-xs text-red-500 mt-1">
+                      <p className="text-[11px] text-red-500 mt-1 truncate">
                         {role === "employee"
                           ? "Employee role restriction"
                           : "Insufficient permissions"}
@@ -330,10 +347,11 @@ export default function CreateTask({
                     )}
                   </div>
                 </button>
+
                 {!taskType.available && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-1 right-1">
                     <svg
-                      className="w-4 h-4 text-red-500"
+                      className="w-3.5 h-3.5 text-red-500"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -349,12 +367,14 @@ export default function CreateTask({
             );
           })}
         </div>
+
+
       </div>
 
       {/* Task Details Section */}
-      <div className="bg-white rounded-md p-6 flex-1 shadow-sm border border-gray-200">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-white rounded-md p-5 flex-1 shadow-sm border border-gray-200">
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-gray-900 ">
             Task Details
           </h3>
           <p className="text-gray-600 text-sm">
@@ -855,7 +875,7 @@ function LegacyCreateTask({
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "approval"
                   ? "bg-emerald-500 text-white"
                   : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
-                  }`}
+                }`}
               >
                 <CheckCircle size={16} className="text-amber-600" />
               </div>

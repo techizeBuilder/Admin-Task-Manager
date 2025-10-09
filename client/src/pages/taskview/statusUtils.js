@@ -6,6 +6,7 @@ function getStatusLabel(statusCode) {
     DONE: "Completed",
     CANCELLED: "Cancelled",
     // Legacy support
+    open: "Open",
     pending: "Open",
     "in-progress": "In Progress",
     completed: "Completed",

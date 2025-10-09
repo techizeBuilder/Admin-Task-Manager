@@ -113,8 +113,8 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["todo", "in-progress", "review", "completed"],
-      default: "todo",
+      enum: ["open", "todo", "in-progress", "review", "completed"],
+      default: "open",
     },
     priority: {
       type: String,
@@ -199,15 +199,47 @@ const taskSchema = new mongoose.Schema(
         url: { type: String },
       },
     ],
+    // External links
+    links: [
+      {
+        _id: {
+          type: mongoose.Schema.Types.ObjectId,
+          default: () => new mongoose.Types.ObjectId()
+        },
+        url: {
+          type: String,
+          required: true
+        },
+        title: String,
+        description: String,
+        addedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        },
+        deleted: {
+          type: Boolean,
+          default: false
+        },
+        deletedAt: Date,
+        deletedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User"
+        }
+      }
+    ],
     customFields: { type: Map, of: mongoose.Schema.Types.Mixed },
 
     // Comments array for subtasks and tasks
     comments: [{
       _id: { type: String, required: true },
       text: { type: String, required: true },
+      content: { type: String }, // Added for backward compatibility
       author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-      authorName: { type: String, required: true },
-      authorEmail: { type: String, required: true },
+      parentId: { type: String, default: null }, // Added parentId field for reply nesting
       mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       createdAt: { type: Date, default: Date.now },
       updatedAt: { type: Date, default: Date.now },
@@ -255,6 +287,25 @@ const taskSchema = new mongoose.Schema(
     ],
     autoApproveEnabled: { type: Boolean, default: false },
     autoApproveAfter: { type: Number }, // hours
+    
+    // Snooze Task Fields
+    isSnooze: { type: Boolean, default: false },
+    snoozeUntil: { type: Date, default: null },
+    snoozeReason: { type: String, default: null },
+    snoozedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    snoozedAt: { type: Date, default: null },
+    
+    // Risk Task Fields
+    isRisk: { type: Boolean, default: false },
+    riskLevel: { type: String, enum: ["low", "medium", "high"], default: null },
+    riskReason: { type: String, default: null },
+    riskMarkedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    riskMarkedAt: { type: Date, default: null },
+    
+    // Task Completion Fields
+    completedDate: { type: Date, default: null },
+    completedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    completionNotes: { type: String, default: null },
   },
   {
     timestamps: true,

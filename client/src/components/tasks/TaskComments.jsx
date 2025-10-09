@@ -14,7 +14,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function TaskComments({ taskId, comments, onAddComment, onEditComment, onDeleteComment, currentUser, users = [] }) {
+export function TaskComments({
+  taskId,
+  task,
+  comments,
+  onAddComment,
+  onReplyToComment,
+  onEditComment,
+  onDeleteComment,
+  currentUser,
+  users = [],
+  permissions = {}
+}) {
   const [newComment, setNewComment] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -26,14 +37,14 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
-    
+
     // Extract mentions from the comment
     const mentionRegex = /@(\w+)/g;
     const mentions = [...newComment.matchAll(mentionRegex)];
     const mentionedUsers = mentions.map(match => {
       const username = match[1];
-      return users.find(u => 
-        u.firstName?.toLowerCase().includes(username.toLowerCase()) || 
+      return users.find(u =>
+        u.firstName?.toLowerCase().includes(username.toLowerCase()) ||
         u.lastName?.toLowerCase().includes(username.toLowerCase()) ||
         u.email?.toLowerCase().includes(username.toLowerCase())
       );
@@ -45,32 +56,31 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
       taskId,
       parentId: null
     });
-    
+
     setNewComment("");
   };
 
   const handleReplySubmit = async (parentId) => {
     if (!replyText.trim()) return;
-    
+
     // Extract mentions from the reply
     const mentionRegex = /@(\w+)/g;
     const mentions = [...replyText.matchAll(mentionRegex)];
     const mentionedUsers = mentions.map(match => {
       const username = match[1];
-      return users.find(u => 
-        u.firstName?.toLowerCase().includes(username.toLowerCase()) || 
+      return users.find(u =>
+        u.firstName?.toLowerCase().includes(username.toLowerCase()) ||
         u.lastName?.toLowerCase().includes(username.toLowerCase()) ||
         u.email?.toLowerCase().includes(username.toLowerCase())
       );
     }).filter(Boolean);
 
-    await onAddComment({
+    // Use the new dedicated reply API
+    await onReplyToComment(parentId, {
       content: replyText,
-      mentions: mentionedUsers,
-      taskId,
-      parentId
+      mentions: mentionedUsers
     });
-    
+
     setReplyText("");
     setReplyingTo(null);
   };
@@ -82,22 +92,25 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
     }));
   };
 
-  const getReplies = (parentId) => {
-    return comments.filter(comment => comment.parentId === parentId);
+  const getReplies = (comment) => {
+    // Use the nested replies from backend instead of filtering
+    return comment.replies || [];
   };
 
   const getTopLevelComments = () => {
-    return comments.filter(comment => !comment.parentId);
+    // All comments from backend are already top-level with nested replies
+    return Array.isArray(comments) ? comments : [];
   };
 
   const handleEdit = (comment) => {
-    setEditingId(comment.id);
+    const commentId = comment._id || comment.id;
+    setEditingId(commentId);
     setEditText(comment.content);
   };
 
   const handleSaveEdit = async () => {
     if (!editText.trim()) return;
-    
+
     await onEditComment(editingId, { content: editText });
     setEditingId(null);
     setEditText("");
@@ -113,7 +126,7 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
     if (lastAtIndex !== -1) {
       const searchTerm = text.slice(lastAtIndex + 1);
       if (searchTerm.length > 0) {
-        const suggestions = users.filter(user => 
+        const suggestions = users.filter(user =>
           user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -137,6 +150,16 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
   };
 
   const renderCommentContent = (content) => {
+    console.log('DEBUG - renderCommentContent called with:', content);
+    // Check if content exists and is a string
+    if (!content || typeof content !== 'string') {
+      console.log('DEBUG - Content is null, undefined, or not a string:', content);
+      return '<p class="text-gray-500 italic">Comment content is not available</p>';
+    }
+    // If content is empty string
+    if (content.trim() === '') {
+      return '<p class="text-gray-500 italic">Empty comment</p>';
+    }
     // Highlight mentions in comments
     return content.replace(/@(\w+)/g, '<span class="text-blue-600 font-medium">@$1</span>');
   };
@@ -147,60 +170,87 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
         Comments ({comments.length})
       </h3>
 
-      {/* Add new comment */}
-      <Card className="p-4">
-        <div className="space-y-3">
-          <div className="relative">
-            <CustomEditor
-              value={newComment}
-              onChange={setNewComment}
-              placeholder="Add a comment... Use @username to mention someone"
-           
-              className="border rounded-md"
-            />
-            
-            {showMentions && (
-              <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                {mentionSuggestions.map((user) => (
-                  <div
-                    key={user._id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => insertMention(user)}
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">
-                        {user.firstName?.[0]}{user.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">{user.firstName} {user.lastName}</span>
-                    <span className="text-xs text-gray-900">{user.email}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-          
-              <span>Use @ to mention users</span>
+      {/* Add new comment - only show if user has permission */}
+      {permissions.canAdd && (
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div className="relative">
+              <CustomEditor
+                value={newComment}
+                onChange={(value) => {
+                  setNewComment(value);
+                  if (permissions.canMention) {
+                    handleMentionInput(value);
+                  }
+                }}
+                placeholder={permissions.canMention
+                  ? "Add a comment... Use @username to mention someone"
+                  : "Add a comment..."
+                }
+                className="border rounded-md"
+              />
+
+              {showMentions && permissions.canMention && (
+                <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  {mentionSuggestions.map((user) => (
+                    <div
+                      key={user._id}
+                      className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => insertMention(user)}
+                    >
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">
+                          {user.firstName?.[0]}{user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">{user.firstName} {user.lastName}</span>
+                      <span className="text-xs text-gray-900">{user.email}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <Button 
-              onClick={handleCommentSubmit}
-              disabled={!newComment.trim()}
-            >
-              Add Comment
-            </Button>
+
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                {permissions.canMention && <span>Use @ to mention users</span>}
+                {permissions.canAttachFiles && (
+                  <span>
+                    {permissions.canMention ? " • " : ""}
+                    Attachments supported
+                  </span>
+                )}
+              </div>
+              <Button
+                onClick={handleCommentSubmit}
+                disabled={!newComment.trim()}
+              >
+                Add Comment
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
+
+      {/* Show message if user cannot add comments */}
+      {!permissions.canAdd && (
+        <Card className="p-4 bg-gray-50 dark:bg-gray-800/50">
+          <div className="text-center text-sm text-gray-500">
+            {permissions.canView
+              ? "You don't have permission to add comments to this task."
+              : "You don't have access to view or add comments on this task."
+            }
+          </div>
+        </Card>
+      )}
 
       {/* Comments list */}
       <div className="space-y-3">
         {getTopLevelComments().map((comment) => {
-          const replies = getReplies(comment.id);
+          const commentId = comment._id || comment.id;
+          const replies = getReplies(comment);
           return (
-            <div key={comment.id} className="space-y-3">
+            <div key={commentId} className="space-y-3">
               <Card className="p-4">
                 <div className="flex items-start gap-3">
                   <Avatar className="h-8 w-8">
@@ -209,18 +259,18 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                       {comment.author?.firstName?.[0]}{comment.author?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm text-gray-900 ">
-                          {comment.author?.firstName && comment.author?.lastName 
+                          {comment.author?.firstName && comment.author?.lastName
                             ? `${comment.author.firstName} ${comment.author.lastName}`
                             : comment.author?.name || comment.author?.email || 'Unknown User'
                           }
                         </span>
                         <span className="text-xs text-gray-900  ">
-                          {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                          {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Unknown time'}
                         </span>
                         {comment.isEdited && (
                           <Badge variant="secondary" className="text-xs">
@@ -228,43 +278,55 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                           </Badge>
                         )}
                       </div>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setReplyingTo(comment.id)}>
-                            <Reply className="h-4 w-4 mr-2" />
-                            Reply
-                          </DropdownMenuItem>
-                          {(comment.author?._id === currentUser?._id || currentUser?.role === 'admin') && (
-                            <>
-                              <DropdownMenuItem onClick={() => handleEdit(comment)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => onDeleteComment(comment.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+
+                      {/* Only show dropdown if user has at least one available action */}
+                      {(
+                        permissions.canAdd ||
+                        ((comment.author?.id === currentUser?.id || comment.author?._id === currentUser?._id) && permissions.canEdit) ||
+                        permissions.canModerate
+                      ) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {permissions.canAdd && (
+                                <DropdownMenuItem onClick={() => setReplyingTo(commentId)}>
+                                  <Reply className="h-4 w-4 mr-2" />
+                                  Reply
+                                </DropdownMenuItem>
+                              )}
+                              {(
+                                ((comment.author?.id === currentUser?.id || comment.author?._id === currentUser?._id) && permissions.canEdit) ||
+                                permissions.canModerate
+                              ) && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleEdit(comment)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => onDeleteComment(commentId)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      {permissions.canModerate && (comment.author?.id !== currentUser?.id && comment.author?._id !== currentUser?._id) ? 'Moderate (Delete)' : 'Delete'}
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                     </div>
-                    
-                    {editingId === comment.id ? (
+
+                    {editingId === commentId ? (
                       <div className="space-y-2">
                         <CustomEditor
                           value={editText}
                           onChange={setEditText}
-                      
+
                           className="border rounded-md"
                         />
                         <div className="flex gap-2">
@@ -277,14 +339,14 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                         </div>
                       </div>
                     ) : (
-                      <div 
+                      <div
                         className="text-sm text-gray-900  prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ 
-                          __html: renderCommentContent(comment.content) 
+                        dangerouslySetInnerHTML={{
+                          __html: renderCommentContent(comment.content || comment.text)
                         }}
                       />
                     )}
-                    
+
                     {comment.mentions && comment.mentions.length > 0 && (
                       <div className="flex items-center gap-1 flex-wrap">
                         <span className="text-xs text-gray-900  ">Mentioned:</span>
@@ -297,18 +359,20 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                     )}
 
                     {/* Reply form */}
-                    {replyingTo === comment.id && (
+                    {replyingTo === commentId && permissions.canAdd && (
                       <div className="mt-3 pl-4 border-l-2 border-gray-200">
                         <div className="space-y-2">
                           <CustomEditor
                             value={replyText}
                             onChange={setReplyText}
-                            placeholder="Write a reply... Use @username to mention someone"
-                         
+                            placeholder={permissions.canMention
+                              ? "Write a reply... Use @username to mention someone"
+                              : "Write a reply..."
+                            }
                             className="border rounded-md"
                           />
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleReplySubmit(comment.id)}>
+                            <Button size="sm" onClick={() => handleReplySubmit(commentId)}>
                               <Send className="h-4 w-4 mr-1" />
                               Reply
                             </Button>
@@ -326,10 +390,10 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => toggleReplies(comment.id)}
+                          onClick={() => toggleReplies(commentId)}
                           className="text-blue-600 hover:text-blue-700 p-0 h-auto font-normal"
                         >
-                          {expandedComments[comment.id] ? 'Hide' : 'View'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                          {expandedComments[commentId] ? 'Hide' : 'View'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
                         </Button>
                       </div>
                     )}
@@ -338,88 +402,99 @@ export function TaskComments({ taskId, comments, onAddComment, onEditComment, on
               </Card>
 
               {/* Replies */}
-              {expandedComments[comment.id] && replies.length > 0 && (
-                <div className="ml-12 space-y-2">
-                  {replies.map((reply) => (
-                    <Card key={reply.id} className="p-3 bg-gray-900">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={reply.author?.avatar} />
-                          <AvatarFallback className="text-xs">
-                            {reply.author?.firstName?.[0]}{reply.author?.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-xs text-gray-900 ">
-                                {reply.author?.firstName && reply.author?.lastName 
-                                  ? `${reply.author.firstName} ${reply.author.lastName}`
-                                  : reply.author?.name || reply.author?.email || 'Unknown User'
-                                }
-                              </span>
-                              <span className="text-xs text-gray-900">
-                                {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
-                              </span>
-                              {reply.isEdited && (
-                                <Badge variant="secondary" className="text-xs">
-                                  edited
+              {expandedComments[commentId] && replies.length > 0 && (
+                <div className="ml-12 space-y-2 border-l-2 border-blue-200 pl-4">
+                  {replies.map((reply) => {
+                    const replyId = reply._id || reply.id;
+                    return (
+                      <Card key={replyId} className="p-3 bg-blue-50 border-l-4 border-blue-300">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage src={reply.author?.avatar} />
+                            <AvatarFallback className="text-xs bg-blue-200">
+                              {reply.author?.firstName?.[0]}{reply.author?.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
+                                  <Reply className="h-3 w-3 mr-1" />
+                                  Reply
                                 </Badge>
-                              )}
+                                <span className="font-medium text-xs text-gray-900 ">
+                                  {reply.author?.firstName && reply.author?.lastName
+                                    ? `${reply.author.firstName} ${reply.author.lastName}`
+                                    : reply.author?.name || reply.author?.email || 'Unknown User'
+                                  }
+                                </span>
+                                <span className="text-xs text-gray-900">
+                                  {reply.createdAt ? formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true }) : 'Unknown time'}
+                                </span>
+                                {reply.isEdited && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    edited
+                                  </Badge>
+                                )}
+                              </div>
+
+                              {/* Only show dropdown if user has at least one available action */}
+                              {(
+                                ((reply.author?.id === currentUser?.id || reply.author?._id === currentUser?._id) && permissions.canEdit) ||
+                                permissions.canModerate
+                              ) && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                        <MoreHorizontal className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleEdit(reply)}>
+                                        <Edit className="h-3 w-3 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => onDeleteComment(replyId)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="h-3 w-3 mr-2" />
+                                        {permissions.canModerate && (reply.author?.id !== currentUser?.id && reply.author?._id !== currentUser?._id) ? 'Moderate' : 'Delete'}
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                             </div>
-                            
-                            {(reply.author?._id === currentUser?._id || currentUser?.role === 'admin') && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                                    <MoreHorizontal className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEdit(reply)}>
-                                    <Edit className="h-3 w-3 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => onDeleteComment(reply.id)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-3 w-3 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+
+                            <div
+                              className="text-xs text-gray-700 dark:text-gray-300 prose prose-xs max-w-none"
+                              dangerouslySetInnerHTML={{
+                                __html: renderCommentContent(reply.content)
+                              }}
+                            />
+
+                            {reply.mentions && reply.mentions.length > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="text-xs text-gray-900">Mentioned:</span>
+                                {reply.mentions.map((user, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {user.firstName} {user.lastName}
+                                  </Badge>
+                                ))}
+                              </div>
                             )}
                           </div>
-                          
-                          <div 
-                            className="text-xs text-gray-700 dark:text-gray-300 prose prose-xs max-w-none"
-                            dangerouslySetInnerHTML={{ 
-                              __html: renderCommentContent(reply.content) 
-                            }}
-                          />
-                          
-                          {reply.mentions && reply.mentions.length > 0 && (
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-xs text-gray-900">Mentioned:</span>
-                              {reply.mentions.map((user, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {user.firstName} {user.lastName}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>
           );
         })}
-        
+
         {getTopLevelComments().length === 0 && (
           <div className="text-center py-8 text-gray-900">
             <p>No comments yet. Be the first to comment!</p>

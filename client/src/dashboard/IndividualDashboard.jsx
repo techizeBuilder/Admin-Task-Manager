@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Plus,
   Search,
@@ -17,234 +18,13 @@ import {
   Edit,
   Trash2,
   X,
-  Download, // added
+  Download,   // added
   ListChecks, // added
 } from "lucide-react";
 import CreateTask from "../pages/newComponents/CreateTask";
-import ReactECharts from "echarts-for-react"; // added
-import { Button } from "../components/ui/button";
-import QuickTaskWidget from "../components/tasks/QuickTaskWidget";
-
-// --- DEMO MOCK DATA HELPERS ---
-const randPick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-};
-const toISO = (d) => new Date(d).toISOString();
-
-function generateMockTasks() {
-  const titles = [
-    "Fix login redirect",
-    "Implement role-based access",
-    "Update sprint backlog",
-    "Prepare weekly status",
-    "Refactor dashboard cards",
-    "QA: task creation flow",
-    "Add CSV export for reports",
-    "Page performance audit",
-    "Client feedback review",
-    "Design review: reporting",
-    "Migrate icons to Lucide",
-    "E2E tests for tasks",
-    "Cleanup feature flags",
-    "Improve error handling",
-    "Update onboarding docs",
-    "Recurring: Daily standup",
-    "Recurring: Weekly planning",
-  ];
-  const tagsPool = ["frontend", "backend", "bug", "feature", "docs", "ops"];
-  const priorities = ["low", "medium", "high", "urgent"];
-  const statuses = ["pending", "in_progress", "completed", "blocked"];
-
-  const now = new Date();
-  const tasks = [];
-
-  // Completed tasks across last 7 days (to populate the chart)
-  for (let i = 0; i < 8; i++) {
-    const completedOn = addDays(now, -randPick([0, 1, 2, 3, 4, 5, 6]));
-    const createdOn = addDays(completedOn, -randPick([1, 2, 3, 4]));
-    const dueOn = addDays(createdOn, randPick([1, 2, 3, 4, 5]));
-    const onTime = completedOn <= dueOn;
-    tasks.push({
-      id: `c-${i + 1}`,
-      title: randPick(titles),
-      description: "Task completed as part of recent sprint.",
-      status: "completed",
-      priority: randPick(priorities),
-      createdAt: toISO(createdOn),
-      updatedAt: toISO(completedOn),
-      completedAt: toISO(completedOn),
-      dueDate: toISO(dueOn),
-      isPastDue: !onTime,
-      isDueToday:
-        new Date(dueOn).toDateString() === new Date(now).toDateString(),
-      hasSubtasks: Math.random() > 0.5,
-      tags: Array.from(
-        new Set([randPick(tagsPool), randPick(tagsPool)]).values()
-      ),
-    });
-  }
-
-  // In progress + pending + blocked (mix of due dates, some overdue)
-  for (let i = 0; i < 14; i++) {
-    const createdOn = addDays(now, -randPick([1, 2, 3, 4, 5, 6, 7, 10]));
-    const dueIn = randPick([-3, -2, -1, 0, 1, 2, 3, 4, 5, 7]);
-    const dueOn = addDays(now, dueIn);
-    const st = randPick(statuses.filter((s) => s !== "completed"));
-    tasks.push({
-      id: `o-${i + 1}`,
-      title: randPick(titles),
-      description: "Ongoing work item.",
-      status: st,
-      priority: randPick(priorities),
-      createdAt: toISO(createdOn),
-      updatedAt: toISO(addDays(createdOn, randPick([0, 1, 2, 3]))),
-      dueDate: toISO(dueOn),
-      isPastDue: dueOn < now && st !== "completed",
-      isDueToday: dueOn.toDateString() === now.toDateString(),
-      hasSubtasks: Math.random() > 0.5,
-      tags: Array.from(
-        new Set([randPick(tagsPool), randPick(tagsPool)]).values()
-      ),
-      // Mark a few as recurring
-      isRecurring: Math.random() > 0.8,
-      recurringInterval: Math.random() > 0.5 ? "weekly" : "daily",
-    });
-  }
-
-  // Ensure a couple of clearly overdue high priority tasks
-  tasks.push(
-    {
-      id: "o-over-1",
-      title: "Resolve production error",
-      description: "Critical fix required.",
-      status: "in_progress",
-      priority: "urgent",
-      createdAt: toISO(addDays(now, -5)),
-      updatedAt: toISO(addDays(now, -1)),
-      dueDate: toISO(addDays(now, -2)),
-      isPastDue: true,
-      isDueToday: false,
-      hasSubtasks: true,
-      tags: ["backend", "ops", "bug"],
-    },
-    {
-      id: "o-over-2",
-      title: "Finalize client SOW",
-      description: "Contract needs final pass.",
-      status: "pending",
-      priority: "high",
-      createdAt: toISO(addDays(now, -7)),
-      updatedAt: toISO(addDays(now, -3)),
-      dueDate: toISO(addDays(now, -1)),
-      isPastDue: true,
-      isDueToday: false,
-      hasSubtasks: false,
-      tags: ["docs"],
-    }
-  );
-
-  // Recurring examples visible in widget
-  tasks.push(
-    {
-      id: "r-standup",
-      title: "Daily standup",
-      description: "Quick team sync.",
-      status: "pending",
-      priority: "low",
-      createdAt: toISO(addDays(now, -10)),
-      updatedAt: toISO(addDays(now, -1)),
-      dueDate: toISO(now),
-      isPastDue: false,
-      isDueToday: true,
-      hasSubtasks: false,
-      tags: ["ops"],
-      isRecurring: true,
-      recurringInterval: "daily",
-    },
-    {
-      id: "r-planning",
-      title: "Weekly planning",
-      description: "Plan the week.",
-      status: "pending",
-      priority: "medium",
-      createdAt: toISO(addDays(now, -14)),
-      updatedAt: toISO(addDays(now, -2)),
-      dueDate: toISO(addDays(now, 1)),
-      isPastDue: false,
-      isDueToday: false,
-      hasSubtasks: false,
-      tags: ["ops", "docs"],
-      isRecurring: true,
-      recurringInterval: "weekly",
-    }
-  );
-
-  return tasks;
-}
-
-function computeStatsFromTasks(tasks) {
-  const now = new Date();
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const in7 = addDays(now, 7);
-
-  const statusOf = (s) => (s || "").toLowerCase();
-
-  const completedToday = tasks.filter(
-    (t) =>
-      statusOf(t.status) === "completed" &&
-      t.completedAt &&
-      new Date(t.completedAt) >= startOfToday
-  ).length;
-
-  const inProgress = tasks.filter((t) =>
-    ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))
-  ).length;
-
-  const overdue = tasks.filter(
-    (t) =>
-      t.dueDate &&
-      new Date(t.dueDate) < now &&
-      statusOf(t.status) !== "completed"
-  ).length;
-
-  const upcoming = tasks.filter(
-    (t) =>
-      t.dueDate &&
-      new Date(t.dueDate) >= now &&
-      new Date(t.dueDate) <= in7 &&
-      statusOf(t.status) !== "completed"
-  ).length;
-
-  const onTimeCompleted = tasks.filter((t) => {
-    if (statusOf(t.status) !== "completed" || !t.completedAt || !t.dueDate)
-      return false;
-    return new Date(t.completedAt) <= new Date(t.dueDate);
-  }).length;
-
-  const byPriority = tasks.reduce(
-    (acc, t) => {
-      const p = (t.priority || "low").toLowerCase();
-      if (acc[p] == null) acc[p] = 0;
-      acc[p] += 1;
-      return acc;
-    },
-    { low: 0, medium: 0, high: 0, urgent: 0 }
-  );
-
-  return {
-    totalTasks: onTimeCompleted, // mapped to "Before Due Date" card label
-    completedTasks: completedToday,
-    inProgressTasks: inProgress,
-    overdueTasks: overdue,
-    upcomingDeadlines: upcoming,
-    tasksByPriority: byPriority,
-  };
-}
-// --- END DEMO MOCK DATA HELPERS ---
+import ReactECharts from "../components/ReactECharts";
+import { useActiveRole } from "../components/RoleSwitcher";
+import { quickTasksAPI } from "../services/quickTasksAPI";
 
 /**
  * Individual User Dashboard - Personal workspace for individual users
@@ -265,10 +45,11 @@ const IndividualDashboard = ({
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateTaskDrawer, setShowCreateTaskDrawer] = useState(false);
   const [recurringDone, setRecurringDone] = useState({});
-  // Deletion state
-  const [deletingTaskId, setDeletingTaskId] = useState(null);
-  const [deleteError, setDeleteError] = useState("");
-  const [deletedTaskIds, setDeletedTaskIds] = useState(new Set());
+  
+  // Quick Task creation states
+  const [isCreatingQuickTask, setIsCreatingQuickTask] = useState(false);
+  const [quickTaskError, setQuickTaskError] = useState(null);
+  const [quickTaskSuccess, setQuickTaskSuccess] = useState(null);
 
   // Get current user data
   const { data: user } = useQuery({
@@ -277,32 +58,103 @@ const IndividualDashboard = ({
   });
 
   // Fetch dashboard stats from API
-  const { data: dashboardStats } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
+  const { data: dashboardStats, error: dashboardError, isLoading: dashboardLoading } = useQuery({
+    queryKey: ["/api/dashboard-stats"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authorization token not found.");
+      }
+      const res = await fetch("/api/dashboard-stats", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        throw new Error("Unauthorized: Please login again.");
+      }
+      if (!res.ok) {
+        throw new Error(`Failed to fetch dashboard stats: ${res.status}`);
+      }
+      const data = await res.json();
+      console.log("Dashboard stats API response:", data);
+      return data.data; // Extract the data from the response
+    },
+    retry: false,
+    enabled: !!localStorage.getItem("token"), // Only run if token exists
+  });
+
+  // Fetch tasks for current user role from API with Authorization token
+  const { data: myTasksData, error: myTasksError, isLoading: myTasksLoading } = useQuery({
+    queryKey: ["/api/mytasks", 1, 100],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authorization token not found.");
+      }
+      const res = await fetch("/api/mytasks?page=1&limit=100", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        throw new Error("Unauthorized: Please login again.");
+      }
+      return res.json();
+    },
     retry: false,
   });
 
-  // Fetch tasks from API
-  const { data: apiTasks = [] } = useQuery({
-    queryKey: ["/api/tasks"],
-    retry: false,
-  });
+  // Navigation hook
+  const [, navigate] = useLocation();
+  
+  // Get active role from context
+  const { activeRole, setActiveRole } = useActiveRole();
+  
+  // Initialize active role when user data is loaded
+  React.useEffect(() => {
+    if (user?.role?.[0] && !activeRole) {
+      console.log('🔄 Setting initial active role:', user.role[0]);
+      setActiveRole(user.role[0]);
+    }
+  }, [user, activeRole, setActiveRole]);
+
+  // Determine current role to use
+  const currentRole = activeRole || user?.role?.[0] || "employee";
+
+  // Extract tasks for the active role from API response
+  const roleTasks = myTasksData?.data?.roles?.[currentRole] || [];
 
   // Use API data or fallback to passed tasks
   const demoTasks = useMemo(() => generateMockTasks(), []);
-  const currentTasks =
-    apiTasks.length > 0 ? apiTasks : tasks.length > 0 ? tasks : demoTasks;
+  // Local state for tasks to avoid mutating props or query data
+  const [localTasks, setLocalTasks] = useState(null);
+  const currentTasks = localTasks ?? (roleTasks.length > 0 ? roleTasks : tasks.length > 0 ? tasks : demoTasks);
 
   // Use API dashboard stats or fallback to userStats (mock)
 
   // Use API stats -> provided userStats -> compute from currentTasks
-  const computedStats = useMemo(
-    () => computeStatsFromTasks(currentTasks),
-    [currentTasks]
-  );
-  const currentStats =
-    dashboardStats ||
-    (userStats && Object.keys(userStats).length ? userStats : computedStats);
+
+  // const computedStats = useMemo(() => computeStatsFromTasks(currentTasks), [currentTasks]);
+  const computedStats = useMemo(() => {
+    const stats = computeStatsFromTasks(currentTasks);
+    console.log("computedStats (calculate hua from tasks):", stats);
+    return stats;
+  }, [currentTasks]);
+
+  // Map API response to expected format
+  const mappedDashboardStats = dashboardStats ? {
+    completedTasks: dashboardStats.completedToday || 0,
+    totalTasks: dashboardStats.beforeDueDate || 0,
+    inProgressTasks: dashboardStats.milestones || 0,
+    upcomingDeadlines: dashboardStats.collaborator || 0,
+    overdueTasks: dashboardStats.pastDue || 0,
+    tasksByPriority: {
+      urgent: dashboardStats.approvals || 0
+    }
+  } : null;
+
+  const currentStats = mappedDashboardStats || (userStats && Object.keys(userStats).length ? userStats : computedStats);
   // Derived metrics for Task Health and Overdue
   const now = new Date();
   const statusOf = (s) => (s || "").toLowerCase();
@@ -316,23 +168,15 @@ const IndividualDashboard = ({
     (t) => statusOf(t.status) === "completed"
   ).length;
   const overdueCount = currentTasks.filter(
-    (t) =>
-      t.dueDate &&
-      new Date(t.dueDate) < now &&
-      statusOf(t.status) !== "completed"
+    (t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed"
   ).length;
 
   // Recurring adherence (last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const recurringTasksFull = currentTasks.filter(
-    (t) => t.isRecurring || t.recurringInterval
-  );
+  const recurringTasksFull = currentTasks.filter((t) => t.isRecurring || t.recurringInterval);
   const recurringDue = recurringTasksFull.filter(
-    (t) =>
-      t.dueDate &&
-      new Date(t.dueDate) >= sevenDaysAgo &&
-      new Date(t.dueDate) <= now
+    (t) => t.dueDate && new Date(t.dueDate) >= sevenDaysAgo && new Date(t.dueDate) <= now
   );
   const recurringOnTime = recurringDue.filter(
     (t) =>
@@ -368,16 +212,8 @@ const IndividualDashboard = ({
         label: { show: false },
         labelLine: { show: false },
         data: [
-          {
-            value: completedOnTimeCount,
-            name: "On-time",
-            itemStyle: { color: "#16a34a" },
-          },
-          {
-            value: completedLateCount,
-            name: "Late",
-            itemStyle: { color: "#ef4444" },
-          },
+          { value: completedOnTimeCount, name: "On-time", itemStyle: { color: "#16a34a" } },
+          { value: completedLateCount, name: "Late", itemStyle: { color: "#ef4444" } },
         ],
       },
     ],
@@ -441,40 +277,52 @@ const IndividualDashboard = ({
     pinnedTasks.length > 0
       ? pinnedTasks
       : [
-          { id: 1, title: "Weekly planning session", priority: "high" },
-          { id: 2, title: "Client feedback review", priority: "medium" },
-          { id: 3, title: "Sprint retrospective", priority: "low" },
-        ];
+        { id: 1, title: "Weekly planning session", priority: "high" },
+        { id: 2, title: "Client feedback review", priority: "medium" },
+        { id: 3, title: "Sprint retrospective", priority: "low" },
+      ];
 
-  const handleQuickTaskSubmit = () => {
-    if (quickTaskInput.trim()) {
-      console.log("Creating quick task:", quickTaskInput);
-      setQuickTaskInput("");
-    }
-  };
-  // Delete handler
-  const handleDeleteTask = async (taskId) => {
-    const id = taskId ?? null;
-    if (!id) return;
-    const confirmed = window.confirm("Delete this task?");
-    if (!confirmed) return;
-
-    setDeleteError("");
-    setDeletingTaskId(id);
+  const handleQuickTaskSubmit = async () => {
+    if (!quickTaskInput.trim()) return;
+    
+    setIsCreatingQuickTask(true);
+    setQuickTaskError(null);
+    setQuickTaskSuccess(null);
+    
     try {
-      // TODO: integrate API deletion if available, then refetch
-      // Optimistic UI remove
-      setDeletedTaskIds((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
-    } catch (e) {
-      setDeleteError("Failed to delete. Please try again.");
+      console.log("🚀 Creating quick task:", quickTaskInput);
+      
+      const taskData = {
+        title: quickTaskInput.trim(),
+        priority: 'medium', // Default priority
+        status: 'open'
+      };
+      
+      const result = await quickTasksAPI.createQuickTask(taskData);
+      console.log("✅ Quick task created successfully:", result);
+      
+      // Clear input and show success
+      setQuickTaskInput("");
+      setQuickTaskSuccess("Quick task created successfully!");
+      
+      // Redirect to Quick Tasks page after 1.5 seconds
+      setTimeout(() => {
+        navigate('/quick-tasks');
+      }, 1500);
+      
+    } catch (error) {
+      console.error("❌ Error creating quick task:", error);
+      setQuickTaskError(error.message || "Failed to create quick task");
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setQuickTaskError(null);
+      }, 5000);
     } finally {
-      setDeletingTaskId(null);
+      setIsCreatingQuickTask(false);
     }
   };
+
   const handleCreateTask = () => {
     setShowCreateTaskDrawer(true);
   };
@@ -563,9 +411,7 @@ const IndividualDashboard = ({
       ])
     );
     const csv = rows
-      .map((r) =>
-        r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")
-      )
+      .map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
       .join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
@@ -596,81 +442,114 @@ const IndividualDashboard = ({
     }
   };
 
+  // State for local task deletion feedback
+  const [deletingTaskId, setDeletingTaskId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+
+  // Show error if unauthorized or other API error
+  if (myTasksError) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-10">
+          <span className="text-lg text-red-500">{myTasksError.message}</span>
+        </div>
+      </div>
+    );
+  }
+  // Show loading state
+  if (myTasksLoading) {
+    return (
+      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="text-center py-10">
+          <span className="text-lg text-gray-500">Loading tasks...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Delete task API logic
+  const handleDeleteTask = async (taskId) => {
+    setDeletingTaskId(taskId);
+    setDeleteError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setDeleteError("Authorization token not found.");
+        setDeletingTaskId(null);
+        return;
+      }
+      const res = await fetch(`/api/tasks/delete/${taskId}`, {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 401) {
+        setDeleteError("Unauthorized: Please login again.");
+        setDeletingTaskId(null);
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.message || "Failed to delete task.");
+        setDeletingTaskId(null);
+        return;
+      }
+      // Remove deleted task from UI (local only, will refetch on next load)
+      setLocalTasks((prev) => (prev ? prev.filter((t) => t._id !== taskId) : currentTasks.filter((t) => t._id !== taskId)));
+      setDeletingTaskId(null);
+    } catch (err) {
+      setDeleteError(err.message || "Error deleting task.");
+      setDeletingTaskId(null);
+    }
+  };
+
   const filteredTasks = currentTasks.filter((task) => {
-    const matchesSearch =
-      !searchTerm ||
-      searchTerm === "" ||
-      (task.title &&
-        task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    const matchesSearch = !searchTerm || searchTerm === "" ||
+      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.description &&
         task.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (task.tags &&
         task.tags.some((tag) =>
-          tag.toLowerCase().includes(searchTerm.toLowerCase())
+          tag && tag.toLowerCase().includes(searchTerm.toLowerCase())
         ));
     const matchesFilter =
       selectedFilter === "all"
         ? true
         : selectedFilter === "overdue"
-        ? task.dueDate &&
+          ? task.dueDate &&
           new Date(task.dueDate) < now &&
           statusOf(task.status) !== "completed"
-        : statusOf(task.status) === selectedFilter;
+          : statusOf(task.status) === selectedFilter;
     const matchesPriority =
       priorityFilter === "all"
         ? true
         : (task.priority || "").toLowerCase() === priorityFilter;
-    const matchesDueFrom = dueFrom
-      ? task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)
-      : true;
-    const matchesDueTo = dueTo
-      ? task.dueDate && new Date(task.dueDate) <= new Date(dueTo)
-      : true;
+    const matchesDueFrom = dueFrom ? (task.dueDate && new Date(task.dueDate) >= new Date(dueFrom)) : true;
+    const matchesDueTo = dueTo ? (task.dueDate && new Date(task.dueDate) <= new Date(dueTo)) : true;
 
-    return (
-      matchesSearch &&
-      matchesFilter &&
-      matchesPriority &&
-      matchesDueFrom &&
-      matchesDueTo
-    );
+    return matchesSearch && matchesFilter && matchesPriority && matchesDueFrom && matchesDueTo;
   });
 
   // Computes basic stats from a list of tasks
   function computeStatsFromTasks(tasks) {
     const now = new Date();
     const statusOf = (s) => (s || "").toLowerCase();
-    const openCount = tasks.filter((t) =>
-      ["pending", "todo", "open"].includes(statusOf(t.status))
-    ).length;
-    const inProgressCount = tasks.filter((t) =>
-      ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))
-    ).length;
-    const completedCount = tasks.filter(
-      (t) => statusOf(t.status) === "completed"
-    ).length;
-    const overdueCount = tasks.filter(
-      (t) =>
-        t.dueDate &&
-        new Date(t.dueDate) < now &&
-        statusOf(t.status) !== "completed"
-    ).length;
+    const openCount = tasks.filter((t) => ["pending", "todo", "open"].includes(statusOf(t.status))).length;
+    const inProgressCount = tasks.filter((t) => ["in_progress", "in-progress", "doing"].includes(statusOf(t.status))).length;
+    const completedCount = tasks.filter((t) => statusOf(t.status) === "completed").length;
+    const overdueCount = tasks.filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed").length;
 
     // Return in the same format as expected by UI
     return {
       completedTasks: completedCount, // Map to expected format
       totalTasks: tasks.length,
       inProgressTasks: inProgressCount,
-      upcomingDeadlines: tasks.filter(
-        (t) =>
-          t.dueDate &&
-          new Date(t.dueDate) > now &&
-          statusOf(t.status) !== "completed"
-      ).length,
+      upcomingDeadlines: tasks.filter((t) => t.dueDate && new Date(t.dueDate) > now && statusOf(t.status) !== "completed").length,
       overdueTasks: overdueCount,
       tasksByPriority: {
-        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high")
-          .length,
+        urgent: tasks.filter((t) => (t.priority || "").toLowerCase() === "high").length
       },
       // Keep original for backward compatibility
       openCount,
@@ -728,7 +607,7 @@ const IndividualDashboard = ({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex items-center gap-3">
+      {/* <div className="flex items-center gap-3">
         <button
           onClick={handleViewMyTasks}
           className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg flex items-center gap-2"
@@ -755,184 +634,84 @@ const IndividualDashboard = ({
         >
           Copy Share Link
         </button>
-      </div>
+      </div> */}
 
       {/* Overdue Alert */}
       {overdueCount > 0 && (
-        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <div className="flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={18} />
             <span>
-              You have {overdueCount} overdue{" "}
-              {overdueCount === 1 ? "task" : "tasks"} ⚠️
+              You have {overdueCount} overdue {overdueCount === 1 ? "task" : "tasks"} ⚠️
             </span>
           </div>
-          <Button
+          <button
             onClick={() => {
               setShowFilters(true);
               setSelectedFilter("overdue");
-              document
-                .getElementById("my-tasks")
-                ?.scrollIntoView({ behavior: "smooth" });
+              document.getElementById("my-tasks")?.scrollIntoView({ behavior: "smooth" });
             }}
-            className="text-red-700 hover:text-red-900 "
+            className="text-red-700 hover:text-red-900 font-medium px-3 py-2 rounded-md border border-red-200 bg-red-100 hover:bg-red-200 transition-colors"
           >
             View Overdue
-          </Button>
+          </button>
         </div>
       )}
 
-      {/* Overdue Report (sorted by days overdue) */}
-      {overdueCount > 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Overdue Report
-            </h2>
-            <span className="text-sm text-gray-600">{overdueCount} items</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Task
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Due Date
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Days Overdue
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Priority
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {currentTasks
-                  .filter(
-                    (t) =>
-                      t.dueDate &&
-                      new Date(t.dueDate) < now &&
-                      statusOf(t.status) !== "completed"
-                  )
-                  .map((t) => ({
-                    ...t,
-                    daysOverdue: Math.max(
-                      1,
-                      Math.ceil((now - new Date(t.dueDate)) / 86400000)
-                    ),
-                  }))
-                  .sort((a, b) => b.daysOverdue - a.daysOverdue)
-                  .slice(0, 20)
-                  .map((t) => (
-                    <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
-                      <td className="py-3 px-6 text-sm text-gray-900">
-                        {t.title}
-                      </td>
-                      <td className="py-3 px-6 text-sm text-gray-900">
-                        {new Date(t.dueDate).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-6 text-sm font-semibold text-red-600">
-                        {t.daysOverdue}
-                      </td>
-                      <td className="py-3 px-6">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
-                            t.priority
-                          )}`}
-                        >
-                          {t.priority}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          <div className="flex items-center gap-2">
-            <CheckSquare className="text-green-600" size={18} />
-            <span>All caught up ✅ No overdue tasks.</span>
-          </div>
-        </div>
-      )}
       {/* Task Health Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Open</p>
           <p className="text-2xl font-semibold text-gray-900">{openCount}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">In Progress</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {inProgressCount}
-          </p>
+          <p className="text-2xl font-semibold text-gray-900">{inProgressCount}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Completed</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {completedCount}
-          </p>
+          <p className="text-2xl font-semibold text-gray-900">{completedCount}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <p className="text-sm text-gray-600">Overdue</p>
           <p className="text-2xl font-semibold text-gray-900">{overdueCount}</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Completion Trend (7 days) */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Completion Trend (7 days)
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Completion Trend (7 days)</h2>
           </div>
-          <ReactECharts
-            option={completionTrendOptions}
-            style={{ height: 220 }}
-          />
+          <ReactECharts option={completionTrendOptions} style={{ height: 220 }} />
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Efficiency (On-time vs Late)
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Efficiency (On-time vs Late)</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-            <ReactECharts
-              option={efficiencyPieOptions}
-              style={{ height: 220 }}
-            />
+            <ReactECharts option={efficiencyPieOptions} style={{ height: 220 }} />
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">On-time</span>
-                <span className="font-medium text-gray-900">
-                  {completedOnTimeCount}
-                </span>
+                <span className="font-medium text-gray-900">{completedOnTimeCount}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Late</span>
-                <span className="font-medium text-gray-900">
-                  {completedLateCount}
-                </span>
+                <span className="font-medium text-gray-900">{completedLateCount}</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div
-          className="bg-white p-4 rounded-lg shadow-sm border"
-          data-testid="card-completed-today"
-        >
+
+        <div className="bg-white p-4 rounded-md shadow-sm border"
+          data-testid="card-completed-today">
           <div className="flex items-center gap-3">
             <div className="bg-green-100 p-2 rounded-md">
               <CheckSquare className="text-green-600" size={20} />
@@ -948,8 +727,7 @@ const IndividualDashboard = ({
 
         <div
           className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-completed-before-due"
-        >
+          data-testid="card-completed-before-due" >
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-md">
               <Clock className="text-blue-600" size={20} />
@@ -1032,9 +810,9 @@ const IndividualDashboard = ({
         </div>
 
         {/* Recurring Adherence */}
-        {/* <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-recurring-adherence">
+        {/* <div className="bg-white p-4 rounded-md shadow-sm border" data-testid="card-recurring-adherence">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 p-2 rounded-lg">
+            <div className="bg-indigo-100 p-2 rounded-md">
               <Clock className="text-indigo-600" size={20} />
             </div>
             <div className="overflow-hidden">
@@ -1050,63 +828,37 @@ const IndividualDashboard = ({
       {overdueCount > 0 ? (
         <div className="bg-white rounded-md shadow-sm border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Overdue Report
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Overdue Report</h2>
             <span className="text-sm text-gray-600">{overdueCount} items</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Task
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Due Date
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Days Overdue
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">
-                    Priority
-                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Task</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Due Date</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Days Overdue</th>
+                  <th className="text-left py-3 px-6 text-xs font-medium text-gray-500 uppercase">Priority</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentTasks
-                  .filter(
-                    (t) =>
-                      t.dueDate &&
-                      new Date(t.dueDate) < now &&
-                      statusOf(t.status) !== "completed"
-                  )
+                  .filter((t) => t.dueDate && new Date(t.dueDate) < now && statusOf(t.status) !== "completed")
                   .map((t) => ({
                     ...t,
-                    daysOverdue: Math.max(
-                      1,
-                      Math.ceil((now - new Date(t.dueDate)) / 86400000)
-                    ),
+                    daysOverdue: Math.max(1, Math.ceil((now - new Date(t.dueDate)) / 86400000)),
                   }))
                   .sort((a, b) => b.daysOverdue - a.daysOverdue)
                   .slice(0, 20)
                   .map((t) => (
                     <tr key={`overdue-${t.id}`} className="hover:bg-gray-50">
-                      <td className="py-3 px-6 text-sm text-gray-900">
-                        {t.title}
-                      </td>
+                      <td className="py-3 px-6 text-sm text-gray-900">{t.title}</td>
                       <td className="py-3 px-6 text-sm text-gray-900">
                         {new Date(t.dueDate).toLocaleDateString()}
                       </td>
-                      <td className="py-3 px-6 text-sm font-semibold text-red-600">
-                        {t.daysOverdue}
-                      </td>
+                      <td className="py-3 px-6 text-sm font-semibold text-red-600">{t.daysOverdue}</td>
                       <td className="py-3 px-6">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
-                            t.priority
-                          )}`}
-                        >
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(t.priority)}`}>
                           {t.priority}
                         </span>
                       </td>
@@ -1115,6 +867,7 @@ const IndividualDashboard = ({
               </tbody>
             </table>
           </div>
+
         </div>
       ) : (
         <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
@@ -1130,36 +883,58 @@ const IndividualDashboard = ({
         {/* Left Column - Quick Task & Recurring & Pinned Tasks */}
         <div className="space-y-6">
           {/* Frozen Quick Task Tile */}
-          <QuickTaskWidget />
-
-          {/* Recurring Tasks */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckSquare className="text-green-600" size={20} />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Recurring Tasks
-              </h2>
-            </div>
+          <div
+            className="bg-white p-6 rounded-md shadow-sm border sticky top-6"
+            data-testid="card-quick-task"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Quick Add Task
+            </h2>
             <div className="space-y-3">
-              {recurringItems.map((r) => (
-                <label
-                  key={r.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={!!recurringDone[r.id]}
-                      onChange={() => toggleRecurring(r.id)}
-                      className="h-4 w-4"
-                    />
-                    <span className="text-sm font-medium text-gray-900">
-                      {r.title}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">{r.frequency}</span>
-                </label>
-              ))}
+              <input
+                type="text"
+                placeholder="What needs to be done?"
+                value={quickTaskInput}
+                onChange={(e) => setQuickTaskInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                data-testid="input-quick-task"
+                onKeyPress={(e) => e.key === "Enter" && !isCreatingQuickTask && handleQuickTaskSubmit()}
+                disabled={isCreatingQuickTask}
+              />
+              <button
+                onClick={handleQuickTaskSubmit}
+                disabled={!quickTaskInput.trim() || isCreatingQuickTask}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 px-4 rounded-md transition-colors"
+                data-testid="button-add-quick-task"
+              >
+                {isCreatingQuickTask ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} className="inline mr-2" />
+                    Add Quick Task
+                  </>
+                )}
+              </button>
+              
+              {/* Success Message */}
+              {quickTaskSuccess && (
+                <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-200 rounded-md p-2">
+                  <CheckSquare size={16} />
+                  {quickTaskSuccess}
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {quickTaskError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-md p-2">
+                  <AlertTriangle size={16} />
+                  {quickTaskError}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1185,9 +960,7 @@ const IndividualDashboard = ({
                     {task.title}
                   </span>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(
-                      task.priority
-                    )}`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}
                   >
                     {task.priority}
                   </span>
@@ -1201,7 +974,7 @@ const IndividualDashboard = ({
         <div className="lg:col-span-2">
           <div
             id="my-tasks"
-            className="h-full bg-white rounded-lg shadow-sm border"
+            className="h-full bg-white rounded-md shadow-sm border"
             data-testid="card-tasks-grid"
           >
             <div className="p-6 border-b border-gray-200">
@@ -1237,67 +1010,20 @@ const IndividualDashboard = ({
 
                 {showFilters && (
                   <div className="flex gap-2 flex-wrap">
-                    {[
-                      "all",
-                      "pending",
-                      "in_progress",
-                      "completed",
-                      "overdue",
-                    ].map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => setSelectedFilter(filter)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                          selectedFilter === filter
+                    {["all", "pending", "in_progress", "completed", "overdue"].map(
+                      (filter) => (
+                        <button
+                          key={filter}
+                          onClick={() => setSelectedFilter(filter)}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedFilter === filter
                             ? "bg-blue-100 text-blue-700"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                        data-testid={`filter-${filter}`}
-                      >
-                        {filter.replace("_", " ")}
-                      </button>
-                    ))}
-                    <div className="w-full h-0" />
-                    <select
-                      value={priorityFilter}
-                      onChange={(e) => setPriorityFilter(e.target.value)}
-                      className="px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                    >
-                      <option value="all">All priorities</option>
-                      <option value="urgent">Urgent</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-600">Due from</label>
-                      <input
-                        type="date"
-                        value={dueFrom}
-                        onChange={(e) => setDueFrom(e.target.value)}
-                        className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-600">to</label>
-                      <input
-                        type="date"
-                        value={dueTo}
-                        onChange={(e) => setDueTo(e.target.value)}
-                        className="px-2 py-1.5 border border-gray-300 rounded-md text-sm"
-                      />
-                    </div>
-                    {(dueFrom || dueTo || priorityFilter !== "all") && (
-                      <button
-                        onClick={() => {
-                          setPriorityFilter("all");
-                          setDueFrom("");
-                          setDueTo("");
-                        }}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm"
-                      >
-                        Clear
-                      </button>
+                            }`}
+                          data-testid={`filter-${filter}`}
+                        >
+                          {filter.replace("_", " ")}
+                        </button>
+                      ),
                     )}
                   </div>
                 )}
@@ -1378,24 +1104,18 @@ const IndividualDashboard = ({
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-900">
-                        {task.dueDate
-                          ? new Date(task.dueDate).toLocaleDateString()
-                          : "-"}
+                        {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}
                       </td>
                       <td className="py-4 px-6">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(
-                            task.priority
-                          )}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}
                         >
                           {task.priority}
                         </span>
                       </td>
                       <td className="py-4 px-6">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            task.status
-                          )}`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}
                         >
                           {task.status.replace("_", " ")}
                         </span>
@@ -1409,11 +1129,7 @@ const IndividualDashboard = ({
                             <Edit size={14} />
                           </button>
                           <button
-                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${
-                              deletingTaskId === task._id
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            }`}
+                            className={`text-gray-600 hover:text-red-600 p-1 rounded ${deletingTaskId === task._id ? 'opacity-50 cursor-not-allowed' : ''}`}
                             data-testid={`button-delete-${task._id}`}
                             disabled={deletingTaskId === task._id}
                             onClick={() => handleDeleteTask(task._id)}
@@ -1428,9 +1144,7 @@ const IndividualDashboard = ({
                           </button>
                         </div>
                         {deleteError && deletingTaskId === task._id && (
-                          <div className="text-xs text-red-500 mt-1">
-                            {deleteError}
-                          </div>
+                          <div className="text-xs text-red-500 mt-1">{deleteError}</div>
                         )}
                       </td>
                     </tr>
@@ -1474,9 +1188,9 @@ const IndividualDashboard = ({
             onClick={handleCloseCreateTask}
           />
           <div className="absolute right-0 top-0 bottom-0 w-full max-w-3xl bg-white shadow-xl flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600 flex-shrink-0">
               <h2 className="text-lg font-medium text-white">
-                Create New Task
+                Create New Task hi
               </h2>
               <button
                 onClick={handleCloseCreateTask}

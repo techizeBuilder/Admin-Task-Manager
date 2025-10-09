@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
 import {
   Users,
   TrendingUp,
@@ -20,7 +19,6 @@ import {
   CalendarClock,
 } from "lucide-react";
 import ReactECharts from "echarts-for-react";
-import QuickTaskWidget from "../components/tasks/QuickTaskWidget";
 /**
  * Manager Dashboard - Team management workspace for managers
  * Displays team metrics, performance stats, and team-focused insights
@@ -247,10 +245,10 @@ const ManagerDashboard = () => {
         selectedTimeRange === "this_week"
           ? new Date(t.createdAt) >= new Date(new Date().setDate(new Date().getDate() - 7))
           : selectedTimeRange === "this_month"
-          ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-          : selectedTimeRange === "last_month"
-          ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
-          : true;
+            ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+            : selectedTimeRange === "last_month"
+              ? new Date(t.createdAt) >= new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)
+              : true;
       return byMember && byPriority && byFrom && byTo && inRange;
     });
   }, [teamTasks, memberFilter, priorityFilter, dueFrom, dueTo, selectedTimeRange]);
@@ -457,8 +455,8 @@ const ManagerDashboard = () => {
       </div>
 
       {/* Filters & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col justify-between gap-3 mb-6">
+        <div className="flex flex-nowrap items-center gap-2 overflow-auto">
           <label className="text-sm font-medium text-gray-700">Time Range:</label>
           <select
             value={selectedTimeRange}
@@ -521,14 +519,14 @@ const ManagerDashboard = () => {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center justify-end gap-2">
+          <buttonbg-white rounded-md shadow-sm border
             onClick={handleExportCSV}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md flex items-center gap-2 text-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-md flex flex-nowrap items-center gap-2 text-sm"
             title="Export Excel (CSV)"
           >
             <FileSpreadsheet size={16} /> CSV
-          </button>
+          </buttonbg-white>
           <button
             onClick={handleExportPDF}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md flex items-center gap-2 text-sm"
@@ -581,7 +579,7 @@ const ManagerDashboard = () => {
         </div>
 
         {/* Team Productivity Score (On-time completion rate) */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-md shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="w-full">
               <p className="text-sm font-medium text-gray-600">Team Productivity (On-Time)</p>
@@ -625,7 +623,7 @@ const ManagerDashboard = () => {
 
       {/* Team Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border">
+        <div className="bg-white rounded-md shadow-sm border">
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <TrendingUp className="text-indigo-600" size={18} /> Productivity & Efficiency
@@ -636,7 +634,7 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border">
+        <div className="bg-white rounded-md shadow-sm border">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="text-green-600" size={18} /> Workload by Priority
@@ -649,7 +647,7 @@ const ManagerDashboard = () => {
       </div>
 
       {/* Overdue Tasks Report */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="bg-white rounded-md shadow-sm border">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={18} /> Overdue Tasks Report
@@ -711,7 +709,7 @@ const ManagerDashboard = () => {
                 <button
                   key={member.id}
                   onClick={() => handleOpenMember(member)}
-                  className="w-full text-left flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="w-full text-left flex items-center justify-between p-4 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center space-x-4">
                     <div className="relative">
@@ -750,12 +748,9 @@ const ManagerDashboard = () => {
 
         {/* Quick Stats Sidebar */}
         <div className="space-y-6">
-          {/* Quick Task */}
-          <QuickTaskWidget />
-
-          {/* Needs Attention */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="mt-4 p-6 border-b border-gray-200">
+          {/* Overdue Items */}
+          <div className="bg-white rounded-md shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
                 Needs Attention
@@ -786,7 +781,7 @@ const ManagerDashboard = () => {
           </div>
 
           {/* Weekly Performance */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-green-600" />
@@ -814,7 +809,7 @@ const ManagerDashboard = () => {
           </div>
 
           {/* Overdue by Member (Bar Chart) */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white rounded-md shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <AlertOctagon className="w-5 h-5 mr-2 text-red-600" />
@@ -846,7 +841,7 @@ const ManagerDashboard = () => {
       {/* Workload Heatmap + Milestones */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Workload Heatmap */}
-         <div className="bg-white rounded-lg shadow-sm border border-gray-200 lg:col-span-2">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 lg:col-span-2">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <Target className="w-5 h-5 mr-2 text-blue-600" />
@@ -899,9 +894,9 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-       
+
         {/* Milestones Progress */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-[380px] flex flex-col">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200 h-[380px] flex flex-col">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <CheckSquare className="w-5 h-5 mr-2 text-green-600" />
@@ -911,7 +906,7 @@ const ManagerDashboard = () => {
           {/* Fixed-height scroll area -> only ~2 cards visible */}
           <div className="p-6 space-y-4 flex-1 overflow-y-auto pr-1">
             {milestoneSummary.map((ms) => (
-              <div key={ms.name} className="border border-gray-200 rounded-lg p-3">
+              <div key={ms.name} className="border border-gray-200 rounded-md p-3">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium text-gray-900">{ms.name}</p>
                   <span className="text-xs text-gray-600">
@@ -936,11 +931,11 @@ const ManagerDashboard = () => {
             ))}
           </div>
         </div>
-      
+
       </div>
 
       {/* Active Projects */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white rounded-md shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
             <Target className="w-5 h-5 mr-2 text-green-600" />
@@ -1000,13 +995,12 @@ const ManagerDashboard = () => {
                       <div key={i} className="flex items-center justify-between">
                         <span className="text-xs text-gray-700">{m.name}</span>
                         <span
-                          className={`text-[11px] px-2 py-0.5 rounded-full ${
-                            m.status === "done"
+                          className={`text-[11px] px-2 py-0.5 rounded-full ${m.status === "done"
                               ? "bg-green-50 text-green-700"
                               : m.status === "at_risk"
-                              ? "bg-red-50 text-red-700"
-                              : "bg-yellow-50 text-yellow-700"
-                          }`}
+                                ? "bg-red-50 text-red-700"
+                                : "bg-yellow-50 text-yellow-700"
+                            }`}
                         >
                           {m.status.replace("_", " ")}
                         </span>
@@ -1135,13 +1129,12 @@ const ManagerDashboard = () => {
                         <div className="text-xs text-gray-500">
                           #{t.id} • Due: {t.dueDate} •{" "}
                           <span
-                            className={`${
-                              t.status === "overdue"
+                            className={`${t.status === "overdue"
                                 ? "text-red-600"
                                 : t.status === "due_soon"
-                                ? "text-yellow-600"
-                                : "text-blue-600"
-                            }`}
+                                  ? "text-yellow-600"
+                                  : "text-blue-600"
+                              }`}
                           >
                             {t.status.replace("_", " ")}
                           </span>

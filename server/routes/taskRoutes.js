@@ -13,6 +13,12 @@ import {
   getSubtaskComments,
   updateSubtaskComment,
   deleteSubtaskComment,
+  replyToSubtaskComment,
+  addTaskComment,
+  getTaskComments,
+  updateTaskComment,
+  deleteTaskComment,
+  replyToTaskComment,
   getTasks,
   getTaskById,
   updateTask,
@@ -25,7 +31,10 @@ import {
   unsnoozeTask,
   markTaskAsRisk,
   unmarkTaskAsRisk,
-  quickMarkAsDone
+  quickMarkAsDone,
+  getTaskActivities,
+  getOrganizationActivities,
+  getRecentActivities
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -1143,6 +1152,242 @@ router.delete("/tasks/:parentTaskId/subtasks/:subtaskId", authenticateToken, del
  *       500:
  *         description: Internal server error
  */
+
+// Task Comment Routes
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments:
+ *   post:
+ *     summary: Add a comment to a task
+ *     description: Adds a new comment to a specific task. Users need access to the task to add comments.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The comment text
+ *                 example: "This task needs more clarification on requirements"
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs mentioned in the comment
+ *     responses:
+ *       201:
+ *         description: Comment added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:taskId/comments", authenticateToken, addTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments:
+ *   get:
+ *     summary: Get all comments for a task
+ *     description: Retrieves all comments for a specific task with pagination support.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Number of comments per page
+ *     responses:
+ *       200:
+ *         description: Comments retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/tasks/:taskId/comments", authenticateToken, getTaskComments);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}:
+ *   put:
+ *     summary: Update a comment
+ *     description: Updates a specific comment. Only the comment author can update it.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The comment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - comment
+ *             properties:
+ *               comment:
+ *                 type: string
+ *                 description: The updated comment text
+ *     responses:
+ *       200:
+ *         description: Comment updated successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied - can only edit own comments
+ *       404:
+ *         description: Task or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/tasks/:taskId/comments/:commentId", authenticateToken, updateTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete a comment
+ *     description: Deletes a specific comment. Only the comment author or admin can delete it.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The comment ID
+ *     responses:
+ *       200:
+ *         description: Comment deleted successfully
+ *       403:
+ *         description: Access denied - can only delete own comments
+ *       404:
+ *         description: Task or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/tasks/:taskId/comments/:commentId", authenticateToken, deleteTaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/comments/{commentId}/reply:
+ *   post:
+ *     summary: Reply to a specific comment on a task
+ *     description: Adds a reply to an existing comment on a task. The reply will be linked to the parent comment.
+ *     tags:
+ *       - Tasks
+ *       - Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The parent comment ID to reply to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: The reply content
+ *                 example: "Thanks for the feedback! I'll make those changes."
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of user IDs mentioned in the reply
+ *     responses:
+ *       201:
+ *         description: Reply added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or parent comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:taskId/comments/:commentId/reply", authenticateToken, replyToTaskComment);
+
 router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments", authenticateToken, addSubtaskComment);
 
 /**
@@ -1445,6 +1690,66 @@ router.put("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authe
  *         description: Internal server error
  */
 router.delete("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId", authenticateToken, deleteSubtaskComment);
+
+/**
+ * @swagger
+ * /api/tasks/{parentTaskId}/subtasks/{subtaskId}/comments/{commentId}/reply:
+ *   post:
+ *     summary: Reply to a subtask comment
+ *     description: Creates a reply to an existing subtask comment. The reply will be nested under the parent comment.
+ *     tags:
+ *       - Subtask Comments
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: parentTaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Parent task ID
+ *       - in: path
+ *         name: subtaskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subtask ID
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Parent comment ID to reply to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: Reply content
+ *               mentions:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: Users mentioned in the reply
+ *     responses:
+ *       201:
+ *         description: Reply added successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Parent task, subtask, or comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/tasks/:parentTaskId/subtasks/:subtaskId/comments/:commentId/reply", authenticateToken, replyToSubtaskComment);
 
 /**
  * @swagger
@@ -3013,5 +3318,389 @@ router.get("/tasks/filter/:type", authenticateToken, getTasksByType);
  *                   example: "Database connection error"
  */
 router.get("/mytasks", authenticateToken, getMyTasks);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/activities:
+ *   get:
+ *     summary: Get activity feed for a specific task
+ *     description: Retrieves chronological activity feed for a task including all operations performed on the task
+ *     tags:
+ *       - Tasks
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The task ID
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Task activities retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     activities:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           type:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               name:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                               avatar:
+ *                                 type: string
+ *                           metadata:
+ *                             type: object
+ *                             properties:
+ *                               icon:
+ *                                 type: string
+ *                               category:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                     taskTitle:
+ *                       type: string
+ *                     taskId:
+ *                       type: string
+ *       404:
+ *         description: Task not found
+ *       403:
+ *         description: Access denied
+ */
+router.get("/tasks/:taskId/activities", authenticateToken, getTaskActivities);
+
+/**
+ * @swagger
+ * /api/activities/organization:
+ *   get:
+ *     summary: Get organization-wide activity feed
+ *     description: Retrieves recent activities across the organization
+ *     tags:
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Organization activities retrieved successfully
+ *       403:
+ *         description: Organization access required
+ */
+router.get("/activities/organization", authenticateToken, getOrganizationActivities);
+
+/**
+ * @swagger
+ * /api/activities/recent:
+ *   get:
+ *     summary: Get recent activities
+ *     description: Retrieves recent activities across the system
+ *     tags:
+ *       - Activities
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Maximum number of activities to return
+ *     responses:
+ *       200:
+ *         description: Recent activities retrieved successfully
+ */
+router.get("/activities/recent", authenticateToken, getRecentActivities);
+
+// Import file controller
+import {
+  upload as fileUpload,
+  getTaskFiles,
+  uploadFile,
+  downloadFile,
+  deleteFile,
+  getTaskLinks,
+  addLink,
+  deleteLink
+} from "../controller/fileController.js";
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files:
+ *   get:
+ *     summary: Get files for a task
+ *     description: Retrieves all files attached to a specific task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Files retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.get("/tasks/:taskId/files", authenticateToken, getTaskFiles);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files:
+ *   post:
+ *     summary: Upload file to task
+ *     description: Uploads a file and attaches it to a specific task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: File to upload (max 2MB)
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *       400:
+ *         description: Invalid file or no file provided
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.post("/tasks/:taskId/files", authenticateToken, fileUpload.single('file'), uploadFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files/{fileId}/download:
+ *   get:
+ *     summary: Download file from task
+ *     description: Downloads a file attached to a task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File downloaded successfully
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or file not found
+ */
+router.get("/tasks/:taskId/files/:fileId/download", authenticateToken, downloadFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/files/{fileId}:
+ *   delete:
+ *     summary: Delete file from task
+ *     description: Soft deletes a file attached to a task
+ *     tags:
+ *       - Files
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: File ID
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or file not found
+ */
+router.delete("/tasks/:taskId/files/:fileId", authenticateToken, deleteFile);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links:
+ *   get:
+ *     summary: Get links for a task
+ *     description: Retrieves all external links attached to a specific task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Links retrieved successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.get("/tasks/:taskId/links", authenticateToken, getTaskLinks);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links:
+ *   post:
+ *     summary: Add link to task
+ *     description: Adds an external link to a specific task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - url
+ *             properties:
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: External URL
+ *               title:
+ *                 type: string
+ *                 description: Link title (optional)
+ *               description:
+ *                 type: string
+ *                 description: Link description (optional)
+ *     responses:
+ *       200:
+ *         description: Link added successfully
+ *       400:
+ *         description: Invalid URL or missing required fields
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task not found
+ */
+router.post("/tasks/:taskId/links", authenticateToken, addLink);
+
+/**
+ * @swagger
+ * /api/tasks/{taskId}/links/{linkId}:
+ *   delete:
+ *     summary: Delete link from task
+ *     description: Soft deletes a link attached to a task
+ *     tags:
+ *       - Links
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Task ID
+ *       - in: path
+ *         name: linkId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Link ID
+ *     responses:
+ *       200:
+ *         description: Link deleted successfully
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Task or link not found
+ */
+router.delete("/tasks/:taskId/links/:linkId", authenticateToken, deleteLink);
 
 export default router;

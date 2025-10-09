@@ -36,7 +36,7 @@ const MilestoneTaskForm = ({
       priority: { value: "medium", label: "Medium" },
       visibility: "private",
       collaborators: [],
-      status: "not_started",
+      status: "OPEN",
     },
   });
 
@@ -97,11 +97,22 @@ const MilestoneTaskForm = ({
   };
 
   const onFormSubmit = (data) => {
+    // Map form data to milestone API schema
     const formData = {
-      ...data,
+      title: data.taskName, // Map taskName to title
+      description: data.description || "",
+      assignedTo: data.assignedTo?.value || data.assignedTo?.id || data.assignedTo,
+      priority: data.priority?.value || data.priority?.label || data.priority || "medium",
+      dueDate: data.dueDate,
+      visibility: data.visibility || "private",
+      collaborators: data.collaborators ? data.collaborators.map(c => c.value || c.id || c) : [],
+      linkedTasks: data.linkedTasks ? data.linkedTasks.map(task => task.value || task.id || task) : [],
+      milestoneType: data.milestoneType || "standalone",
       taskType: "milestone",
       isMilestone: true,
     };
+    
+    console.log("MilestoneTaskForm submitting:", formData);
     onSubmit(formData);
   };
 

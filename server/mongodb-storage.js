@@ -20,6 +20,7 @@ import {
 import { Organization } from './modals/organizationModal.js';
 import { PendingUser } from './modals/pendingUserModal.js';
 import { User } from './modals/userModal.js';
+import { ActivityHelper } from './activity-helper.js';
 export class MongoStorage {
 
   // Token generation methods
@@ -117,14 +118,65 @@ export class MongoStorage {
     }
     console.log('user created....', userData)
     const user = new User(userData);
-    return await user.save();
+    const savedUser = await user.save();
+
+    // Track user creation/joining
+    if (userData.organization) {
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.USER_JOINED,
+        userId: savedUser._id,
+        organizationId: userData.organization,
+        relatedId: savedUser._id,
+        relatedType: 'user',
+        data: {
+          userName: `${userData.firstName} ${userData.lastName}`.trim() || userData.email,
+          role: userData.role
+        }
+      });
+    }
+
+    return savedUser;
   }
 
   async updateUser(id, userData) {
-    return await User.findByIdAndUpdate(id, userData, { new: true });
+    const oldUser = await User.findById(id);
+    const user = await User.findByIdAndUpdate(id, userData, { new: true });
+
+    if (oldUser && userData.organization) {
+      // Track role changes
+      if (oldUser.role !== userData.role && userData.role) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.ROLE_CHANGED,
+          userId: id,
+          organizationId: userData.organization || oldUser.organization,
+          relatedId: id,
+          relatedType: 'user',
+          data: {
+            userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+            oldValue: oldUser.role,
+            newValue: userData.role
+          }
+        });
+      }
+    }
+
+    return user;
   }
 
   async deleteUser(id) {
+    const user = await User.findById(id);
+    if (user && user.organization) {
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.USER_LEFT,
+        userId: id,
+        organizationId: user.organization,
+        relatedId: id,
+        relatedType: 'user',
+        data: {
+          userName: `${user.firstName} ${user.lastName}`.trim() || user.email
+        }
+      });
+    }
     return await User.findByIdAndDelete(id);
   }
 
@@ -139,14 +191,77 @@ export class MongoStorage {
 
   async createProject(projectData) {
     const project = new Project(projectData);
-    return await project.save();
+    const savedProject = await project.save();
+
+    // Track project creation
+    await this.trackActivity({
+      activityType: ActivityHelper.ACTIVITY_TYPES.PROJECT_CREATED,
+      userId: projectData.owner,
+      organizationId: projectData.organization,
+      relatedId: savedProject._id,
+      relatedType: 'project',
+      data: {
+        projectName: projectData.name
+      }
+    });
+
+    return savedProject;
   }
 
   async updateProject(id, projectData) {
-    return await Project.findByIdAndUpdate(id, projectData, { new: true });
+    const oldProject = await Project.findById(id);
+    const project = await Project.findByIdAndUpdate(id, projectData, { new: true });
+
+    if (oldProject) {
+      // Track project update
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.PROJECT_UPDATED,
+        userId: projectData.owner || oldProject.owner,
+        organizationId: project.organization,
+        relatedId: project._id,
+        relatedType: 'project',
+        data: {
+          projectName: project.name,
+          changes: ActivityHelper.createComparisonData(
+            oldProject.toObject(), 
+            projectData, 
+            ['name', 'description', 'status']
+          )
+        }
+      });
+
+      // Track archiving specifically
+      if (oldProject.status !== projectData.status && projectData.status === 'archived') {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.PROJECT_ARCHIVED,
+          userId: projectData.owner || oldProject.owner,
+          organizationId: project.organization,
+          relatedId: project._id,
+          relatedType: 'project',
+          data: {
+            projectName: project.name
+          }
+        });
+      }
+    }
+
+    return project;
   }
 
   async deleteProject(id) {
+    const project = await Project.findById(id);
+    if (project) {
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.PROJECT_ARCHIVED, // Using archived for delete
+        userId: project.owner,
+        organizationId: project.organization,
+        relatedId: id,
+        relatedType: 'project',
+        data: {
+          projectName: project.name
+        }
+      });
+    }
     return await Project.findByIdAndDelete(id);
   }
 
@@ -181,32 +296,106 @@ export class MongoStorage {
     const task = new Task(taskData);
     const savedTask = await task.save();
 
-    // Create activity log
-    await this.createActivity({
-      type: 'task_created',
-      description: `Task "${taskData.title}" was created`,
+    // Enhanced activity tracking
+    await this.trackActivity({
+      activityType: ActivityHelper.ACTIVITY_TYPES.TASK_CREATED,
+      userId: taskData.createdBy,
+      organizationId: taskData.organization,
       relatedId: savedTask._id,
       relatedType: 'task',
-      user: taskData.createdBy,
-      organization: taskData.organization,
+      data: {
+        taskTitle: taskData.title,
+        priority: taskData.priority,
+        status: taskData.status,
+        dueDate: taskData.dueDate,
+        assignedTo: taskData.assignedTo
+      }
     });
 
     return savedTask;
   }
 
   async updateTask(id, taskData, userId) {
+    const oldTask = await Task.findById(id);
     const task = await Task.findByIdAndUpdate(id, taskData, { new: true });
 
-    // Create activity log
-    if (userId) {
-      await this.createActivity({
-        type: 'task_updated',
-        description: `Task "${task.title}" was updated`,
+    if (userId && oldTask) {
+      // Track general update
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.TASK_UPDATED,
+        userId: userId,
+        organizationId: task.organization,
         relatedId: task._id,
         relatedType: 'task',
-        user: userId,
-        organization: task.organization,
+        data: {
+          taskTitle: task.title,
+          changes: ActivityHelper.createComparisonData(
+            oldTask.toObject(), 
+            taskData, 
+            ['title', 'description', 'priority', 'status', 'dueDate']
+          )
+        }
       });
+
+      // Track specific changes
+      if (oldTask.status !== taskData.status && taskData.status) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.TASK_STATUS_CHANGED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            oldValue: oldTask.status,
+            newValue: taskData.status
+          }
+        });
+
+        // Track completion specifically
+        if (taskData.status === 'Completed') {
+          await this.trackActivity({
+            activityType: ActivityHelper.ACTIVITY_TYPES.TASK_COMPLETED,
+            userId: userId,
+            organizationId: task.organization,
+            relatedId: task._id,
+            relatedType: 'task',
+            data: {
+              taskTitle: task.title
+            }
+          });
+        }
+      }
+
+      if (oldTask.priority !== taskData.priority && taskData.priority) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.TASK_PRIORITY_CHANGED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            oldValue: oldTask.priority,
+            newValue: taskData.priority
+          }
+        });
+      }
+
+      if (oldTask.dueDate !== taskData.dueDate && taskData.dueDate) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.TASK_DUE_DATE_CHANGED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            oldValue: oldTask.dueDate,
+            newValue: taskData.dueDate
+          }
+        });
+      }
     }
 
     return task;
@@ -215,13 +404,15 @@ export class MongoStorage {
   async deleteTask(id, userId) {
     const task = await Task.findById(id);
     if (task) {
-      await this.createActivity({
-        type: 'task_deleted',
-        description: `Task "${task.title}" was deleted`,
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.TASK_DELETED,
+        userId: userId,
+        organizationId: task.organization,
         relatedId: id,
         relatedType: 'task',
-        user: userId,
-        organization: task.organization,
+        data: {
+          taskTitle: task.title
+        }
       });
     }
     return await Task.findByIdAndDelete(id);
@@ -244,11 +435,65 @@ export class MongoStorage {
     return await activity.save();
   }
 
+  /**
+   * Enhanced activity tracking method
+   */
+  async trackActivity({
+    activityType,
+    userId,
+    organizationId,
+    relatedId,
+    relatedType,
+    data = {}
+  }) {
+    try {
+      const activityData = ActivityHelper.createActivityData({
+        activityType,
+        userId,
+        organizationId,
+        relatedId,
+        relatedType,
+        data
+      });
+      
+      return await this.createActivity(activityData);
+    } catch (error) {
+      console.error('Error tracking activity:', error);
+      // Don't throw error to prevent breaking main operations
+      return null;
+    }
+  }
+
   async getRecentActivities(limit = 10) {
     const Activity = mongoose.model('Activity');
     return await Activity.find()
       .sort({ createdAt: -1 })
-      .limit(limit);
+      .limit(limit)
+      .populate('user', 'name email avatar')
+      .lean();
+  }
+
+  async getActivitiesForTask(taskId, limit = 20) {
+    const Activity = mongoose.model('Activity');
+    return await Activity.find({
+      relatedId: taskId,
+      relatedType: 'task'
+    })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate('user', 'name email avatar')
+    .lean();
+  }
+
+  async getActivitiesForOrganization(organizationId, limit = 50) {
+    const Activity = mongoose.model('Activity');
+    return await Activity.find({
+      organization: organizationId
+    })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate('user', 'name email avatar')
+    .lean();
   }
 
   // Dashboard stats
@@ -1687,24 +1932,72 @@ export class MongoStorage {
   // }
 
   async getTaskById(id) {
-    return await Task.findById(id)
+    console.log('DEBUG - getTaskById called with id:', id);
+    const task = await Task.findById(id)
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName email')
       .populate('project', 'name')
       .populate('organization', 'name');
+
+    console.log('DEBUG - Found task:', task ? 'Yes' : 'No');
+
+    if (task) {
+      console.log('DEBUG - Looking for subtasks with parentTaskId:', id);
+      // Get subtasks for this task
+      const subtasks = await Task.find({
+        parentTaskId: id,
+        isDeleted: { $ne: true }
+      })
+        .populate('assignedTo', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName email')
+        .sort({ createdAt: 1 });
+
+      console.log('DEBUG - Found subtasks count:', subtasks.length);
+      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTaskId: s.parentTaskId })));
+
+      // Convert to plain object and add subtasks
+      const taskObj = task.toObject();
+      taskObj.subtasks = subtasks;
+      console.log('DEBUG - Final taskObj has subtasks:', taskObj.subtasks ? taskObj.subtasks.length : 'undefined');
+      return taskObj;
+    }
+
+    return task;
   }
 
   async getTasksByFilter(filter, options = {}) {
     const { page = 1, limit = 50, sort = { createdAt: -1 } } = options;
     const skip = (page - 1) * limit;
 
-    return await Task.find(filter)
+    const tasks = await Task.find(filter)
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName email')
       .populate('project', 'name')
       .sort(sort)
       .skip(skip)
       .limit(limit);
+
+    // Get subtasks for each task
+    if (tasks && tasks.length > 0) {
+      const tasksWithSubtasks = [];
+      for (let task of tasks) {
+        const subtasks = await Task.find({
+          parentTaskId: task._id,
+          isDeleted: { $ne: true }
+        })
+          .populate('assignedTo', 'firstName lastName email')
+          .populate('createdBy', 'firstName lastName email')
+          .sort({ createdAt: 1 });
+
+        // Convert to plain object and add subtasks
+        const taskObj = task.toObject();
+        taskObj.subtasks = subtasks;
+        tasksWithSubtasks.push(taskObj);
+      }
+      return tasksWithSubtasks;
+    }
+
+    return tasks;
   }
 
   async countTasksByFilter(filter) {
@@ -1720,7 +2013,6 @@ export class MongoStorage {
   // Task approval operations
   async createTaskApproval(approvalData) {
     // For MongoDB, we'll store approvals as part of the task document
-    // This is a simplified implementation
     const task = await Task.findById(approvalData.taskId);
     if (!task.approvalRecords) {
       task.approvalRecords = [];
@@ -1735,6 +2027,27 @@ export class MongoStorage {
 
     task.approvalRecords.push(approval);
     await task.save();
+
+    // Track approval activity
+    const activityType = approvalData.status === 'approved' 
+      ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
+      : approvalData.status === 'rejected'
+      ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
+      : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
+
+    await this.trackActivity({
+      activityType,
+      userId: approvalData.approverId,
+      organizationId: task.organization,
+      relatedId: task._id,
+      relatedType: 'task',
+      data: {
+        taskTitle: task.title,
+        approvalStatus: approvalData.status,
+        comment: approvalData.comment
+      }
+    });
+
     return approval;
   }
 
@@ -1753,17 +2066,345 @@ export class MongoStorage {
   async updateTaskApproval(approvalId, updateData) {
     // Since we're storing approvals in the task document for simplicity,
     // we need to handle this differently - this method should update by approval ID
-    // For now, we'll keep it simple and find the task containing this approval
     const task = await Task.findOne({ 'approvalRecords._id': approvalId });
     if (task) {
       const approval = task.approvalRecords.id(approvalId);
       if (approval) {
+        const oldStatus = approval.status;
         Object.assign(approval, updateData);
         await task.save();
+
+        // Track approval update activity
+        if (oldStatus !== updateData.status) {
+          const activityType = updateData.status === 'approved' 
+            ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
+            : updateData.status === 'rejected'
+            ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
+            : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
+
+          await this.trackActivity({
+            activityType,
+            userId: approval.approverId,
+            organizationId: task.organization,
+            relatedId: task._id,
+            relatedType: 'task',
+            data: {
+              taskTitle: task.title,
+              approvalStatus: updateData.status,
+              oldStatus,
+              comment: updateData.comment
+            }
+          });
+        }
+
         return approval;
       }
     }
     return null;
+  }
+
+  // Subtask operations with activity tracking
+  async createSubtask(subtaskData) {
+    // Subtasks are stored as regular tasks with parentTaskId
+    const subtask = new Task({
+      ...subtaskData,
+      isSubtask: true
+    });
+    const savedSubtask = await subtask.save();
+
+    // Get parent task for activity tracking
+    const parentTask = await Task.findById(subtaskData.parentTaskId);
+    
+    if (parentTask) {
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_CREATED,
+        userId: subtaskData.createdBy,
+        organizationId: subtaskData.organization,
+        relatedId: parentTask._id,
+        relatedType: 'task',
+        data: {
+          taskTitle: parentTask.title,
+          subtaskTitle: subtaskData.title,
+          subtaskId: savedSubtask._id
+        }
+      });
+    }
+
+    return savedSubtask;
+  }
+
+  async updateSubtask(id, subtaskData, userId) {
+    const oldSubtask = await Task.findById(id);
+    const subtask = await Task.findByIdAndUpdate(id, subtaskData, { new: true });
+    
+    if (oldSubtask && oldSubtask.parentTaskId) {
+      const parentTask = await Task.findById(oldSubtask.parentTaskId);
+      
+      if (parentTask) {
+        // Track general subtask update
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_UPDATED,
+          userId: userId,
+          organizationId: subtask.organization,
+          relatedId: parentTask._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: parentTask.title,
+            subtaskTitle: subtask.title,
+            subtaskId: subtask._id
+          }
+        });
+
+        // Track subtask completion
+        if (oldSubtask.status !== subtaskData.status && subtaskData.status === 'Completed') {
+          await this.trackActivity({
+            activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_COMPLETED,
+            userId: userId,
+            organizationId: subtask.organization,
+            relatedId: parentTask._id,
+            relatedType: 'task',
+            data: {
+              taskTitle: parentTask.title,
+              subtaskTitle: subtask.title,
+              subtaskId: subtask._id
+            }
+          });
+        }
+
+        // Track subtask status changes
+        if (oldSubtask.status !== subtaskData.status && subtaskData.status) {
+          await this.trackActivity({
+            activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_STATUS_CHANGED,
+            userId: userId,
+            organizationId: subtask.organization,
+            relatedId: parentTask._id,
+            relatedType: 'task',
+            data: {
+              taskTitle: parentTask.title,
+              subtaskTitle: subtask.title,
+              oldValue: oldSubtask.status,
+              newValue: subtaskData.status,
+              subtaskId: subtask._id
+            }
+          });
+        }
+      }
+    }
+
+    return subtask;
+  }
+
+  async deleteSubtask(id, userId) {
+    const subtask = await Task.findById(id);
+    
+    if (subtask && subtask.parentTaskId) {
+      const parentTask = await Task.findById(subtask.parentTaskId);
+      
+      if (parentTask) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_DELETED,
+          userId: userId,
+          organizationId: subtask.organization,
+          relatedId: parentTask._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: parentTask.title,
+            subtaskTitle: subtask.title,
+            subtaskId: subtask._id
+          }
+        });
+      }
+    }
+
+    return await Task.findByIdAndDelete(id);
+  }
+
+  // Comment operations with activity tracking
+  async addTaskComment(commentData) {
+    const comment = new TaskComment(commentData);
+    const savedComment = await comment.save();
+
+    // Get task for activity tracking
+    const task = await Task.findById(commentData.taskId);
+    
+    if (task) {
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_ADDED,
+        userId: commentData.authorId,
+        organizationId: task.organization,
+        relatedId: task._id,
+        relatedType: 'task',
+        data: {
+          taskTitle: task.title,
+          commentId: savedComment._id,
+          commentPreview: commentData.content.substring(0, 100)
+        }
+      });
+    }
+
+    return savedComment;
+  }
+
+  async updateTaskComment(id, commentData, userId) {
+    const comment = await TaskComment.findByIdAndUpdate(id, commentData, { new: true });
+    
+    if (comment) {
+      const task = await Task.findById(comment.taskId);
+      
+      if (task) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_UPDATED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            commentId: comment._id
+          }
+        });
+      }
+    }
+
+    return comment;
+  }
+
+  async deleteTaskComment(id, userId) {
+    const comment = await TaskComment.findById(id);
+    
+    if (comment) {
+      const task = await Task.findById(comment.taskId);
+      
+      if (task) {
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_DELETED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            commentId: comment._id
+          }
+        });
+      }
+    }
+
+    return await TaskComment.findByIdAndDelete(id);
+  }
+
+  // Task assignment operations with activity tracking
+  async assignTask(taskId, assignedTo, userId) {
+    const task = await Task.findById(taskId);
+    const oldAssignedTo = task.assignedTo;
+    
+    task.assignedTo = assignedTo;
+    await task.save();
+
+    // Get assigned user info
+    const assignedUser = await User.findById(assignedTo);
+    const assignedUserName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}`.trim() || assignedUser.email : 'Unknown User';
+
+    await this.trackActivity({
+      activityType: ActivityHelper.ACTIVITY_TYPES.TASK_ASSIGNED,
+      userId: userId,
+      organizationId: task.organization,
+      relatedId: task._id,
+      relatedType: 'task',
+      data: {
+        taskTitle: task.title,
+        assignedTo: assignedUserName,
+        assignedToId: assignedTo
+      }
+    });
+
+    return task;
+  }
+
+  async unassignTask(taskId, userId) {
+    const task = await Task.findById(taskId);
+    const oldAssignedTo = task.assignedTo;
+    
+    // Get old assigned user info
+    let oldAssignedUserName = 'Unknown User';
+    if (oldAssignedTo) {
+      const oldAssignedUser = await User.findById(oldAssignedTo);
+      oldAssignedUserName = oldAssignedUser ? `${oldAssignedUser.firstName} ${oldAssignedUser.lastName}`.trim() || oldAssignedUser.email : 'Unknown User';
+    }
+    
+    task.assignedTo = null;
+    await task.save();
+
+    await this.trackActivity({
+      activityType: ActivityHelper.ACTIVITY_TYPES.TASK_UNASSIGNED,
+      userId: userId,
+      organizationId: task.organization,
+      relatedId: task._id,
+      relatedType: 'task',
+      data: {
+        taskTitle: task.title,
+        assignedTo: oldAssignedUserName
+      }
+    });
+
+    return task;
+  }
+
+  // File attachment operations with activity tracking
+  async attachFileToTask(taskId, fileData, userId) {
+    const task = await Task.findById(taskId);
+    
+    if (task) {
+      if (!task.attachments) {
+        task.attachments = [];
+      }
+      
+      task.attachments.push(fileData);
+      await task.save();
+
+      await this.trackActivity({
+        activityType: ActivityHelper.ACTIVITY_TYPES.FILE_ATTACHED,
+        userId: userId,
+        organizationId: task.organization,
+        relatedId: task._id,
+        relatedType: 'task',
+        data: {
+          taskTitle: task.title,
+          fileName: fileData.originalName || fileData.name,
+          fileSize: fileData.size
+        }
+      });
+    }
+
+    return task;
+  }
+
+  async removeFileFromTask(taskId, fileId, userId) {
+    const task = await Task.findById(taskId);
+    
+    if (task && task.attachments) {
+      const fileIndex = task.attachments.findIndex(file => file._id.toString() === fileId);
+      
+      if (fileIndex > -1) {
+        const removedFile = task.attachments[fileIndex];
+        task.attachments.splice(fileIndex, 1);
+        await task.save();
+
+        await this.trackActivity({
+          activityType: ActivityHelper.ACTIVITY_TYPES.FILE_REMOVED,
+          userId: userId,
+          organizationId: task.organization,
+          relatedId: task._id,
+          relatedType: 'task',
+          data: {
+            taskTitle: task.title,
+            fileName: removedFile.originalName || removedFile.name
+          }
+        });
+      }
+    }
+
+    return task;
   }
 
   // Project operations

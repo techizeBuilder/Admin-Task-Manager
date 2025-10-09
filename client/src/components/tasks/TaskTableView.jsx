@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Redirect, useLocation } from "wouter";
+import axios from "axios";
 
 export default function AllTasks({ onCreateTask, onNavigateToTask }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -563,43 +564,112 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
     executeStatusChange(taskId, newStatusCode, reason);
   };
 
-  // Execute the actual status change
-  const executeStatusChange = (taskId, newStatusCode, reason = null) => {
+  // Execute the actual status change with API integration
+  const executeStatusChange = async (taskId, newStatusCode, reason = null) => {
     const task = tasks.find((t) => t.id === taskId);
+    if (!task) {
+      console.error('TaskTableView: Task not found for status update');
+      return;
+    }
+
     const oldStatusCode = task.status;
 
-    // Update task status with autosave
-    setTasks((prevTasks) =>
-      prevTasks.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              status: newStatusCode,
-              progress: newStatusCode === "DONE" ? 100 : t.progress,
-              lastModified: new Date().toISOString(),
-              lastModifiedBy: currentUser.name,
-            }
-          : t
-      )
-    );
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
 
-    // Log the status change for audit trail
-    logStatusChange(
-      taskId,
-      oldStatusCode,
-      newStatusCode,
-      currentUser.id,
-      reason
-    );
+      console.log(`TaskTableView: Updating task ${taskId} status to ${newStatusCode}`, {
+        taskTitle: task?.title || 'Unknown',
+        fromStatus: oldStatusCode,
+        toStatus: newStatusCode,
+        reason
+      });
 
-    // Show success notification (in real app, would be a toast notification)
-    const oldStatus = companyStatuses.find((s) => s.code === oldStatusCode);
-    const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
-    console.log(
-      `✅ Status updated: "${task.title}" changed from "${
-        oldStatus?.label || oldStatusCode
+      const response = await axios.patch(
+        `http://localhost:5000/api/tasks/${taskId}/status`,
+        { status: newStatusCode },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('TaskTableView: Status update successful:', response.data);
+
+      // Update task status with autosave after successful API call
+      setTasks((prevTasks) =>
+        prevTasks.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: newStatusCode,
+                progress: newStatusCode === "DONE" ? 100 : t.progress,
+                lastModified: new Date().toISOString(),
+                lastModifiedBy: currentUser.name,
+              }
+            : t
+        )
+      );
+
+      // Emit event for real-time UI updates
+      const statusEvent = new CustomEvent('taskStatusUpdated', {
+        detail: { 
+          taskId, 
+          newStatus: newStatusCode,
+          immediate: true
+        }
+      });
+      window.dispatchEvent(statusEvent);
+
+      // Also emit color update event
+      const colorEvent = new CustomEvent('taskColorUpdated', {
+        detail: { 
+          taskId, 
+          newStatus: newStatusCode
+        }
+      });
+      window.dispatchEvent(colorEvent);
+
+      // Log the status change for audit trail
+      logStatusChange(
+        taskId,
+        oldStatusCode,
+        newStatusCode,
+        currentUser.id,
+        reason
+      );
+
+      // Show success notification
+      const oldStatus = companyStatuses.find((s) => s.code === oldStatusCode);
+      const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
+      console.log(
+        `✅ Status updated: "${task.title}" changed from "${
+          oldStatus?.label || oldStatusCode
       }" to "${newStatus.label}"`
-    );
+      );
+
+    } catch (error) {
+      console.error('TaskTableView: Error updating status:', error);
+      
+      let errorMessage = 'Failed to update task status';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this task.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Task not found.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
+    }
   };
 
   // Permission check for task deletion

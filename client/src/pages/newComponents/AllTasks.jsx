@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useActiveRole } from "../../components/RoleSwitcher";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import useTasksStore from "../../stores/tasksStore";
 import TaskEditModal from "./TaskEditModal";
@@ -9,6 +10,7 @@ import SubtaskCreator from "./SubtaskCreator";
 import StatusConfirmationModal from "./StatusConfirmationModal";
 import TaskStatusDropdown from "./TaskStatusDropdown";
 import TaskActionsDropdown from "./TaskActionsDropdown";
+import SubtaskActionsDropdown from "./SubtaskActionsDropdown";
 import ApprovalTaskDetailModal from "./ApprovalTaskDetailModal";
 import CalendarDatePicker from "./CalendarDatePicker";
 import SearchableSelect from "../SearchableSelect";
@@ -20,6 +22,15 @@ import SmartTaskParser from "./SmartTaskParser";
 import MilestoneCreator from "../MilestoneCreator";
 import CreateTask from "./CreateTask";
 import ApprovalTaskCreator from "./ApprovalTaskCreator";
+import {
+  createMilestone,
+  getMilestones,
+  updateMilestone,
+  deleteMilestone,
+  linkTaskToMilestone,
+  unlinkTaskFromMilestone,
+  markMilestoneAsAchieved
+} from "../../api/milestoneApi";
 import {
   Table,
   TableHeader,
@@ -40,6 +51,8 @@ import {
   Hash,
   AtSign,
 } from "lucide-react";
+import { useSubtask } from "../../contexts/SubtaskContext";
+
 export default function AllTasks({
   onCreateTask,
   onNavigateToTask,
@@ -80,6 +93,11 @@ export default function AllTasks({
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [selectedApprovalTask, setSelectedApprovalTask] = useState(null);
   const [showCalendarView, setShowCalendarView] = useState(false);
+
+  // Task detail and edit modals
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
 
   // Smart task features
   const [showThreadModal, setShowThreadModal] = useState(false);
@@ -131,8 +149,16 @@ export default function AllTasks({
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
-  const { activeRole } = useActiveRole();
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const { activeRole, setActiveRole } = useActiveRole();
   const [currentRole, setCurrentRole] = useState(null);
+  const { openSubtaskDrawer } = useSubtask();
+
+  // Get user data to access roles
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/verify"],
+    enabled: !!localStorage.getItem("token"),
+  });
 
   // Function to refetch tasks from API
   const refetchTasks = async () => {
@@ -154,9 +180,20 @@ export default function AllTasks({
         // If response is grouped by roles, use only current role's tasks
         const rolesObj = response.data.data?.roles;
         let roleToUse = activeRole || null;
+
+        // If no active role set, use user's first role as default
+        if (!roleToUse && user?.role?.[0]) {
+          roleToUse = user.role[0];
+          // Set the active role in context
+          setActiveRole(roleToUse);
+        }
+
+        // Fallback to first available role from response
         if (!roleToUse && rolesObj) {
           roleToUse = Object.keys(rolesObj)[0];
+          setActiveRole(roleToUse);
         }
+
         setCurrentRole(roleToUse);
         let tasksArr = [];
         if (rolesObj && roleToUse && rolesObj[roleToUse]) {
@@ -200,6 +237,7 @@ export default function AllTasks({
           }
 
           const statusMap = {
+            open: "OPEN",
             todo: "OPEN",
             "in-progress": "INPROGRESS",
             inprogress: "INPROGRESS",
@@ -210,7 +248,7 @@ export default function AllTasks({
             cancelled: "CANCELLED",
             canceled: "CANCELLED"
           };
-          const apiStatus = taskData.status?.toLowerCase() || "todo";
+          const apiStatus = taskData.status?.toLowerCase() || "open";
           const feStatus = statusMap[apiStatus] || "OPEN";
 
           // Debug logging
@@ -228,13 +266,16 @@ export default function AllTasks({
             id: taskId, // This will be used for frontend operations
             _id: taskId, // This will be used for API calls
 
-            // Use taskData for all other properties
+            // Spread other properties from taskData FIRST
+            ...taskData,
+
+            // Then override with mapped values
             title: taskData.title,
             assignee: taskData.assignedTo
               ? `${taskData.assignedTo.firstName} ${taskData.assignedTo.lastName}`
               : "Unassigned",
             assigneeId: taskData.assignedTo?._id,
-            status: feStatus,
+            status: feStatus, // This will override the raw status from taskData
             priority: taskData.priority
               ? taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1)
               : "Medium",
@@ -242,20 +283,24 @@ export default function AllTasks({
               ? new Date(taskData.dueDate).toISOString().split("T")[0]
               : "",
             progress: feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
-
-            // Spread other properties from taskData
             ...taskData,
 
             // Map subtasks if they exist
-            subtasks: task.subtasks?.map(subtask => ({
-              ...subtask,
-              id: subtask._id,
-              _id: subtask._id,
-              assignee: subtask.assignedTo
-                ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
-                : "Unassigned",
-              assigneeId: subtask.assignedTo?._id
-            })) || []
+            subtasks: task.subtasks?.map(subtask => {
+              const subtaskApiStatus = subtask.status?.toLowerCase() || "open";
+              const subtaskFeStatus = statusMap[subtaskApiStatus] || "OPEN";
+
+              return {
+                ...subtask,
+                id: subtask._id,
+                _id: subtask._id,
+                status: subtaskFeStatus, // Apply status mapping to subtasks
+                assignee: subtask.assignedTo
+                  ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
+                  : "Unassigned",
+                assigneeId: subtask.assignedTo?._id
+              };
+            }) || []
           };
 
           // Debug final mapped task
@@ -331,8 +376,103 @@ export default function AllTasks({
       setApiLoading(false);
     };
 
-    fetchTasks();
-  }, [activeRole]);
+    // Only fetch if we have user data or activeRole
+    if (user || activeRole) {
+      fetchTasks();
+    }
+  }, [activeRole, user]);
+
+  // Listen for task status updates from child components
+  useEffect(() => {
+    const handleTaskStatusUpdated = (event) => {
+      const { taskId, newStatus } = event.detail;
+      console.log('AllTasks: Received status update event:', { taskId, newStatus });
+
+      // Update the specific task in local state immediately with color
+      setApiTasks(prev => prev.map(task => {
+        if (task.id === taskId || task._id === taskId) {
+          // Get color from companyStatuses configuration
+          const statusObj = companyStatuses.find(s => s.code === newStatus);
+          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+
+          console.log('🎨 Event: Updating task color:', {
+            taskId,
+            newStatus,
+            newColor: newStatusColor,
+            statusObj
+          });
+
+          return {
+            ...task,
+            status: newStatus,
+            statusColor: newStatusColor,
+            colorCode: newStatusColor
+          };
+        }
+        return task;
+      }));
+    };
+
+    // Also listen for color update events
+    const handleTaskColorUpdated = (event) => {
+      const { taskId, newStatus } = event.detail;
+      console.log('AllTasks: Received color update event:', { taskId, newStatus });
+
+      // Force re-render with updated colors
+      setApiTasks(prev => prev.map(task => {
+        if (task.id === taskId || task._id === taskId) {
+          const statusObj = companyStatuses.find(s => s.code === newStatus);
+          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+
+          console.log('🎨 Color: Force updating task color:', {
+            taskId,
+            newStatus,
+            newColor: newStatusColor,
+            oldColor: task.statusColor || task.colorCode
+          });
+
+          return {
+            ...task,
+            status: newStatus,
+            statusColor: newStatusColor,
+            colorCode: newStatusColor
+          };
+        }
+        return task;
+      }));
+    };
+
+    window.addEventListener('taskStatusUpdated', handleTaskStatusUpdated);
+    window.addEventListener('taskColorUpdated', handleTaskColorUpdated);
+
+    return () => {
+      window.removeEventListener('taskStatusUpdated', handleTaskStatusUpdated);
+      window.removeEventListener('taskColorUpdated', handleTaskColorUpdated);
+    };
+  }, []);
+
+  // Fetch available users for task assignment
+  useEffect(() => {
+    const fetchAvailableUsers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await axios.get("http://localhost:5000/api/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.data.success) {
+          setAvailableUsers(response.data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching available users:', error);
+        setAvailableUsers([]);
+      }
+    };
+
+    fetchAvailableUsers();
+  }, []);
 
   // Company-defined statuses with comprehensive management
   const [companyStatuses] = useState([
@@ -347,7 +487,7 @@ export default function AllTasks({
       active: true,
       order: 1,
       systemMapping: "SYS_OPEN",
-      allowedTransitions: ["INPROGRESS", "ONHOLD", "CANCELLED"],
+      allowedTransitions: ["INPROGRESS", "ONHOLD", "CANCELLED", "DONE"],
       isSystem: false,
       createdAt: "2024-01-01T00:00:00Z",
       tooltip: "New task ready to be started",
@@ -435,11 +575,6 @@ export default function AllTasks({
   const getStatusLabel = (statusCode) => {
     const status = companyStatuses.find((s) => s.code === statusCode);
     return status ? status.label : statusCode;
-  };
-
-  const getStatusColor = (statusCode) => {
-    const status = companyStatuses.find((s) => s.code === statusCode);
-    return status ? status.color : "#6c757d";
   };
 
   const getStatusBadge = (statusCode) => {
@@ -555,55 +690,47 @@ export default function AllTasks({
   ) => {
     console.log('handleStatusChange called with:', { taskId, newStatusCode, requiresConfirmation, reason });
 
-    // Debug: Show first few tasks with all their ID fields
-    const debugTasks = apiTasks.slice(0, 3).map(t => ({
-      id: t.id,
-      _id: t._id,
-      title: t.title,
-      status: t.status,
-      allKeys: Object.keys(t)
-    }));
-    console.log('First 3 apiTasks for debugging:', debugTasks);
-
-    // Log the searched task ID and available IDs for comparison
-    console.log('Searching for task ID:', taskId, '(type:', typeof taskId, ')');
-    console.log('Available apiTask IDs:', apiTasks.map(t => ({ id: t.id, _id: t._id, idType: typeof t.id, _idType: typeof t._id })));
-
     // Find task by multiple possible ID fields to handle different ID formats
     const task = apiTasks.find((t) => {
       const matches = t.id === taskId ||
         t._id === taskId ||
         String(t.id) === String(taskId) ||
+        String(t._id) === String(taskId) ||
         t.id === Number(taskId);
 
       if (matches) {
         console.log('MATCH FOUND:', { searchId: taskId, task: { id: t.id, _id: t._id, title: t.title } });
       }
       return matches;
-    }); const newStatus = companyStatuses.find(
+    });
+
+    const newStatus = companyStatuses.find(
       (s) => s.code === newStatusCode && s.active,
     );
 
     console.log('Found task:', task ? { id: task.id, _id: task._id, title: task.title, status: task.status } : 'NOT FOUND');
     console.log('Found status:', newStatus ? { code: newStatus.code, label: newStatus.label } : 'NOT FOUND');
 
-    if (!task || !newStatus) {
-      console.error("Invalid task or status code provided", {
-        task: !!task,
-        newStatus: !!newStatus,
-        searchedTaskId: taskId,
-        availableTaskIds: apiTasks.map(t => ({ id: t.id, _id: t._id })).slice(0, 5)
+    if (!newStatus) {
+      setToast({
+        message: "Invalid status code provided.",
+        type: 'error',
+        isVisible: true,
       });
+      return;
+    }
 
+    if (!task) {
       // If we can't find the task locally but we have a valid MongoDB ObjectId and valid status,
       // we can still proceed with the API call since the backend knows about this task
-      if (!task && newStatus && taskId.match(/^[0-9a-fA-F]{24}$/)) {
-        console.log('Task not found locally but valid ObjectId provided, proceeding with API call');
+      if (newStatus && taskId && (taskId.match(/^[0-9a-fA-F]{24}$/) || taskId.toString().length > 0)) {
+        console.log('Task not found locally but valid ID provided, proceeding with API call');
         // Create a minimal task object for the API call
         const minimalTask = {
           _id: taskId,
           id: taskId,
-          title: 'Task (ID mismatch)'
+          title: 'Task (Loading...)',
+          status: 'OPEN' // Default status
         };
 
         // Show confirmation for final statuses
@@ -623,6 +750,11 @@ export default function AllTasks({
         return;
       }
 
+      setToast({
+        message: "Task not found. Please refresh the page and try again.",
+        type: 'error',
+        isVisible: true,
+      });
       return;
     }
 
@@ -652,9 +784,9 @@ export default function AllTasks({
 
     // Check sub-task completion logic
     if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
-      const incompleteCount = task.subtasks.filter(
-        (s) => s.status !== "completed" && s.status !== "cancelled",
-      ).length;
+      const incompleteCount = task.subtasks?.filter(
+        (s) => s.status !== "DONE" && s.status !== "CANCELLED",
+      ).length || 0;
       setToast({
         message: `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
         type: 'error',
@@ -666,7 +798,7 @@ export default function AllTasks({
     // Show confirmation for final statuses
     if (newStatus.isFinal && requiresConfirmation) {
       setShowStatusConfirmation({
-        taskId,
+        taskId: task._id || task.id,
         newStatusCode,
         taskTitle: task.title,
         statusLabel: newStatus.label,
@@ -681,15 +813,27 @@ export default function AllTasks({
 
   // Execute the actual status change
   const executeStatusChange = async (task, newStatusCode, reason = null) => {
+    console.log('🚀 EXECUTE STATUS CHANGE STARTED:', {
+      task: {
+        id: task.id,
+        _id: task._id,
+        title: task.title,
+        currentStatus: task.status
+      },
+      newStatusCode,
+      reason,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Use the MongoDB ObjectId (_id) for the API call, fallback to numeric id
       const apiTaskId = task._id || task.id;
 
-      console.log('Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
+      console.log('🔧 Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
 
       // Map frontend status codes to backend status codes
       const statusMapping = {
-        'OPEN': 'todo',
+        'OPEN': 'open',
         'INPROGRESS': 'in-progress',
         'DONE': 'completed',
         'ONHOLD': 'on-hold',
@@ -697,6 +841,12 @@ export default function AllTasks({
       };
 
       const backendStatus = statusMapping[newStatusCode] || newStatusCode.toLowerCase();
+
+      console.log('🎯 Status mapping:', {
+        frontendStatus: newStatusCode,
+        backendStatus,
+        allMappings: statusMapping
+      });
 
       // Prepare the request payload according to API spec
       const payload = {
@@ -709,11 +859,14 @@ export default function AllTasks({
         payload.completedDate = new Date().toISOString();
       }
 
-      console.log('Updating task status with payload:', payload);
+      console.log('📤 Updating task status with payload:', payload);
+      console.log('🌐 API endpoint URL:', `http://localhost:5000/api/tasks/${apiTaskId}/status`);
+      console.log('🔑 Auth token exists:', !!localStorage.getItem('token'));
 
-      // Use PATCH method as per API specification  
+      // Use correct API endpoint format
+      console.log('🚀 Making API call now...');
       const response = await axios.patch(
-        `/api/tasks/${apiTaskId}/status`,
+        `http://localhost:5000/api/tasks/${apiTaskId}/status`,
         payload,
         {
           headers: {
@@ -722,6 +875,8 @@ export default function AllTasks({
           }
         }
       );
+
+      console.log('📨 Status update response received:', response);
 
       console.log('Status update response:', response);
 
@@ -733,10 +888,47 @@ export default function AllTasks({
 
       // Check for successful response
       if (response.data && response.data.success) {
-        // Update local state using the task's local ID
-        const localTaskId = task.id;
+        console.log('✅ API call successful, updating local state...');
+
+        // Update local state optimistically with status color
+        setApiTasks(prev => {
+          const updated = prev.map(t => {
+            if (t.id === task.id || t._id === task._id) {
+              // Get color from companyStatuses configuration
+              const statusObj = companyStatuses.find(s => s.code === newStatusCode);
+              const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatusCode);
+
+              const updatedTask = {
+                ...t,
+                status: newStatusCode,
+                statusColor: newStatusColor,
+                colorCode: newStatusColor, // Also update colorCode field
+                updatedAt: new Date().toISOString(),
+                ...(backendStatus === "completed" && { completedDate: new Date().toISOString() })
+              };
+
+              console.log('🎨 Updated task with color:', {
+                taskId: t._id || t.id,
+                oldStatus: t.status,
+                newStatus: newStatusCode,
+                backendStatus,
+                newColor: updatedTask.statusColor,
+                colorCode: updatedTask.colorCode,
+                statusObject: statusObj
+              });
+
+              return updatedTask;
+            }
+            return t;
+          });
+
+          console.log('📊 Local state updated, total tasks:', updated.length);
+          return updated;
+        });
+
+        // Also update Zustand store if available
         if (typeof updateTaskStatus === 'function') {
-          updateTaskStatus(localTaskId, newStatusCode);
+          updateTaskStatus(task.id, newStatusCode);
         }
 
         // Show success toast
@@ -749,10 +941,8 @@ export default function AllTasks({
           isVisible: true,
         });
 
-        // Refetch tasks to ensure consistency
-        if (typeof refetchTasks === 'function') {
-          await refetchTasks();
-        }
+        // No need to refetch since we're updating optimistically and it's working
+
       } else {
         // Handle API error response
         const errorMessage = response.data?.message || "Failed to update task status.";
@@ -763,7 +953,15 @@ export default function AllTasks({
         });
       }
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error('❌ ERROR in executeStatusChange:', {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config,
+        taskId: task._id || task.id,
+        newStatusCode,
+        timestamp: new Date().toISOString()
+      });
 
       // Handle different error response formats
       let errorMessage = 'Error updating task status. Please try again.';
@@ -773,6 +971,8 @@ export default function AllTasks({
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = `Network error: ${error.message}`;
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network connection failed. Please check your internet connection.';
       }
 
       setToast({
@@ -780,6 +980,9 @@ export default function AllTasks({
         type: 'error',
         isVisible: true,
       });
+
+      // Optionally revert optimistic update on error
+      console.log('Status update failed, you may want to revert the optimistic update');
     }
   };
 
@@ -793,32 +996,62 @@ export default function AllTasks({
   };
 
   // Handle task deletion with confirmation
-  const handleDeleteTask = (taskId, options = {}) => {
-    const task = apiTasks.find((t) => t.id === taskId);
+  const handleDeleteTask = async (taskId, options = {}) => {
+    try {
+      const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
 
-    if (!task) {
-      showToast("Task not found", "error");
-      return;
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      // Check permissions
+      if (!canDeleteTask(task)) {
+        showToast("You do not have permission to delete this task", "error");
+        return;
+      }
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('🗑️ Deleting task with ID:', apiTaskId, 'from task:', { id: task.id, _id: task._id, title: task.title });
+
+      // Call API to delete task
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/tasks/delete/${apiTaskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('🌐 Delete API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Delete API response:', result);
+
+        if (result.success) {
+          // Remove from local state
+          setApiTasks(prev => prev.filter(t => t.id !== taskId && t._id !== taskId));
+
+          // Show success toast
+          showToast(`Task "${task.title}" deleted successfully`, "success");
+
+          // Refetch tasks to ensure sync
+          await refetchTasks();
+        } else {
+          throw new Error(result.message || "Failed to delete task");
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting task:', error);
+      showToast(error.message || "Error deleting task", "error");
     }
-
-    // Check permissions
-    if (!canDeleteTask(task)) {
-      showToast("You do not have permission to delete this task", "error");
-      return;
-    }
-
-    // Show confirmation modal
-    setConfirmModal({
-      isOpen: true,
-      type: 'danger',
-      title: 'Delete Task',
-      message: `Are you sure you want to delete the task "${task.title}"? This action cannot be undone.`,
-      onConfirm: () => executeTaskDeletion(taskId, options),
-      data: { taskId, options }
-    });
-  };
-
-  // Execute task deletion
+  };  // Execute task deletion
   const executeTaskDeletion = async (taskId, options) => {
     try {
       const task = apiTasks.find((t) => t.id === taskId);
@@ -1225,14 +1458,21 @@ export default function AllTasks({
 
   // Handle subtask deletion with confirmation
   const handleDeleteSubtask = (parentTaskId, subtaskId) => {
-    const parentTask = apiTasks.find((t) => t.id === parentTaskId);
-    const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId);
+    console.log('🗑️ DELETE SUBTASK BUTTON CLICKED:', { parentTaskId, subtaskId });
+
+    const parentTask = apiTasks.find((t) => t.id === parentTaskId || t._id === parentTaskId);
+    console.log('🔍 Found parent task:', parentTask ? { id: parentTask.id, _id: parentTask._id, title: parentTask.title } : 'NOT FOUND');
+
+    const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId || s._id === subtaskId);
+    console.log('🔍 Found subtask:', subtask ? { id: subtask.id, _id: subtask._id, title: subtask.title } : 'NOT FOUND');
 
     if (!subtask) {
+      console.error('❌ Subtask not found:', { parentTaskId, subtaskId, parentTask: parentTask?.title });
       showToast("Subtask not found", "error");
       return;
     }
 
+    console.log('✅ Showing confirmation modal for subtask deletion');
     setConfirmModal({
       isOpen: true,
       type: 'danger',
@@ -1246,35 +1486,69 @@ export default function AllTasks({
   // Execute subtask deletion
   const executeSubtaskDeletion = async (parentTaskId, subtaskId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://localhost:5000/api/tasks/${parentTaskId}/subtasks/${subtaskId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const parentTask = apiTasks.find((t) => t.id === parentTaskId);
+      const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId);
 
-      if (response.data.success) {
-        // Update local state
-        setApiTasks(prev => prev.map(task =>
-          task.id === parentTaskId
-            ? { ...task, subtasks: task.subtasks?.filter(s => s.id !== subtaskId) }
-            : task
-        ));
-
+      if (!parentTask || !subtask) {
+        showToast("Subtask or parent task not found", "error");
         setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
-        showToast("Subtask deleted successfully", "success");
+        return;
+      }
 
-        // Refetch to ensure sync
-        await refetchTasks();
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiParentTaskId = parentTask._id || parentTask.id;
+      const apiSubtaskId = subtask._id || subtask.id;
+
+      console.log('🗑️ Deleting subtask with IDs:', {
+        parentTaskId: apiParentTaskId,
+        subtaskId: apiSubtaskId,
+        originalParentId: parentTaskId,
+        originalSubtaskId: subtaskId
+      });
+
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/tasks/${apiParentTaskId}/subtasks/${apiSubtaskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('🌐 Subtask delete API response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Subtask delete API response:', result);
+
+        if (result.success) {
+          // Update local state - remove subtask from parent task
+          setApiTasks(prev => prev.map(task =>
+            (task.id === parentTaskId || task._id === parentTaskId)
+              ? {
+                ...task,
+                subtasks: task.subtasks?.filter(s =>
+                  s.id !== subtaskId && s._id !== subtaskId
+                ) || []
+              }
+              : task
+          ));
+
+          setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+          showToast("Subtask deleted successfully", "success");
+
+          // Refetch to ensure sync
+          await refetchTasks();
+        } else {
+          throw new Error(result.message || "Failed to delete subtask");
+        }
       } else {
-        throw new Error(response.data.message || "Failed to delete subtask");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error deleting subtask:', error);
-      showToast(error.response?.data?.message || "Failed to delete subtask", "error");
+      console.error('❌ Error deleting subtask:', error);
+      showToast(error.message || "Failed to delete subtask", "error");
       setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
     }
   };
@@ -1305,6 +1579,21 @@ export default function AllTasks({
     if (task) {
       openSubtaskDrawer(task);
     }
+  };
+
+  // Handle subtask edit
+  const handleEditSubtask = (subtask) => {
+    const task = apiTasks.find((t) =>
+      t.subtasks?.some(s => s.id === subtask.id || s._id === subtask._id)
+    );
+    if (task) {
+      openSubtaskDrawer(task, subtask, 'edit');
+    }
+  };
+
+  // Handle subtask view - navigate to TaskDetail page
+  const handleViewSubtask = (subtask) => {
+    navigate(`/tasks/${subtask.id || subtask._id}`);
   };
 
   const handleToggleSubtasks = (taskId) => {
@@ -1344,7 +1633,7 @@ export default function AllTasks({
     // Open appropriate task creation modal based on selected type
     if (selectedTaskType === "approval") {
       setShowApprovalTaskModal(true);
-    } else if (selectedTaskType === "milestone") {
+    } else if (selectedTaskType === "milestone") { 
       setShowMilestoneModal(true);
     } else {
       setShowCreateTaskDrawer(true);
@@ -1455,7 +1744,13 @@ export default function AllTasks({
         return;
       }
 
+      console.log('DEBUG - Snooze task found:', { id: task.id, _id: task._id, title: task.title });
+
       const token = localStorage.getItem("token");
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('DEBUG - Using task ID for snooze API call:', apiTaskId);
 
       // Check if task is currently snoozed
       const isCurrentlySnoozing = task.isSnooze || snoozedTasks.has(taskId);
@@ -1463,7 +1758,7 @@ export default function AllTasks({
       if (isCurrentlySnoozing) {
         // Unsnooze task
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/unsnooze`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/unsnooze`,
           {},
           {
             headers: {
@@ -1492,8 +1787,10 @@ export default function AllTasks({
         const snoozeUntil = snoozeData?.snoozeUntil || defaultSnoozeUntil.toISOString();
         const reason = snoozeData?.reason || "Task snoozed temporarily";
 
+        console.log('DEBUG - Snooze request payload:', { snoozeUntil, reason });
+
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/snooze`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/snooze`,
           {
             snoozeUntil,
             reason
@@ -1541,7 +1838,13 @@ export default function AllTasks({
         return;
       }
 
+      console.log('DEBUG - Risk task found:', { id: task.id, _id: task._id, title: task.title });
+
       const token = localStorage.getItem("token");
+
+      // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
+      const apiTaskId = task._id || task.id;
+      console.log('DEBUG - Using task ID for risk API call:', apiTaskId);
 
       // Check if task is currently marked as risk
       const isCurrentlyRisky = task.isRisk || riskyTasks.has(taskId);
@@ -1549,7 +1852,7 @@ export default function AllTasks({
       if (isCurrentlyRisky) {
         // Unmark as risk
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/unmark-risk`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/unmark-risk`,
           {},
           {
             headers: {
@@ -1580,8 +1883,10 @@ export default function AllTasks({
         const riskLevel = riskData?.riskLevel || 'medium';
         const riskReason = riskData?.riskReason || 'Task requires attention';
 
+        console.log('DEBUG - Risk request payload:', { riskLevel, riskReason });
+
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${taskId}/mark-risk`,
+          `http://localhost:5000/api/tasks/${apiTaskId}/mark-risk`,
           {
             riskLevel,
             riskReason
@@ -1776,10 +2081,61 @@ export default function AllTasks({
   };
 
   // Function to get task color code
+  // Status color mapping for consistent colors across components
+  const getStatusColor = (statusCode) => {
+    // First try to get color from companyStatuses (dynamic from API)
+    const statusObj = companyStatuses.find(s => s.code === statusCode);
+    if (statusObj && statusObj.color) {
+      return statusObj.color;
+    }
+
+    // Fallback to hardcoded colors for backward compatibility
+    const statusColorMap = {
+      'OPEN': '#3B82F6',      // Blue
+      'INPROGRESS': '#F59E0B', // Yellow/Orange
+      'DONE': '#10B981',      // Green
+      'COMPLETED': '#10B981', // Green
+      'ONHOLD': '#6B7280',    // Gray
+      'CANCELLED': '#EF4444', // Red
+      'PENDING': '#F97316',   // Orange
+      'APPROVED': '#059669',  // Green
+      'REJECTED': '#DC2626',  // Red
+      'REVIEW': '#8B5CF6',    // Purple
+      // Backend status codes
+      'open': '#3B82F6',
+      'in-progress': '#F59E0B',
+      'completed': '#10B981',
+      'on-hold': '#6B7280',
+      'cancelled': '#EF4444',
+      'pending': '#F97316',
+      'approved': '#059669',
+      'rejected': '#DC2626',
+      'review': '#8B5CF6'
+    };
+
+    return statusColorMap[statusCode] || '#6B7280'; // Default gray
+  };
+
   const getTaskColorCode = (task) => {
     console.log("Getting color code for task::::::::::::::::::", task);
+
+    // Priority: statusColor from API > status-based color > taskType color > default
+    if (task.statusColor) {
+      console.log("Using statusColor from API:", task.statusColor);
+      return task.statusColor;
+    }
+
+    if (task.status) {
+      const statusColor = getStatusColor(task.status);
+      console.log("Using status-based color:", statusColor, "for status:", task.status);
+      return statusColor;
+    }
+
+    // Fallback to task type color
     const taskInfo = getTaskTypeInfo(task.taskType);
-    return task.colorCode || taskInfo.defaultColor || "#ffffff";
+    const fallbackColor = task.colorCode || taskInfo.defaultColor || "#6B7280";
+    console.log("Using fallback color:", fallbackColor);
+    return fallbackColor;
   };
 
   // Smart task handlers
@@ -1797,14 +2153,111 @@ export default function AllTasks({
     });
   };
 
+  // Task modal handlers
+  const handleTaskCreated = async (newTask) => {
+    try {
+      setShowCreateTaskDrawer(false);
+      setSelectedDateForTask(null);
+      showToast("Task created successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task creation:', error);
+      showToast("Task created but failed to refresh list", "warning");
+    }
+  };
+
+  const handleTaskUpdate = async (updatedTask) => {
+    try {
+      setSelectedTask(updatedTask);
+      showToast("Task updated successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task update:', error);
+      showToast("Task updated but failed to refresh", "warning");
+    }
+  };
+
+  const handleTaskUpdated = async (updatedTask) => {
+    try {
+      setShowEditTaskModal(false);
+      setEditingTask(null);
+      showToast("Task updated successfully", "success");
+      await refetchTasks();
+    } catch (error) {
+      console.error('Error after task update:', error);
+      showToast("Task updated but failed to refresh", "warning");
+    }
+  };
+
+  // Milestone-specific handlers
+  const handleMilestoneUpdate = async (milestoneId, updateData) => {
+    try {
+      console.log('Updating milestone:', milestoneId, updateData);
+      await updateMilestone(milestoneId, updateData);
+      showToast("Milestone updated successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      showToast("Failed to update milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleMilestoneDelete = async (milestoneId) => {
+    try {
+      console.log('Deleting milestone:', milestoneId);
+      await deleteMilestone(milestoneId);
+      showToast("Milestone deleted successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      showToast("Failed to delete milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleMilestoneAchieved = async (milestoneId) => {
+    try {
+      console.log('Marking milestone as achieved:', milestoneId);
+      await markMilestoneAsAchieved(milestoneId);
+      showToast("Milestone marked as achieved!", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error marking milestone as achieved:', error);
+      showToast("Failed to mark milestone as achieved: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleLinkTaskToMilestone = async (milestoneId, taskData) => {
+    try {
+      console.log('Linking task to milestone:', milestoneId, taskData);
+      await linkTaskToMilestone(milestoneId, taskData);
+      showToast("Task linked to milestone successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error linking task to milestone:', error);
+      showToast("Failed to link task to milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
+  const handleUnlinkTaskFromMilestone = async (milestoneId, taskId) => {
+    try {
+      console.log('Unlinking task from milestone:', milestoneId, taskId);
+      await unlinkTaskFromMilestone(milestoneId, taskId);
+      showToast("Task unlinked from milestone successfully", "success");
+      await refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error unlinking task from milestone:', error);
+      showToast("Failed to unlink task from milestone: " + (error.response?.data?.message || error.message), "error");
+    }
+  };
+
   return (
-    <div className="space-y-4 px-3 py-4 min-h-0 overflow-hidden">
+    <div className="space-y-4 p-6 min-h-0 overflow-hidden">
 
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">All Tasks</h1>
-          <p className="mt-2 text-lg text-gray-600">
+          <p className="mt-0 text-lg text-gray-600">
             Manage and track all your tasks
           </p>
         </div>
@@ -1876,7 +2329,7 @@ export default function AllTasks({
               <Sparkles className="w-4 h-4 mr-2" />
               Smart Parse
             </button>
-            <button
+            {/* <button
               className="btn btn-primary ml-1 px-2 flex-shrink-0"
               onClick={() => setShowTaskTypeDropdown(!showTaskTypeDropdown)}
             >
@@ -1887,7 +2340,7 @@ export default function AllTasks({
                   clipRule="evenodd"
                 />
               </svg>
-            </button>
+            </button> */}
 
             {showTaskTypeDropdown && (
               <>
@@ -1970,12 +2423,12 @@ export default function AllTasks({
       </div>
 
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 space-y-4">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
         {/* Search Bar */}
 
         {/* Filters */}
         <div className="flex flex-nowrap overflow-x-auto gap-2">
-          <div className="relative w-50 max-w-md min-w-[270px]">
+          <div className="relative w-50 max-w-md min-w-[170px]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
               fill="none"
@@ -2075,6 +2528,35 @@ export default function AllTasks({
             className="min-w-[170px]"
           />
         </div>
+
+        {/* Export Options */}
+        <div className="flex justify-end gap-2">
+          <button className=" btn-md flex ">
+            <img
+              src="/src/assets/images/csv-export (2).png"
+              alt="CSV"
+              className="min-w-9 w-9 h-10"
+              onError={(e) => {
+                // Fallback to text if image not found
+                e.target.style.display = 'none';
+              }}
+            />
+            {/* <span>Export as CSV</span> */}
+          </button>
+          <button className=" btn-md flex ">
+            <img
+              src="/src/assets/images/export-excel.png"
+              alt="Excel"
+              className="min-w-10 w-10 h-10"
+              onError={(e) => {
+                // Fallback to text if image not found
+                e.target.style.display = 'none';
+              }}
+            />
+            {/* <span>Export as Excel</span> */}
+          </button>
+        </div>
+
         {/* Bulk Actions */}
         {selectedTasks.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 p-2 bg-blue-50 rounded-md">
@@ -2216,14 +2698,6 @@ export default function AllTasks({
           </div>
         )}
 
-      {/* Export Options */}
-      <div className="flex justify-end gap-2 ">
-        <button className="btn btn-secondary btn-md">Export as CSV</button>
-        <button className="btn btn-secondary btn-md">Export as Excel</button>
-      </div>
-
-
-
       {/* Tasks Table */}
       {apiLoading ? (
         <div className="flex justify-center items-center py-10">
@@ -2283,384 +2757,461 @@ export default function AllTasks({
               </TableHeader>
 
               <TableBody>
-                {filteredTasks.map((task) => (
-                  <React.Fragment key={task.id}>
-                    <TableRow
-                      className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
-                        }`}
-                      style={{
-                        borderLeft: `4px solid ${getTaskColorCode(task)}`,
-                      }}
-                    >
-                      <TableCell className="px-6 py-4 text-nowrap rounded-[inherit]">
-                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
-                          <input
-                            type="checkbox"
-                            checked={selectedTasks.includes(task.id)}
-                            onChange={(e) =>
-                              handleTaskSelection(task.id, e.target.checked)
-                            }
-                            className="w-4 h-4 rounded-[inherit] border-gray-300 text-blue-600 focus:ring-blue-500 overflow-hidden"
-                          />
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            <div className="flex items-center gap-2">
-                              {/* Expansion control for tasks with subtasks */}
-                              {task.subtasks && task.subtasks.length > 0 && (
-                                <button
-                                  onClick={() =>
-                                    handleToggleTaskExpansion(task.id)
-                                  }
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors hover:text-gray-600 transition-colors"
-                                  title={
-                                    expandedTasks.has(task.id)
-                                      ? "Collapse subtasks"
-                                      : "Expand subtasks"
-                                  }
-                                >
-                                  <svg
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
+                {apiLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-8 text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span className="text-gray-500">Loading tasks...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : apiError ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-8 text-center">
+                      <div className="text-red-500">
+                        <svg className="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833-.23 2.5 1.732 2.5z" />
+                        </svg>
+                        <p className="text-lg font-medium">Error loading tasks</p>
+                        <p className="text-sm text-gray-500 mt-1">{apiError}</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredTasks.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="px-6 py-12 text-center">
+                      <div className="text-gray-500">
+                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                        <p className="text-sm mb-4">
+                          {apiTasks.length === 0
+                            ? "You don't have any tasks assigned yet."
+                            : "No tasks match your current filters."
+                          }
+                        </p>
+                        {apiTasks.length === 0 && (
+                          <button
+                            onClick={() => setShowCreateTaskDrawer(true)}
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create your first task
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTasks.map((task) => (
+                    <React.Fragment key={task.id}>
+                      <TableRow
+                        className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
+                          }`}
+                        style={{
+                          borderLeft: `4px solid ${getTaskColorCode(task)}`,
+                        }}
+                      >
+                        <TableCell className="px-6 py-4 text-nowrap rounded-[inherit]">
+                          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                            <input
+                              type="checkbox"
+                              checked={selectedTasks.includes(task.id)}
+                              onChange={(e) =>
+                                handleTaskSelection(task.id, e.target.checked)
+                              }
+                              className="w-4 h-4 rounded-[inherit] border-gray-300 text-blue-600 focus:ring-blue-500 overflow-hidden"
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              <div className="flex items-center gap-2">
+                                {/* Expansion control for tasks with subtasks */}
+                                {task.subtasks && task.subtasks.length > 0 && (
+                                  <button
+                                    onClick={() =>
+                                      handleToggleTaskExpansion(task.id)
+                                    }
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors hover:text-gray-600 transition-colors"
+                                    title={
+                                      expandedTasks.has(task.id)
+                                        ? "Collapse subtasks"
+                                        : "Expand subtasks"
+                                    }
                                   >
-                                    <circle cx="5" cy="5" r="2" fill="currentColor" />
-                                    <circle cx="5" cy="12" r="2" fill="currentColor" />
-                                    <circle cx="5" cy="19" r="2" fill="currentColor" />
-                                    <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
-                                  </svg>
-                                  {task.subtasks.length}
-                                </button>
-                              )}
+                                    <svg
+                                      width="24"
+                                      height="24"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <circle cx="5" cy="5" r="2" fill="currentColor" />
+                                      <circle cx="5" cy="12" r="2" fill="currentColor" />
+                                      <circle cx="5" cy="19" r="2" fill="currentColor" />
+                                      <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
+                                      <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
+                                    </svg>
+                                    {task.subtasks.length}
+                                  </button>
+                                )}
 
-                              {editingTaskId === task.id ? (
-                                <input
-                                  type="text"
-                                  value={editingTitle}
-                                  onChange={(e) =>
-                                    setEditingTitle(e.target.value)
-                                  }
-                                  onBlur={() => handleTitleSave(task.id)}
-                                  onKeyDown={(e) =>
-                                    handleTitleKeyDown(e, task.id)
-                                  }
-                                  className="w-full px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all duration-200"
-                                  autoFocus
-                                  maxLength={100}
-                                />
-                              ) : (
-                                <>
-                                  {task.isRecurring && (
-                                    <span
-                                      className="text-green-600 cursor-help"
-                                      title="Recurring Task – generated from a pattern"
-                                    >
-                                      🔁
-                                    </span>
-                                  )}
-                                  {task.isApprovalTask && (
-                                    <span
-                                      className="text-orange-600 cursor-help"
-                                      title="Approval Task – requires approval workflow"
-                                    >
-                                      ✅
-                                    </span>
-                                  )}
-                                  {task.type === "milestone" && (
-                                    <span
-                                      className="text-purple-600 cursor-help"
-                                      title="Milestone – project checkpoint"
-                                    >
-                                      🎯
-                                    </span>
-                                  )}
-                                  <span
-                                    className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1 editable-task-title"
-                                    onClick={() => handleTaskTitleClick(task)}
-                                    title="Click to edit"
-                                  >
-                                    {task.title}
-                                    {(riskyTasks.has(task.id) || task.isRisk) && (
+                                {editingTaskId === task.id ? (
+                                  <input
+                                    type="text"
+                                    value={editingTitle}
+                                    onChange={(e) =>
+                                      setEditingTitle(e.target.value)
+                                    }
+                                    onBlur={() => handleTitleSave(task.id)}
+                                    onKeyDown={(e) =>
+                                      handleTitleKeyDown(e, task.id)
+                                    }
+                                    className="w-full px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition-all duration-200"
+                                    autoFocus
+                                    maxLength={100}
+                                  />
+                                ) : (
+                                  <>
+                                    {task.isRecurring && (
                                       <span
-                                        className="ml-2 text-orange-500"
-                                        title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
+                                        className="text-green-600 cursor-help"
+                                        title="Recurring Task – generated from a pattern"
                                       >
-                                        ⚠️
+                                        🔁
                                       </span>
                                     )}
-                                    {(snoozedTasks.has(task.id) || task.isSnooze) && (
+                                    {task.isApprovalTask && (
                                       <span
-                                        className="ml-2 text-yellow-500"
-                                        title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
+                                        className="text-orange-600 cursor-help"
+                                        title="Approval Task – requires approval workflow"
                                       >
-                                        ⏸️
+                                        ✅
                                       </span>
                                     )}
-                                  </span>
-
-                                  {task.recurringFromTaskId && (
+                                    {task.taskType === "milestone" && (
+                                      <span
+                                        className="text-purple-600 cursor-help"
+                                        title="Milestone – project checkpoint"
+                                      >
+                                        🎯
+                                      </span>
+                                    )}
                                     <span
-                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-pointer hover:bg-green-200 transition-colors"
-                                      title={`Recurring from Task #${task.recurringFromTaskId}`}
-                                      onClick={() =>
-                                        console.log(
-                                          `View master task ${task.recurringFromTaskId}`,
-                                        )
-                                      }
+                                      className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1 editable-task-title"
+                                      onClick={() => handleTaskTitleClick(task)}
+                                      title="Click to edit"
                                     >
-                                      📋 #{task.recurringFromTaskId}
+                                      {task.title}
+                                      {(riskyTasks.has(task.id) || task.isRisk) && (
+                                        <span
+                                          className="ml-2 text-orange-500"
+                                          title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
+                                        >
+                                          ⚠️
+                                        </span>
+                                      )}
+                                      {(snoozedTasks.has(task.id) || task.isSnooze) && (
+                                        <span
+                                          className="ml-2 text-yellow-500"
+                                          title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
+                                        >
+                                          ⏸️
+                                        </span>
+                                      )}
                                     </span>
-                                  )}
-                                </>
-                              )}
+
+                                    {task.recurringFromTaskId && (
+                                      <span
+                                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 cursor-pointer hover:bg-green-200 transition-colors"
+                                        title={`Recurring from Task #${task.recurringFromTaskId}`}
+                                        onClick={() =>
+                                          console.log(
+                                            `View master task ${task.recurringFromTaskId}`,
+                                          )
+                                        }
+                                      >
+                                        📋 #{task.recurringFromTaskId}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
-                            <span className="text-xs font-medium text-gray-600">
-                              {task.assignee && task.assignee
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("") || "UN"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
+                              <span className="text-xs font-medium text-gray-600">
+                                {task.assignee && task.assignee
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("") || "UN"}
+                              </span>
+                            </div>
+                            <span className="text-sm text-gray-900">
+                              {task.assignee || "Unassigned"}
                             </span>
                           </div>
-                          <span className="text-sm text-gray-900">
-                            {task.assignee || "Unassigned"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap text-left">
+                          <TaskStatusDropdown
+                            task={task}
+                            currentStatus={task.status}
+                            statuses={companyStatuses}
+                            onStatusChange={(newStatus) => {
+                              // Only require confirmation for final statuses
+                              const statusObj = companyStatuses.find(s => s.code === newStatus);
+                              const requiresConfirmation = statusObj?.isFinal || false;
+
+                              console.log('🎯 TaskStatusDropdown - Status change requested:', {
+                                taskId: task.id,
+                                currentStatus: task.status,
+                                newStatus,
+                                isFinal: statusObj?.isFinal,
+                                requiresConfirmation
+                              });
+
+                              handleStatusChange(task.id, newStatus, requiresConfirmation);
+                            }}
+                            canEdit={canEditTaskStatus(task)}
+                            canMarkCompleted={canMarkAsCompleted(task)}
+                          />
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <span
+                            className="inline-flex items-center px-2.5 py-0.5 uppercase text-gray-900" >
+                            {task.priority}
                           </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap text-left">
-                        <TaskStatusDropdown
-                          task={task}
-                          currentStatus={task.status}
-                          statuses={companyStatuses}
-                          onStatusChange={(newStatus) =>
-                            handleStatusChange(task.id, newStatus, true)
-                          }
-                          canEdit={canEditTaskStatus(task)}
-                          canMarkCompleted={canMarkAsCompleted(task)}
-                        />
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <span
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white opacity-70"
-                          style={{ backgroundColor: getTaskPriorityColor(task.priority), }}
-                        >
-                          {task.priority}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
-                        {task.dueDate}
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-xs text-gray-600 min-w-[3rem]">
-                            {task.progress}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex flex-wrap gap-1">
-                          {task.tags &&
-                            task.tags.map((tag, index) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-sm text-gray-900">
-                            {getTaskType(task)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="w-6 h-6 rounded-full shadow-md"
-                          style={{ backgroundColor: getTaskColorCode(task) }}
-                          title={getTaskColorCode(task)}
-                        ></div>
-                      </TableCell>
-                      <TableCell className="px-6 py-4 text-nowrap">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* <button
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
+                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }) : "-"}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-xs text-gray-600 min-w-[3rem]">
+                              {task.progress}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex flex-wrap gap-1">
+                            {task.tags &&
+                              task.tags.map((tag, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center">
+                            <span className="text-sm text-gray-900">
+                              {getTaskType(task)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="w-6 h-6 rounded-full shadow-md"
+                            style={{ backgroundColor: getTaskColorCode(task) }}
+                            title={getTaskColorCode(task)}
+                          ></div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-nowrap">
+                          <div className="flex items-center justify-center gap-2">
+                            {/* <button
                             onClick={() => handleOpenThread(task)}
                             className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
                             title="Open task thread"
                           >
                             <MessageCircle className="w-4 h-4" />
                           </button> */}
-                          <TaskActionsDropdown
-                            task={task}
-                            onSnooze={() => handleSnoozeTask(task.id)}
-                            onMarkAsRisk={() => handleMarkAsRisk(task.id)}
-                            onMarkAsDone={() =>
-                              handleStatusChange(task.id, "DONE", true)
-                            }
-                            onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
-                            onDelete={() => handleDeleteTask(task.id)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <TaskActionsDropdown
+                              task={task}
+                              onSnooze={() => handleSnoozeTask(task.id)}
+                              onMarkAsRisk={() => handleMarkAsRisk(task.id)}
+                              onMarkAsDone={() => {
+                                // DONE is a final status, so require confirmation
+                                const statusObj = companyStatuses.find(s => s.code === 'DONE');
+                                const requiresConfirmation = statusObj?.isFinal || true;
 
-                    {/* Subtask Rows */}
-                    {expandedTasks.has(task.id) &&
-                      task.subtasks &&
-                      task.subtasks.map((subtask) => (
-                        <TableRow
-                          key={`subtask-${subtask.id}`}
-                          className="bg-gray-50 hover:bg-gray-100 transition-colors"
-                        >
-                          <TableCell className="px-6 py-3"></TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center gap-2 pl-8">
-                              <span className="text-blue-500">↳</span>
-                              {editingSubtaskId === subtask.id ? (
-                                <input
-                                  type="text"
-                                  value={editingSubtaskTitle}
-                                  onChange={(e) =>
-                                    setEditingSubtaskTitle(e.target.value)
-                                  }
-                                  onBlur={() =>
-                                    handleSubtaskTitleSave(subtask.id, task.id)
-                                  }
-                                  onKeyDown={(e) =>
-                                    handleSubtaskTitleKeyDown(
-                                      e,
-                                      subtask.id,
-                                      task.id,
-                                    )
-                                  }
-                                  className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                                  autoFocus
-                                  onFocus={(e) => e.target.select()}
-                                />
-                              ) : (
-                                <span
-                                  className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
-                                  onClick={() =>
-                                    handleSubtaskTitleClick(subtask, task.id)
-                                  }
-                                  title="Click to edit"
-                                >
-                                  {subtask.title}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-500 pl-7">
-                              Sub-task of "{task.title}"
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
-                                <span className="text-xs font-medium text-gray-600">
-                                  {subtask.assignee && subtask.assignee
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("") || "UN"}
+                                console.log('🎯 TaskActionsDropdown - Mark as Done clicked:', {
+                                  taskId: task.id,
+                                  requiresConfirmation
+                                });
+
+                                handleStatusChange(task.id, "DONE", requiresConfirmation);
+                              }}
+                              onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
+                              onDelete={() => handleDeleteTask(task.id)}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Subtask Rows */}
+                      {expandedTasks.has(task.id) &&
+                        task.subtasks &&
+                        task.subtasks.map((subtask) => (
+                          <TableRow
+                            key={`subtask-${subtask.id}`}
+                            className="bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <TableCell className="px-6 py-3"></TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center gap-2 pl-8">
+                                <span className="text-blue-500">↳</span>
+                                {editingSubtaskId === (subtask._id || subtask.id) ? (
+                                  <input
+                                    type="text"
+                                    value={editingSubtaskTitle}
+                                    onChange={(e) =>
+                                      setEditingSubtaskTitle(e.target.value)
+                                    }
+                                    onBlur={() =>
+                                      handleSubtaskTitleSave(subtask._id || subtask.id, task._id || task.id)
+                                    }
+                                    onKeyDown={(e) =>
+                                      handleSubtaskTitleKeyDown(
+                                        e,
+                                        subtask._id || subtask.id,
+                                        task._id || task.id,
+                                      )
+                                    }
+                                    className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+                                    autoFocus
+                                    onFocus={(e) => e.target.select()}
+                                  />
+                                ) : (
+                                  <span
+                                    className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
+                                    onClick={() =>
+                                      handleSubtaskTitleClick(subtask, task._id || task.id)
+                                    }
+                                    title="Click to edit"
+                                  >
+                                    {subtask.title}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 pl-7">
+                                Sub-task of "{task.title}"
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {subtask.assignee && subtask.assignee
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("") || "UN"}
+                                  </span>
+                                </div>
+                                <span className="text-sm text-gray-700">
+                                  {subtask.assignee || "Unassigned"}
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-700">
-                                {subtask.assignee || "Unassigned"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3 text-left">
-                            <TaskStatusDropdown
-                              task={subtask}
-                              currentStatus={subtask.status}
-                              statuses={companyStatuses}
-                              onStatusChange={(newStatus) =>
-                                handleSubtaskStatusChange(
-                                  task.id,
-                                  subtask.id,
-                                  newStatus,
-                                )
-                              }
-                              canEdit={canEditTaskStatus(subtask)}
-                              canMarkCompleted={true}
-                            />
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <span className={getPriorityBadge(subtask.priority)}>
-                              {subtask.priority}
-                            </span>
-                          </TableCell>
-                          <TableCell className="px-6 py-3 text-sm text-gray-700">
-                            {subtask.dueDate}
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <span className="text-xs text-gray-600 min-w-[3rem]">
-                                {subtask.progress}%
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3"></TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center">
-                              <span className="text-sm text-gray-700">
-                                {getTaskType(subtask)}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div
-                              className="w-6 h-6 rounded-full shadow-md"
-                              style={{
-                                backgroundColor: getTaskColorCode(subtask),
-                              }}
-                              title={getTaskColorCode(subtask)}
-                            ></div>
-                          </TableCell>
-                          <TableCell className="px-6 py-3">
-                            <div className="flex items-center justify-center">
-                              <button
-                                className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
-                                onClick={() =>
-                                  handleDeleteSubtask(task.id, subtask.id)
+                            </TableCell>
+                            <TableCell className="px-6 py-3 text-left">
+                              <TaskStatusDropdown
+                                task={subtask}
+                                currentStatus={subtask.status}
+                                statuses={companyStatuses}
+                                onStatusChange={(newStatus) =>
+                                  handleSubtaskStatusChange(
+                                    task.id,
+                                    subtask.id,
+                                    newStatus,
+                                  )
                                 }
-                                title="Delete Sub-task"
-                              >
-                                <svg
-                                  className="w-5 h-5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                                canEdit={canEditTaskStatus(subtask)}
+                                canMarkCompleted={true}
+                              />
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <span className={getPriorityBadge(subtask.priority)}>
+                                {subtask.priority}
+                              </span>
+                            </TableCell>
+                            <TableCell className="px-6 py-3 text-sm text-gray-700">
+                              {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                              }) : "-"}
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <span className="text-xs text-gray-600 min-w-[3rem]">
+                                  {subtask.progress}%
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3"></TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center">
+                                <span className="text-sm text-gray-700">
+                                  {getTaskType(subtask)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div
+                                className="w-6 h-6 rounded-full shadow-md"
+                                style={{
+                                  backgroundColor: getTaskColorCode(subtask),
+                                }}
+                                title={getTaskColorCode(subtask)}
+                              ></div>
+                            </TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex items-center justify-center">
+                                <button
+                                  className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
+                                  onClick={() =>
+                                    handleDeleteSubtask(task._id || task.id, subtask._id || subtask.id)
+                                  }
+                                  title="Delete Sub-task"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </React.Fragment>
-                ))}
+                                  <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </React.Fragment>
+                  ))
+                )}
               </TableBody>
-
             </Table>
           </div>
         </div>
@@ -2670,10 +3221,71 @@ export default function AllTasks({
 
       {/* Slide-in Drawer */}
       {showCreateTaskDrawer && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0 -top-[16px]" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
           <div
-            className=" absolute inset-0 bg-black/40 "
+            className="absolute inset-0 bg-black/40"
             onClick={() => setShowCreateTaskDrawer(false)}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white flex flex-col shadow-xl"
+            style={{
+              width: "min(90vw, 900px)",
+              maxHeight: "100vh",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 bg-blue-600 text-white">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">
+                  Create New Task
+                  {selectedDateForTask &&
+                    ` for ${new Date(selectedDateForTask).toLocaleDateString(
+                      "en-US",
+                      {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      },
+                    )}`}
+                </h2>
+                <button
+                  onClick={() => setShowCreateTaskDrawer(false)}
+                  className="text-white hover:text-gray-200 p-1"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <CreateTask
+                onSubmit={handleTaskCreated}
+                onClose={() => setShowCreateTaskDrawer(false)}
+                preFilledDate={selectedDateForTask}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showTaskDetails && selectedTask && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-black/40 "
+            onClick={() => setShowTaskDetails(false)}
           ></div>
           <div
             className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
@@ -2688,21 +3300,9 @@ export default function AllTasks({
             onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create New Task
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
+              <h2 className="text-2xl font-bold text-white">Task Details</h2>
               <button
-                onClick={() => setShowCreateTaskDrawer(false)}
+                onClick={() => setShowTaskDetails(false)}
                 className="close-btn"
               >
                 <svg
@@ -2720,318 +3320,176 @@ export default function AllTasks({
                 </svg>
               </button>
             </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-              <CreateTask
-                onClose={() => {
-                  setShowCreateTaskDrawer(false);
-                  setSelectedDateForTask(null);
-                }}
-                initialTaskType={selectedTaskType}
-                preFilledDate={selectedDateForTask}
-              />
+            <div className="drawer-content">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">Task Details</h3>
+                {selectedTask && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Title</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.title}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Status</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.status}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Assignee</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.assignee}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Due Date</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedTask.dueDate || 'No due date'}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Task Edit Modal */}
-      {showEditModal && editingTask && (
-        <TaskEditModal
-          task={editingTask}
-          onSave={handleSaveEditedTask}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingTask(null);
-          }}
-        />
+      {/* Edit Modal */}
+      {showEditTaskModal && editingTask && (
+        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-black/40 "
+            onClick={() => setShowEditTaskModal(false)}
+          ></div>
+          <div
+            className="absolute right-0 top-0 h-full bg-white/95 flex flex-col modal-animate-slide-right"
+            style={{
+              width: "min(90vw, 900px)",
+              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
+              borderLeft: "1px solid rgba(255,255,255,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            <div className="drawer-header">
+              <h2 className="text-2xl font-bold text-white">Edit Task</h2>
+              <button
+                onClick={() => setShowEditTaskModal(false)}
+                className="close-btn"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="drawer-content">
+              <TaskEditModal
+                task={editingTask}
+                onSave={handleTaskUpdated}
+                onClose={() => setShowEditTaskModal(false)}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Status Confirmation Modal */}
       {showStatusConfirmation && (
         <StatusConfirmationModal
+          isOpen={!!showStatusConfirmation}
           taskTitle={showStatusConfirmation.taskTitle}
           statusLabel={showStatusConfirmation.statusLabel}
-          onConfirm={() => {
-            // Find the task object using the taskId
+          onConfirm={(reason) => {
+            console.log('🎯 Status confirmation - CONFIRMED:', {
+              taskId: showStatusConfirmation.taskId,
+              newStatusCode: showStatusConfirmation.newStatusCode,
+              reason,
+              timestamp: new Date().toISOString()
+            });
+
+            // Find the task and execute status change
             const task = apiTasks.find(t =>
-              t.id === showStatusConfirmation.taskId ||
-              t._id === showStatusConfirmation.taskId
+              t._id === showStatusConfirmation.taskId ||
+              t.id === showStatusConfirmation.taskId
             );
 
             if (task) {
-              executeStatusChange(
-                task, // Pass task object, not taskId
-                showStatusConfirmation.newStatusCode,
-                showStatusConfirmation.reason
-              );
+              console.log('🔧 Executing status change after confirmation...');
+              executeStatusChange(task, showStatusConfirmation.newStatusCode, reason);
             } else {
-              console.error('Task not found for confirmation:', showStatusConfirmation.taskId);
+              console.error('❌ Task not found for status confirmation:', showStatusConfirmation.taskId);
             }
+
             setShowStatusConfirmation(null);
           }}
-          onCancel={() => setShowStatusConfirmation(null)}
+          onCancel={() => {
+            console.log('❌ Status confirmation - CANCELLED');
+            setShowStatusConfirmation(null);
+          }}
         />
       )}
 
-      {/* Calendar Modal */}
+      {/* Calendar Modal for Date Selection */}
       {showCalendarModal && (
-        <CalendarDatePicker
-          onClose={() => {
-            setShowCalendarModal(false);
-            setSelectedTaskType("regular");
-          }}
-          onDateSelect={handleCalendarDateSelect}
-          taskType={selectedTaskType}
-        />
-      )}
-
-      {/* Approval Task Creator Modal */}
-      {showApprovalTaskModal && !selectedApprovalTask && (
         <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
           <div
-            className="absolute inset-0 bg-black/40 "
-            onClick={() => setShowApprovalTaskModal(false)}
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowCalendarModal(false)}
           ></div>
-          <div
-            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
-            style={{
-              width: "min(90vw, 600px)",
-              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-              borderLeft: "1px solid rgba(255,255,255,0.2)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
-            <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create Approval Task
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
-              <button
-                onClick={() => setShowApprovalTaskModal(false)}
-                className="close-btn"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div
+              className="bg-white rounded-lg shadow-xl border border-gray-200 p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Select Date for Task
+                </h2>
+                <button
+                  onClick={() => setShowCalendarModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-              <ApprovalTaskCreator
-                onClose={() => {
-                  setShowApprovalTaskModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateApprovalTask}
-                preFilledDate={selectedDateForTask}
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <CalendarDatePicker
                 selectedDate={selectedDateForTask}
+                onDateSelect={handleCalendarDateSelect}
+                onClose={() => setShowCalendarModal(false)}
               />
             </div>
           </div>
         </div>
-      )}
-
-      {/* Subtask Creator Modal */}
-      {showSubtaskCreator && (
-        <SubtaskCreator
-          parentTask={apiTasks.find((t) => t.id === showSubtaskCreator)}
-          onClose={() => setShowSubtaskCreator(null)}
-          onSubmit={(subtaskData) =>
-            handleCreateSubtask(showSubtaskCreator, subtaskData)
-          }
-          currentUser={currentUser}
-        />
-      )}
-
-      {/* Milestone Creation Modal */}
-      {showMilestoneModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-black/40 "
-            onClick={() => setShowMilestoneModal(false)}
-          ></div>
-          <div
-            className="absolute right-0 top-0 h-full bg-white/95  flex flex-col modal-animate-slide-right"
-            style={{
-              width: "min(90vw, 800px)",
-              boxShadow: "-10px 0 50px rgba(0,0,0,0.2)",
-              borderLeft: "1px solid rgba(255,255,255,0.2)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
-            <div className="drawer-header">
-              <h2 className="text-2xl font-bold text-white">
-                Create Milestone
-                {selectedDateForTask &&
-                  ` for ${new Date(selectedDateForTask).toLocaleDateString(
-                    "en-US",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    },
-                  )}`}
-              </h2>
-              <button
-                onClick={() => setShowMilestoneModal(false)}
-                className="close-btn"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="drawer-body flex-1 min-h-0 overflow-y-auto">
-              <MilestoneCreator
-                onClose={() => {
-                  setShowMilestoneModal(false);
-                  setSelectedDateForTask(null);
-                }}
-                onSubmit={handleCreateMilestone}
-                preFilledDate={selectedDateForTask}
-                selectedDate={selectedDateForTask}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Approval Task Detail Modal */}
-      {showApprovalTaskModal && selectedApprovalTask && (
-        <ApprovalTaskDetailModal
-          task={selectedApprovalTask}
-          onClose={() => {
-            setShowApprovalTaskModal(false);
-            setSelectedApprovalTask(null);
-          }}
-          currentUser={currentUser}
-          onApproval={(taskId, approverId, action, comment) => {
-            // Handle approval action
-            setTasks((prevTasks) =>
-              prevTasks.map((task) => {
-                if (task.id !== taskId) return task;
-
-                const updatedApprovers = task.approvers.map((approver) => {
-                  if (approver.id === approverId) {
-                    return {
-                      ...approver,
-                      status: action,
-                      comment: comment || null,
-                      approvedAt: new Date().toISOString(),
-                    };
-                  }
-                  return approver;
-                });
-
-                // Determine overall task status based on approval mode
-                let newStatus = task.status;
-                if (action === "approved") {
-                  if (task.approvalMode === "any") {
-                    newStatus = "DONE";
-                  } else if (task.approvalMode === "all") {
-                    const allApproved = updatedApprovers.every(
-                      (a) => a.status === "approved",
-                    );
-                    if (allApproved) newStatus = "DONE";
-                  }
-                } else if (action === "rejected") {
-                  newStatus = "CANCELLED";
-                }
-
-                return {
-                  ...task,
-                  approvers: updatedApprovers,
-                  status: newStatus,
-                };
-              }),
-            );
-
-            // Close modal after action
-            setShowApprovalTaskModal(false);
-            setSelectedApprovalTask(null);
-          }}
-        />
       )}
 
       {/* Custom Confirmation Modal */}
       {confirmModal.isOpen && (
         <CustomConfirmationModal
           isOpen={confirmModal.isOpen}
-          onClose={() => setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null })}
-          onConfirm={confirmModal.onConfirm}
           type={confirmModal.type}
           title={confirmModal.title}
           message={confirmModal.message}
-          confirmText={confirmModal.type === 'danger' ? 'Delete' : confirmModal.type === 'edit' ? 'Continue' : 'Confirm'}
-          cancelText="Cancel"
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null })}
         />
       )}
 
-      {/* Success Toast Notification */}
-      <SuccessToast
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
-        position="top-right"
-        duration={4000}
-      />
-
-      {/* Smart Task Parser Modal */}
-      {showSmartParser && (
-        <SmartTaskParser
-          isOpen={showSmartParser}
-          onClose={() => setShowSmartParser(false)}
-          onTaskCreated={handleSmartTaskCreated}
-          currentUser={user}
-        />
-      )}
-
-      {/* Task Thread Modal */}
-      {showThreadModal && selectedTaskForThread && (
-        <TaskThreadModal
-          isOpen={showThreadModal}
-          onClose={() => {
-            setShowThreadModal(false);
-            setSelectedTaskForThread(null);
-          }}
-          task={selectedTaskForThread}
-          currentUser={user}
+      {/* Toast Notifications */}
+      {toast.isVisible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ ...toast, isVisible: false })}
         />
       )}
     </div>
