@@ -878,7 +878,6 @@ import UserManagement from "./pages/admin/UserManagement";
 import TeamMembers from "./pages/admin/TeamMembers";
 import SettingsUserManagement from "./pages/settings/UserManagement";
 import Projects from "./pages/admin/Projects";
-import FormBuilder from "./pages/admin/FormBuilder";
 import Integrations from "./pages/admin/Integrations";
 import Roles from "./pages/admin/Roles";
 import Reports from "./pages/admin/Reports";
@@ -965,6 +964,9 @@ import QuickAddBar from "./components/tasks/QuickAddBar";
 import { useUserRole } from "./utils/auth";
 import UpgradeSuccessPage from "./features/licensing/pages/UpgradeSuccessPage";
 import RegularTaskManager from "./pages/newComponents/RegularTaskManager";
+import FormLibrary from "./components/forms/FormLibrary";
+import FormBuilder from "./components/forms/FormBuilder";
+import FormVersionHistory from "./components/forms/FormVersionHistory";
 // import RecurringTaskEdit from "./pages/newComponents/RecurringTaskEdit";
 
 const queryClient = new QueryClient({
@@ -1023,8 +1025,9 @@ function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
   // Check if user is in allowed roles
   const hasAccess = () => {
     // Get the current active role from localStorage, context, or default to first role
-    const activeRoleFromStorage = localStorage.getItem('activeRole');
-    const activeRole = activeRoleFromStorage || user.activeRole || user.role?.[0];
+    const activeRoleFromStorage = localStorage.getItem("activeRole");
+    const activeRole =
+      activeRoleFromStorage || user.activeRole || user.role?.[0];
     const userRoles = user.role || [];
     console.log("activeRole:", activeRole);
     console.log("allowedRoles:", allowedRoles);
@@ -1222,17 +1225,43 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={DynamicDashboard}
-                    allowedRoles={["org_admin", "employee", "manager", "individual"]}
+                    allowedRoles={[
+                      "org_admin",
+                      "employee",
+                      "manager",
+                      "individual",
+                    ]}
                   />
                 </AdminLayout>
               </Route>
 
+              {/* Form Library Route */}
+              <Route path="/form-library">
+                <AdminLayout>
+                  <ProtectedRoute component={FormLibrary} />
+                </AdminLayout>
+              </Route>
+              <Route path="/form-builder">
+                <AdminLayout>
+                  <ProtectedRoute component={FormBuilder} />
+                </AdminLayout>
+              </Route>
+              <Route path="/form-version-history">
+                <AdminLayout>
+                  <ProtectedRoute component={FormVersionHistory} />
+                </AdminLayout>
+              </Route>
               {/* Individual User Task Pages */}
               <Route path="/recurring">
                 <AdminLayout>
                   <ProtectedRoute
                     component={RecurringTaskManager}
-                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
+                    allowedRoles={[
+                      "individual",
+                      "employee",
+                      "manager",
+                      "org_admin",
+                    ]}
                   />
                 </AdminLayout>
               </Route>
@@ -1241,7 +1270,12 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={CreateTask}
-                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
+                    allowedRoles={[
+                      "individual",
+                      "employee",
+                      "manager",
+                      "org_admin",
+                    ]}
                   />
                 </AdminLayout>
               </Route>
@@ -1250,7 +1284,13 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={QuickTask}
-                    allowedRoles={["individual", "employee", "manager", "org_admin", "super_admin"]}
+                    allowedRoles={[
+                      "individual",
+                      "employee",
+                      "manager",
+                      "org_admin",
+                      "super_admin",
+                    ]}
                   />
                 </AdminLayout>
               </Route>
@@ -1267,7 +1307,12 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={RegularTaskManager}
-                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
+                    allowedRoles={[
+                      "individual",
+                      "employee",
+                      "manager",
+                      "org_admin",
+                    ]}
                   />
                 </AdminLayout>
               </Route>
@@ -1275,7 +1320,12 @@ function App() {
                 <AdminLayout>
                   <ProtectedRoute
                     component={ApprovalManager}
-                    allowedRoles={["individual", "employee", "manager", "org_admin"]}
+                    allowedRoles={[
+                      "individual",
+                      "employee",
+                      "manager",
+                      "org_admin",
+                    ]}
                   />
                 </AdminLayout>
               </Route>

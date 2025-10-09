@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   Users,
   Database,
   FolderOpen,
-
   AlertCircle,
   Crown,
   TrendingUp,
@@ -25,25 +25,17 @@ import {
   CreditCard,
   Shield,
   Clock,CheckSquare, FileText, Workflow, BarChart3,
-  RefreshCcw
+  RefreshCcw,
+  Info
 } from "lucide-react";
-import useLicensing from "../hooks/useLicensing";
-import usePlanLimits from "../hooks/usePlanLimits";
-import UsageMeter from "../components/UsageMeter";
-import TrialCountdown from "../components/TrialCountdown";
-import BillingToggle from "../components/BillingToggle";
-import PlanCard from "../components/PlanCard";
 import { Input } from "@/components/ui/input";
-
-
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { cn } from "@/lib/utils"; // if you already use cn helper
-
+import { cn } from "@/lib/utils";
 import { useUserRole } from "../../../utils/auth";
+import { useToast } from '@/hooks/use-toast';
 /**
  * License Management Page - In-app summary with usage meters, trial countdown, plan comparison cards
- */ 
-function ComparisonTable({ plans }) {
+ */ function ComparisonTable({ plans }) {
   const [expanded, setExpanded] = useState(false);
 
   // Get all feature names
@@ -168,34 +160,15 @@ function ComparisonTable({ plans }) {
   );
 }
 export default function LicenseManagementPage() {
-  const {
-    currentPlan: currentPlanKey,
-
-    usage,
-    trialDaysLeft,
-    isLoading,
-
-    getCurrentPlan,
-    getUsagePercentage,
-    isOverLimit,
-    canUpgrade,
-    upgradePlan,
-
-    getSavingsPercentage,
-    hasAccess,
-    getUsageStatus,
-  } = useLicensing();
- 
-  const { getFeatureStatus, getLimitWarnings } = usePlanLimits();
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [selectedUpgradePlan, setSelectedUpgradePlan] = useState(null);
-  const [upgradeReason, setUpgradeReason] = useState(null);
-  const [selectedPlan, setSelectedPlan] = useState("optimize");
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const [selectedPlan, setSelectedPlan] = useState("optimize");
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showExpiryBanner, setShowExpiryBanner] = useState(false);
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: user, isAdmin } = useUserRole();
   
   // Define role-based access
@@ -254,112 +227,286 @@ export default function LicenseManagementPage() {
     plan.license_code === subscriptionData?.current_license
   );
 
-  const hasAnyOverLimit = overLimitKeys.length > 0;
-  const plans = {
-    explore: {
-      name: "Explore (Free)",
-      description: "First-time users, trial mode",
-      price: { monthly: 0, yearly: 0 }, // Free plan
-      features: [
-        "All features available",
-        "10 tasks/month",
-        "2 custom forms",
-        "1 process",
-        "3 reports",
-      ],
-      table_data: {
-   "Tasks / month": "10",
-      "Custom forms": "2",
-      "Processes": "1",
-      "Reports": "3",
-      "Support": "—",
-      "Analytics": "—",
-    },
-      duration: "15 days trial only → after expiry, prompt to upgrade",
-      popular: false,
-    }, optimize: {
-      name: "Optimize",
-      description: "Large organizations",
-      price: { monthly: 99, yearly: 990 },
-      features: [
-        "Unlimited tasks",
-        "Unlimited custom forms",
-        "Unlimited processes",
-        "Unlimited reports",
-        "24/7 priority support",
-        "Dedicated account manager",
-        "Advanced security",
-        // "API access",
-        "Custom integrations",
-        // "White-label options",
-      ],
-        table_data: {
-    "Tasks / month": "Unlimited",
-      "Custom forms": "Unlimited",
-      "Processes": "Unlimited",
-      "Reports": "Unlimited",
-      "Support": "24/7 Priority",
-      "Account Manager": "Dedicated",
-      "Security": "Advanced",
-      "Integrations": "Custom",
-    },
-      popular: true,
-    },
-    plan: {
-      name: "Plan",
-      description: "Individuals / small teams",
-      price: { monthly: 19, yearly: 190 },
-      features: [
-        "100 tasks/month",
-        "10 custom forms",
-        "5 processes",
-        "Unlimited reports",
-        "Email support",
-        "Basic analytics",
-      ],
-        table_data: {
-   "Tasks / month": "100",
-      "Custom forms": "10",
-      "Processes": "5",
-      "Reports": "Unlimited",
-      "Support": "Email",
-      "Analytics": "Basic",
-    },
-      popular: false,
-    },
-    execute: {
-      name: "Execute",
-      description: "Growing teams",
-      price: { monthly: 49, yearly: 490 },
-      features: [
-        "500 tasks/month",
-        "50 custom forms",
-        "25 processes",
-        "Unlimited reports",
-        "Priority support",
-        "Advanced analytics",
-        "Team collaboration",
-        "Custom workflows",
-      ],
-        table_data: {
-   "Tasks / month": "Unlimited",
-      "Custom forms": "Unlimited",
-      "Processes": "Unlimited",
-      "Reports": "Unlimited",
-      "Support": "24/7 Priority",
-      "Account Manager": "Dedicated",
-      "Security": "Advanced",
-      "Integrations": "Custom",
-    },
-      popular: false,
-    },
-   
+  // If no plan found, create a fallback based on current license
+  const effectivePlan = currentPlan || {
+    license_code: subscriptionData?.current_license || 'EXPLORE',
+    license_name: subscriptionData?.current_license || 'Explore (Free Trial)',
+    description: 'Trial plan',
+    price_monthly: 0,
+    price_yearly: 0
   };
+
+  // Stable fallback limits (used while data loads or for missing definitions)
+  const fallbackLimits = useMemo(() => ({
+    TASK_BASIC: 10,
+    FORM_CREATE: 2,
+    PROC_CREATE: 1,
+    REPORT_BASIC: 5
+  }), []);
+
+  // Memo map of feature_code -> normalized limit for active plan
+  const featureLimitMap = useMemo(() => {
+    if (!effectivePlan || !featuresData || featuresData.length === 0) return fallbackLimits;
+    const map = { ...fallbackLimits };
+    for (const feature of featuresData) {
+      if (!Array.isArray(feature.license_features)) continue;
+      const planFeature = feature.license_features.find(lf => lf.license_code === effectivePlan.license_code);
+      if (!planFeature) continue;
+      const raw = planFeature.usage_limit;
+      if (raw === -1) {
+        map[feature.feature_code] = -1; // Unlimited
+      } else if (raw === null || raw === undefined) {
+        // leave fallback
+      } else {
+        map[feature.feature_code] = raw;
+      }
+    }
+    return map;
+  }, [effectivePlan?.license_code, featuresData, fallbackLimits]);
+
+  const getFeatureLimit = (featureCode) => featureLimitMap[featureCode] ?? 0;
+
+  const getUsage = (featureCode) => {
+    return subscriptionData?.usage?.[featureCode] || 0;
+  };
+
+  const getUsagePercentage = (used, limit) => {
+    if (limit === null || limit === -1) return 0;
+    if (!limit || limit === 0) return 0;
+    return Math.min((used / limit) * 100, 100);
+  };
+
+  const getUsageStatus = (featureCode) => {
+  const rawCurrent = getUsage(featureCode);
+  const limit = getFeatureLimit(featureCode);
+  // Clamp display current so UI number never exceeds limit (unless unlimited)
+  const displayCurrent = (limit > 0 && rawCurrent > limit) ? limit : rawCurrent;
+  const percentage = getUsagePercentage(rawCurrent, limit);
+    
+    // Handle cases where limit might be 0, null, undefined, or -1
+    let remaining;
+    let isUnlimited;
+    
+    if (limit === -1) {
+      remaining = Infinity;
+      isUnlimited = true;
+    } else if (limit === 0 || limit === null || limit === undefined || isNaN(limit)) {
+      remaining = 0;
+      isUnlimited = false;
+    } else {
+      remaining = Math.max(0, limit - rawCurrent);
+      isUnlimited = false;
+    }
+    
+    return {
+      rawCurrent: rawCurrent || 0,
+      current: displayCurrent || 0,
+      // Preserve -1 so UI can detect unlimited instead of converting to 0
+      limit: (limit === -1 ? -1 : (limit || 0)),
+      remaining,
+      percentage: isNaN(percentage) ? 0 : percentage,
+      isOverLimit: !isUnlimited && limit > 0 && rawCurrent > limit,
+      isNearLimit: !isUnlimited && limit > 0 && percentage > 80,
+      isUnlimited
+    };
+  };
+
+  // Debug logging
+  console.log('API Responses:', {
+    plansResponse,
+    subscriptionResponse,
+    featuresResponse,
+    subscriptionError
+  });
+
+  // Additional debug for features data structure
+  console.log('Features Data Structure:', featuresData);
+  console.log('Current/Effective Plan:', { currentPlan, effectivePlan });
+  if (featuresData && featuresData.length > 0) {
+    console.log('Sample feature:', featuresData[0]);
+    if (featuresData[0]?.license_features) {
+      console.log('Sample license_features:', featuresData[0].license_features);
+    }
+  }
+
+  // Debug feature limits for current plan
+  console.log('Feature Limits Debug:', {
+    TASK_BASIC: getFeatureLimit('TASK_BASIC'),
+    FORM_CREATE: getFeatureLimit('FORM_CREATE'), 
+    PROC_CREATE: getFeatureLimit('PROC_CREATE'),
+    REPORT_BASIC: getFeatureLimit('REPORT_BASIC')
+  });
+
+  // Calculate days until expiry
+  const calculateDaysUntilExpiry = () => {
+    if (subscriptionData?.subscription_status === 'trial' && subscriptionData?.trial_end) {
+      const expiry = new Date(subscriptionData.trial_end);
+      const now = new Date();
+      const diffTime = expiry.getTime() - now.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    if (subscriptionData?.subscription_end_date) {
+      const expiry = new Date(subscriptionData.subscription_end_date);
+      const now = new Date();
+      const diffTime = expiry.getTime() - now.getTime();
+      const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Fix for incorrect dates: If the calculated days is around 4-5 but seems wrong
+      // (like if the expiry date is in the past but should be in the future for an active subscription)
+      if (subscriptionData.subscription_status === 'active' && calculatedDays < 10 && calculatedDays > 0) {
+        // Check if this might be a yearly subscription that was incorrectly calculated
+        // If the billing cycle suggests yearly, assume 365 days from subscription start
+        if (subscriptionData.billing_cycle === 'YEARLY' && subscriptionData.subscription_start_date) {
+          const startDate = new Date(subscriptionData.subscription_start_date);
+          const correctExpiry = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+          const correctDays = Math.ceil((correctExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (correctDays > 300 && correctDays <= 365) {
+            return correctDays;
+          }
+        }
+      }
+      
+      return calculatedDays;
+    }
+    return 0;
+  };  const daysUntilExpiry = calculateDaysUntilExpiry();
+
+  // Calculate corrected expiration date for display if needed
+  const getDisplayExpirationDate = () => {
+    if (subscriptionData?.subscription_status === 'trial' && subscriptionData?.trial_end) {
+      return new Date(subscriptionData.trial_end).toLocaleDateString();
+    }
+    
+    if (subscriptionData?.subscription_end_date) {
+      const storedExpiry = new Date(subscriptionData.subscription_end_date);
+      const now = new Date();
+      const storedDays = Math.ceil((storedExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // If we detect a yearly subscription with incorrect date, show corrected date
+      if (subscriptionData.subscription_status === 'active' && 
+          storedDays < 10 && storedDays > 0 && 
+          subscriptionData.billing_cycle === 'YEARLY' && 
+          subscriptionData.subscription_start_date) {
+        const startDate = new Date(subscriptionData.subscription_start_date);
+        const correctExpiry = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+        const correctDays = Math.ceil((correctExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (correctDays > 300 && correctDays <= 365) {
+          return correctExpiry.toLocaleDateString();
+        }
+      }
+      
+      return storedExpiry.toLocaleDateString();
+    }
+    
+    return 'Never';
+  };
+  const isOnTrial = subscriptionData?.subscription_status === 'trial';
+  const isExpired = daysUntilExpiry <= 0;
+  const isExpiringSoon = daysUntilExpiry <= 5 && daysUntilExpiry > 0;
+
+  // Upgrade mutation
+  const upgradeSubscription = useMutation({
+    mutationFn: async ({ newLicenseCode, billingCycle }) => {
+      const response = await fetch('/api/organization/upgrade-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ newLicenseCode, billingCycle })
+      });
+      
+      if (!response.ok) throw new Error('Failed to upgrade subscription');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Subscription Upgraded!',
+        description: 'Your new plan is now active.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organization/subscription'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Upgrade Failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Convert backend data to frontend format for display
+  const convertPlansForDisplay = () => {
+    return plansData
+      .filter(plan => plan.license_code !== 'EXPIRED') // Don't show EXPIRED plan to users
+      .reduce((acc, plan) => {
+        const planKey = plan.license_code.toLowerCase();
+        const features = featuresData.filter(feature => 
+          feature.license_features.some(lf => lf.license_code === plan.license_code)
+        );
+
+      acc[planKey] = {
+        name: plan.license_name,
+        description: plan.description || `${plan.license_name} plan`,
+        price: {
+          monthly: plan.price_monthly || 0,
+          yearly: plan.price_yearly || 0
+        },
+        features: features.map(feature => {
+          const planFeature = feature.license_features.find(
+            lf => lf.license_code === plan.license_code
+          );
+          const limit = planFeature?.usage_limit;
+          // Handle undefined, null, and numeric values properly
+          let displayLimit;
+          if (limit === undefined || limit === null) {
+            displayLimit = '0';
+          } else if (limit === -1) {
+            displayLimit = 'Unlimited';
+          } else {
+            displayLimit = limit.toString();
+          }
+          return `${displayLimit} ${feature.feature_name}`;
+        }),
+        table_data: features.reduce((data, feature) => {
+          const planFeature = feature.license_features.find(
+            lf => lf.license_code === plan.license_code
+          );
+          const limit = planFeature?.usage_limit;
+          // Handle undefined, null, and numeric values properly
+          if (limit === undefined || limit === null) {
+            data[feature.feature_name] = '0';
+          } else if (limit === -1) {
+            data[feature.feature_name] = 'Unlimited';
+          } else {
+            data[feature.feature_name] = limit.toString();
+          }
+          return data;
+        }, {}),
+        popular: plan.license_code === 'OPTIMIZE'
+      };
+      
+      return acc;
+    }, {});
+  };
+
+  const plans = convertPlansForDisplay();
+
+  if (plansLoading || subscriptionLoading || featuresLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   const getSelectedPlanPrice = () => {
     const plan = plans[selectedPlan];
     return plan ? plan.price[billingCycle] : 0;
   };
+
   const handleCouponApply = () => {
     if (couponCode.toLowerCase() === "save20") {
       setCouponError("");
@@ -370,6 +517,7 @@ export default function LicenseManagementPage() {
       setCouponError("Please enter a coupon code");
     }
   };
+
   const handleUpgrade = () => {
     setIsProcessing(true);
     setTimeout(() => {
@@ -377,45 +525,6 @@ export default function LicenseManagementPage() {
       // Add success handling if needed
     }, 2000);
   };
-  // Handle upgrade modal trigger from usage limits
-  React.useEffect(() => {
-    const handleShowUpgradeModal = (event) => {
-      const { reason } = event.detail;
-      setUpgradeReason(reason);
-      // Auto-suggest next tier up
-      const planKeys = ["explore", "starter", "professional", "enterprise"];
-      const currentIndex = planKeys.indexOf(currentPlanKey);
-      if (currentIndex < planKeys.length - 1) {
-        setSelectedUpgradePlan(plans[planKeys[currentIndex + 1]]);
-        setShowUpgradeModal(true);
-      }
-    };
-
-    window.addEventListener("showUpgradeModal", handleShowUpgradeModal);
-    return () =>
-      window.removeEventListener("showUpgradeModal", handleShowUpgradeModal);
-  }, [currentPlanKey, plans]);
-
-  const handleUpgradeClick = (planKey) => {
-    setSelectedUpgradePlan(plans[planKey]);
-    setUpgradeReason("manual");
-    setShowUpgradeModal(true);
-  };
-
-  const handleConfirmUpgrade = async () => {
-    if (selectedUpgradePlan) {
-      const planKey = Object.keys(plans).find(
-        (key) => plans[key] === selectedUpgradePlan
-      );
-      await upgradePlan(planKey);
-      setShowUpgradeModal(false);
-      setSelectedUpgradePlan(null);
-    }
-  };
-// Add: sticky expiry banner state and logic
-  const [showExpiryBanner, setShowExpiryBanner] = useState(false);
-  // Show banner if trial is ending soon (<= 5 days). Plug in your real license expiry logic as needed.
-  const isExpiringSoon = isOnTrial && typeof trialDaysLeft === "number" && trialDaysLeft <= 5;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -489,30 +598,61 @@ export default function LicenseManagementPage() {
         </div>
 
         {/* Warning Alerts */}
-        {hasWarnings && (
+        {(isExpired || isExpiringSoon) && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 text-yellow-800 mb-3">
               <AlertCircle className="h-5 w-5" />
-              <span className="font-medium">Usage Alerts</span>
+              <span className="font-medium">License Alert</span>
             </div>
-            <div className="space-y-2">
-              {warnings.map((warning, index) => (
-                <div
-                  key={index}
-                  className="text-sm text-yellow-700"
-                  data-testid={`warning-${index}`}
-                >
-                  <span className="font-medium">
-                    {warning.feature.charAt(0).toUpperCase() +
-                      warning.feature.slice(1)}
-                    :
-                  </span>{" "}
-                  {warning.message}
-                </div>
-              ))}
+            <div className="text-sm text-yellow-700">
+              {isExpired ? (
+                <span className="font-medium">
+                  Your license has expired! Please renew to continue using all features.
+                </span>
+              ) : (
+                <span className="font-medium">
+                  Your license expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}!
+                </span>
+              )}
             </div>
           </div>
         )}
+
+        {/* Usage Limit Warnings */}
+        {(() => {
+          const nearLimitFeatures = [
+            { key: "TASK_BASIC", label: "tasks" },
+            { key: "FORM_CREATE", label: "forms" },
+            { key: "PROC_CREATE", label: "processes" },
+            { key: "REPORT_BASIC", label: "reports" }
+          ].filter(({ key }) => {
+            const status = getUsageStatus(key);
+            return !status.isUnlimited && (status.isOverLimit || status.remaining <= 3);
+          });
+
+          if (nearLimitFeatures.length === 0) return null;
+
+          return (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2 text-orange-800 mb-3">
+                <AlertCircle className="h-5 w-5" />
+                <span className="font-medium">Usage Alert</span>
+              </div>
+              <div className="text-sm text-orange-700">
+                <span className="font-medium">
+                  You're approaching limits for: {nearLimitFeatures.map(f => f.label).join(', ')}
+                </span>
+                <div className="mt-2">
+                  <Link to="/admin/upgrade">
+                    <button className="text-sm px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition">
+                      Upgrade Plan
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Usage Overview and Trial Countdown Grid */}
         <div className={`grid grid-cols-1 gap-4 ${isOrgAdmin ? 'lg:grid-cols-12' : ''}`}>
@@ -525,37 +665,36 @@ export default function LicenseManagementPage() {
             ) : (
             <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
               {/* Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Usage Overview
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 mt-0.5">
                   Monitor your current usage against plan limits
                 </p>
               </div>
 
               {/* Usage Meters Grid - Flex grow to fill remaining space */}
-              <div className="p-6 flex-1 flex items-center">
+              <div className="p-3 flex-1">
            
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
   {[
-    { key: "tasks", label: "Tasks created", Icon: CheckSquare },
-    { key: "forms", label: "Forms created", Icon: FileText },
-    { key: "processes", label: "Processes created", Icon: Workflow },
-    { key: "reports", label: "Reports generated", Icon: BarChart3 },
+    { key: "TASK_BASIC", label: "Tasks created", Icon: CheckSquare },
+    { key: "FORM_CREATE", label: "Forms created", Icon: FileText },
+    { key: "PROC_CREATE", label: "Processes created", Icon: Workflow },
+    { key: "REPORT_BASIC", label: "Reports generated", Icon: BarChart3 },
   ].map(({ key, label, Icon }) => {
     const status = getUsageStatus(key);
     return (
-      <Card className="w-full p-6" key={key}>
       <div
         key={key}
-        className="space-y-3"
+        className="space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50"
         data-testid={`usage-meter-${key}`}
       >
         <div className="flex items-center justify-between">
           {/* Label with icon */}
-          <div className="flex items-center space-x-2">
-            <Icon className="w-4 h-4 text-gray-600" aria-hidden="true" />
+          <div className="flex items-center space-x-1.5">
+            <Icon className="w-3.5 h-3.5 text-gray-600" aria-hidden="true" />
             <span className="text-sm font-medium text-gray-700">
               {label}
             </span>
@@ -563,15 +702,15 @@ export default function LicenseManagementPage() {
 
           {/* Usage numbers */}
           <span className="text-sm text-gray-600">
-            {status.current}/{status.limit === -1 ? "∞" : status.limit}
+            {status.current}/{status.isUnlimited ? "∞" : (status.limit === -1 ? "∞" : status.limit || 0)}
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 rounded-full h-1.5">
           <div
             className={cn(
-              "h-2 rounded-full transition-all",
+              "h-1.5 rounded-full transition-all",
               status.isOverLimit
                 ? "bg-red-500"
                 : status.isNearLimit
@@ -579,20 +718,32 @@ export default function LicenseManagementPage() {
                 : "bg-green-500"
             )}
             style={{
-              width: `${Math.min(status.percentage, 100)}%`,
+              width: `${Math.min(status.percentage || 0, 100)}%`,
             }}
           />
         </div>
 
-        {/* Percentage + warning */}
-        <div className="flex justify-between text-xs text-gray-500">
-          <span>{Math.round(status.percentage)}% used</span>
-          {status.isOverLimit && (
-            <span className="text-red-600 font-semibold">Over limit</span>
-          )}
+        {/* Usage info and remaining */}
+        <div className="flex justify-between text-xs">
+          <div className="text-gray-500">
+            <span>{Math.round(status.percentage || 0)}% used</span>
+            {status.isOverLimit && (
+              <span className="text-red-600 font-semibold ml-2">Over limit</span>
+            )}
+          </div>
+          <div className={cn(
+            "font-medium",
+            status.isUnlimited ? "text-green-600" :
+            status.limit === 0 ? "text-gray-400" :
+            status.remaining <= 0 ? "text-red-600" :
+            status.remaining <= 5 ? "text-yellow-600" : "text-gray-600"
+          )}>
+            {status.isUnlimited ? "Unlimited" :
+             (status.limit === 0 ? "Not available" :
+              isFinite(status.remaining) ? `${status.remaining} left` : "0 left")}
+          </div>
         </div>
       </div>
-      </Card>
     );
   })}
 </div>
@@ -605,30 +756,51 @@ export default function LicenseManagementPage() {
           {isOrgAdmin && (
         <div className="lg:col-span-4 space-y-4">
   {/* Expiry Card */}
-  <div className="bg-red-50 border border-red-300 rounded-lg p-5 shadow-sm">
+  <div className={cn(
+    "border rounded-lg p-5 shadow-sm",
+    isExpired ? "bg-red-50 border-red-300" : isExpiringSoon ? "bg-yellow-50 border-yellow-300" : "bg-green-50 border-green-300"
+  )}>
     <div className="flex items-center justify-between mb-2">
-      <span className="text-red-700 text-sm font-medium">Expiring Soon</span>
-      <Clock className="h-4 w-4 text-red-600" />
+      <span className={cn(
+        "text-sm font-medium",
+        isExpired ? "text-red-700" : isExpiringSoon ? "text-yellow-700" : "text-green-700"
+      )}>
+        {isExpired ? "Expired" : isExpiringSoon ? "Expiring Soon" : "Active"}
+      </span>
+      <Clock className={cn(
+        "h-4 w-4",
+        isExpired ? "text-red-600" : isExpiringSoon ? "text-yellow-600" : "text-green-600"
+      )} />
     </div>
     <div className="text-lg font-semibold text-gray-900">
-      Expires: <span className="text-red-600">15 Sept 2025</span>
+      {isOnTrial ? "Trial" : "License"} {isExpired ? "Expired" : "Expires"}: 
+      <span className={cn(
+        "ml-1",
+        isExpired ? "text-red-600" : isExpiringSoon ? "text-yellow-600" : "text-gray-900"
+      )}>
+        {getDisplayExpirationDate()}
+      </span>
     </div>
-    <div className="flex justify-between items-center ">
-
-    <div className="text-xs text-gray-600 mt-1">
-      <span className="font-medium text-red-600">2 days</span> left
-    </div>
-    {
-      isAdmin && (
-         <Link to="/admin/upgrade?action=renew">
-                
-        <button className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1.5 px-3 rounded-md transition">
-        Renew
-      </button>
-      </Link>
-      )
-    }
-
+    <div className="flex justify-between items-center">
+      <div className="text-xs text-gray-600 mt-1">
+        <span className={cn(
+          "font-medium",
+          isExpired ? "text-red-600" : isExpiringSoon ? "text-yellow-600" : "text-green-600"
+        )}>
+          {Math.abs(daysUntilExpiry)} day{Math.abs(daysUntilExpiry) !== 1 ? 's' : ''}
+        </span> 
+        {isExpired ? " overdue" : " left"}
+      </div>
+      {isAdmin && (isExpired || isExpiringSoon) && (
+        <Link to="/admin/upgrade?action=renew">
+          <button className={cn(
+            "mt-3 text-white text-xs font-medium py-1.5 px-3 rounded-md transition",
+            isExpired ? "bg-red-600 hover:bg-red-700" : "bg-yellow-600 hover:bg-yellow-700"
+          )}>
+            {isExpired ? "Renew Now" : "Renew"}
+          </button>
+        </Link>
+      )}
     </div>
   </div>
 
@@ -641,13 +813,13 @@ export default function LicenseManagementPage() {
 
   {/* Plan Name */}
   <div className="text-lg font-semibold text-gray-900">
-    {currentPlan.name}
+    {effectivePlan?.license_name || subscriptionData?.current_license || 'No Plan'}
   </div>
 
   {/* Plan Amount + Trial */}
   <div className="flex items-center justify-between mt-1">
     <span className="text-sm font-medium text-gray-700">
-      ₹{currentPlan.price[billingCycle]}/{billingCycle === "yearly" ? "yr" : "mo"}
+      ₹{effectivePlan?.price_monthly || 0}/{billingCycle === "yearly" ? "yr" : "mo"}
     </span>
     {isOnTrial && (
       <Badge
@@ -661,23 +833,80 @@ export default function LicenseManagementPage() {
 
   {/* Days Left */}
   <div className="text-xs text-gray-600 mt-1">
-    <span className="font-medium text-blue-600">5 days</span> left
+    <span className="font-medium text-blue-600">{daysUntilExpiry} days</span> left
   </div>
 </div>
-
 
   {/* Renewal Date Card */}
   <div className="bg-white rounded-lg p-5 shadow-sm">
     <div className="flex items-center justify-between mb-2">
-      <span className=" text-sm font-medium">Last Renewal</span>
+      <span className=" text-sm font-medium">
+        {isOnTrial ? "Trial Started" : "Last Renewal"}
+      </span>
       <RefreshCcw className="h-4 w-4 text-blue-600" />
     </div>
     <div className="text-lg font-semibold text-gray-900">
-      15 Sept 2024
+      {subscriptionData?.subscription_start_date || subscriptionData?.trial_start_date
+        ? new Date(subscriptionData.subscription_start_date || subscriptionData.trial_start_date).toLocaleDateString()
+        : 'N/A'
+      }
     </div>
     <div className="text-xs text-blue-600 mt-1">
-  Last renewal for this plan
-</div>
+      {isOnTrial ? "Trial period started" : "Last renewal for this plan"}
+    </div>
+  </div>
+
+  {/* Feature Limits Summary Card */}
+  <div className="bg-white rounded-lg p-5 shadow-sm">
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-sm font-medium text-gray-900">Your Plan Limits</span>
+      <Info className="h-4 w-4 text-blue-600" />
+    </div>
+    
+    <div className="space-y-2">
+      {[
+        { key: "TASK_BASIC", label: "Tasks", icon: "📋" },
+        { key: "FORM_CREATE", label: "Forms", icon: "📝" },
+        { key: "PROC_CREATE", label: "Processes", icon: "⚙️" },
+        { key: "REPORT_BASIC", label: "Reports", icon: "📊" },
+      ].map(({ key, label, icon }) => {
+        const status = getUsageStatus(key);
+        return (
+          <div key={key} className="flex justify-between items-center text-xs">
+            <span className="text-gray-600 flex items-center">
+              <span className="mr-2">{icon}</span>
+              {label}
+            </span>
+            <span className={cn(
+              "font-medium",
+              status.isUnlimited ? "text-green-600" :
+              status.remaining <= 0 ? "text-red-600" :
+              status.remaining <= 5 ? "text-yellow-600" : "text-gray-800"
+            )}>
+              {status.isUnlimited ? "Unlimited" : 
+               status.remaining <= 0 ? "Over limit!" : 
+               `${status.remaining} remaining`}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+    
+    {/* Upgrade prompt if near limits */}
+    {Object.values([
+      getUsageStatus("TASK_BASIC"),
+      getUsageStatus("FORM_CREATE"), 
+      getUsageStatus("PROC_CREATE"),
+      getUsageStatus("REPORT_BASIC")
+    ]).some(status => !status.isUnlimited && (status.remaining <= 5 || status.isOverLimit)) && (
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <Link to="/admin/upgrade">
+          <button className="w-full text-xs py-2 px-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+            Upgrade for more limits
+          </button>
+        </Link>
+      </div>
+    )}
   </div>
 </div>
 
@@ -737,7 +966,7 @@ export default function LicenseManagementPage() {
                 {/* Ensure cards stretch to equal height */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                   {Object.entries(plans).map(([planKey, plan]) => {
-                    const isCurrent = planKey === currentPlanKey;
+                    const isCurrent = currentPlan?.license_code?.toLowerCase() === planKey;
                     return (
                       <div
                         key={planKey}
@@ -776,27 +1005,16 @@ export default function LicenseManagementPage() {
                           <div className="text-sm text-gray-600">
                             per {billingCycle === "yearly" ? "year" : "month"}
                           </div>
-                          {billingCycle === "yearly" && (
+                          {billingCycle === "yearly" && plan.price.monthly > 0 && (
                             <div className="text-sm text-green-600 font-medium">
-                              Save ₹{plan.price.monthly * 12 - plan.price.yearly}
-                              /year
+                              Save ₹{plan.price.monthly * 12 - plan.price.yearly}/year
                             </div>
                           )}
                         </div>
 
-                        {/* Content above CTA */}
-                        {/* <div className="space-y-3 mb-6">
-                          {plan.features.map((feature, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                              <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                              <span className="text-sm text-gray-600">{feature}</span>
-                            </div>
-                          ))}
-                        </div> */}
-
                         {/* CTA pinned to bottom */}
-                    <div className="mt-auto">
-                          {plan.name === "Explore (Free)" ? (
+                        <div className="mt-auto">
+                          {isCurrent ? (
                             <button
                               disabled
                               className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-gray-200 text-gray-500 cursor-not-allowed"
@@ -804,11 +1022,19 @@ export default function LicenseManagementPage() {
                               Your Current Plan
                             </button>
                           ) : (
-                            <Link to={`/admin/upgrade?plan=${encodeURIComponent(planKey)}`}>
-                              <button className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition">
-                                Upgrade
-                              </button>
-                            </Link>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                upgradeSubscription.mutate({
+                                  newLicenseCode: planKey.toUpperCase(),
+                                  billingCycle: billingCycle.toUpperCase()
+                                });
+                              }}
+                              disabled={upgradeSubscription.isPending}
+                              className="w-full py-2 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
+                            >
+                              {upgradeSubscription.isPending ? 'Upgrading...' : 'Upgrade'}
+                            </button>
                           )}
                         </div>
 
@@ -832,8 +1058,8 @@ export default function LicenseManagementPage() {
           {/* Collapsible comparison table → expands to show detailed feature breakdown.
            */}
            <ComparisonTable plans={plans}/>
-     </>)
-}
+        </>
+      )}
       </div>
     </div>
   );
