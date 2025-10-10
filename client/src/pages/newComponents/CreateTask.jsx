@@ -12,6 +12,7 @@ import { useAuth } from "../../features/shared/hooks/useAuth";
 import { hasAccess } from "../../utils/auth";
 import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
 import { useLocation } from "wouter";
+
 export default function CreateTask({
   onClose,
   onSubmit,
@@ -37,12 +38,91 @@ export default function CreateTask({
   const [location, setLocation] = useLocation();
   const { activeRole } = useActiveRole();
 
+  // API states for collaborators and approvers
+  const [collaboratorsList, setCollaboratorsList] = useState([]);
+  const [approversList, setApproversList] = useState([]);
+  const [isLoadingCollaborators, setIsLoadingCollaborators] = useState(false);
+  const [isLoadingApprovers, setIsLoadingApprovers] = useState(false);
+
   // Extract query params
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const type = searchParams.get("type") || "recurring";
     setSelectedTaskType(type);
   }, [location]);
+
+  // Fetch collaborators list
+  const fetchCollaborators = async () => {
+    try {
+      setIsLoadingCollaborators(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/auth/collaborators", {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (response.data.success) {
+        const formattedCollaborators = response.data.data.map(collaborator => ({
+          value: collaborator.id,
+          label: `${collaborator.name} (${collaborator.designation || collaborator.role.join(", ")})`,
+          email: collaborator.email,
+          role: collaborator.role,
+          department: collaborator.department
+        }));
+        setCollaboratorsList(formattedCollaborators);
+      }
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      setCollaboratorsList([]);
+    } finally {
+      setIsLoadingCollaborators(false);
+    }
+  };
+
+  // Fetch approvers list
+  const fetchApprovers = async () => {
+    try {
+      setIsLoadingApprovers(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/auth/approvers", {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (response.data.success) {
+        const formattedApprovers = response.data.data.map(approver => ({
+          value: approver.id,
+          label: approver.isSelf 
+            ? `${approver.name} (You)` 
+            : `${approver.name} (${approver.designation || approver.role.join(", ")})`,
+          email: approver.email,
+          role: approver.role,
+          department: approver.department,
+          isPrimaryAdmin: approver.isPrimaryAdmin,
+          isSelf: approver.isSelf
+        }));
+        setApproversList(formattedApprovers);
+      }
+    } catch (error) {
+      console.error("Error fetching approvers:", error);
+      setApproversList([]);
+    } finally {
+      setIsLoadingApprovers(false);
+    }
+  };
+
+  // Fetch data when component mounts or when milestone/approval task is selected
+  useEffect(() => {
+    if (selectedTaskType === "approval" && canCreateApprovals) {
+      fetchCollaborators();
+      fetchApprovers();
+    } else if (selectedTaskType === "milestone" && canCreateMilestones) {
+      fetchCollaborators(); // Fetch collaborators for milestone tasks too
+    }
+  }, [selectedTaskType, canCreateApprovals, canCreateMilestones]);
+
   // Filter available task types based on role permissions
   const getAvailableTaskTypes = () => {
     const taskTypes = [
@@ -357,7 +437,7 @@ export default function CreateTask({
                     >
                       <path
                         fillRule="evenodd"
-                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                        d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
                         clipRule="evenodd"
                       />
                     </svg>
@@ -382,31 +462,10 @@ export default function CreateTask({
           </p>
         </div>
 
-        {/* Role-based info message */}
-        {/* <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <span className="text-sm text-blue-800">
-              {isEmployee && 'You are creating a task as an Employee. You can assign tasks to yourself and create regular/recurring tasks.'}
-              {isManager && 'You are creating a task as a Manager. You can assign tasks to team members and create all task types including milestones and approvals.'}
-              {isCompanyAdmin && 'You are creating a task as an Admin. You have full access to create and assign any task type to any user in your organization.'}
-            </span>
-          </div>
-        </div> */}
-
         {/* Task Form Content */}
         {selectedTaskType === "regular" && (
           <RegularTaskForm
             {...commonFormProps}
-            // onSubmit={(data) => {
-            //   console.log("Regular task created:", data);
-            //   onSubmit({
-            //     ...data,
-            //     taskType: selectedTaskType,
-            //   });
-            // }}
             onSubmit={handleTaskSubmit}
             onCancel={onClose}
             isOrgUser={canAssignToOthers}
@@ -435,6 +494,9 @@ export default function CreateTask({
             assignmentOptions={assignmentOptions}
             userRole={role}
             canAssignToOthers={canAssignToOthers}
+            user={user}
+            collaboratorOptions={collaboratorsList}
+            isLoadingCollaborators={isLoadingCollaborators}
             existingTasks={[
               {
                 id: "task-1",
@@ -472,13 +534,12 @@ export default function CreateTask({
             assignmentOptions={assignmentOptions}
             userRole={role}
             canAssignToOthers={canAssignToOthers}
-            approverOptions={[
-              { value: "manager1", label: "Sarah Wilson (Manager)" },
-              { value: "lead1", label: "David Chen (Team Lead)" },
-              { value: "director1", label: "Lisa Rodriguez (Director)" },
-              { value: "user1", label: "John Doe" },
-              { value: "user2", label: "Jane Smith" },
-            ]}
+            user={user}
+            // Pass API data as props
+            approverOptions={approversList}
+            collaboratorOptions={collaboratorsList}
+            isLoadingApprovers={isLoadingApprovers}
+            isLoadingCollaborators={isLoadingCollaborators}
           />
         )}
 
@@ -493,7 +554,7 @@ export default function CreateTask({
               >
                 <path
                   fillRule="evenodd"
-                  d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                  d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
                   clipRule="evenodd"
                 />
               </svg>
@@ -543,44 +604,6 @@ export default function CreateTask({
           </div>
         )}
       </div>
-
-      {/* Action Buttons - No longer needed since all forms have their own buttons */}
-      {false && (
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors shadow-sm"
-            data-testid="button-cancel"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onSubmit({
-                title: `New ${selectedTaskType} task`,
-                description: "",
-                assignedTo: "self",
-                priority: "Medium",
-                taskType: selectedTaskType,
-                category: "general",
-                visibility: "private",
-                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                  .toISOString()
-                  .split("T")[0],
-                tags: [],
-                collaborators: [],
-                attachments: [],
-              });
-            }}
-            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-            data-testid="button-save"
-          >
-            Save Task
-          </button>
-        </div>
-      )}
     </div>
   );
 }

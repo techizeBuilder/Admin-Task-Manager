@@ -4,6 +4,7 @@ import ReactQuill from "react-quill";
 import "quill/dist/quill.snow.css";
 import "../styles/quill-custom.css";
 import Select from "react-select";
+import axios from "axios";
 import { Star, Calendar, Users, Info, AlertCircle } from "lucide-react";
 
 const MilestoneTaskForm = ({
@@ -12,8 +13,18 @@ const MilestoneTaskForm = ({
   isOrgUser,
   assignmentOptions = [],
   existingTasks = [], // Tasks available for linking
+  collaboratorOptions = [], // Collaborators from parent component
+  isLoadingCollaborators = false, // Loading state from parent
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
+  
+  // Use collaborators from props or fallback to local state
+  const [localCollaboratorsList, setLocalCollaboratorsList] = useState([]);
+  const [localIsLoadingCollaborators, setLocalIsLoadingCollaborators] = useState(false);
+  
+  // Determine which collaborators list to use
+  const collaboratorsList = collaboratorOptions.length > 0 ? collaboratorOptions : localCollaboratorsList;
+  const isCollaboratorsLoading = collaboratorOptions.length > 0 ? isLoadingCollaborators : localIsLoadingCollaborators;
 
   const {
     register,
@@ -47,6 +58,45 @@ const MilestoneTaskForm = ({
   useEffect(() => {
     setTaskNameLength(watchedTaskName?.length || 0);
   }, [watchedTaskName]);
+
+  // Fetch collaborators list (fallback if not provided by parent)
+  const fetchCollaborators = async () => {
+    // Only fetch if not provided by parent component
+    if (collaboratorOptions.length > 0) return;
+    
+    try {
+      setLocalIsLoadingCollaborators(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get("/api/auth/collaborators", {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      });
+
+      if (response.data.success) {
+        const formattedCollaborators = response.data.data.map(collaborator => ({
+          value: collaborator.id,
+          label: `${collaborator.name} (${collaborator.designation || collaborator.role.join(", ")})`,
+          email: collaborator.email,
+          role: collaborator.role,
+          department: collaborator.department
+        }));
+        setLocalCollaboratorsList(formattedCollaborators);
+      }
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      setLocalCollaboratorsList([]);
+    } finally {
+      setLocalIsLoadingCollaborators(false);
+    }
+  };
+
+  // Fetch collaborators when component mounts (only if not provided by parent)
+  useEffect(() => {
+    if (collaboratorOptions.length === 0) {
+      fetchCollaborators();
+    }
+  }, [collaboratorOptions]);
 
   // Get today's date for validation
   const getTodayDate = () => {
@@ -393,10 +443,12 @@ const MilestoneTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter((opt) => opt.value !== "self")}
+              options={collaboratorsList}
               className="react-select-container"
               classNamePrefix="react-select"
-              placeholder="Select collaborators for notifications..."
+              placeholder={isCollaboratorsLoading ? "Loading collaborators..." : "Select collaborators for notifications..."}
+              isLoading={isCollaboratorsLoading}
+              isDisabled={isCollaboratorsLoading}
               data-testid="select-collaborators"
             />
           )}

@@ -3,6 +3,51 @@ import { calculateNextDueDate, getTaskTypeLabel, getTaskOrganizationId } from ".
 import { User } from "../modals/userModal.js";
 import Task from "../modals/taskModal.js";
 
+// 🎨 Centralized Status Color Mapping for TaskSetu
+// Based on Tasksetu Requirement Specification (Module 4.7 – Task Status Management)
+const STATUS_COLOR_MAP = {
+  // Core Task Statuses
+  'open': '#3B82F6',           // Blue - Task created, work not started
+  'in-progress': '#F59E0B',    // Yellow/Orange - Actively working
+  'in_progress': '#F59E0B',    // Alternative format
+  'INPROGRESS': '#F59E0B',     // Database format
+  'on-hold': '#6B7280',        // Gray - Temporarily paused
+  'ONHOLD': '#6B7280',         // Database format
+  'completed': '#10B981',      // Green - Successfully finished
+  'done': '#10B981',           // Alternative format
+  'cancelled': '#EF4444',      // Red - Intentionally terminated
+  'rejected': '#DC2626',       // Dark Red - Rejected/declined
+  
+  // Review & Approval Statuses
+  'review': '#8B5CF6',         // Purple - Under review
+  'pending': '#F97316',        // Orange - Waiting for action
+  'approved': '#059669',       // Dark Green - Approved
+  'partially_approved': '#8B5CF6', // Purple - Some approvals received
+  'pending_approval': '#F59E0B',    // Orange - Waiting for approval
+  'auto_approved': '#6366F1',       // Indigo - System auto-approved
+  
+  // Additional Common Statuses
+  'todo': '#9CA3AF',           // Light Gray - To do
+  'new': '#3B82F6',            // Blue - Newly created
+  'active': '#F59E0B',         // Orange - Currently active
+  'blocked': '#F59E0B',        // Orange - Blocked by dependency
+  'overdue': '#DC2626',        // Red - Past due date
+  'paused': '#6B7280',         // Gray - Paused
+  'closed': '#10B981',         // Green - Closed/finished
+  
+  // Priority Status Colors (if needed)
+  'low': '#22C55E',            // Green - Low priority
+  'medium': '#F59E0B',         // Orange - Medium priority
+  'high': '#F97316',           // Dark Orange - High priority
+  'critical': '#EF4444',       // Red - Critical priority
+  
+  // Task Type Colors (if needed)
+  'regular': '#3B82F6',        // Blue
+  'recurring': '#8B5CF6',      // Violet
+  'milestone': '#F97316',      // Orange
+  'approval': '#059669'        // Emerald
+};
+
 export const createTask = async (req, res) => {
   try {
     const user = req.user;
@@ -2451,6 +2496,18 @@ export const getTasksByType = async (req, res) => {
       category
     } = req.query;
 
+    console.log('🔍 GET TASKS BY TYPE API CALLED:', {
+      type,
+      status,
+      priority,
+      page,
+      limit,
+      search,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log('🎨 Using centralized status color mapping with', Object.keys(STATUS_COLOR_MAP).length, 'status mappings');
+
     // Validate taskType parameter
     const validTaskTypes = ["regular", "recurring", "milestone", "approval"];
     if (!validTaskTypes.includes(type)) {
@@ -2529,9 +2586,21 @@ export const getTasksByType = async (req, res) => {
 
     if (tasks && tasks.length > 0) {
       for (let task of tasks) {
+        // Add status color to each task using centralized mapping
+        task.statusColor = STATUS_COLOR_MAP[task.status] || '#6B7280'; // Default gray if status not found
+        
+        console.log('🔍 Processing task:', {
+          taskId: task._id,
+          title: task.title,
+          status: task.status,
+          statusColor: task.statusColor,
+          createdByRole: task.createdByRole
+        });
+
         if (groupedTasks[task.createdByRole]) {
           groupedTasks[task.createdByRole].push(task);
         }
+        
         // Add approval details if needed
         if (task.isApprovalTask) {
           try {
@@ -2550,6 +2619,21 @@ export const getTasksByType = async (req, res) => {
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
+    // Log summary for debugging
+    console.log('✅ Final task summary for type:', type, {
+      totalTasksFound: totalTasks,
+      tasksByRole: Object.keys(groupedTasks).reduce((acc, role) => {
+        acc[role] = groupedTasks[role].length;
+        return acc;
+      }, {}),
+      pagination: { 
+        currentPage: parseInt(page), 
+        totalPages, 
+        hasNext, 
+        hasPrev 
+      }
+    });
+
     // Response (grouped by roles)
     res.json({
       success: true,
@@ -2563,7 +2647,7 @@ export const getTasksByType = async (req, res) => {
           hasPrevPage: hasPrev,
           limit: parseInt(limit),
         },
-        statusColorMap: statusColorMap // Include color mapping in response for frontend reference
+        statusColorMap: STATUS_COLOR_MAP // Include centralized color mapping in response for frontend reference
       },
     });
   } catch (error) {
@@ -2598,20 +2682,7 @@ export const getMyTasks = async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Status color mapping configuration
-    const statusColorMap = {
-      'open': '#3B82F6',      // Blue
-      'in-progress': '#F59E0B', // Yellow/Orange
-      'review': '#8B5CF6',    // Purple
-      'completed': '#10B981', // Green
-      'cancelled': '#EF4444', // Red
-      'on-hold': '#6B7280',   // Gray
-      'pending': '#F97316',   // Orange
-      'approved': '#059669',  // Green
-      'rejected': '#DC2626'   // Red
-    };
-
-    console.log('🎨 Status color mapping configured:', statusColorMap);
+    console.log('🎨 Using centralized status color mapping with', Object.keys(STATUS_COLOR_MAP).length, 'status mappings');
 
     // Base filter for main tasks only (exclude subtasks)
     const filter = {
@@ -2680,15 +2751,15 @@ export const getMyTasks = async (req, res) => {
         completedBy: subtask.completedBy || null,
         completionNotes: subtask.completionNotes || null,
         
-        // Status color mapping
-        statusColor: statusColorMap[subtask.status] || '#6B7280' // Default gray if status not found
+        // Status color mapping using centralized constant
+        statusColor: STATUS_COLOR_MAP[subtask.status] || '#6B7280' // Default gray if status not found
       }));
 
       console.log('🔍 Processing task:', {
         taskId: task._id,
         title: task.title,
         status: task.status,
-        statusColor: statusColorMap[task.status],
+        statusColor: STATUS_COLOR_MAP[task.status],
         subtasksCount: enhancedSubtasks.length,
         createdByRole: task.createdByRole
       });
@@ -2717,8 +2788,8 @@ export const getMyTasks = async (req, res) => {
         completedBy: task.completedBy || null,
         completionNotes: task.completionNotes || null,
         
-        // Status color mapping for main task
-        statusColor: statusColorMap[task.status] || '#6B7280' // Default gray if status not found
+        // Status color mapping for main task using centralized constant
+        statusColor: STATUS_COLOR_MAP[task.status] || '#6B7280' // Default gray if status not found
       };
 
       // Group by createdByRole
@@ -2763,7 +2834,7 @@ export const getMyTasks = async (req, res) => {
           hasPrevPage: hasPrev,
           limit: parseInt(limit),
         },
-        statusColorMap: statusColorMap // Include color mapping in response for frontend reference
+        statusColorMap: STATUS_COLOR_MAP // Include centralized color mapping in response for frontend reference
       },
     });
   } catch (error) {

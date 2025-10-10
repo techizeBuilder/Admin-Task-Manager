@@ -11,6 +11,7 @@ import {
   AlertCircle,
   GripVertical,
   Users,
+  Loader2,
 } from "lucide-react";
 
 const ApprovalTaskForm = ({
@@ -18,7 +19,10 @@ const ApprovalTaskForm = ({
   onSubmit,
   isOrgUser,
   assignmentOptions = [],
-  approverOptions = [], // Available approvers
+  approverOptions = [], // API data
+  collaboratorOptions = [], // API data
+  isLoadingApprovers = false,
+  isLoadingCollaborators = false,
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
   const [approverOrder, setApproverOrder] = useState([]);
@@ -138,22 +142,6 @@ const ApprovalTaskForm = ({
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
-      {/* Header with Approval Icons */}
-      {/* <div className="flex items-center space-x-2 pb-4 border-b border-gray-200">
-        <div className="flex items-center space-x-1">
-          <CheckCircle className="w-5 h-5 text-green-500" />
-          <XCircle className="w-5 h-5 text-red-500" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">Approval Task</h3>
-        <div className="relative group">
-          <Info className="w-4 h-4 text-gray-400 cursor-help" />
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none w-64 z-10">
-            Approval tasks require designated approvers to review and approve
-            before completion
-          </div>
-        </div>
-      </div> */}
-
       {/* Task Name */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">
@@ -210,6 +198,9 @@ const ApprovalTaskForm = ({
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">
           Approvers <span className="text-red-500">*</span>
+          {isLoadingApprovers && (
+            <Loader2 className="w-4 h-4 animate-spin inline-block ml-2" />
+          )}
         </label>
         <Controller
           name="approvers"
@@ -227,10 +218,20 @@ const ApprovalTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={approverOptions.filter((opt) => opt.value !== user?.id)}
+              options={approverOptions}
+              isLoading={isLoadingApprovers}
               className="react-select-container"
               classNamePrefix="react-select"
-              placeholder="Search and select approvers..."
+              placeholder={
+                isLoadingApprovers
+                  ? "Loading approvers..."
+                  : "Search and select approvers..."
+              }
+              noOptionsMessage={() =>
+                isLoadingApprovers
+                  ? "Loading..."
+                  : "No approvers available"
+              }
               data-testid="select-approvers"
             />
           )}
@@ -375,7 +376,6 @@ const ApprovalTaskForm = ({
         )}
       </div>
 
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Approval Due Date */}
         <div>
@@ -458,12 +458,14 @@ const ApprovalTaskForm = ({
         </div>
       </div>
 
-
       {/* Collaborators */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
           <Users className="w-4 h-4 mr-1" />
           Collaborators
+          {isLoadingCollaborators && (
+            <Loader2 className="w-4 h-4 animate-spin ml-2" />
+          )}
         </label>
         <Controller
           name="collaborators"
@@ -472,16 +474,26 @@ const ApprovalTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter(
+              options={collaboratorOptions.filter(
                 (opt) =>
                   opt.value !== "self" &&
                   !watchedApprovers?.some(
                     (approver) => approver.value === opt.value,
                   ),
               )}
+              isLoading={isLoadingCollaborators}
               className="react-select-container"
               classNamePrefix="react-select"
-              placeholder="Select collaborators for notifications..."
+              placeholder={
+                isLoadingCollaborators
+                  ? "Loading collaborators..."
+                  : "Select collaborators for notifications..."
+              }
+              noOptionsMessage={() =>
+                isLoadingCollaborators
+                  ? "Loading..."
+                  : "No collaborators available"
+              }
               data-testid="select-collaborators"
             />
           )}
@@ -551,10 +563,15 @@ const ApprovalTaskForm = ({
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
+          disabled={isLoadingApprovers || isLoadingCollaborators}
+          className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           data-testid="button-save"
         >
-          <CheckCircle className="w-4 h-4 mr-2" />
+          {(isLoadingApprovers || isLoadingCollaborators) ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <CheckCircle className="w-4 h-4 mr-2" />
+          )}
           Save Approval Task
         </button>
       </div>
