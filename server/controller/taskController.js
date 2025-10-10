@@ -2553,8 +2553,6 @@ export const getTasksByType = async (req, res) => {
     // Response (grouped by roles)
     res.json({
       success: true,
-      message: `${type} tasks retrieved successfully`,
-      taskType: type,
       data: {
         roles: groupedTasks,
         pagination: {
@@ -2563,11 +2561,11 @@ export const getTasksByType = async (req, res) => {
           totalTasks,
           hasNextPage: hasNext,
           hasPrevPage: hasPrev,
-          limit: parseInt(limit)
-        }
-      }
+          limit: parseInt(limit),
+        },
+        statusColorMap: statusColorMap // Include color mapping in response for frontend reference
+      },
     });
-
   } catch (error) {
     console.error('Error fetching tasks by type:', error);
     res.status(500).json({
@@ -2769,15 +2767,11 @@ export const getMyTasks = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ ERROR in getMyTasks:", {
-      error: error.message,
-      stack: error.stack,
-      queryParams: req.query
-    });
+    console.error('Error fetching tasks by type:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch tasks",
-      error: error.message,
+      message: 'Failed to fetch tasks by type',
+      error: error.message
     });
   }
 };

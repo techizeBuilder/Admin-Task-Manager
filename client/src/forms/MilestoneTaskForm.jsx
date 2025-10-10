@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import ReactQuill from "react-quill";
-import "quill/dist/quill.snow.css";  
+import "quill/dist/quill.snow.css";
 import "../styles/quill-custom.css";
 import Select from "react-select";
 import { Star, Calendar, Users, Info, AlertCircle } from "lucide-react";
@@ -111,7 +111,7 @@ const MilestoneTaskForm = ({
       taskType: "milestone",
       isMilestone: true,
     };
-    
+
     console.log("MilestoneTaskForm submitting:", formData);
     onSubmit(formData);
   };
@@ -119,7 +119,7 @@ const MilestoneTaskForm = ({
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* Header with Milestone Icon */}
-      <div className="flex items-center space-x-2 pb-4 border-b border-gray-200">
+      {/* <div className="flex items-center space-x-2 pb-4 border-b border-gray-200">
         <Star className="w-5 h-5 text-yellow-500" />
         <h3 className="text-lg font-semibold text-gray-900">Milestone Task</h3>
         <div className="relative group">
@@ -129,11 +129,11 @@ const MilestoneTaskForm = ({
             link to other milestones
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Milestone Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+        <label className="block text-sm font-medium text-gray-900 mb-0">
           Milestone Type <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">
@@ -166,7 +166,7 @@ const MilestoneTaskForm = ({
 
       {/* Task Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+        <label className="block text-sm font-medium text-gray-900 mb-0">
           Milestone Name <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -197,7 +197,7 @@ const MilestoneTaskForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+        <label className="block text-sm font-medium text-gray-900 mb-0">
           Description
         </label>
         <Controller
@@ -219,7 +219,7 @@ const MilestoneTaskForm = ({
       {/* Linked Tasks - Only show if milestone type is 'linked' */}
       {watchedMilestoneType === "linked" && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-0">
             Link to Tasks/Sub-tasks <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -265,92 +265,95 @@ const MilestoneTaskForm = ({
         </div>
       )}
 
-      {/* Due Date */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center">
-          <Calendar className="w-4 h-4 mr-1" />
-          Due Date <span className="text-red-500">*</span>
-        </label>
-        <input
-          {...register("dueDate", {
-            required: "Due date is required",
-            validate: (value) => {
-              const today = getTodayDate();
-              return value >= today || "Due date must be today or later";
-            },
-          })}
-          type="date"
-          min={getTodayDate()}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          data-testid="input-due-date"
-        />
-        {watchedMilestoneType === "linked" && (
-          <p className="text-xs text-gray-500 mt-1">
-            Automatically set to latest due date among linked tasks
-          </p>
-        )}
-        {errors.dueDate && (
-          <p className="text-red-500 text-xs mt-1 flex items-center">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            {errors.dueDate.message}
-          </p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Due Date */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+            <Calendar className="w-4 h-4 mr-1" />
+            Due Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            {...register("dueDate", {
+              required: "Due date is required",
+              validate: (value) => {
+                const today = getTodayDate();
+                return value >= today || "Due date must be today or later";
+              },
+            })}
+            type="date"
+            min={getTodayDate()}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            data-testid="input-due-date"
+          />
+          {watchedMilestoneType === "linked" && (
+            <p className="text-xs text-gray-500 mt-1">
+              Automatically set to latest due date among linked tasks
+            </p>
+          )}
+          {errors.dueDate && (
+            <p className="text-red-500 text-xs mt-1 flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              {errors.dueDate.message}
+            </p>
+          )}
+        </div>
+
+        {/* Assigned To */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-0">
+            Assigned To <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="assignedTo"
+            control={control}
+            rules={{ required: "Assignment is required" }}
+            render={({ field }) => (
+              <Select
+                {...field}
+                options={assignmentOptions}
+                isSearchable={isOrgUser}
+                isDisabled={!isOrgUser}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select assignee"
+                data-testid="select-assigned-to"
+              />
+            )}
+          />
+          {errors.assignedTo && (
+            <p className="text-red-500 text-xs mt-1 flex items-center">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              {errors.assignedTo.message}
+            </p>
+          )}
+        </div>
+
+        {/* Priority */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-0">
+            Priority
+          </label>
+          <Controller
+            name="priority"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                options={priorityOptions}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Select priority..."
+                data-testid="select-priority"
+              />
+            )}
+          />
+        </div>
       </div>
 
-      {/* Assigned To */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Assigned To <span className="text-red-500">*</span>
-        </label>
-        <Controller
-          name="assignedTo"
-          control={control}
-          rules={{ required: "Assignment is required" }}
-          render={({ field }) => (
-            <Select
-              {...field}
-              options={assignmentOptions}
-              isSearchable={isOrgUser}
-              isDisabled={!isOrgUser}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select assignee"
-              data-testid="select-assigned-to"
-            />
-          )}
-        />
-        {errors.assignedTo && (
-          <p className="text-red-500 text-xs mt-1 flex items-center">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            {errors.assignedTo.message}
-          </p>
-        )}
-      </div>
-
-      {/* Priority */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
-          Priority
-        </label>
-        <Controller
-          name="priority"
-          control={control}
-          render={({ field }) => (
-            <Select
-              {...field}
-              options={priorityOptions}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select priority..."
-              data-testid="select-priority"
-            />
-          )}
-        />
-      </div>
 
       {/* Visibility */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2">
+        <label className="block text-sm font-medium text-gray-900 mb-0">
           Visibility <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">
@@ -379,7 +382,7 @@ const MilestoneTaskForm = ({
 
       {/* Collaborators */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-2 flex items-center">
+        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
           <Users className="w-4 h-4 mr-1" />
           Collaborators
         </label>
@@ -446,14 +449,15 @@ const MilestoneTaskForm = ({
         >
           Cancel
         </button>
-        <button
+         <button
           type="submit"
-          className="px-6 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white hover:from-yellow-700 hover:to-yellow-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
+          className="px-6 py-2 bg-gradient-to-r from-[#ef4444] via-[#dc2626] to-[#b91c1c] text-white hover:from-[#f87171] hover:via-[#ef4444] hover:to-[#991b1b] rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center"
           data-testid="button-save"
         >
           <Star className="w-4 h-4 mr-2" />
           Save Milestone
         </button>
+
       </div>
     </form>
   );

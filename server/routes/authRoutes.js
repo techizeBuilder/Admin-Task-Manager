@@ -246,4 +246,20 @@ router.post("/validate-invite-token", authController.validateInviteToken);
  */
 router.post("/complete-invitation", authController.completeInvitation);
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/me", authenticateToken, authController.getCurrentUser);
+
 export default router;
