@@ -2,6 +2,8 @@ import { storage } from "../mongodb-storage.js";
 import { calculateNextDueDate, getTaskTypeLabel, getTaskOrganizationId } from "../utils/helperFunction.js";
 import { User } from "../modals/userModal.js";
 import Task from "../modals/taskModal.js";
+import { User } from "../modals/userModal.js";
+import Task from "../modals/taskModal.js";
 
 export const createTask = async (req, res) => {
   try {
@@ -2765,6 +2767,7 @@ export const getMyTasks = async (req, res) => {
           hasPrevPage: hasPrev,
           limit: parseInt(limit),
         },
+        statusColorMap: statusColorMap // Include color mapping in response for frontend reference
         statusColorMap: statusColorMap // Include color mapping in response for frontend reference
       },
     });
