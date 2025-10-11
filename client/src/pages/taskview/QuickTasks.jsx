@@ -6,7 +6,7 @@ import axios from "axios";
 import { quickTasksAPI } from "../../services/quickTasksAPI";
 import SearchableSelect from "../SearchableSelect";
 import Toast from "../newComponents/Toast";
-import SuccessToast from "../newComponents/SuccessToast";
+
 import CustomConfirmationModal from "../newComponents/CustomConfirmationModal";
 import {
   Table,
