@@ -48,6 +48,29 @@ const STATUS_COLOR_MAP = {
   'approval': '#059669'        // Emerald
 };
 
+// Helper: recalc assigned/completed counters for a user (counts non-deleted tasks; includes subtasks)
+async function recalcUserTaskCounters(userId) {
+  try {
+    if (!userId) return;
+    const uid = userId.toString ? userId.toString() : userId;
+    const assignedCount = await Task.countDocuments({
+      assignedTo: uid,
+      isDeleted: { $ne: true }
+    });
+    const completedCount = await Task.countDocuments({
+      assignedTo: uid,
+      status: "completed",
+      isDeleted: { $ne: true }
+    });
+    await User.findByIdAndUpdate(uid, {
+      assignedTasks: assignedCount,
+      completedTasks: completedCount
+    });
+  } catch (err) {
+    console.error("recalcUserTaskCounters error:", { userId, error: err.message });
+  }
+}
+
 export const createTask = async (req, res) => {
   try {
     const user = req.user;
@@ -182,6 +205,9 @@ export const createTask = async (req, res) => {
       }
     }
 
+    // Recalculate counters for assignee
+    await recalcUserTaskCounters(createdTask?.assignedTo);
+
     res.status(201).json({
       success: true,
       message: `${getTaskTypeLabel(parsedTaskData.taskType)} created successfully`,
@@ -308,6 +334,9 @@ export const createSubtask = async (req, res) => {
 
     // Save subtask
     const createdSubtask = await storage.createTask(subtaskData);
+
+    // Recalculate counters for subtask assignee
+    await recalcUserTaskCounters(createdSubtask?.assignedTo);
 
     res.status(201).json({
       success: true,
@@ -474,18 +503,24 @@ export const updateSubtask = async (req, res) => {
       });
     }
 
+    // Track previous assignee for counter adjustments
+    const prevAssignee = subtask.assignedTo?.toString();
+
     // Prepare update data
     const updateData = {
       ...updates,
       updatedAt: new Date()
     };
-
-    // Handle date fields
     if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
     if (updates.startDate) updateData.startDate = new Date(updates.startDate);
 
     // Update subtask
     const updatedSubtask = await storage.updateTask(subtaskId, updateData, user.id);
+
+    // Recalculate counters for affected users (old and new assignee if changed)
+    const newAssignee = (updates.assignedTo || updatedSubtask?.assignedTo || prevAssignee);
+    await recalcUserTaskCounters(prevAssignee);
+    await recalcUserTaskCounters(newAssignee);
 
     res.json({
       success: true,
@@ -582,6 +617,9 @@ export const deleteSubtask = async (req, res) => {
 
     console.log('Permissions passed, proceeding with soft delete...');
 
+    // Keep assignee for counter recalculation
+    const assignee = subtask?.assignedTo;
+
     // Soft delete subtask
     const updateResult = await storage.updateTask(subtaskId, {
       isDeleted: true,
@@ -591,6 +629,9 @@ export const deleteSubtask = async (req, res) => {
 
     console.log('Subtask soft delete result:', updateResult);
     console.log('=== DELETE SUBTASK COMPLETE ===');
+
+    // Recalculate counters for subtask assignee after delete
+    await recalcUserTaskCounters(assignee);
 
     res.json({
       success: true,
@@ -2102,17 +2143,27 @@ export const updateTask = async (req, res) => {
       }
     }
 
-    // Prepare update data
+    const prevAssignee = task.assignedTo?.toString();
+    const prevStatus = task.status;
+
     const updateData = {
       ...updates,
       updatedAt: new Date()
     };
-
-    // Handle date fields
     if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
     if (updates.startDate) updateData.startDate = new Date(updates.startDate);
 
     const updatedTask = await storage.updateTask(id, updateData, user.id);
+
+    // Recalculate counters if assignee or status possibly changed
+    const newAssignee = (updates.assignedTo || updatedTask?.assignedTo || prevAssignee);
+    if (newAssignee) {
+      await recalcUserTaskCounters(prevAssignee);
+      await recalcUserTaskCounters(newAssignee);
+    } else {
+      // If only status changed without reassignment, still recalc assignee
+      await recalcUserTaskCounters(prevAssignee);
+    }
 
     res.json({
       success: true,
@@ -2232,6 +2283,9 @@ export const updateTaskStatus = async (req, res) => {
       completedBy: updatedTask?.completedBy
     });
 
+    // Recalculate counters for current assignee
+    await recalcUserTaskCounters(updatedTask?.assignedTo);
+
     console.log('✅ Sending success response to client');
     res.json({
       success: true,
@@ -2311,30 +2365,14 @@ export const deleteTask = async (req, res) => {
 
     console.log('Permissions passed, proceeding with soft delete...');
 
-    // Check task state before update
-    console.log('Task state BEFORE update:', {
-      id: task._id,
-      title: task.title,
-      isDeleted: task.isDeleted,
-      updatedAt: task.updatedAt
-    });
+    // Keep assignee for counter recalculation
+    const assignee = task?.assignedTo;
 
     // Soft delete
-    console.log('Calling storage.updateTask with:', {
-      id: id,
-      updateData: {
-        isDeleted: true,
-        updatedAt: new Date()
-      },
-      userId: user.id
-    });
-
     const updateResult = await storage.updateTask(id, {
       isDeleted: true,
       updatedAt: new Date()
     }, user.id);
-
-    console.log('Update result from storage:', updateResult);
 
     // Verify the update by fetching the task again
     const updatedTask = await storage.getTaskById(id);
@@ -2362,6 +2400,9 @@ export const deleteTask = async (req, res) => {
     } catch (dbError) {
       console.error('Error in direct database check:', dbError);
     }
+
+    // Recalculate counters for assignee after delete
+    await recalcUserTaskCounters(assignee);
 
     console.log('=== DELETE TASK COMPLETE ===');
 
@@ -2815,7 +2856,7 @@ export const getMyTasks = async (req, res) => {
       }, {}),
       pagination: {
         currentPage: parseInt(page),
-        totalPages,
+        totalPages: totalPages,
         hasNext,
         hasPrev
       }
@@ -3139,6 +3180,9 @@ export const quickMarkAsDone = async (req, res) => {
       updatedBy: user.id,
       updatedAt: new Date()
     });
+
+    // Recalculate counters for current assignee
+    await recalcUserTaskCounters(updatedTask?.assignedTo);
 
     res.json({
       success: true,

@@ -1,6 +1,7 @@
 import { User } from "../modals/userModal.js";
 import { storage } from "../mongodb-storage.js";
 import { emailService } from "../services/emailService.js";
+import Task from "../modals/taskModal.js"; // <-- added
 /**
  * Remove/Delete user
  * Only org_admin can remove user (enforced in route middleware)
@@ -113,7 +114,7 @@ export const getUsersByOrg = async (req, res) => {
       search ? searchQuery : { organization_id: orgId }
     );
 
-    // Fetch users
+    // Fetch users (page)
     const users = await User.find(
       search ? searchQuery : { organization_id: orgId }
     )
@@ -124,19 +125,41 @@ export const getUsersByOrg = async (req, res) => {
       .limit(limit)
       .lean();
 
+    // Compute assigned/completed counts for each user on this page
+    const counts = await Promise.all(
+      users.map(async (u) => {
+        const userId = u._id;
+        const [assignedCount, completedCount] = await Promise.all([
+          Task.countDocuments({ assignedTo: userId, isDeleted: { $ne: true } }),
+          Task.countDocuments({ assignedTo: userId, status: "completed", isDeleted: { $ne: true } }),
+        ]);
+        return {
+          id: userId.toString(),
+          assignedTasks: assignedCount,
+          completedTasks: completedCount,
+        };
+      })
+    );
+    const countsMap = counts.reduce((acc, c) => {
+      acc[c.id] = c;
+      return acc;
+    }, {});
+
     const formattedUsers = users.map((u) => ({
       ...u,
-      firstName: u.firstName || "", // force empty string if missing
-      lastName: u.lastName || "", // force empty string if missing
-      lastLoginAt: u.lastLoginAt || null, // force null if missing
+      firstName: u.firstName || "",
+      lastName: u.lastName || "",
+      lastLoginAt: u.lastLoginAt || null,
+      // override with live counts computed from tasks
+      assignedTasks: countsMap[u._id.toString()]?.assignedTasks ?? 0,
+      completedTasks: countsMap[u._id.toString()]?.completedTasks ?? 0,
     }));
-   
+
     res.json({
       users: formattedUsers,
       total,
       page: Number(page),
       pages: Math.ceil(total / limit),
-     
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
