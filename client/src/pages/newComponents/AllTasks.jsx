@@ -1633,7 +1633,7 @@ export default function AllTasks({
     // Open appropriate task creation modal based on selected type
     if (selectedTaskType === "approval") {
       setShowApprovalTaskModal(true);
-    } else if (selectedTaskType === "milestone") { 
+    } else if (selectedTaskType === "milestone") {
       setShowMilestoneModal(true);
     } else {
       setShowCreateTaskDrawer(true);
@@ -2423,11 +2423,11 @@ export default function AllTasks({
       </div>
 
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-2 mb-4 gap-2">
         {/* Search Bar */}
 
         {/* Filters */}
-        <div className="flex flex-nowrap overflow-x-auto gap-2">
+        <div className="scroll-container flex flex-nowrap overflow-x-auto gap-2">
           <div className="relative w-50 max-w-md min-w-[170px]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
@@ -2709,8 +2709,8 @@ export default function AllTasks({
         </div>
       ) : (
         <div className="card p-0">
-          <div className="w-full overflow-x-auto">
-            <Table wrapperClassName="max-w-[80rem]" className="w-full">
+          <div className="w-full overflow-x-auto scroll-container">
+            <Table wrapperClassName="max-w-[80rem]" className="w-full scroll-container">
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">

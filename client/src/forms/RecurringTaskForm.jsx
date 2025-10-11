@@ -630,6 +630,8 @@ export const RecurringTaskForm = ({
   onCancel,
   isOrgUser = false,
   defaultValues = {},
+  collaboratorOptions = [],
+  isLoadingCollaborators = false,
 }) => {
   const {
     register,
@@ -686,8 +688,7 @@ export const RecurringTaskForm = ({
   const assignmentOptions = isOrgUser
     ? [
         { value: "self", label: "Self" },
-        { value: "john_doe", label: "John Doe" },
-        { value: "jane_smith", label: "Jane Smith" },
+      ...collaboratorOptions,
       ]
     : [{ value: "self", label: "Self" }];
 
@@ -873,10 +874,11 @@ export const RecurringTaskForm = ({
             <Select
               {...field}
               isMulti
-              options={assignmentOptions.filter((opt) => opt.value !== "self")}
+                options={collaboratorOptions}
+                isLoading={isLoadingCollaborators}
               className="react-select-container"
               classNamePrefix="react-select"
-              placeholder="Select contributors"
+                placeholder={isLoadingCollaborators ? "Loading contributors..." : "Select contributors"}
               data-testid="select-contributors"
             />
           )}

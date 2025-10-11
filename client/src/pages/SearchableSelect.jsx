@@ -13,6 +13,25 @@ const SearchableSelect = ({
   menuPlacement = "auto",
   ...props
 }) => {
+  // Find the selected option to display its label instead of placeholder
+  const getSelectedOption = () => {
+    if (!value) return null;
+
+    if (isMulti) {
+      // For multi-select, return array of selected options
+      return options?.filter(option => value.includes(option.value)) || [];
+    } else {
+      // For single select, find the matching option
+      return options?.find(option => option.value === value) || null;
+    }
+  };
+
+  const selectedOption = getSelectedOption();
+
+  // Determine what to display as placeholder/value
+  const displayValue = selectedOption ? selectedOption : null;
+  const displayPlaceholder = selectedOption ? null : placeholder;
+
   const customStyles = {
     control: (provided, state) => ({
       ...provided,
@@ -64,9 +83,9 @@ const SearchableSelect = ({
   return (
     <Select
       options={options}
-      value={value}
+      value={displayValue}
       onChange={onChange}
-      placeholder={placeholder}
+      placeholder={displayPlaceholder}
       isMulti={isMulti}
       isDisabled={isDisabled}
       isClearable={isClearable}

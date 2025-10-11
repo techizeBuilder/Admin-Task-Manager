@@ -1102,7 +1102,7 @@ export default function RegularTaskManager() {
             {currentTasks.map((task) => (
               <div
                 key={task.id}
-                className="bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                className="flex flex-col justify-between bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Card Header */}
                 <div className={`p-4 ${RT.panelHeader}`}>

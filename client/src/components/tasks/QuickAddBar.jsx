@@ -3,6 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Zap, Check, X, ArrowUpRight, Calendar, Clock, Archive, Trash2, CheckSquare, Filter, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { quickTasksAPI } from '../../services/quickTasksAPI';
+import eventEmitter from '../../utils/eventEmitter';
 
 // Quick Tasks Manager Component - Complete Quick Tasks functionality
 export function QuickTasksManager() {
@@ -13,8 +15,36 @@ export function QuickTasksManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [taskPriority, setTaskPriority] = useState('Low');
 
-  // Initialize with some demo data
+  // Fetch quick tasks from API
   useEffect(() => {
+    const fetchQuickTasks = async () => {
+      try {
+        console.log('🔄 Fetching Quick Tasks from API...');
+        const response = await quickTasksAPI.fetchQuickTasks();
+
+        if (response && response.success) {
+          const tasks = response.quickTasks || response.data || [];
+          console.log('✅ Quick Tasks fetched:', tasks);
+
+          // Transform API data to match component format
+          const transformedTasks = tasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            priority: task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1) || 'Low',
+            dueDate: task.dueDate ? new Date(task.dueDate) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            status: task.status === 'done' ? 'completed' : task.status || 'open',
+            createdAt: new Date(task.createdAt),
+            createdBy: task.createdBy || 'current-user',
+            completedAt: task.completedAt ? new Date(task.completedAt) : null
+          }));
+
+          setQuickTasks(transformedTasks);
+        } else {
+          console.error('❌ Failed to fetch quick tasks:', response);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching quick tasks:', error);
+        // Fallback to demo data if API fails
     const demoTasks = [
       {
         id: 1,
@@ -46,17 +76,38 @@ export function QuickTasksManager() {
       }
     ];
     setQuickTasks(demoTasks);
+      }
+    };
+
+    fetchQuickTasks();
   }, []);
 
   // Create new quick task
-  const handleCreateQuickTask = () => {
+  const handleCreateQuickTask = async () => {
     if (!newTaskTitle.trim()) return;
 
+    try {
+      // Create quick task data
+      const taskData = {
+        title: newTaskTitle.trim(),
+        priority: taskPriority.toLowerCase(),
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // Default +3 days
+      };
+
+      console.log('🚀 Creating Quick Task via API:', taskData);
+
+      // Call the API to create the quick task
+      const response = await quickTasksAPI.createQuickTask(taskData);
+
+      if (response && response.success) {
+        console.log('✅ Quick task created successfully:', response);
+
+        // Add the new task to the local state
     const newTask = {
-      id: Date.now(),
+          id: response.quickTask?.id || response.data?.id || Date.now().toString(),
       title: newTaskTitle.trim(),
       priority: taskPriority,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // Default +3 days
+          dueDate: new Date(taskData.dueDate),
       status: "open",
       createdAt: new Date(),
       createdBy: "current-user"
@@ -66,6 +117,18 @@ export function QuickTasksManager() {
     setNewTaskTitle('');
     setTaskPriority('Low');
     setShowCreateForm(false);
+
+        // Emit event to notify other components
+        eventEmitter.emit('quickTaskCreated', response.quickTask || response.data);
+
+        console.log('Quick task created successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to create quick task');
+      }
+    } catch (error) {
+      console.error('❌ Error creating quick task:', error);
+      console.error('Failed to create quick task:', error.message);
+    }
   };
 
   // Toggle task completion
@@ -455,22 +518,42 @@ export default function QuickAddBar() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [quickText, setQuickText] = useState('');
 
-  const handleQuickAdd = () => {
+  const handleQuickAdd = async () => {
     if (!quickText.trim()) return;
 
-    // Create quick task instantly
-    const quickTask = {
+    try {
+      // Create quick task data
+      const taskData = {
       title: quickText.trim(),
       priority: 'low',
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // +3 days
-      status: 'open'
-    };
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // +3 days
+      };
 
-    // Mock save - in real app would call API
-    console.log('Quick task created:', quickTask);
+      console.log('🚀 Creating Quick Task via API:', taskData);
 
+      // Call the API to create the quick task
+      const response = await quickTasksAPI.createQuickTask(taskData);
+
+      if (response && response.success) {
+        console.log('✅ Quick task created successfully:', response);
+
+        // Clear form and close
     setQuickText('');
     setIsExpanded(false);
+
+        // Emit event to notify other components
+        eventEmitter.emit('quickTaskCreated', response.quickTask || response.data);
+
+        // Show success message (you can add a toast notification here)
+        console.log('Quick task created successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to create quick task');
+      }
+    } catch (error) {
+      console.error('❌ Error creating quick task:', error);
+      // You can add error handling/notification here
+      console.error('Failed to create quick task:', error.message);
+    }
   };
 
   return (
