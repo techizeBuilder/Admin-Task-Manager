@@ -113,13 +113,15 @@ export default function CreateTask({
     }
   };
 
-  // Fetch data when component mounts or when milestone/approval task is selected
+  // Fetch data when component mounts or when milestone/approval/recurring task is selected
   useEffect(() => {
     if (selectedTaskType === "approval" && canCreateApprovals) {
       fetchCollaborators();
       fetchApprovers();
     } else if (selectedTaskType === "milestone" && canCreateMilestones) {
       fetchCollaborators(); // Fetch collaborators for milestone tasks too
+    } else if (selectedTaskType === "recurring") {
+      fetchCollaborators(); // Fetch collaborators for recurring tasks too
     }
   }, [selectedTaskType, canCreateApprovals, canCreateMilestones]);
 
@@ -483,6 +485,8 @@ export default function CreateTask({
             assignmentOptions={assignmentOptions}
             userRole={role}
             canAssignToOthers={canAssignToOthers}
+            collaboratorOptions={collaboratorsList}
+            isLoadingCollaborators={isLoadingCollaborators}
           />
         )}
 
