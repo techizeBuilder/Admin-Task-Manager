@@ -92,8 +92,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useShowToast } from '../../utils/ToastMessage';
 const RecurringTaskManager = () => {
+  const { showSuccessToast, showErrorToast } = useShowToast();
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [statusFilter, setStatusFilter] = useState('all'); // all | active | paused
   const [priorityFilter, setPriorityFilter] = useState('all'); // all | low | medium | high
   const [frequencyFilter, setFrequencyFilter] = useState('all'); // all | daily | weekly | monthly | quarterly | yearly
@@ -126,30 +129,7 @@ const RecurringTaskManager = () => {
     task: null,
   });
 
-  // Success toast state
-  const [successToast, setSuccessToast] = useState({
-    isVisible: false,
-    message: '',
-    type: 'success'
-  });
-
-  // Show success toast
-  const showSuccessToast = (message, type = 'success') => {
-    setSuccessToast({
-      isVisible: true,
-      message: message,
-      type: type
-    });
-
-    // Auto hide after 3 seconds
-    setTimeout(() => {
-      setSuccessToast({
-        isVisible: false,
-        message: '',
-        type: 'success'
-      });
-    }, 3000);
-  };
+ 
 
   // Fetch recurring tasks from API
   const { data: apiResponse, isLoading, error, refetch } = useQuery({
@@ -404,7 +384,7 @@ const RecurringTaskManager = () => {
       refetch();
     } catch (error) {
       console.error('Error toggling task status:', error);
-      showSuccessToast(`Error toggling task status: ${error.message}`, 'error');
+      showErrorToast(`Error toggling task status: ${error.message}`);
       // Revert local changes on error
       setLocalTasks(prev => {
         const currentList = prev ?? currentTasks;
@@ -525,7 +505,7 @@ const RecurringTaskManager = () => {
           }, 500);
         } else {
           const errorMessage = response.data?.message || "Failed to update task.";
-          showSuccessToast(errorMessage, 'error');
+          showErrorToast(errorMessage);
         }
       }
     } catch (error) {
@@ -541,7 +521,7 @@ const RecurringTaskManager = () => {
         errorMessage = error.message;
       }
 
-      showSuccessToast(errorMessage, 'error');
+      showErrorToast(errorMessage);
     }
     setEditLoading(false);
   };
@@ -595,7 +575,7 @@ const RecurringTaskManager = () => {
     } catch (error) {
       console.error('Error deleting task:', error);
       console.error('Error details:', error.response?.data || error.message);
-      showSuccessToast(`Error deleting task: ${error.response?.data?.message || error.message}`, 'error');
+      showErrorToast(`Error deleting task: ${error.response?.data?.message || error.message}`);
 
       // Revert local changes on error - refetch to get current state
       refetch();

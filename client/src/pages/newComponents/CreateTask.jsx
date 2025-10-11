@@ -12,6 +12,7 @@ import { useAuth } from "../../features/shared/hooks/useAuth";
 import { hasAccess } from "../../utils/auth";
 import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
 import { useLocation } from "wouter";
+import { useShowToast } from "../../utils/ToastMessage";
 
 export default function CreateTask({
   onClose,
@@ -34,6 +35,7 @@ export default function CreateTask({
     restrictions,
   } = useAssignmentOptions();
   const { user } = useAuth();
+  const {showSuccessToast, showErrorToast} = useShowToast();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
   const { activeRole } = useActiveRole();
@@ -293,14 +295,14 @@ export default function CreateTask({
       if (onClose) onClose();
 
       // Show success message
-      alert("Task created successfully!");
+      showSuccessToast("Task created successfully!");
       
       // Redirect to the tasks page
       setLocation("/tasks");
     } catch (error) {
       console.error("Error creating task:", error);
       const errorMessage = error.response?.data?.message || error.message;
-      alert("Failed to create task: " + errorMessage);
+      showErrorToast("Failed to create task: " + errorMessage);
     }
   };
 

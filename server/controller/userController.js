@@ -60,6 +60,34 @@ export const removeUser = async (req, res) => {
 };
 
 /**
+ * Get organization statistics
+ * Returns user stats by status
+ */
+export const getOrgStats = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+
+    // Fetch all users for the organization
+    const allUsers = await User.find({ organization_id: orgId })
+      .select("status")
+      .lean();
+
+    const user_stats = {
+      total: allUsers.length,
+      active: allUsers.filter((u) => u.status === "active").length,
+      pending: allUsers.filter((u) => u.status === "invited").length,
+      inactive: allUsers.filter((u) => u.status === "inactive").length,
+    };
+
+    res.json({
+      user_stats,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
  * Get users by organization
 
  */
@@ -90,7 +118,7 @@ export const getUsersByOrg = async (req, res) => {
       search ? searchQuery : { organization_id: orgId }
     )
       .select(
-        "firstName lastName role department designation location status lastLoginAt assignedTasks completedTasks email createdAt"
+        "firstName lastName role department designation location assignedTasks completedTasks status lastLoginAt   email createdAt"
       )
       .skip(skip)
       .limit(limit)
@@ -100,24 +128,15 @@ export const getUsersByOrg = async (req, res) => {
       ...u,
       firstName: u.firstName || "", // force empty string if missing
       lastName: u.lastName || "", // force empty string if missing
-
       lastLoginAt: u.lastLoginAt || null, // force null if missing
     }));
-    const allUsers = await User.find({ organization_id: orgId })
-      .select("status")
-      .lean();
-    const user_stats = {
-      total: allUsers.length,
-      active: allUsers.filter((u) => u.status === "active").length,
-      pending: allUsers.filter((u) => u.status === "invited").length,
-      inactive: allUsers.filter((u) => u.status === "inactive").length,
-    };
+   
     res.json({
       users: formattedUsers,
       total,
       page: Number(page),
       pages: Math.ceil(total / limit),
-      user_stats,
+     
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
