@@ -294,4 +294,52 @@ router.get("/collaborators", authenticateToken, authController.getCollaboratorsL
  */
 router.get("/approvers", authenticateToken, authController.getApproversList);
 
+/**
+ * @swagger
+ * /api/auth/verify-token:
+ *   post:
+ *     summary: Verify email token and set password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified and password set
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/verify-token", authController.verifyToken);
+
+/**
+ * @swagger
+ * /api/auth/validate-reset-token:
+ *   post:
+ *     summary: Validate a password reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/validate-reset-token", authController.validateResetToken);
+
 export default router;
