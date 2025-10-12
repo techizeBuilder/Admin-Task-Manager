@@ -19,4 +19,8 @@ export default defineConfig({
       '@features-auth': path.resolve(__dirname, './src/features/auth'),
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'zustand'],
+    dedupe: ['react', 'react-dom']
+  },
 })

@@ -75,12 +75,17 @@ export const hasAccess = (requiredRoles = []) => {
 
   if (!user) return false;
 
-  // Get activeRole from localStorage or context if available
-  const activeRoleFromContext = localStorage.getItem('activeRole');
-  const currentRole = activeRoleFromContext || user.activeRole || (Array.isArray(user.role) ? user.role[0] : user.role);
+  // Case 1: User has multiple roles → check activeRole 
+  if (Array.isArray(user.role) && user.role.length > 1) {
+    return requiredRoles.includes(user.activeRole);
+  }
 
-  // Check if the current role is in the required roles
-  return requiredRoles.includes(currentRole);
+  // Case 2: User has exactly one role
+  if (Array.isArray(user.role) && user.role.length === 1) {
+    return requiredRoles.includes(user.role[0]);
+  }
+
+  return false;
 };
 
 

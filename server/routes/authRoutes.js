@@ -262,4 +262,36 @@ router.post("/complete-invitation", authController.completeInvitation);
  */
 router.get("/me", authenticateToken, authController.getCurrentUser);
 
+/**
+ * @swagger
+ * /api/auth/collaborators:
+ *   get:
+ *     summary: Get list of potential collaborators for approval tasks
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of collaborators
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/collaborators", authenticateToken, authController.getCollaboratorsList);
+
+/**
+ * @swagger
+ * /api/auth/approvers:
+ *   get:
+ *     summary: Get list of potential approvers for approval tasks
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of approvers
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/approvers", authenticateToken, authController.getApproversList);
+
 export default router;

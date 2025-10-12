@@ -83,12 +83,12 @@ const baseItems = {
     icon: RecurringTaskIcon,
     path: "/recurring",
   },
-  calendar: {
-    id: "calendar",
-    label: "Calendar",
-    icon: Calendar,
-    path: "/calendar",
-  },
+  // calendar: {
+  //   id: "calendar",
+  //   label: "Calendar",
+  //   icon: Calendar,
+  //   path: "/calendar",
+  // },
   approvals: {
     id: "approvals",
     label: "Approvals",
@@ -101,7 +101,32 @@ const baseItems = {
     icon: MilestoneTaskIcon,
     path: "/milestones",
   },
-
+  // form modules
+  form: {
+    id: "form",
+    label: "Forms",
+    icon: ClipboardCheck,
+    children: [
+      {
+        id: "form-library",
+        label: "Form Library",
+        icon: ClipboardCheck,
+        path: "/form-library",
+      },
+      {
+        id: "form-builder",
+        label: "Form Builder",
+        icon: ClipboardCheck,
+        path: "/form-builder",
+      },
+      {
+        id: "form-version-history",
+        label: "Form Version History",
+        icon: Clock,
+        path: "/form-version-history",
+      },
+    ],
+  },
   // Settings for employee & manager (view only)
   settingsViewOnly: {
     id: "settings",
@@ -123,7 +148,6 @@ const baseItems = {
       },
     ],
   },
-
   // Settings for individual & org_admin (management access)
   settingsManagement: {
     id: "settings",
@@ -151,7 +175,6 @@ const baseItems = {
       },
     ],
   },
-
   help: {
     id: "help",
     label: "Help & Support",
@@ -171,20 +194,7 @@ export const sidebarMenus = {
     baseItems.regularTasks,
     baseItems.recurring,
     baseItems.calendar,
-    baseItems.settingsViewOnly,
-    baseItems.help,
-    baseItems.logout,
-  ],
-
-  individual: [
-    baseItems.dashboard,
-    baseItems.myTasks,
-    baseItems.createTask,
-    baseItems.quickTasks,
-    baseItems.regularTasks,
-    baseItems.recurring,
-    baseItems.calendar,
-    baseItems.settingsManagement,
+    baseItems.settings,
     baseItems.help,
     baseItems.logout,
   ],
@@ -303,6 +313,86 @@ export const sidebarMenus = {
         },
       ],
     },
+    baseItems.form,
+    baseItems.settingsManagement,
+    baseItems.help,
+    baseItems.logout,
+  ],
+
+  admin: [
+    baseItems.dashboard,
+    baseItems.myTasks,
+    { id: "team-tasks", label: "Team Tasks", icon: Users, path: "/tasks/team" },
+    baseItems.createTask,
+    baseItems.quickTasks,
+    baseItems.calendar,
+    baseItems.regularTasks,
+    baseItems.recurring,
+    baseItems.milestones,
+    baseItems.approvals,
+    {
+      id: "reports",
+      label: "Reporting & Analytics",
+      icon: BarChart3,
+      children: [
+        {
+          id: "organization-analytics",
+          label: "Organization Analytics",
+          icon: Building2,
+          path: "/reports/organization",
+        },
+        {
+          id: "team-analytics",
+          label: "Team Analytics",
+          icon: PieChart,
+          path: "/reports/team",
+        },
+        {
+          id: "my-productivity",
+          label: "My Productivity",
+          icon: TrendingUp,
+          path: "/reports/productivity",
+        },
+      ],
+    },
+    {
+      id: "admin",
+      label: "Administration",
+      icon: Shield,
+      children: [
+        {
+          id: "user-management",
+          label: "User Management",
+          icon: Users,
+          path: "/admin/users",
+        },
+        {
+          id: "team-members",
+          label: "Team Members",
+          icon: Users,
+          path: "/admin/team-members",
+        },
+        {
+          id: "company-profile",
+          label: "Company Profile",
+          icon: Building2,
+          path: "/admin/org-profile",
+        },
+        {
+          id: "status-management",
+          label: "Status Management",
+          icon: Cog,
+          path: "/admin/status",
+        },
+        {
+          id: "priority-management",
+          label: "Priority Management",
+          icon: Flag,
+          path: "/admin/priority",
+        },
+      ],
+    },
+    baseItems.form,
     baseItems.settingsManagement,
     baseItems.help,
     baseItems.logout,
@@ -388,14 +478,17 @@ export const sidebarMenus = {
   ],
 };
 
-// Role mapping
-const roleMapping = {
+// ✅ Role name mapping for consistency
+export const roleMapping = {
   employee: "employee",
-  manager: "manager",
   individual: "individual",
-  org_admin: "org_admin",
+  manager: "manager",
+  individial: "employee",
+  org_admin: "admin",
+
   superadmin: "superadmin",
   super_admin: "superadmin",
+  superadmin: "superadmin",
 };
 
 export const getMenuByRole = (role) => {

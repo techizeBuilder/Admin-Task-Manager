@@ -88,10 +88,16 @@ const RoleSwitcher = () => {
     queryKey: ["/api/auth/verify"],
     enabled: !!localStorage.getItem("token"),
   });
-  const [, navigate] = useLocation(); // navigate function from wouter
+  const [location, navigate] = useLocation(); // navigate function from wouter
   const { activeRole, setActiveRole } = useActiveRole();
   const queryClient = useQueryClient();
-
+  
+  // Check if current page is a billing/upgrade/payment page where role switching should be disabled
+  const isBillingPage = location.includes('/billing') || 
+                       location.includes('/upgrade') || 
+                       location.includes('/payment') ||
+                       location.includes('/subscription');
+  
   // Get current active role or default to first role
   const currentRole = activeRole || user?.role?.[0];
   const userRoles = user?.role || [];
@@ -106,7 +112,7 @@ const RoleSwitcher = () => {
   }, [user, activeRole, setActiveRole]);
 
   // Show switcher for development - remove the multiple roles check temporarily
-  if (!user) {
+  if (!user || isBillingPage) {
     return null;
   }
 
@@ -116,6 +122,15 @@ const RoleSwitcher = () => {
   // }
 
   const handleRoleSwitch = (newRole) => {
+    // Prevent role switching on billing/payment pages for security
+    if (location.includes('/billing') || 
+        location.includes('/upgrade') || 
+        location.includes('/payment') ||
+        location.includes('/subscription')) {
+      console.warn('Role switching disabled on billing/payment pages');
+      return;
+    }
+    
     setActiveRole(newRole);
     
     // Store activeRole in localStorage for persistence

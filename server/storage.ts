@@ -1,4 +1,4 @@
-import { users, organizations, projects, tasks, taskApprovals, taskComments, taskStatuses, type User, type InsertUser, type Task, type InsertTask, type TaskApproval, type InsertTaskApproval, type TaskComment, type InsertTaskComment, type Organization, type Project } from "@shared/schema";
+import { users, organizations, projects, tasks, taskApprovals, taskComments, taskStatuses, type User, type InsertUser, type Task, type InsertTask, type TaskApproval, type InsertTaskApproval, type TaskComment, type InsertTaskComment, type Organization, type Project } from "../shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, inArray, sql } from "drizzle-orm";
 

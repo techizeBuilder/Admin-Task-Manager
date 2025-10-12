@@ -642,5 +642,191 @@ export const authController = {
     }
   },
 
+  /**
+ * Get list of potential collaborators for approval tasks
+ * Collaborators are users who can view and comment but cannot approve/reject
+ */
+async getCollaboratorsList(req, res) {
+  try {
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - user not authenticated"
+      });
+    }
+
+    let collaborators = [];
+
+    // For individual users - no collaborators available
+    if (user.role.includes('individual')) {
+      return res.json({
+        success: true,
+        data: [],
+        message: "Individual users cannot add collaborators"
+      });
+    }
+
+    // For organization users - get users from same organization
+    if (user.organizationId) {
+      const { User } = await import("../modals/userModal.js");
+      
+      collaborators = await User.find({
+        organization_id: user.organizationId,
+        status: "active",
+        _id: { $ne: user.id } // Exclude current user
+      })
+      .select('_id firstName lastName email role department designation')
+      .lean();
+
+      // Format collaborators data
+      collaborators = collaborators.map(collab => ({
+        id: collab._id,
+        name: `${collab.firstName} ${collab.lastName}`.trim(),
+        email: collab.email,
+        role: Array.isArray(collab.role) ? collab.role : [collab.role],
+        department: collab.department || '',
+        designation: collab.designation || '',
+        avatar: null // Add avatar logic if needed
+      }));
+    }
+
+    res.json({
+      success: true,
+      data: collaborators,
+      count: collaborators.length
+    });
+
+  } catch (error) {
+    console.error("Get collaborators list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get collaborators list"
+    });
+  }
+},
+
+/**
+ * Get list of potential approvers for approval tasks
+ * Approvers are users who can make approve/reject decisions
+ * Based on role hierarchy and organization structure
+ */
+async getApproversList(req, res) {
+  try {
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - user not authenticated"
+      });
+    }
+
+    let approvers = [];
+
+    // For individual users - no approvers available
+    if (user.role.includes('individual')) {
+      return res.json({
+        success: true,
+        data: [],
+        message: "Individual users cannot create approval tasks"
+      });
+    }
+
+    // For organization users - get eligible approvers
+    if (user.organizationId) {
+      const { User } = await import("../modals/userModal.js");
+      
+      // Get users from same organization with specific roles
+      const eligibleUsers = await User.find({
+        organization_id: user.organizationId,
+        status: "active",
+        _id: { $ne: user.id }, // Exclude current user by default
+        role: { 
+          $in: ['org_admin', 'manager', 'employee'] // Eligible approver roles
+        }
+      })
+      .select('_id firstName lastName email role department designation isPrimaryAdmin')
+      .lean();
+
+      // Filter and format approvers based on business logic
+      approvers = eligibleUsers
+        .filter(approver => {
+          const approverRoles = Array.isArray(approver.role) ? approver.role : [approver.role];
+          
+          // Always include org_admin and managers
+          if (approverRoles.includes('org_admin') || approverRoles.includes('manager')) {
+            return true;
+          }
+          
+          // Include employees if current user is also employee (peer approval)
+          if (user.role.includes('employee') && approverRoles.includes('employee')) {
+            return true;
+          }
+          
+          return false;
+        })
+        .map(approver => ({
+          id: approver._id,
+          name: `${approver.firstName} ${approver.lastName}`.trim(),
+          email: approver.email,
+          role: Array.isArray(approver.role) ? approver.role : [approver.role],
+          department: approver.department || '',
+          designation: approver.designation || '',
+          isPrimaryAdmin: approver.isPrimaryAdmin || false,
+          canApprove: true,
+          avatar: null // Add avatar logic if needed
+        }));
+
+      // Option to include self as approver (if creator wants to be in approval chain)
+      const selfApprover = {
+        id: user.id,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'You',
+        email: user.email,
+        role: user.role,
+        department: '',
+        designation: '',
+        isPrimaryAdmin: false,
+        canApprove: true,
+        isSelf: true,
+        avatar: null
+      };
+      
+      approvers.unshift(selfApprover); // Add self at beginning
+    }
+
+    // Sort approvers by role hierarchy (org_admin first, then manager, then employee)
+    approvers.sort((a, b) => {
+      const getRolePriority = (roles) => {
+        if (roles.includes('org_admin')) return 3;
+        if (roles.includes('manager')) return 2;
+        if (roles.includes('employee')) return 1;
+        return 0;
+      };
+      
+      return getRolePriority(b.role) - getRolePriority(a.role);
+    });
+
+    res.json({
+      success: true,
+      data: approvers,
+      count: approvers.length,
+      hierarchy: {
+        org_admin: approvers.filter(a => a.role.includes('org_admin')).length,
+        manager: approvers.filter(a => a.role.includes('manager')).length,
+        employee: approvers.filter(a => a.role.includes('employee')).length
+      }
+    });
+
+  } catch (error) {
+    console.error("Get approvers list error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get approvers list"
+    });
+  }
+},
+
   // ...existing code...
 };
