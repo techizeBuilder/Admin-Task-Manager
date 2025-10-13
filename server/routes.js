@@ -1032,8 +1032,8 @@ export async function registerRoutes(app) {
 
   app.use("/api/google-calendar", authenticateToken, googleCalendarRoutes);
   
-  // Test Google Calendar routes (for development)
-  app.use("/api/test-google-calendar", authenticateToken, testGoogleCalendarRoutes);
+  // // Test Google Calendar routes (for development)
+  // app.use("/api/test-google-calendar", authenticateToken, testGoogleCalendarRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
