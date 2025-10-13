@@ -44,5 +44,6 @@ const organizationSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-organizationSchema.index({ slug: 1 });
+organizationSchema.index({ slug: 1 }, { unique: true }); // if slug must be unique
+organizationSchema.index({ name: 1 }); // for faster name lookups
 export const Organization = mongoose.model("Organization", organizationSchema);

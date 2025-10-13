@@ -45,7 +45,7 @@ export function AdminLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen  bg-gray-100 overflow-hidden">
       {/* Dynamic sidebar based on user role - Fixed positioned */}
       <div className={`${sidebarOpen ? 'w-[280px]' : 'w-16'} transition-all duration-300 flex-shrink-0`}>
         <Sidebar

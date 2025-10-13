@@ -150,8 +150,8 @@ export default function Login() {
       case "password":
         if (!value.trim()) {
           message = "Password is required";
-        } else if (value.length < 6) {
-          message = "Must be at least 6 characters long";
+        } else if (value.length < 8) {
+          message = "Must be at least 8 characters long";
         } else {
           isValid = true;
           message = "";
@@ -487,196 +487,198 @@ export default function Login() {
             </div>
           )}
 
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-2xl">TS</span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="text-gray-600 mt-2">
-              Sign in to your TaskSetu account
-            </p>
-          </div>
+          <div className="text-center mb-4">
+  <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center mx-auto mb-2">
+    <span className="text-white font-bold text-xl">TS</span>
+  </div>
+  <h2 className="text-xl font-bold text-gray-900">Welcome Back</h2>
+  <p className="text-gray-600 text-sm mt-1">Sign in to your TaskSetu account</p>
+</div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <input
-                  ref={emailInputRef}
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  onBlur={(e) => handleFieldBlur("email", e.target.value)}
-                  className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 text-sm transition-colors ${
-                    fieldValidation.email.touched
-                      ? fieldValidation.email.isValid
-                        ? "border-green-300 focus:border-green-500 focus:ring-green-200"
-                        : "border-red-300 focus:border-red-500 focus:ring-red-200"
-                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
-                  }`}
-                  placeholder="Enter your email"
-                  aria-describedby={fieldValidation.email.touched && !fieldValidation.email.isValid ? "email-error" : undefined}
-                  aria-invalid={fieldValidation.email.touched && !fieldValidation.email.isValid}
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                  {fieldValidation.email.touched && (
-                    fieldValidation.email.isValid ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )
-                  )}
-                  <Mail className="h-4 w-4 text-gray-400" />
-                </div>
-              </div>
-              {fieldValidation.email.touched && !fieldValidation.email.isValid && (
-                <div id="email-error" className="flex items-start gap-2 text-sm text-red-600 mt-2" role="alert">
-                  <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>{fieldValidation.email.message}</span>
-                </div>
-              )}
-            </div>
+<form onSubmit={handleLogin} className="space-y-3">
+  {/* Email Field */}
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+    <div className="relative">
+      <input
+        ref={emailInputRef}
+        id="email"
+        type="email"
+        value={formData.email}
+        onChange={(e) => handleInputChange("email", e.target.value)}
+        onBlur={(e) => handleFieldBlur("email", e.target.value)}
+        className={`w-full px-3 py-2 pr-10 border rounded-md focus:ring-2 text-sm transition-colors ${
+          fieldValidation.email.touched
+            ? fieldValidation.email.isValid
+              ? "border-green-300 focus:border-green-500 focus:ring-green-200"
+              : "border-red-300 focus:border-red-500 focus:ring-red-200"
+            : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
+        }`}
+        placeholder="Enter your email"
+        aria-describedby={
+          fieldValidation.email.touched && !fieldValidation.email.isValid
+            ? "email-error"
+            : undefined
+        }
+        aria-invalid={fieldValidation.email.touched && !fieldValidation.email.isValid}
+      />
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+        {fieldValidation.email.touched &&
+          (fieldValidation.email.isValid ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : (
+            <XCircle className="h-4 w-4 text-red-500" />
+          ))}
+        <Mail className="h-4 w-4 text-gray-400" />
+      </div>
+    </div>
+    {fieldValidation.email.touched && !fieldValidation.email.isValid && (
+      <div
+        id="email-error"
+        className="flex items-start gap-1.5 text-xs text-red-600 mt-1.5"
+        role="alert"
+      >
+        <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+        <span>{fieldValidation.email.message}</span>
+      </div>
+    )}
+  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  ref={passwordInputRef}
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
-                  onBlur={(e) => handleFieldBlur("password", e.target.value)}
-                  className={`w-full px-4 py-3 pr-20 border rounded-lg focus:ring-2 text-sm transition-colors ${
-                    fieldValidation.password.touched
-                      ? fieldValidation.password.isValid
-                        ? "border-green-300 focus:border-green-500 focus:ring-green-200"
-                        : "border-red-300 focus:border-red-500 focus:ring-red-200"
-                      : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
-                  }`}
-                  placeholder="Enter your password"
-                  aria-describedby={fieldValidation.password.touched && !fieldValidation.password.isValid ? "password-error" : undefined}
-                  aria-invalid={fieldValidation.password.touched && !fieldValidation.password.isValid}
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                  {fieldValidation.password.touched && (
-                    fieldValidation.password.isValid ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-              {fieldValidation.password.touched && !fieldValidation.password.isValid && (
-                <div id="password-error" className="flex items-start gap-2 text-sm text-red-600 mt-2" role="alert">
-                  <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>{fieldValidation.password.message}</span>
-                </div>
-              )}
-            </div>
+  {/* Password Field */}
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+    <div className="relative">
+      <input
+        ref={passwordInputRef}
+        id="password"
+        type={showPassword ? "text" : "password"}
+        value={formData.password}
+        onChange={(e) => handleInputChange("password", e.target.value)}
+        onBlur={(e) => handleFieldBlur("password", e.target.value)}
+        className={`w-full px-3 py-2 pr-16 border rounded-md focus:ring-2 text-sm transition-colors ${
+          fieldValidation.password.touched
+            ? fieldValidation.password.isValid
+              ? "border-green-300 focus:border-green-500 focus:ring-green-200"
+              : "border-red-300 focus:border-red-500 focus:ring-red-200"
+            : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
+        }`}
+        placeholder="Enter your password"
+        aria-describedby={
+          fieldValidation.password.touched && !fieldValidation.password.isValid
+            ? "password-error"
+            : undefined
+        }
+        aria-invalid={fieldValidation.password.touched && !fieldValidation.password.isValid}
+      />
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+        {fieldValidation.password.touched &&
+          (fieldValidation.password.isValid ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : (
+            <XCircle className="h-4 w-4 text-red-500" />
+          ))}
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="text-gray-400 hover:text-gray-600 p-0.5"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+    {fieldValidation.password.touched && !fieldValidation.password.isValid && (
+      <div
+        id="password-error"
+        className="flex items-start gap-1.5 text-xs text-red-600 mt-1.5"
+        role="alert"
+      >
+        <XCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+        <span>{fieldValidation.password.message}</span>
+      </div>
+    )}
+  </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-700"
-                >
-                  Remember me
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Forgot password?
-              </button>
-            </div>
+  {/* Remember + Forgot */}
+  <div className="flex items-center justify-between">
+    <label className="flex items-center text-sm text-gray-700 gap-2">
+      <input
+        id="remember-me"
+        name="remember-me"
+        type="checkbox"
+        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+      />
+      Remember me
+    </label>
+    <button
+      type="button"
+      onClick={() => setShowForgotPassword(true)}
+      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+    >
+      Forgot password?
+    </button>
+  </div>
 
-            {errors.submit && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-md text-sm flex items-start gap-2" role="alert">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>{errors.submit}</span>
-              </div>
-            )}
+  {/* Error Message */}
+  {errors.submit && (
+    <div
+      className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-md text-xs flex items-start gap-2"
+      role="alert"
+    >
+      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+      <span>{errors.submit}</span>
+    </div>
+  )}
 
-            {/* Submit Button with validation state */}
-            <div className="relative">
-              <button
-                type="submit"
-                disabled={
-                  isLoading || 
-                  showLockoutModal || 
-                  !fieldValidation.email.isValid || 
-                  !fieldValidation.password.isValid ||
-                  !formData.email.trim() ||
-                  !formData.password.trim()
-                }
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-lg"
-                title={
-                  isLoading ? "Signing in..." :
-                  showLockoutModal ? "Account is temporarily locked" :
-                  (!formData.email.trim() || !formData.password.trim() || !fieldValidation.email.isValid || !fieldValidation.password.isValid) ?
-                  "Please fill in all fields correctly to continue" :
-                  "Sign in to your account"
-                }
-                aria-label="Sign in to your account"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : showLockoutModal ? (
-                  "Account Locked"
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-              
-              {/* Screen reader announcement area */}
-              <div id="form-error" className="sr-only" aria-live="polite" role="status">
-                {fieldValidation.email.touched && !fieldValidation.email.isValid && "Email error: " + fieldValidation.email.message}
-                {fieldValidation.password.touched && !fieldValidation.password.isValid && "Password error: " + fieldValidation.password.message}
-              </div>
-            </div>
-          </form>
+  {/* Submit Button */}
+  <div className="relative">
+    <button
+      type="submit"
+      disabled={
+        isLoading ||
+        showLockoutModal ||
+        !fieldValidation.email.isValid ||
+        !fieldValidation.password.isValid ||
+        !formData.email.trim() ||
+        !formData.password.trim()
+      }
+      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-3 rounded-md hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold shadow-md"
+      title={
+        isLoading
+          ? "Signing in..."
+          : showLockoutModal
+          ? "Account is temporarily locked"
+          : !formData.email.trim() ||
+            !formData.password.trim() ||
+            !fieldValidation.email.isValid ||
+            !fieldValidation.password.isValid
+          ? "Please fill in all fields correctly to continue"
+          : "Sign in to your account"
+      }
+    >
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          Signing in...
+        </div>
+      ) : showLockoutModal ? (
+        "Account Locked"
+      ) : (
+        "Sign In"
+      )}
+    </button>
+  </div>
+</form>
 
-          <div className="text-center mt-4 pt-4 border-t border-gray-200">
-            <p className="text-gray-600 text-xs">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Create one here
-              </Link>
-            </p>
-          </div>
+<div className="text-center mt-3 pt-3 border-t border-gray-200">
+  <p className="text-gray-600 text-xs">
+    Don’t have an account?{" "}
+    <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+      Create one here
+    </Link>
+  </p>
+</div>
+
         </div>
       </div>
 

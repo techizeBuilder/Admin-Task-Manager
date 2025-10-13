@@ -65,7 +65,7 @@ const getRoleIcon = (role) => {
 };
 
 // Role display name mapping
-const getRoleDisplayName = (role) => {
+export const getRoleDisplayName = (role) => {
   switch (role.toLowerCase()) {
     case 'super_admin':
       return 'Super Admin';

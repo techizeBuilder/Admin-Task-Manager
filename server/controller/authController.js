@@ -108,7 +108,74 @@ export const authController = {
       });
     }
   },
+ async changePassword(req, res) {
+    try {
+      const userId = req.user?._id || req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Unauthorized" });
+      }
 
+      const { currentPassword, newPassword, confirmPassword } = req.body || {};
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ success: false, message: "All fields are required" });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ success: false, message: "New and confirm password do not match" });
+      }
+
+      // Strength check: 8+ chars, number, lower, upper, special
+      const strong =
+        newPassword.length >= 8 &&
+        /[0-9]/.test(newPassword) &&
+        /[a-z]/.test(newPassword) &&
+        /[A-Z]/.test(newPassword) &&
+        /[^A-Za-z0-9]/.test(newPassword);
+      if (!strong) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
+        });
+      }
+
+      // Fetch user and verify current password
+      const user = await storage.getUser(userId);
+      if (!user || !user.passwordHash) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      const bcrypt = (await import("bcryptjs")).default;
+      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: "Current password is incorrect" });
+      }
+
+      // Prevent reuse of the same password
+      const sameAsOld = await bcrypt.compare(newPassword, user.passwordHash);
+      if (sameAsOld) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must be different from current password",
+        });
+      }
+
+      // Hash and save
+      const passwordHash = await storage.hashPassword(newPassword);
+      await storage.updateUser(user._id, {
+        passwordHash,
+        passwordChangedAt: new Date(),
+        tokenVersion: (user.tokenVersion || 0) + 1, // optional: invalidate existing tokens if you check this in auth
+        passwordResetToken: null,
+        passwordResetExpires: null,
+        updatedAt: new Date(),
+      });
+
+      return res.json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      return res.status(500).json({ success: false, message: "Failed to update password" });
+    }
+  },
   async verify(req, res) {
     try {
       res.json(req.user);
@@ -143,6 +210,13 @@ export const authController = {
       if (!user) {
         return res.status(400).json({
           message: "No account found with this email.",
+        });
+      }
+      // Block password reset for unverified users
+      if (!user.emailVerified) {
+        return res.status(400).json({
+          message:
+            "Please verify your email before resetting your password. Check your inbox for the verification link.",
         });
       }
       const resetToken = storage.generatePasswordResetToken();

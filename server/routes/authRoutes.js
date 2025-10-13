@@ -146,6 +146,47 @@ router.post("/reset-password", authController.resetPassword);
 
 /**
  * @swagger
+ * /api/auth/change-password:
+ *   post:
+ *     summary: Change current user's password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *               - confirmPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Must be at least 8 chars and include uppercase, lowercase, number, and special character.
+ *               confirmPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Validation error or incorrect current password
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post("/change-password", authenticateToken, authController.changePassword);
+
+/**
+ * @swagger
  * /api/auth/accept-invite:
  *   post:
  *     summary: Accept an invitation to join an organization

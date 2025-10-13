@@ -87,7 +87,6 @@ export default function Users() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // change as needed
   // Pagination
-
   const startIndex = (currentPage - 1) * itemsPerPage;
 
   const { toast } = useToast();
@@ -479,14 +478,14 @@ export default function Users() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button
+          {/* <Button
             variant="outline"
             onClick={exportUserData}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
             Export CSV
-          </Button>
+          </Button> */}
           <Button
             onClick={() => setIsAddUserModalOpen(true)}
             className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
@@ -731,6 +730,15 @@ export default function Users() {
                   </TableCell>
                 </TableRow>
               ))}
+              {
+                usersData.length === 0  && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-4">  
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                )}  
+              
             </TableBody>
           </Table>
           {/* Pagination */}
@@ -796,10 +804,10 @@ export default function Users() {
                   <strong>{selectedUser.name}</strong> from your organization?
                   <br />
                   <br />
-                  {selectedUser.activeProcesses > 0 ? (
+                  {selectedUser?.assignedTasks - selectedUser?.completedTasks > 0 ? (
                     <span className="text-red-600 font-medium">
-                      ⚠️ This user has {selectedUser.activeProcesses} active
-                      task(s). Please reassign these tasks before removing the
+                      ⚠️ This user has {selectedUser?.assignedTasks - selectedUser?.completedTasks} active
+                      task. Please reassign these tasks before removing the
                       user.
                     </span>
                   ) : (
@@ -817,7 +825,7 @@ export default function Users() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveUser}
-              disabled={removeUserMutation.isLoading}
+              disabled={selectedUser?.assignedTasks - selectedUser?.completedTasks > 0}
               className={"bg-red-600 text-white hover:bg-red-700"}
             >
               {removeUserMutation.isLoading ? "Removing..." : "Remove User"}

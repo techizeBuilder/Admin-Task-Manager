@@ -17,35 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Mail,
-  User,
-  Building2,
-  MapPin,
-  Briefcase,
-  AlertCircle,
-  Edit3,
-  AlertTriangle,
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { roleLabels } from "../utils/roleBadge";
+import { AlertCircle, Edit3 } from "lucide-react";
 
 export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
-    role: "",
+    role: [], // changed: always use array
     licenseId: "",
     department: "",
     designation: "",
@@ -54,14 +32,8 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Confirmation dialog state
-  const [isRoleChangeDialogOpen, setIsRoleChangeDialogOpen] = useState(false);
-  const [pendingRole, setPendingRole] = useState(null);
-
-  const { toast } = useToast();
-  const originalRole = user?.role;
   const roleOptions = [
-    { value: "employee", label: "Regular User" },
+    { value: "employee", label: "Employee" },
     { value: "manager", label: "Manager" },
     { value: "org_admin", label: "Company Admin" },
   ];
@@ -71,7 +43,7 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
       setFormData({
         firstname: user.firstName || "",
         lastname: user.lastName || "",
-        role: user.role || "",
+        role: Array.isArray(user.role) ? user.role : [user.role].filter(Boolean), // normalize to array
         licenseId: user.license || "",
         department: user.department || "",
         designation: user.designation || "",
@@ -79,8 +51,6 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
       });
       setErrors({});
       setIsSubmitting(false);
-      setPendingRole(null);
-      setIsRoleChangeDialogOpen(false);
     }
   }, [isOpen, user]);
 
@@ -100,68 +70,67 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
     }
   };
 
-  const handleRoleSelect = (newRole) => {
-    if (newRole === formData.role) return;
-    setPendingRole(newRole);
-    setIsRoleChangeDialogOpen(true);
+  // New: handle roles change inline, prevent removing last role
+  const handleRolesChange = (newRoles) => {
+    if (!Array.isArray(newRoles)) newRoles = [newRoles].filter(Boolean);
+    if (newRoles.length === 0) {
+      setErrors((prev) => ({ ...prev, role: "At least one role is required" }));
+      return; // keep previous roles
+    }
+    setFormData((prev) => ({ ...prev, role: newRoles }));
+    if (errors.role) {
+      setErrors((prev) => ({ ...prev, role: null }));
+    }
   };
 
-  const confirmPendingRole = () => {
-    setFormData((prev) => ({ ...prev, role: pendingRole }));
-    toast({
-      title: "Role Changed",
-      description: `Role updated to ${pendingRole}. Remember to save changes.`,
-    });
-    setPendingRole(null);
-    setIsRoleChangeDialogOpen(false);
-  };
-
-  const cancelPendingRole = () => {
-    setPendingRole(null);
-    setIsRoleChangeDialogOpen(false);
-  };
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  const newErrors = {};
-  if (!formData.firstname.trim()) newErrors.firstname = "First name is required";
-  else if (formData.firstname.length > 50)
-    newErrors.firstname = "First name must be less than 50 characters";
-  if (formData.lastname && formData.lastname.length > 50)
-    newErrors.lastname = "Last name must be less than 50 characters";
-  if (!formData.role || formData.role.length === 0)
-    newErrors.role = "Role selection is required";
+    const newErrors = {};
+    if (!formData.firstname.trim())
+      newErrors.firstname = "First name is required";
+    else if (formData.firstname.length > 50)
+      newErrors.firstname = "First name must be less than 50 characters";
+    if (formData.lastname && formData.lastname.length > 50)
+      newErrors.lastname = "Last name must be less than 50 characters";
 
-  ["department", "designation", "location"].forEach((f) => {
-    const err = validateField(f, formData[f]);
-    if (err) newErrors[f] = err;
-  });
+    // changed: validate role using unified key and array
+    if (!Array.isArray(formData.role) || formData.role.length === 0)
+      newErrors.role = "At least one role is required";
 
-  if (Object.keys(newErrors).length) {
-    setErrors(newErrors);
+    if (!formData.licenseId || formData.licenseId.length === 0)
+      newErrors.licenseId = "License is required";
+
+    ["department", "designation", "location"].forEach((f) => {
+      const err = validateField(f, formData[f]);
+      if (err) newErrors[f] = err;
+    });
+
+    if (Object.keys(newErrors).length) {
+      setErrors(newErrors);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const updatedUser = {
+      firstName: formData.firstname,
+      lastName: formData.lastname,
+      role: formData.role, // already an array
+      designation: formData.designation,
+      department: formData.department,
+      location: formData.location,
+    };
+
+    if (onUserUpdated) onUserUpdated(updatedUser);
+
     setIsSubmitting(false);
-    return;
-  }
-
-  const updatedUser = {
-    firstName: formData.firstname,
-    lastName: formData.lastname,
-    role: [formData.role].flat(),
-    designation: formData.designation,
-    department: formData.department,
-    location: formData.location,
+    onClose();
   };
 
-  if (onUserUpdated) onUserUpdated(updatedUser);
-
-  setIsSubmitting(false);
-  onClose();
-};
-  console.log("Rendering EditUserModal with user:", pendingRole);
   return (
     <>
-      <Dialog  open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-50">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2 text-xl font-semibold">
@@ -177,44 +146,56 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* First Name */}
-    <div>
-      <Label htmlFor="firstname">First Name <span className="text-red-500">*</span></Label>
-      <Input
-        id="firstname"
-        type="text"
-        placeholder="Enter first name"
-        value={formData.firstname}
-        onChange={(e) => handleInputChange("firstname", e.target.value)}
-        maxLength={50}
-        className={errors.firstname ? "border-red-300 focus:border-red-500" : ""}
-      />
-      {errors.firstname && (
-        <p className="mt-2 text-sm text-red-600 flex items-center">
-          <AlertCircle className="h-4 w-4 mr-1" />
-          {errors.firstname}
-        </p>
-      )}
-    </div>
+              <div>
+                <Label htmlFor="firstname">
+                  First Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="firstname"
+                  type="text"
+                  placeholder="Enter first name"
+                  value={formData.firstname}
+                  onChange={(e) =>
+                    handleInputChange("firstname", e.target.value)
+                  }
+                  maxLength={50}
+                  className={
+                    errors.firstname
+                      ? "border-red-300 focus:border-red-500"
+                      : ""
+                  }
+                />
+                {errors.firstname && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.firstname}
+                  </p>
+                )}
+              </div>
 
-    {/* Last Name */}
-    <div>
-      <Label htmlFor="lastname">Last Name</Label>
-      <Input
-        id="lastname"
-        type="text"
-        placeholder="Enter last name"
-        value={formData.lastname}
-        onChange={(e) => handleInputChange("lastname", e.target.value)}
-        maxLength={50}
-        className={errors.lastname ? "border-red-300 focus:border-red-500" : ""}
-      />
-      {errors.lastname && (
-        <p className="mt-2 text-sm text-red-600 flex items-center">
-          <AlertCircle className="h-4 w-4 mr-1" />
-          {errors.lastname}
-        </p>
-      )}
-    </div>
+              {/* Last Name */}
+              <div>
+                <Label htmlFor="lastname">Last Name</Label>
+                <Input
+                  id="lastname"
+                  type="text"
+                  placeholder="Enter last name"
+                  value={formData.lastname}
+                  onChange={(e) =>
+                    handleInputChange("lastname", e.target.value)
+                  }
+                  maxLength={50}
+                  className={
+                    errors.lastname ? "border-red-300 focus:border-red-500" : ""
+                  }
+                />
+                {errors.lastname && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.lastname}
+                  </p>
+                )}
+              </div>
 
               {/* Email */}
               <div>
@@ -232,8 +213,6 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
               </div>
 
               {/* Role */}
-
-              {/* Role */}
               <div>
                 <Label
                   htmlFor={`role_${user.id}`}
@@ -244,25 +223,24 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
 
                 <MultiSelect
                   options={roleOptions}
-                  value={
-                    Array.isArray(formData.role)
-                      ? formData.role
-                      : [formData.role].filter(Boolean)
-                  }
-                  onChange={(newRoles) => handleRoleSelect(newRoles)}
+                  value={Array.isArray(formData.role) ? formData.role : [formData.role].filter(Boolean)}
+                  onChange={handleRolesChange}
                   placeholder="Select role(s)"
                 />
 
-                {errors[`user_${user.id}_role`] && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors[`user_${user.id}_role`]}
+                {errors.role && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.role}
                   </p>
                 )}
               </div>
 
               {/* License */}
               <div>
-                <Label htmlFor="licenseId">License Type <span className="text-red-500">*</span></Label>
+                <Label htmlFor="licenseId">
+                  License Type <span className="text-red-500">*</span>
+                </Label>
                 <Select
                   value={formData.licenseId}
                   onValueChange={(value) =>
@@ -356,43 +334,6 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Role Change Confirmation Modal */}
-      <AlertDialog
-        open={isRoleChangeDialogOpen}
-        onOpenChange={setIsRoleChangeDialogOpen}
-      >
-        <AlertDialogContent className="bg-white">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Confirm Role Change
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              You are changing role to  <strong>
-    {Array.isArray(pendingRole)
-      ? pendingRole.map(r => roleLabels[r] || r).join(", ")
-      : roleLabels[pendingRole] || pendingRole}
-  </strong>. This will
-              update their access rights and permissions. Are you sure you want
-              to continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          {/* <AlertDialogFooter > */}
-            <div className="flex justify-between">
-            <Button onClick={cancelPendingRole}>
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmPendingRole}
-              className="bg-amber-600 text-white hover:bg-amber-700"
-            >
-              Confirm Role Change
-            </Button>
-            </div>
-          {/* </AlertDialogFooter> */}
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

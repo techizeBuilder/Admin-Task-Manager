@@ -21,7 +21,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import authRoutes from "./routes/authRoutes.js";
 import { googleCalendarRoutes } from "./routes/googleCalendar.js";
-import rateLimit from 'express-rate-limit';
+import rateLimit from "express-rate-limit";
 
 export async function registerRoutes(app) {
   // Configure CORS
@@ -55,19 +55,6 @@ export async function registerRoutes(app) {
   } catch (error) {
     console.error("Error registering user invitation routes:", error);
   }
-
- 
-
- 
-
-
-
-
-
-
-
-
-
 
   app.get("/api/organization/details", authenticateToken, async (req, res) => {
     try {
@@ -180,7 +167,10 @@ export async function registerRoutes(app) {
         role: user.role,
         organizationId: user.organization_id,
         status: user.status,
+
         isPrimaryAdmin: user.isPrimaryAdmin || false,
+        lastLoginAt: user.lastLoginAt || null,
+        phone: user.phone || null,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       };
@@ -200,13 +190,13 @@ export async function registerRoutes(app) {
     async (req, res) => {
       try {
         const userId = req.params.id;
-        const { firstName, lastName } = req.body;
+        const { firstName, lastName, phone, organizationName } = req.body;
 
-        console.log("Profile Update - User ID:", userId);
-        console.log("Profile Update - Request data:", {
-          firstName,
-          lastName,
-          hasFile: !!req.file,
+        // Fetch current user once to access org id and existing image
+        const currentUser = await storage.getUser(userId);
+
+        console.log("Profil>>>>>>>>>>>>", {
+          organizationName,
         });
 
         // Validate required fields
@@ -218,12 +208,11 @@ export async function registerRoutes(app) {
         const updateData = {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
+          phone: phone ? phone.trim() : null,
         };
 
         // Handle profile image upload
         if (req.file) {
-          const currentUser = await storage.getUser(userId);
-
           // Delete old profile image if exists
           if (currentUser?.profileImageUrl) {
             deleteOldProfileImage(currentUser.profileImageUrl);
@@ -231,6 +220,55 @@ export async function registerRoutes(app) {
 
           // Set new profile image path
           updateData.profileImageUrl = `/uploads/profile-pics/${req.file.filename}`;
+        }
+
+        // Update organization name if provided and user belongs to an organization
+        if (organizationName?.trim() && currentUser) {
+          const orgId =
+            currentUser.organization_id ||
+            currentUser.organizationId ||
+            currentUser.organization;
+
+          if (orgId) {
+            try {
+              // Check if the name already exists for a different organization
+              if (typeof storage.getOrganizationByName === "function") {
+                const existingOrg = await storage.getOrganizationByName(
+                  organizationName.trim()
+                );
+                if (existingOrg && String(existingOrg._id) !== String(orgId)) {
+                  return res
+                    .status(409)
+                    .json({
+                      message:
+                        "Organization name already exists. Please choose another name.",
+                      organizationName: organizationName,
+                    });
+                }
+              }
+              if (typeof storage.updateOrganizationName === "function") {
+                await storage.updateOrganizationName(
+                  orgId,
+                  organizationName.trim()
+                );
+              } else if (typeof storage.updateOrganization === "function") {
+                await storage.updateOrganization(orgId, {
+                  name: organizationName.trim(),
+                });
+              } else if (typeof storage.updateCompany === "function") {
+                await storage.updateCompany(orgId, {
+                  name: organizationName.trim(),
+                });
+              } else {
+                console.warn(
+                  "No storage method available to update organization name"
+                );
+              }
+            } catch (e) {
+              console.error("Update organization name error:", e);
+              // Do not fail the entire profile update if org rename fails
+            }
+          }
         }
 
         console.log("Profile Update - Update data:", updateData);
@@ -248,6 +286,7 @@ export async function registerRoutes(app) {
           email: updatedUser.email,
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
+          phone: updatedUser.phone,
           profileImageUrl: updatedUser.profileImageUrl,
           role: updatedUser.role,
           organizationId: updatedUser.organizationId,
@@ -321,7 +360,7 @@ export async function registerRoutes(app) {
     async (req, res) => {
       try {
         const userId = req.user.id;
-        const { firstName, lastName } = req.body;
+        const { firstName, lastName, phone } = req.body;
 
         console.log("Profile Update - Request data:", {
           userId,
@@ -339,6 +378,7 @@ export async function registerRoutes(app) {
         const updateData = {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
+          phone: phone ? phone.trim() : null,
         };
 
         // Handle profile image upload
@@ -564,7 +604,6 @@ export async function registerRoutes(app) {
     }
   });
 
- 
   // Add new user (Company Admin only)
   app.post("/api/organization/users", authenticateToken, async (req, res) => {
     try {
@@ -867,7 +906,6 @@ export async function registerRoutes(app) {
   );
 
   // Remove user permanently (Company Admin only)
-  
 
   // Resend invitation (Company Admin only)
   app.post(
@@ -986,12 +1024,15 @@ export async function registerRoutes(app) {
       hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
       clientIdLength: process.env.GOOGLE_CLIENT_ID?.length || 0,
       clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
-      redirectUri: `${process.env.CLIENT_URL || 'http://localhost:8001'}/google-calendar-callback`,
-      clientIdPreview: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...',
-      clientSecretPreview: process.env.GOOGLE_CLIENT_SECRET?.substring(0, 10) + '...'
+      redirectUri: `${
+        process.env.CLIENT_URL || "http://localhost:8001"
+      }/google-calendar-callback`,
+      clientIdPreview: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + "...",
+      clientSecretPreview:
+        process.env.GOOGLE_CLIENT_SECRET?.substring(0, 10) + "...",
     });
   });
-  
+
   app.use("/api/google-calendar", authenticateToken, googleCalendarRoutes);
 
   // Health check endpoint

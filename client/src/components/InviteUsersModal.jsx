@@ -64,7 +64,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
   });
 
   const roleOptions = [
-    { value: "employee", label: "Regular User" },
+    { value: "employee", label: "Employee" },
     { value: "manager", label: "Manager" },
     { value: "org_admin", label: "Company Admin" },
   ];
@@ -228,6 +228,7 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
       }
 
       onClose();
+      queryClient.invalidateQueries(["users"]);
       queryClient.invalidateQueries({ queryKey: ["/api/organization/users"] });
       queryClient.invalidateQueries({
         queryKey: ["/api/organization/license"],

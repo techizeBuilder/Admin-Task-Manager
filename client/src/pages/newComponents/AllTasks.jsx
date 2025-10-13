@@ -29,7 +29,7 @@ import {
   deleteMilestone,
   linkTaskToMilestone,
   unlinkTaskFromMilestone,
-  markMilestoneAsAchieved
+  markMilestoneAsAchieved,
 } from "../../api/milestoneApi";
 import {
   Table,
@@ -38,7 +38,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import { getTaskTypeInfo, getTaskPriorityColor } from "../TaskTypeUtils";
 import {
   CheckCircle,
@@ -113,11 +113,11 @@ export default function AllTasks({
   // Confirmation modals state
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
-    type: '',
-    title: '',
-    message: '',
+    type: "",
+    title: "",
+    message: "",
     onConfirm: null,
-    data: null
+    data: null,
   });
   // Zustand store
   const {
@@ -173,7 +173,7 @@ export default function AllTasks({
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        },
+        }
       );
 
       if (response.data && response.data.success) {
@@ -203,8 +203,8 @@ export default function AllTasks({
         }
         const mappedTasks = tasksArr.map((task) => {
           // Debug original task structure
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Original API Task:', {
+          if (process.env.NODE_ENV === "development") {
+            console.log("🔍 Original API Task:", {
               _id: task._id,
               id: task.id,
               _doc_id: task._doc?._id,
@@ -216,7 +216,7 @@ export default function AllTasks({
               idLength: task.id?.toString().length,
               _docIdLength: task._doc?._id?.toString().length,
               isMongooseDoc: !!(task._doc || task.$__),
-              allKeys: Object.keys(task)
+              allKeys: Object.keys(task),
             });
           }
 
@@ -226,12 +226,12 @@ export default function AllTasks({
 
           if (task._doc) {
             // It's a Mongoose document - use _doc for actual data
-            console.log('📋 Mongoose document detected, using _doc data');
+            console.log("📋 Mongoose document detected, using _doc data");
             taskData = task._doc;
             taskId = task._doc._id;
           } else {
             // It's a plain object
-            console.log('📋 Plain object detected, using directly');
+            console.log("📋 Plain object detected, using directly");
             taskData = task;
             taskId = task._id || task.id;
           }
@@ -246,18 +246,18 @@ export default function AllTasks({
             onhold: "ONHOLD",
             "on-hold": "ONHOLD",
             cancelled: "CANCELLED",
-            canceled: "CANCELLED"
+            canceled: "CANCELLED",
           };
           const apiStatus = taskData.status?.toLowerCase() || "open";
           const feStatus = statusMap[apiStatus] || "OPEN";
 
           // Debug logging
-          if (process.env.NODE_ENV === 'development') {
-            console.log('API Task Status Mapping:', {
+          if (process.env.NODE_ENV === "development") {
+            console.log("API Task Status Mapping:", {
               originalStatus: taskData.status,
               apiStatus,
               mappedStatus: feStatus,
-              taskTitle: taskData.title
+              taskTitle: taskData.title,
             });
           }
 
@@ -277,35 +277,39 @@ export default function AllTasks({
             assigneeId: taskData.assignedTo?._id,
             status: feStatus, // This will override the raw status from taskData
             priority: taskData.priority
-              ? taskData.priority.charAt(0).toUpperCase() + taskData.priority.slice(1)
+              ? taskData.priority.charAt(0).toUpperCase() +
+                taskData.priority.slice(1)
               : "Medium",
             dueDate: taskData.dueDate
               ? new Date(taskData.dueDate).toISOString().split("T")[0]
               : "",
-            progress: feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
+            progress:
+              feStatus === "DONE" ? 100 : feStatus === "INPROGRESS" ? 50 : 0,
             ...taskData,
 
             // Map subtasks if they exist
-            subtasks: task.subtasks?.map(subtask => {
-              const subtaskApiStatus = subtask.status?.toLowerCase() || "open";
-              const subtaskFeStatus = statusMap[subtaskApiStatus] || "OPEN";
+            subtasks:
+              task.subtasks?.map((subtask) => {
+                const subtaskApiStatus =
+                  subtask.status?.toLowerCase() || "open";
+                const subtaskFeStatus = statusMap[subtaskApiStatus] || "OPEN";
 
-              return {
-                ...subtask,
-                id: subtask._id,
-                _id: subtask._id,
-                status: subtaskFeStatus, // Apply status mapping to subtasks
-                assignee: subtask.assignedTo
-                  ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
-                  : "Unassigned",
-                assigneeId: subtask.assignedTo?._id
-              };
-            }) || []
+                return {
+                  ...subtask,
+                  id: subtask._id,
+                  _id: subtask._id,
+                  status: subtaskFeStatus, // Apply status mapping to subtasks
+                  assignee: subtask.assignedTo
+                    ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
+                    : "Unassigned",
+                  assigneeId: subtask.assignedTo?._id,
+                };
+              }) || [],
           };
 
           // Debug final mapped task
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Mapped Task:', {
+          if (process.env.NODE_ENV === "development") {
+            console.log("🔍 Mapped Task:", {
               id: mappedTask.id,
               _id: mappedTask._id,
               title: mappedTask.title,
@@ -313,7 +317,7 @@ export default function AllTasks({
               _idType: typeof mappedTask._id,
               idLength: mappedTask.id?.toString().length,
               _idLength: mappedTask._id?.toString().length,
-              isObjectId: /^[0-9a-fA-F]{24}$/.test(mappedTask.id?.toString())
+              isObjectId: /^[0-9a-fA-F]{24}$/.test(mappedTask.id?.toString()),
             });
           }
 
@@ -326,8 +330,8 @@ export default function AllTasks({
     } catch (error) {
       setApiError(
         error.response?.data?.message ||
-        error.message ||
-        "An error occurred while fetching tasks.",
+          error.message ||
+          "An error occurred while fetching tasks."
       );
     }
   };
@@ -386,68 +390,82 @@ export default function AllTasks({
   useEffect(() => {
     const handleTaskStatusUpdated = (event) => {
       const { taskId, newStatus } = event.detail;
-      console.log('AllTasks: Received status update event:', { taskId, newStatus });
+      console.log("AllTasks: Received status update event:", {
+        taskId,
+        newStatus,
+      });
 
       // Update the specific task in local state immediately with color
-      setApiTasks(prev => prev.map(task => {
-        if (task.id === taskId || task._id === taskId) {
-          // Get color from companyStatuses configuration
-          const statusObj = companyStatuses.find(s => s.code === newStatus);
-          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+      setApiTasks((prev) =>
+        prev.map((task) => {
+          if (task.id === taskId || task._id === taskId) {
+            // Get color from companyStatuses configuration
+            const statusObj = companyStatuses.find((s) => s.code === newStatus);
+            const newStatusColor = statusObj
+              ? statusObj.color
+              : getStatusColor(newStatus);
 
-          console.log('🎨 Event: Updating task color:', {
-            taskId,
-            newStatus,
-            newColor: newStatusColor,
-            statusObj
-          });
+            console.log("🎨 Event: Updating task color:", {
+              taskId,
+              newStatus,
+              newColor: newStatusColor,
+              statusObj,
+            });
 
-          return {
-            ...task,
-            status: newStatus,
-            statusColor: newStatusColor,
-            colorCode: newStatusColor
-          };
-        }
-        return task;
-      }));
+            return {
+              ...task,
+              status: newStatus,
+              statusColor: newStatusColor,
+              colorCode: newStatusColor,
+            };
+          }
+          return task;
+        })
+      );
     };
 
     // Also listen for color update events
     const handleTaskColorUpdated = (event) => {
       const { taskId, newStatus } = event.detail;
-      console.log('AllTasks: Received color update event:', { taskId, newStatus });
+      console.log("AllTasks: Received color update event:", {
+        taskId,
+        newStatus,
+      });
 
       // Force re-render with updated colors
-      setApiTasks(prev => prev.map(task => {
-        if (task.id === taskId || task._id === taskId) {
-          const statusObj = companyStatuses.find(s => s.code === newStatus);
-          const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatus);
+      setApiTasks((prev) =>
+        prev.map((task) => {
+          if (task.id === taskId || task._id === taskId) {
+            const statusObj = companyStatuses.find((s) => s.code === newStatus);
+            const newStatusColor = statusObj
+              ? statusObj.color
+              : getStatusColor(newStatus);
 
-          console.log('🎨 Color: Force updating task color:', {
-            taskId,
-            newStatus,
-            newColor: newStatusColor,
-            oldColor: task.statusColor || task.colorCode
-          });
+            console.log("🎨 Color: Force updating task color:", {
+              taskId,
+              newStatus,
+              newColor: newStatusColor,
+              oldColor: task.statusColor || task.colorCode,
+            });
 
-          return {
-            ...task,
-            status: newStatus,
-            statusColor: newStatusColor,
-            colorCode: newStatusColor
-          };
-        }
-        return task;
-      }));
+            return {
+              ...task,
+              status: newStatus,
+              statusColor: newStatusColor,
+              colorCode: newStatusColor,
+            };
+          }
+          return task;
+        })
+      );
     };
 
-    window.addEventListener('taskStatusUpdated', handleTaskStatusUpdated);
-    window.addEventListener('taskColorUpdated', handleTaskColorUpdated);
+    window.addEventListener("taskStatusUpdated", handleTaskStatusUpdated);
+    window.addEventListener("taskColorUpdated", handleTaskColorUpdated);
 
     return () => {
-      window.removeEventListener('taskStatusUpdated', handleTaskStatusUpdated);
-      window.removeEventListener('taskColorUpdated', handleTaskColorUpdated);
+      window.removeEventListener("taskStatusUpdated", handleTaskStatusUpdated);
+      window.removeEventListener("taskColorUpdated", handleTaskColorUpdated);
     };
   }, []);
 
@@ -466,7 +484,7 @@ export default function AllTasks({
           setAvailableUsers(response.data.data || []);
         }
       } catch (error) {
-        console.error('Error fetching available users:', error);
+        console.error("Error fetching available users:", error);
         setAvailableUsers([]);
       }
     };
@@ -611,7 +629,7 @@ export default function AllTasks({
 
     const incompleteSubtasks = task.subtasks.filter(
       (subtask) =>
-        subtask.status !== "completed" && subtask.status !== "cancelled",
+        subtask.status !== "completed" && subtask.status !== "cancelled"
     );
 
     return incompleteSubtasks.length === 0;
@@ -620,30 +638,29 @@ export default function AllTasks({
   // Get valid status transitions based on business rules
   const getValidStatusTransitions = (currentStatusCode, task = null) => {
     const currentStatus = companyStatuses.find(
-      (s) => s.code === currentStatusCode && s.active,
+      (s) => s.code === currentStatusCode && s.active
     );
     if (!currentStatus) return [];
 
     let validTransitions = currentStatus.allowedTransitions.filter(
       (transitionCode) => {
         const targetStatus = companyStatuses.find(
-          (s) => s.code === transitionCode && s.active,
+          (s) => s.code === transitionCode && s.active
         );
         return targetStatus !== null;
-      },
+      }
     );
 
     // Apply sub-task completion logic for parent tasks
     if (task && task.subtasks && task.subtasks.length > 0) {
       const hasIncompleteSubtasks = task.subtasks.some(
-        (subtask) =>
-          subtask.status !== "DONE" && subtask.status !== "CANCELLED",
+        (subtask) => subtask.status !== "DONE" && subtask.status !== "CANCELLED"
       );
 
       // Block completion if sub-tasks are incomplete
       if (hasIncompleteSubtasks) {
         validTransitions = validTransitions.filter(
-          (transition) => transition !== "DONE",
+          (transition) => transition !== "DONE"
         );
       }
     }
@@ -657,7 +674,7 @@ export default function AllTasks({
     oldStatusCode,
     newStatusCode,
     userId,
-    reason = null,
+    reason = null
   ) => {
     const historyEntry = {
       id: Date.now(),
@@ -686,35 +703,52 @@ export default function AllTasks({
     taskId,
     newStatusCode,
     requiresConfirmation = false,
-    reason = null,
+    reason = null
   ) => {
-    console.log('handleStatusChange called with:', { taskId, newStatusCode, requiresConfirmation, reason });
+    console.log("handleStatusChange called with:", {
+      taskId,
+      newStatusCode,
+      requiresConfirmation,
+      reason,
+    });
 
     // Find task by multiple possible ID fields to handle different ID formats
     const task = apiTasks.find((t) => {
-      const matches = t.id === taskId ||
+      const matches =
+        t.id === taskId ||
         t._id === taskId ||
         String(t.id) === String(taskId) ||
         String(t._id) === String(taskId) ||
         t.id === Number(taskId);
 
       if (matches) {
-        console.log('MATCH FOUND:', { searchId: taskId, task: { id: t.id, _id: t._id, title: t.title } });
+        console.log("MATCH FOUND:", {
+          searchId: taskId,
+          task: { id: t.id, _id: t._id, title: t.title },
+        });
       }
       return matches;
     });
 
     const newStatus = companyStatuses.find(
-      (s) => s.code === newStatusCode && s.active,
+      (s) => s.code === newStatusCode && s.active
     );
 
-    console.log('Found task:', task ? { id: task.id, _id: task._id, title: task.title, status: task.status } : 'NOT FOUND');
-    console.log('Found status:', newStatus ? { code: newStatus.code, label: newStatus.label } : 'NOT FOUND');
+    console.log(
+      "Found task:",
+      task
+        ? { id: task.id, _id: task._id, title: task.title, status: task.status }
+        : "NOT FOUND"
+    );
+    console.log(
+      "Found status:",
+      newStatus ? { code: newStatus.code, label: newStatus.label } : "NOT FOUND"
+    );
 
     if (!newStatus) {
       setToast({
         message: "Invalid status code provided.",
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
       return;
@@ -723,14 +757,20 @@ export default function AllTasks({
     if (!task) {
       // If we can't find the task locally but we have a valid MongoDB ObjectId and valid status,
       // we can still proceed with the API call since the backend knows about this task
-      if (newStatus && taskId && (taskId.match(/^[0-9a-fA-F]{24}$/) || taskId.toString().length > 0)) {
-        console.log('Task not found locally but valid ID provided, proceeding with API call');
+      if (
+        newStatus &&
+        taskId &&
+        (taskId.match(/^[0-9a-fA-F]{24}$/) || taskId.toString().length > 0)
+      ) {
+        console.log(
+          "Task not found locally but valid ID provided, proceeding with API call"
+        );
         // Create a minimal task object for the API call
         const minimalTask = {
           _id: taskId,
           id: taskId,
-          title: 'Task (Loading...)',
-          status: 'OPEN' // Default status
+          title: "Task (Loading...)",
+          status: "OPEN", // Default status
         };
 
         // Show confirmation for final statuses
@@ -738,7 +778,7 @@ export default function AllTasks({
           setShowStatusConfirmation({
             taskId,
             newStatusCode,
-            taskTitle: 'Task',
+            taskTitle: "Task",
             statusLabel: newStatus.label,
             reason,
           });
@@ -752,7 +792,7 @@ export default function AllTasks({
 
       setToast({
         message: "Task not found. Please refresh the page and try again.",
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
       return;
@@ -762,7 +802,7 @@ export default function AllTasks({
     if (!canEditTaskStatus(task)) {
       setToast({
         message: "You do not have permission to edit this task status.",
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
       return;
@@ -772,11 +812,13 @@ export default function AllTasks({
     const validTransitions = getValidStatusTransitions(task.status, task);
     if (!validTransitions.includes(newStatusCode)) {
       const currentStatusObj = companyStatuses.find(
-        (s) => s.code === task.status,
+        (s) => s.code === task.status
       );
       setToast({
-        message: `Invalid status transition from "${currentStatusObj?.label || task.status}" to "${newStatus.label}". Please follow the allowed workflow.`,
-        type: 'error',
+        message: `Invalid status transition from "${
+          currentStatusObj?.label || task.status
+        }" to "${newStatus.label}". Please follow the allowed workflow.`,
+        type: "error",
         isVisible: true,
       });
       return;
@@ -784,12 +826,13 @@ export default function AllTasks({
 
     // Check sub-task completion logic
     if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
-      const incompleteCount = task.subtasks?.filter(
-        (s) => s.status !== "DONE" && s.status !== "CANCELLED",
-      ).length || 0;
+      const incompleteCount =
+        task.subtasks?.filter(
+          (s) => s.status !== "DONE" && s.status !== "CANCELLED"
+        ).length || 0;
       setToast({
         message: `Cannot mark task as completed. There are ${incompleteCount} incomplete sub-tasks that must be completed or cancelled first.`,
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
       return;
@@ -813,39 +856,43 @@ export default function AllTasks({
 
   // Execute the actual status change
   const executeStatusChange = async (task, newStatusCode, reason = null) => {
-    console.log('🚀 EXECUTE STATUS CHANGE STARTED:', {
+    console.log("🚀 EXECUTE STATUS CHANGE STARTED:", {
       task: {
         id: task.id,
         _id: task._id,
         title: task.title,
-        currentStatus: task.status
+        currentStatus: task.status,
       },
       newStatusCode,
       reason,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     try {
       // Use the MongoDB ObjectId (_id) for the API call, fallback to numeric id
       const apiTaskId = task._id || task.id;
 
-      console.log('🔧 Using task ID for API call:', apiTaskId, 'from task:', { id: task.id, _id: task._id });
+      console.log("🔧 Using task ID for API call:", apiTaskId, "from task:", {
+        id: task.id,
+        _id: task._id,
+      });
 
       // Map frontend status codes to backend status codes
       const statusMapping = {
-        'OPEN': 'open',
-        'INPROGRESS': 'in-progress',
-        'DONE': 'completed',
-        'ONHOLD': 'on-hold',
-        'CANCELLED': 'cancelled'
+        OPEN: "open",
+        INPROGRESS: "in-progress",
+        DONE: "completed",
+        ONHOLD: "on-hold",
+        CANCELLED: "cancelled",
       };
 
-      const backendStatus = statusMapping[newStatusCode] || newStatusCode.toLowerCase();
+      const backendStatus =
+        statusMapping[newStatusCode] || newStatusCode.toLowerCase();
 
-      console.log('🎯 Status mapping:', {
+      console.log("🎯 Status mapping:", {
         frontendStatus: newStatusCode,
         backendStatus,
-        allMappings: statusMapping
+        allMappings: statusMapping,
       });
 
       // Prepare the request payload according to API spec
@@ -859,44 +906,56 @@ export default function AllTasks({
         payload.completedDate = new Date().toISOString();
       }
 
-      console.log('📤 Updating task status with payload:', payload);
-      console.log('🌐 API endpoint URL:', `http://localhost:5000/api/tasks/${apiTaskId}/status`);
-      console.log('🔑 Auth token exists:', !!localStorage.getItem('token'));
+      console.log("📤 Updating task status with payload:", payload);
+      console.log(
+        "🌐 API endpoint URL:",
+        `http://localhost:5000/api/tasks/${apiTaskId}/status`
+      );
+      console.log("🔑 Auth token exists:", !!localStorage.getItem("token"));
 
       // Use correct API endpoint format
-      console.log('🚀 Making API call now...');
+      console.log("🚀 Making API call now...");
       const response = await axios.patch(
         `http://localhost:5000/api/tasks/${apiTaskId}/status`,
         payload,
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          }
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
-      console.log('📨 Status update response received:', response);
+      console.log("📨 Status update response received:", response);
 
-      console.log('Status update response:', response);
+      console.log("Status update response:", response);
 
       // Check if response contains HTML (indicates routing issue)
-      if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
-        console.error('API returned HTML instead of JSON - possible routing issue');
-        throw new Error('API endpoint not found - check server routing');
+      if (
+        typeof response.data === "string" &&
+        response.data.includes("<!DOCTYPE html>")
+      ) {
+        console.error(
+          "API returned HTML instead of JSON - possible routing issue"
+        );
+        throw new Error("API endpoint not found - check server routing");
       }
 
       // Check for successful response
       if (response.data && response.data.success) {
-        console.log('✅ API call successful, updating local state...');
+        console.log("✅ API call successful, updating local state...");
 
         // Update local state optimistically with status color
-        setApiTasks(prev => {
-          const updated = prev.map(t => {
+        setApiTasks((prev) => {
+          const updated = prev.map((t) => {
             if (t.id === task.id || t._id === task._id) {
               // Get color from companyStatuses configuration
-              const statusObj = companyStatuses.find(s => s.code === newStatusCode);
-              const newStatusColor = statusObj ? statusObj.color : getStatusColor(newStatusCode);
+              const statusObj = companyStatuses.find(
+                (s) => s.code === newStatusCode
+              );
+              const newStatusColor = statusObj
+                ? statusObj.color
+                : getStatusColor(newStatusCode);
 
               const updatedTask = {
                 ...t,
@@ -904,17 +963,19 @@ export default function AllTasks({
                 statusColor: newStatusColor,
                 colorCode: newStatusColor, // Also update colorCode field
                 updatedAt: new Date().toISOString(),
-                ...(backendStatus === "completed" && { completedDate: new Date().toISOString() })
+                ...(backendStatus === "completed" && {
+                  completedDate: new Date().toISOString(),
+                }),
               };
 
-              console.log('🎨 Updated task with color:', {
+              console.log("🎨 Updated task with color:", {
                 taskId: t._id || t.id,
                 oldStatus: t.status,
                 newStatus: newStatusCode,
                 backendStatus,
                 newColor: updatedTask.statusColor,
                 colorCode: updatedTask.colorCode,
-                statusObject: statusObj
+                statusObject: statusObj,
               });
 
               return updatedTask;
@@ -922,67 +983,72 @@ export default function AllTasks({
             return t;
           });
 
-          console.log('📊 Local state updated, total tasks:', updated.length);
+          console.log("📊 Local state updated, total tasks:", updated.length);
           return updated;
         });
 
         // Also update Zustand store if available
-        if (typeof updateTaskStatus === 'function') {
+        if (typeof updateTaskStatus === "function") {
           updateTaskStatus(task.id, newStatusCode);
         }
 
         // Show success toast
         const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
-        const message = `Task "${task.title}" status updated to "${newStatus?.label || newStatusCode}"`;
+        const message = `Task "${task.title}" status updated to "${
+          newStatus?.label || newStatusCode
+        }"`;
 
         setToast({
           message: message,
-          type: 'success',
+          type: "success",
           isVisible: true,
         });
 
         // No need to refetch since we're updating optimistically and it's working
-
       } else {
         // Handle API error response
-        const errorMessage = response.data?.message || "Failed to update task status.";
+        const errorMessage =
+          response.data?.message || "Failed to update task status.";
         setToast({
           message: errorMessage,
-          type: 'error',
+          type: "error",
           isVisible: true,
         });
       }
     } catch (error) {
-      console.error('❌ ERROR in executeStatusChange:', {
+      console.error("❌ ERROR in executeStatusChange:", {
         error: error.message,
         response: error.response?.data,
         status: error.response?.status,
         config: error.config,
         taskId: task._id || task.id,
         newStatusCode,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Handle different error response formats
-      let errorMessage = 'Error updating task status. Please try again.';
+      let errorMessage = "Error updating task status. Please try again.";
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = `Network error: ${error.message}`;
-      } else if (error.code === 'NETWORK_ERROR') {
-        errorMessage = 'Network connection failed. Please check your internet connection.';
+      } else if (error.code === "NETWORK_ERROR") {
+        errorMessage =
+          "Network connection failed. Please check your internet connection.";
       }
 
       setToast({
         message: errorMessage,
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
 
       // Optionally revert optimistic update on error
-      console.log('Status update failed, you may want to revert the optimistic update');
+      console.log(
+        "Status update failed, you may want to revert the optimistic update"
+      );
     }
   };
 
@@ -1013,27 +1079,33 @@ export default function AllTasks({
 
       // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
       const apiTaskId = task._id || task.id;
-      console.log('🗑️ Deleting task with ID:', apiTaskId, 'from task:', { id: task.id, _id: task._id, title: task.title });
+      console.log("🗑️ Deleting task with ID:", apiTaskId, "from task:", {
+        id: task.id,
+        _id: task._id,
+        title: task.title,
+      });
 
       // Call API to delete task
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/tasks/delete/${apiTaskId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      console.log('🌐 Delete API response status:', response.status);
+      console.log("🌐 Delete API response status:", response.status);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Delete API response:', result);
+        console.log("✅ Delete API response:", result);
 
         if (result.success) {
           // Remove from local state
-          setApiTasks(prev => prev.filter(t => t.id !== taskId && t._id !== taskId));
+          setApiTasks((prev) =>
+            prev.filter((t) => t.id !== taskId && t._id !== taskId)
+          );
 
           // Show success toast
           showToast(`Task "${task.title}" deleted successfully`, "success");
@@ -1045,31 +1117,43 @@ export default function AllTasks({
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
     } catch (error) {
-      console.error('❌ Error deleting task:', error);
+      console.error("❌ Error deleting task:", error);
       showToast(error.message || "Error deleting task", "error");
     }
-  };  // Execute task deletion
+  }; // Execute task deletion
   const executeTaskDeletion = async (taskId, options) => {
     try {
       const task = apiTasks.find((t) => t.id === taskId);
 
       // Call API to delete task
       const token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:5000/api/tasks/delete/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.delete(
+        `http://localhost:5000/api/tasks/delete/${taskId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.data.success) {
         // Remove from local state
-        setApiTasks(prev => prev.filter(t => t.id !== taskId));
+        setApiTasks((prev) => prev.filter((t) => t.id !== taskId));
 
         // Close confirmation modal
-        setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+        setConfirmModal({
+          isOpen: false,
+          type: "",
+          title: "",
+          message: "",
+          onConfirm: null,
+          data: null,
+        });
 
         // Show success toast
         showToast(`Task "${task?.title}" deleted successfully`, "success");
@@ -1080,16 +1164,26 @@ export default function AllTasks({
         throw new Error(response.data.message || "Failed to delete task");
       }
     } catch (error) {
-      console.error('Error deleting task:', error);
-      showToast(error.response?.data?.message || error.message || "Error deleting task", "error");
-      setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+      console.error("Error deleting task:", error);
+      showToast(
+        error.response?.data?.message || error.message || "Error deleting task",
+        "error"
+      );
+      setConfirmModal({
+        isOpen: false,
+        type: "",
+        title: "",
+        message: "",
+        onConfirm: null,
+        data: null,
+      });
     }
   };
 
   // Handle bulk task deletion with confirmation
   const handleBulkDeleteTasks = () => {
     const selectedTaskObjects = apiTasks.filter((t) =>
-      selectedTasks.includes(t.id),
+      selectedTasks.includes(t.id)
     );
     const errors = [];
 
@@ -1107,11 +1201,11 @@ export default function AllTasks({
     // Show confirmation modal
     setConfirmModal({
       isOpen: true,
-      type: 'danger',
-      title: 'Delete Multiple Tasks',
+      type: "danger",
+      title: "Delete Multiple Tasks",
       message: `Are you sure you want to delete ${selectedTasks.length} selected tasks? This action cannot be undone.`,
       onConfirm: () => executeBulkDeleteTasks(selectedTaskObjects),
-      data: { selectedTaskObjects }
+      data: { selectedTaskObjects },
     });
   };
 
@@ -1119,7 +1213,7 @@ export default function AllTasks({
   const executeBulkDeleteTasks = async (selectedTaskObjects) => {
     try {
       const token = localStorage.getItem("token");
-      const deletePromises = selectedTaskObjects.map(task =>
+      const deletePromises = selectedTaskObjects.map((task) =>
         axios.delete(`http://localhost:5000/api/tasks/delete/${task.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1133,7 +1227,7 @@ export default function AllTasks({
       let errorCount = 0;
 
       results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value.data.success) {
+        if (result.status === "fulfilled" && result.value.data.success) {
           successCount++;
         } else {
           errorCount++;
@@ -1143,16 +1237,25 @@ export default function AllTasks({
       // Update local state - remove successfully deleted tasks
       const deletedTaskIds = [];
       results.forEach((result, index) => {
-        if (result.status === 'fulfilled' && result.value.data.success) {
+        if (result.status === "fulfilled" && result.value.data.success) {
           deletedTaskIds.push(selectedTaskObjects[index].id);
         }
       });
 
-      setApiTasks(prev => prev.filter(task => !deletedTaskIds.includes(task.id)));
+      setApiTasks((prev) =>
+        prev.filter((task) => !deletedTaskIds.includes(task.id))
+      );
       setSelectedTasks([]);
 
       // Close confirmation modal
-      setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+      setConfirmModal({
+        isOpen: false,
+        type: "",
+        title: "",
+        message: "",
+        onConfirm: null,
+        data: null,
+      });
 
       // Show appropriate toast
       if (errorCount === 0) {
@@ -1160,16 +1263,25 @@ export default function AllTasks({
       } else if (successCount === 0) {
         showToast(`Failed to delete all ${errorCount} tasks`, "error");
       } else {
-        showToast(`${successCount} tasks deleted, ${errorCount} failed`, "warning");
+        showToast(
+          `${successCount} tasks deleted, ${errorCount} failed`,
+          "warning"
+        );
       }
 
       // Refetch to ensure sync
       await refetchTasks();
-
     } catch (error) {
-      console.error('Error in bulk delete:', error);
+      console.error("Error in bulk delete:", error);
       showToast("Error occurred during bulk delete operation", "error");
-      setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+      setConfirmModal({
+        isOpen: false,
+        type: "",
+        title: "",
+        message: "",
+        onConfirm: null,
+        data: null,
+      });
     }
   };
 
@@ -1184,7 +1296,7 @@ export default function AllTasks({
   // Handle bulk status update
   const handleBulkStatusUpdate = (newStatusCode) => {
     const selectedTaskObjects = apiTasks.filter((t) =>
-      selectedTasks.includes(t.id),
+      selectedTasks.includes(t.id)
     );
     const errors = [];
 
@@ -1196,10 +1308,10 @@ export default function AllTasks({
 
       if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
         const incompleteCount = task.subtasks.filter(
-          (s) => s.status !== "completed" && s.status !== "cancelled",
+          (s) => s.status !== "completed" && s.status !== "cancelled"
         ).length;
         errors.push(
-          `"${task.title}" has ${incompleteCount} incomplete sub-tasks`,
+          `"${task.title}" has ${incompleteCount} incomplete sub-tasks`
         );
         return;
       }
@@ -1208,7 +1320,7 @@ export default function AllTasks({
     if (errors.length > 0) {
       setToast({
         message: `Cannot update some tasks:\n${errors.join("\n")}`,
-        type: 'error',
+        type: "error",
         isVisible: true,
       });
       return;
@@ -1222,7 +1334,7 @@ export default function AllTasks({
 
     const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
     console.log(
-      `Bulk updated ${selectedTasks.length} tasks to ${newStatus.label} by ${currentUser.name}`,
+      `Bulk updated ${selectedTasks.length} tasks to ${newStatus.label} by ${currentUser.name}`
     );
   };
 
@@ -1275,11 +1387,13 @@ export default function AllTasks({
 
         if (response.data.success) {
           // Update local state
-          setApiTasks(prev => prev.map(task =>
-            task.id === taskId
-              ? { ...task, title: editingTitle.trim() }
-              : task
-          ));
+          setApiTasks((prev) =>
+            prev.map((task) =>
+              task.id === taskId
+                ? { ...task, title: editingTitle.trim() }
+                : task
+            )
+          );
           showToast("Task title updated successfully", "success");
 
           // Refetch to ensure sync
@@ -1288,8 +1402,11 @@ export default function AllTasks({
           throw new Error(response.data.message || "Failed to update task");
         }
       } catch (error) {
-        console.error('Error updating task title:', error);
-        showToast(error.response?.data?.message || "Failed to update task title", "error");
+        console.error("Error updating task title:", error);
+        showToast(
+          error.response?.data?.message || "Failed to update task title",
+          "error"
+        );
       }
     }
     setEditingTaskId(null);
@@ -1321,9 +1438,9 @@ export default function AllTasks({
     if (
       editingSubtaskTitle.trim() &&
       editingSubtaskTitle !==
-      tasks
-        .find((t) => t.id === parentTaskId)
-        ?.subtasks?.find((s) => s.id === subtaskId)?.title
+        tasks
+          .find((t) => t.id === parentTaskId)
+          ?.subtasks?.find((s) => s.id === subtaskId)?.title
     ) {
       updateSubtask(parentTaskId, subtaskId, {
         title: editingSubtaskTitle.trim(),
@@ -1352,15 +1469,22 @@ export default function AllTasks({
   const handleEditTask = (task) => {
     setConfirmModal({
       isOpen: true,
-      type: 'edit',
-      title: 'Edit Task',
+      type: "edit",
+      title: "Edit Task",
       message: `Do you want to edit the task "${task.title}"?`,
       onConfirm: () => {
         setEditingTask(task);
         setShowEditModal(true);
-        setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+        setConfirmModal({
+          isOpen: false,
+          type: "",
+          title: "",
+          message: "",
+          onConfirm: null,
+          data: null,
+        });
       },
-      data: { task }
+      data: { task },
     });
   };
 
@@ -1380,11 +1504,11 @@ export default function AllTasks({
 
       if (response.data.success) {
         // Update local state
-        setApiTasks(prev => prev.map(task =>
-          task.id === updatedTask.id
-            ? { ...task, ...updatedTask }
-            : task
-        ));
+        setApiTasks((prev) =>
+          prev.map((task) =>
+            task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+          )
+        );
 
         setShowEditModal(false);
         setEditingTask(null);
@@ -1396,8 +1520,11 @@ export default function AllTasks({
         throw new Error(response.data.message || "Failed to update task");
       }
     } catch (error) {
-      console.error('Error updating task:', error);
-      showToast(error.response?.data?.message || "Failed to update task", "error");
+      console.error("Error updating task:", error);
+      showToast(
+        error.response?.data?.message || "Failed to update task",
+        "error"
+      );
     }
   };
 
@@ -1458,28 +1585,49 @@ export default function AllTasks({
 
   // Handle subtask deletion with confirmation
   const handleDeleteSubtask = (parentTaskId, subtaskId) => {
-    console.log('🗑️ DELETE SUBTASK BUTTON CLICKED:', { parentTaskId, subtaskId });
+    console.log("🗑️ DELETE SUBTASK BUTTON CLICKED:", {
+      parentTaskId,
+      subtaskId,
+    });
 
-    const parentTask = apiTasks.find((t) => t.id === parentTaskId || t._id === parentTaskId);
-    console.log('🔍 Found parent task:', parentTask ? { id: parentTask.id, _id: parentTask._id, title: parentTask.title } : 'NOT FOUND');
+    const parentTask = apiTasks.find(
+      (t) => t.id === parentTaskId || t._id === parentTaskId
+    );
+    console.log(
+      "🔍 Found parent task:",
+      parentTask
+        ? { id: parentTask.id, _id: parentTask._id, title: parentTask.title }
+        : "NOT FOUND"
+    );
 
-    const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId || s._id === subtaskId);
-    console.log('🔍 Found subtask:', subtask ? { id: subtask.id, _id: subtask._id, title: subtask.title } : 'NOT FOUND');
+    const subtask = parentTask?.subtasks?.find(
+      (s) => s.id === subtaskId || s._id === subtaskId
+    );
+    console.log(
+      "🔍 Found subtask:",
+      subtask
+        ? { id: subtask.id, _id: subtask._id, title: subtask.title }
+        : "NOT FOUND"
+    );
 
     if (!subtask) {
-      console.error('❌ Subtask not found:', { parentTaskId, subtaskId, parentTask: parentTask?.title });
+      console.error("❌ Subtask not found:", {
+        parentTaskId,
+        subtaskId,
+        parentTask: parentTask?.title,
+      });
       showToast("Subtask not found", "error");
       return;
     }
 
-    console.log('✅ Showing confirmation modal for subtask deletion');
+    console.log("✅ Showing confirmation modal for subtask deletion");
     setConfirmModal({
       isOpen: true,
-      type: 'danger',
-      title: 'Delete Subtask',
+      type: "danger",
+      title: "Delete Subtask",
       message: `Are you sure you want to delete the subtask "${subtask.title}"? This action cannot be undone.`,
       onConfirm: () => executeSubtaskDeletion(parentTaskId, subtaskId),
-      data: { parentTaskId, subtaskId, subtask }
+      data: { parentTaskId, subtaskId, subtask },
     });
   };
 
@@ -1491,7 +1639,14 @@ export default function AllTasks({
 
       if (!parentTask || !subtask) {
         showToast("Subtask or parent task not found", "error");
-        setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+        setConfirmModal({
+          isOpen: false,
+          type: "",
+          title: "",
+          message: "",
+          onConfirm: null,
+          data: null,
+        });
         return;
       }
 
@@ -1499,42 +1654,55 @@ export default function AllTasks({
       const apiParentTaskId = parentTask._id || parentTask.id;
       const apiSubtaskId = subtask._id || subtask.id;
 
-      console.log('🗑️ Deleting subtask with IDs:', {
+      console.log("🗑️ Deleting subtask with IDs:", {
         parentTaskId: apiParentTaskId,
         subtaskId: apiSubtaskId,
         originalParentId: parentTaskId,
-        originalSubtaskId: subtaskId
+        originalSubtaskId: subtaskId,
       });
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/tasks/${apiParentTaskId}/subtasks/${apiSubtaskId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const response = await fetch(
+        `/api/tasks/${apiParentTaskId}/subtasks/${apiSubtaskId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
 
-      console.log('🌐 Subtask delete API response status:', response.status);
+      console.log("🌐 Subtask delete API response status:", response.status);
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Subtask delete API response:', result);
+        console.log("✅ Subtask delete API response:", result);
 
         if (result.success) {
           // Update local state - remove subtask from parent task
-          setApiTasks(prev => prev.map(task =>
-            (task.id === parentTaskId || task._id === parentTaskId)
-              ? {
-                ...task,
-                subtasks: task.subtasks?.filter(s =>
-                  s.id !== subtaskId && s._id !== subtaskId
-                ) || []
-              }
-              : task
-          ));
+          setApiTasks((prev) =>
+            prev.map((task) =>
+              task.id === parentTaskId || task._id === parentTaskId
+                ? {
+                    ...task,
+                    subtasks:
+                      task.subtasks?.filter(
+                        (s) => s.id !== subtaskId && s._id !== subtaskId
+                      ) || [],
+                  }
+                : task
+            )
+          );
 
-          setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+          setConfirmModal({
+            isOpen: false,
+            type: "",
+            title: "",
+            message: "",
+            onConfirm: null,
+            data: null,
+          });
           showToast("Subtask deleted successfully", "success");
 
           // Refetch to ensure sync
@@ -1544,31 +1712,42 @@ export default function AllTasks({
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
       }
     } catch (error) {
-      console.error('❌ Error deleting subtask:', error);
+      console.error("❌ Error deleting subtask:", error);
       showToast(error.message || "Failed to delete subtask", "error");
-      setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
+      setConfirmModal({
+        isOpen: false,
+        type: "",
+        title: "",
+        message: "",
+        onConfirm: null,
+        data: null,
+      });
     }
   };
 
   // Handle subtask status change
   const handleSubtaskStatusChange = (parentTaskId, subtaskId, newStatus) => {
     // Find the subtask and update it
-    setApiTasks(prev => prev.map(task => {
-      if (task.id === parentTaskId) {
-        return {
-          ...task,
-          subtasks: task.subtasks?.map(subtask =>
-            subtask.id === subtaskId
-              ? { ...subtask, status: newStatus }
-              : subtask
-          )
-        };
-      }
-      return task;
-    }));
+    setApiTasks((prev) =>
+      prev.map((task) => {
+        if (task.id === parentTaskId) {
+          return {
+            ...task,
+            subtasks: task.subtasks?.map((subtask) =>
+              subtask.id === subtaskId
+                ? { ...subtask, status: newStatus }
+                : subtask
+            ),
+          };
+        }
+        return task;
+      })
+    );
 
     // Also update the Zustand store if needed
     updateSubtask(parentTaskId, subtaskId, { status: newStatus });
@@ -1584,10 +1763,10 @@ export default function AllTasks({
   // Handle subtask edit
   const handleEditSubtask = (subtask) => {
     const task = apiTasks.find((t) =>
-      t.subtasks?.some(s => s.id === subtask.id || s._id === subtask._id)
+      t.subtasks?.some((s) => s.id === subtask.id || s._id === subtask._id)
     );
     if (task) {
-      openSubtaskDrawer(task, subtask, 'edit');
+      openSubtaskDrawer(task, subtask, "edit");
     }
   };
 
@@ -1682,11 +1861,16 @@ export default function AllTasks({
         // Refetch tasks to update the list
         await refetchTasks();
       } else {
-        throw new Error(response.data.message || "Failed to create approval task");
+        throw new Error(
+          response.data.message || "Failed to create approval task"
+        );
       }
     } catch (error) {
-      console.error('Error creating approval task:', error);
-      showToast(error.response?.data?.message || "Failed to create approval task", "error");
+      console.error("Error creating approval task:", error);
+      showToast(
+        error.response?.data?.message || "Failed to create approval task",
+        "error"
+      );
     }
   };
 
@@ -1730,27 +1914,34 @@ export default function AllTasks({
         throw new Error(response.data.message || "Failed to create milestone");
       }
     } catch (error) {
-      console.error('Error creating milestone:', error);
-      showToast(error.response?.data?.message || "Failed to create milestone", "error");
+      console.error("Error creating milestone:", error);
+      showToast(
+        error.response?.data?.message || "Failed to create milestone",
+        "error"
+      );
     }
   };
 
   // Handle task snooze with API integration
   const handleSnoozeTask = async (taskId, snoozeData = null) => {
     try {
-      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
       if (!task) {
         showToast("Task not found", "error");
         return;
       }
 
-      console.log('DEBUG - Snooze task found:', { id: task.id, _id: task._id, title: task.title });
+      console.log("DEBUG - Snooze task found:", {
+        id: task.id,
+        _id: task._id,
+        title: task.title,
+      });
 
       const token = localStorage.getItem("token");
 
       // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
       const apiTaskId = task._id || task.id;
-      console.log('DEBUG - Using task ID for snooze API call:', apiTaskId);
+      console.log("DEBUG - Using task ID for snooze API call:", apiTaskId);
 
       // Check if task is currently snoozed
       const isCurrentlySnoozing = task.isSnooze || snoozedTasks.has(taskId);
@@ -1769,11 +1960,18 @@ export default function AllTasks({
 
         if (response.data.success) {
           // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? { ...t, isSnooze: false, snoozeUntil: null, snoozeReason: null }
-              : t
-          ));
+          setApiTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId || t._id === taskId
+                ? {
+                    ...t,
+                    isSnooze: false,
+                    snoozeUntil: null,
+                    snoozeReason: null,
+                  }
+                : t
+            )
+          );
 
           toggleSnoozeTask(taskId); // Update Zustand store
           showToast("Task unsnoozed successfully", "success");
@@ -1784,16 +1982,17 @@ export default function AllTasks({
         const defaultSnoozeUntil = new Date();
         defaultSnoozeUntil.setHours(defaultSnoozeUntil.getHours() + 1);
 
-        const snoozeUntil = snoozeData?.snoozeUntil || defaultSnoozeUntil.toISOString();
+        const snoozeUntil =
+          snoozeData?.snoozeUntil || defaultSnoozeUntil.toISOString();
         const reason = snoozeData?.reason || "Task snoozed temporarily";
 
-        console.log('DEBUG - Snooze request payload:', { snoozeUntil, reason });
+        console.log("DEBUG - Snooze request payload:", { snoozeUntil, reason });
 
         const response = await axios.patch(
           `http://localhost:5000/api/tasks/${apiTaskId}/snooze`,
           {
             snoozeUntil,
-            reason
+            reason,
           },
           {
             headers: {
@@ -1804,16 +2003,18 @@ export default function AllTasks({
 
         if (response.data.success) {
           // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? {
-                ...t,
-                isSnooze: true,
-                snoozeUntil: snoozeUntil,
-                snoozeReason: reason
-              }
-              : t
-          ));
+          setApiTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId || t._id === taskId
+                ? {
+                    ...t,
+                    isSnooze: true,
+                    snoozeUntil: snoozeUntil,
+                    snoozeReason: reason,
+                  }
+                : t
+            )
+          );
 
           toggleSnoozeTask(taskId); // Update Zustand store
           showToast("Task snoozed successfully", "success");
@@ -1821,7 +2022,7 @@ export default function AllTasks({
         }
       }
     } catch (error) {
-      console.error('Error handling task snooze:', error);
+      console.error("Error handling task snooze:", error);
       showToast(
         error.response?.data?.message || "Failed to update snooze status",
         "error"
@@ -1832,19 +2033,23 @@ export default function AllTasks({
   // Handle mark as risk with API integration
   const handleMarkAsRisk = async (taskId, riskData = null) => {
     try {
-      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
       if (!task) {
         showToast("Task not found", "error");
         return;
       }
 
-      console.log('DEBUG - Risk task found:', { id: task.id, _id: task._id, title: task.title });
+      console.log("DEBUG - Risk task found:", {
+        id: task.id,
+        _id: task._id,
+        title: task.title,
+      });
 
       const token = localStorage.getItem("token");
 
       // Use the correct ID format for API call - prefer _id (MongoDB ObjectId) if available
       const apiTaskId = task._id || task.id;
-      console.log('DEBUG - Using task ID for risk API call:', apiTaskId);
+      console.log("DEBUG - Using task ID for risk API call:", apiTaskId);
 
       // Check if task is currently marked as risk
       const isCurrentlyRisky = task.isRisk || riskyTasks.has(taskId);
@@ -1863,16 +2068,18 @@ export default function AllTasks({
 
         if (response.data.success) {
           // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? {
-                ...t,
-                isRisk: false,
-                riskLevel: null,
-                riskReason: null
-              }
-              : t
-          ));
+          setApiTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId || t._id === taskId
+                ? {
+                    ...t,
+                    isRisk: false,
+                    riskLevel: null,
+                    riskReason: null,
+                  }
+                : t
+            )
+          );
 
           toggleRiskyTask(taskId); // Update Zustand store
           showToast("Task risk status removed", "success");
@@ -1880,16 +2087,16 @@ export default function AllTasks({
         }
       } else {
         // Mark as risk
-        const riskLevel = riskData?.riskLevel || 'medium';
-        const riskReason = riskData?.riskReason || 'Task requires attention';
+        const riskLevel = riskData?.riskLevel || "medium";
+        const riskReason = riskData?.riskReason || "Task requires attention";
 
-        console.log('DEBUG - Risk request payload:', { riskLevel, riskReason });
+        console.log("DEBUG - Risk request payload:", { riskLevel, riskReason });
 
         const response = await axios.patch(
           `http://localhost:5000/api/tasks/${apiTaskId}/mark-risk`,
           {
             riskLevel,
-            riskReason
+            riskReason,
           },
           {
             headers: {
@@ -1900,16 +2107,18 @@ export default function AllTasks({
 
         if (response.data.success) {
           // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? {
-                ...t,
-                isRisk: true,
-                riskLevel,
-                riskReason
-              }
-              : t
-          ));
+          setApiTasks((prev) =>
+            prev.map((t) =>
+              t.id === taskId || t._id === taskId
+                ? {
+                    ...t,
+                    isRisk: true,
+                    riskLevel,
+                    riskReason,
+                  }
+                : t
+            )
+          );
 
           toggleRiskyTask(taskId); // Update Zustand store
           showToast("Task marked as risky", "warning");
@@ -1917,7 +2126,7 @@ export default function AllTasks({
         }
       }
     } catch (error) {
-      console.error('Error handling task risk status:', error);
+      console.error("Error handling task risk status:", error);
       showToast(
         error.response?.data?.message || "Failed to update risk status",
         "error"
@@ -1928,7 +2137,7 @@ export default function AllTasks({
   // Handle quick mark as done with API integration
   const handleQuickMarkAsDone = async (taskId, completionNotes = null) => {
     try {
-      const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
+      const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
       if (!task) {
         showToast("Task not found", "error");
         return;
@@ -1939,7 +2148,7 @@ export default function AllTasks({
       const response = await axios.patch(
         `http://localhost:5000/api/tasks/${taskId}/quick-done`,
         {
-          completionNotes: completionNotes || `Task completed quickly by user`
+          completionNotes: completionNotes || `Task completed quickly by user`,
         },
         {
           headers: {
@@ -1950,24 +2159,26 @@ export default function AllTasks({
 
       if (response.data.success) {
         // Update local state
-        setApiTasks(prev => prev.map(t =>
-          (t.id === taskId || t._id === taskId)
-            ? {
-              ...t,
-              status: 'DONE',
-              completedDate: new Date().toISOString(),
-              completionNotes: completionNotes
-            }
-            : t
-        ));
+        setApiTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId || t._id === taskId
+              ? {
+                  ...t,
+                  status: "DONE",
+                  completedDate: new Date().toISOString(),
+                  completionNotes: completionNotes,
+                }
+              : t
+          )
+        );
 
-        // Update Zustand store  
-        updateTaskStatus(taskId, 'DONE');
+        // Update Zustand store
+        updateTaskStatus(taskId, "DONE");
         showToast("Task marked as completed successfully", "success");
         await refetchTasks(); // Refresh from server
       }
     } catch (error) {
-      console.error('Error marking task as done:', error);
+      console.error("Error marking task as done:", error);
       showToast(
         error.response?.data?.message || "Failed to mark task as completed",
         "error"
@@ -1978,9 +2189,12 @@ export default function AllTasks({
   // Apply filters to tasks
   const filteredTasks = apiTasks.filter((task) => {
     // Apply search filter with null checks
-    const matchesSearch = !searchTerm ||
-      (task.title && task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (task.assignee && task.assignee.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch =
+      !searchTerm ||
+      (task.title &&
+        task.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (task.assignee &&
+        task.assignee.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Apply status filter
     const matchesStatus =
@@ -1993,7 +2207,9 @@ export default function AllTasks({
     // Apply priority filter with null check
     const matchesPriority =
       priorityFilter === "all" ||
-      (task.priority && priorityFilter && task.priority.toLowerCase() === priorityFilter.toLowerCase());
+      (task.priority &&
+        priorityFilter &&
+        task.priority.toLowerCase() === priorityFilter.toLowerCase());
 
     // Apply task type filter
     const taskType = getTaskType(task);
@@ -2084,36 +2300,36 @@ export default function AllTasks({
   // Status color mapping for consistent colors across components
   const getStatusColor = (statusCode) => {
     // First try to get color from companyStatuses (dynamic from API)
-    const statusObj = companyStatuses.find(s => s.code === statusCode);
+    const statusObj = companyStatuses.find((s) => s.code === statusCode);
     if (statusObj && statusObj.color) {
       return statusObj.color;
     }
 
     // Fallback to hardcoded colors for backward compatibility
     const statusColorMap = {
-      'OPEN': '#3B82F6',      // Blue
-      'INPROGRESS': '#F59E0B', // Yellow/Orange
-      'DONE': '#10B981',      // Green
-      'COMPLETED': '#10B981', // Green
-      'ONHOLD': '#6B7280',    // Gray
-      'CANCELLED': '#EF4444', // Red
-      'PENDING': '#F97316',   // Orange
-      'APPROVED': '#059669',  // Green
-      'REJECTED': '#DC2626',  // Red
-      'REVIEW': '#8B5CF6',    // Purple
+      OPEN: "#3B82F6", // Blue
+      INPROGRESS: "#F59E0B", // Yellow/Orange
+      DONE: "#10B981", // Green
+      COMPLETED: "#10B981", // Green
+      ONHOLD: "#6B7280", // Gray
+      CANCELLED: "#EF4444", // Red
+      PENDING: "#F97316", // Orange
+      APPROVED: "#059669", // Green
+      REJECTED: "#DC2626", // Red
+      REVIEW: "#8B5CF6", // Purple
       // Backend status codes
-      'open': '#3B82F6',
-      'in-progress': '#F59E0B',
-      'completed': '#10B981',
-      'on-hold': '#6B7280',
-      'cancelled': '#EF4444',
-      'pending': '#F97316',
-      'approved': '#059669',
-      'rejected': '#DC2626',
-      'review': '#8B5CF6'
+      open: "#3B82F6",
+      "in-progress": "#F59E0B",
+      completed: "#10B981",
+      "on-hold": "#6B7280",
+      cancelled: "#EF4444",
+      pending: "#F97316",
+      approved: "#059669",
+      rejected: "#DC2626",
+      review: "#8B5CF6",
     };
 
-    return statusColorMap[statusCode] || '#6B7280'; // Default gray
+    return statusColorMap[statusCode] || "#6B7280"; // Default gray
   };
 
   const getTaskColorCode = (task) => {
@@ -2127,7 +2343,12 @@ export default function AllTasks({
 
     if (task.status) {
       const statusColor = getStatusColor(task.status);
-      console.log("Using status-based color:", statusColor, "for status:", task.status);
+      console.log(
+        "Using status-based color:",
+        statusColor,
+        "for status:",
+        task.status
+      );
       return statusColor;
     }
 
@@ -2147,8 +2368,8 @@ export default function AllTasks({
   const handleSmartTaskCreated = (newTask) => {
     refetchTasks(); // Refresh tasks list
     setToast({
-      message: 'Task created successfully with smart parsing!',
-      type: 'success',
+      message: "Task created successfully with smart parsing!",
+      type: "success",
       isVisible: true,
     });
   };
@@ -2161,7 +2382,7 @@ export default function AllTasks({
       showToast("Task created successfully", "success");
       await refetchTasks();
     } catch (error) {
-      console.error('Error after task creation:', error);
+      console.error("Error after task creation:", error);
       showToast("Task created but failed to refresh list", "warning");
     }
   };
@@ -2172,7 +2393,7 @@ export default function AllTasks({
       showToast("Task updated successfully", "success");
       await refetchTasks();
     } catch (error) {
-      console.error('Error after task update:', error);
+      console.error("Error after task update:", error);
       showToast("Task updated but failed to refresh", "warning");
     }
   };
@@ -2184,7 +2405,7 @@ export default function AllTasks({
       showToast("Task updated successfully", "success");
       await refetchTasks();
     } catch (error) {
-      console.error('Error after task update:', error);
+      console.error("Error after task update:", error);
       showToast("Task updated but failed to refresh", "warning");
     }
   };
@@ -2192,67 +2413,86 @@ export default function AllTasks({
   // Milestone-specific handlers
   const handleMilestoneUpdate = async (milestoneId, updateData) => {
     try {
-      console.log('Updating milestone:', milestoneId, updateData);
+      console.log("Updating milestone:", milestoneId, updateData);
       await updateMilestone(milestoneId, updateData);
       showToast("Milestone updated successfully", "success");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
-      console.error('Error updating milestone:', error);
-      showToast("Failed to update milestone: " + (error.response?.data?.message || error.message), "error");
+      console.error("Error updating milestone:", error);
+      showToast(
+        "Failed to update milestone: " +
+          (error.response?.data?.message || error.message),
+        "error"
+      );
     }
   };
 
   const handleMilestoneDelete = async (milestoneId) => {
     try {
-      console.log('Deleting milestone:', milestoneId);
+      console.log("Deleting milestone:", milestoneId);
       await deleteMilestone(milestoneId);
       showToast("Milestone deleted successfully", "success");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
-      console.error('Error deleting milestone:', error);
-      showToast("Failed to delete milestone: " + (error.response?.data?.message || error.message), "error");
+      console.error("Error deleting milestone:", error);
+      showToast(
+        "Failed to delete milestone: " +
+          (error.response?.data?.message || error.message),
+        "error"
+      );
     }
   };
 
   const handleMilestoneAchieved = async (milestoneId) => {
     try {
-      console.log('Marking milestone as achieved:', milestoneId);
+      console.log("Marking milestone as achieved:", milestoneId);
       await markMilestoneAsAchieved(milestoneId);
       showToast("Milestone marked as achieved!", "success");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
-      console.error('Error marking milestone as achieved:', error);
-      showToast("Failed to mark milestone as achieved: " + (error.response?.data?.message || error.message), "error");
+      console.error("Error marking milestone as achieved:", error);
+      showToast(
+        "Failed to mark milestone as achieved: " +
+          (error.response?.data?.message || error.message),
+        "error"
+      );
     }
   };
 
   const handleLinkTaskToMilestone = async (milestoneId, taskData) => {
     try {
-      console.log('Linking task to milestone:', milestoneId, taskData);
+      console.log("Linking task to milestone:", milestoneId, taskData);
       await linkTaskToMilestone(milestoneId, taskData);
       showToast("Task linked to milestone successfully", "success");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
-      console.error('Error linking task to milestone:', error);
-      showToast("Failed to link task to milestone: " + (error.response?.data?.message || error.message), "error");
+      console.error("Error linking task to milestone:", error);
+      showToast(
+        "Failed to link task to milestone: " +
+          (error.response?.data?.message || error.message),
+        "error"
+      );
     }
   };
 
   const handleUnlinkTaskFromMilestone = async (milestoneId, taskId) => {
     try {
-      console.log('Unlinking task from milestone:', milestoneId, taskId);
+      console.log("Unlinking task from milestone:", milestoneId, taskId);
       await unlinkTaskFromMilestone(milestoneId, taskId);
       showToast("Task unlinked from milestone successfully", "success");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
-      console.error('Error unlinking task from milestone:', error);
-      showToast("Failed to unlink task from milestone: " + (error.response?.data?.message || error.message), "error");
+      console.error("Error unlinking task from milestone:", error);
+      showToast(
+        "Failed to unlink task from milestone: " +
+          (error.response?.data?.message || error.message),
+        "error"
+      );
     }
   };
 
   return (
     <div className="space-y-4 p-6 min-h-0 overflow-hidden">
-
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -2264,7 +2504,9 @@ export default function AllTasks({
         <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${showSnooze ? "btn-primary" : "btn-secondary"} whitespace-nowrap`}
+            className={`btn ${
+              showSnooze ? "btn-primary" : "btn-secondary"
+            } whitespace-nowrap`}
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -2282,8 +2524,9 @@ export default function AllTasks({
             {showSnooze ? "Hide" : "Show"} Snoozed Tasks
           </button>
           <button
-            className={`btn ${showCalendarView ? "btn-primary" : "btn-secondary"
-              } whitespace-nowrap`}
+            className={`btn ${
+              showCalendarView ? "btn-primary" : "btn-secondary"
+            } whitespace-nowrap`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
             <svg
@@ -2510,13 +2753,13 @@ export default function AllTasks({
               { value: "no_due_date", label: "No Due Date" },
               ...(window.calendarSpecificDate
                 ? [
-                  {
-                    value: "specific_date",
-                    label: `Date: ${new Date(
-                      window.calendarSpecificDate,
-                    ).toLocaleDateString()}`,
-                  },
-                ]
+                    {
+                      value: "specific_date",
+                      label: `Date: ${new Date(
+                        window.calendarSpecificDate
+                      ).toLocaleDateString()}`,
+                    },
+                  ]
                 : []),
             ]}
             placeholder="Filter by Due Date"
@@ -2538,7 +2781,7 @@ export default function AllTasks({
               className="min-w-9 w-9 h-10"
               onError={(e) => {
                 // Fallback to text if image not found
-                e.target.style.display = 'none';
+                e.target.style.display = "none";
               }}
             />
             {/* <span>Export as CSV</span> */}
@@ -2550,7 +2793,7 @@ export default function AllTasks({
               className="min-w-10 w-10 h-10"
               onError={(e) => {
                 // Fallback to text if image not found
-                e.target.style.display = 'none';
+                e.target.style.display = "none";
               }}
             />
             {/* <span>Export as Excel</span> */}
@@ -2610,93 +2853,95 @@ export default function AllTasks({
         taskTypeFilter !== "all" ||
         dueDateFilter !== "all" ||
         searchTerm) && (
-          <div className="card bg-blue-50 border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-blue-800">
-                  Active Filters:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {searchTerm && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Search: "{searchTerm}"
-                      <button
-                        onClick={() => setSearchTerm("")}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {statusFilter !== "all" && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Status: {statusFilter}
-                      <button
-                        onClick={() => setStatusFilter("all")}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {priorityFilter !== "all" && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Priority: {priorityFilter}
-                      <button
-                        onClick={() => setPriorityFilter("all")}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {taskTypeFilter !== "all" && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Type: {taskTypeFilter}
-                      <button
-                        onClick={() => setTaskTypeFilter("all")}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {dueDateFilter !== "all" && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Due:{" "}
-                      {dueDateFilter === "specific_date" &&
-                        window.calendarSpecificDate
-                        ? `Date: ${new Date(window.calendarSpecificDate).toLocaleDateString()}`
-                        : dueDateFilter.replace(/_/g, " ")}
-                      <button
-                        onClick={() => {
-                          setDueDateFilter("all");
-                          window.calendarSpecificDate = null;
-                        }}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                </div>
+        <div className="card bg-blue-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-800">
+                Active Filters:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {searchTerm && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Search: "{searchTerm}"
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== "all" && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Status: {statusFilter}
+                    <button
+                      onClick={() => setStatusFilter("all")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {priorityFilter !== "all" && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Priority: {priorityFilter}
+                    <button
+                      onClick={() => setPriorityFilter("all")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {taskTypeFilter !== "all" && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Type: {taskTypeFilter}
+                    <button
+                      onClick={() => setTaskTypeFilter("all")}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                {dueDateFilter !== "all" && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Due:{" "}
+                    {dueDateFilter === "specific_date" &&
+                    window.calendarSpecificDate
+                      ? `Date: ${new Date(
+                          window.calendarSpecificDate
+                        ).toLocaleDateString()}`
+                      : dueDateFilter.replace(/_/g, " ")}
+                    <button
+                      onClick={() => {
+                        setDueDateFilter("all");
+                        window.calendarSpecificDate = null;
+                      }}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
               </div>
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                  setPriorityFilter("all");
-                  setTaskTypeFilter("all");
-                  setDueDateFilter("all");
-                  window.calendarSpecificDate = null;
-                }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Clear All Filters
-              </button>
             </div>
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setPriorityFilter("all");
+                setTaskTypeFilter("all");
+                setDueDateFilter("all");
+                window.calendarSpecificDate = null;
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Clear All Filters
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Tasks Table */}
       {apiLoading ? (
@@ -2710,14 +2955,18 @@ export default function AllTasks({
       ) : (
         <div className="card p-0">
           <div className="w-full overflow-x-auto scroll-container">
-            <Table wrapperClassName="max-w-[80rem]" className="w-full scroll-container">
+            <Table
+              wrapperClassName="max-w-[80rem]"
+              className="w-full scroll-container"
+            >
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 text-nowrap">
                     <input
                       type="checkbox"
                       checked={
-                        selectedTasks.length === apiTasks.length && apiTasks.length > 0
+                        selectedTasks.length === apiTasks.length &&
+                        apiTasks.length > 0
                       }
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -2770,10 +3019,22 @@ export default function AllTasks({
                   <TableRow>
                     <TableCell colSpan={10} className="px-6 py-8 text-center">
                       <div className="text-red-500">
-                        <svg className="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833-.23 2.5 1.732 2.5z" />
+                        <svg
+                          className="mx-auto h-12 w-12 text-red-400 mb-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L3.732 16.5c-.77.833-.23 2.5 1.732 2.5z"
+                          />
                         </svg>
-                        <p className="text-lg font-medium">Error loading tasks</p>
+                        <p className="text-lg font-medium">
+                          Error loading tasks
+                        </p>
                         <p className="text-sm text-gray-500 mt-1">{apiError}</p>
                       </div>
                     </TableCell>
@@ -2782,23 +3043,44 @@ export default function AllTasks({
                   <TableRow>
                     <TableCell colSpan={10} className="px-6 py-12 text-center">
                       <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        <svg
+                          className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                          />
                         </svg>
-                        <h3 className="text-lg font-medium mb-2">No tasks found</h3>
+                        <h3 className="text-lg font-medium mb-2">
+                          No tasks found
+                        </h3>
                         <p className="text-sm mb-4">
                           {apiTasks.length === 0
                             ? "You don't have any tasks assigned yet."
-                            : "No tasks match your current filters."
-                          }
+                            : "No tasks match your current filters."}
                         </p>
                         {apiTasks.length === 0 && (
                           <button
                             onClick={() => setShowCreateTaskDrawer(true)}
                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <svg
+                              className="w-4 h-4 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
                             </svg>
                             Create your first task
                           </button>
@@ -2810,8 +3092,9 @@ export default function AllTasks({
                   filteredTasks.map((task) => (
                     <React.Fragment key={task.id}>
                       <TableRow
-                        className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
-                          }`}
+                        className={`hover:bg-gray-50 transition-colors ${
+                          selectedTasks.includes(task.id) ? "bg-blue-50" : ""
+                        }`}
                         style={{
                           borderLeft: `4px solid ${getTaskColorCode(task)}`,
                         }}
@@ -2852,13 +3135,44 @@ export default function AllTasks({
                                       fill="none"
                                       xmlns="http://www.w3.org/2000/svg"
                                     >
-                                      <circle cx="5" cy="5" r="2" fill="currentColor" />
-                                      <circle cx="5" cy="12" r="2" fill="currentColor" />
-                                      <circle cx="5" cy="19" r="2" fill="currentColor" />
-                                      <path d="M5 7V10" stroke="currentColor" strokeWidth="2" />
-                                      <path d="M5 14V17" stroke="currentColor" strokeWidth="2" />
-                                      <path d="M7 12H14" stroke="currentColor" strokeWidth="2" />
-                                      <path d="M7 19H14" stroke="currentColor" strokeWidth="2" />
+                                      <circle
+                                        cx="5"
+                                        cy="5"
+                                        r="2"
+                                        fill="currentColor"
+                                      />
+                                      <circle
+                                        cx="5"
+                                        cy="12"
+                                        r="2"
+                                        fill="currentColor"
+                                      />
+                                      <circle
+                                        cx="5"
+                                        cy="19"
+                                        r="2"
+                                        fill="currentColor"
+                                      />
+                                      <path
+                                        d="M5 7V10"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      />
+                                      <path
+                                        d="M5 14V17"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      />
+                                      <path
+                                        d="M7 12H14"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      />
+                                      <path
+                                        d="M7 19H14"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      />
                                     </svg>
                                     {task.subtasks.length}
                                   </button>
@@ -2911,18 +3225,38 @@ export default function AllTasks({
                                       title="Click to edit"
                                     >
                                       {task.title}
-                                      {(riskyTasks.has(task.id) || task.isRisk) && (
+                                      {(riskyTasks.has(task.id) ||
+                                        task.isRisk) && (
                                         <span
                                           className="ml-2 text-orange-500"
-                                          title={`Risky Task${task.riskLevel ? ` (${task.riskLevel})` : ''}${task.riskReason ? `: ${task.riskReason}` : ''}`}
+                                          title={`Risky Task${
+                                            task.riskLevel
+                                              ? ` (${task.riskLevel})`
+                                              : ""
+                                          }${
+                                            task.riskReason
+                                              ? `: ${task.riskReason}`
+                                              : ""
+                                          }`}
                                         >
                                           ⚠️
                                         </span>
                                       )}
-                                      {(snoozedTasks.has(task.id) || task.isSnooze) && (
+                                      {(snoozedTasks.has(task.id) ||
+                                        task.isSnooze) && (
                                         <span
                                           className="ml-2 text-yellow-500"
-                                          title={`Snoozed Task${task.snoozeUntil ? ` until ${new Date(task.snoozeUntil).toLocaleString()}` : ''}${task.snoozeReason ? `: ${task.snoozeReason}` : ''}`}
+                                          title={`Snoozed Task${
+                                            task.snoozeUntil
+                                              ? ` until ${new Date(
+                                                  task.snoozeUntil
+                                                ).toLocaleString()}`
+                                              : ""
+                                          }${
+                                            task.snoozeReason
+                                              ? `: ${task.snoozeReason}`
+                                              : ""
+                                          }`}
                                         >
                                           ⏸️
                                         </span>
@@ -2935,7 +3269,7 @@ export default function AllTasks({
                                         title={`Recurring from Task #${task.recurringFromTaskId}`}
                                         onClick={() =>
                                           console.log(
-                                            `View master task ${task.recurringFromTaskId}`,
+                                            `View master task ${task.recurringFromTaskId}`
                                           )
                                         }
                                       >
@@ -2952,15 +3286,22 @@ export default function AllTasks({
                           <div className="flex items-center">
                             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-3">
                               <span className="text-xs font-medium text-gray-600">
-                                {task.assignee && task.assignee
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("") || "UN"}
+                                {(task.assignee &&
+                                  task.assignee
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")) ||
+                                  "UN"}
                               </span>
                             </div>
                             <span className="text-sm text-gray-900">
                               {task.assignee || "Unassigned"}
                             </span>
+                            {task.assignedTo.status === "inactive" && (
+                              <span className="inline-flex items-center mx-2 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-full">
+                                Inactive
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap text-left">
@@ -2970,35 +3311,49 @@ export default function AllTasks({
                             statuses={companyStatuses}
                             onStatusChange={(newStatus) => {
                               // Only require confirmation for final statuses
-                              const statusObj = companyStatuses.find(s => s.code === newStatus);
-                              const requiresConfirmation = statusObj?.isFinal || false;
+                              const statusObj = companyStatuses.find(
+                                (s) => s.code === newStatus
+                              );
+                              const requiresConfirmation =
+                                statusObj?.isFinal || false;
 
-                              console.log('🎯 TaskStatusDropdown - Status change requested:', {
-                                taskId: task.id,
-                                currentStatus: task.status,
+                              console.log(
+                                "🎯 TaskStatusDropdown - Status change requested:",
+                                {
+                                  taskId: task.id,
+                                  currentStatus: task.status,
+                                  newStatus,
+                                  isFinal: statusObj?.isFinal,
+                                  requiresConfirmation,
+                                }
+                              );
+
+                              handleStatusChange(
+                                task.id,
                                 newStatus,
-                                isFinal: statusObj?.isFinal,
                                 requiresConfirmation
-                              });
-
-                              handleStatusChange(task.id, newStatus, requiresConfirmation);
+                              );
                             }}
                             canEdit={canEditTaskStatus(task)}
                             canMarkCompleted={canMarkAsCompleted(task)}
                           />
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap">
-                          <span
-                            className="inline-flex items-center px-2.5 py-0.5 uppercase text-gray-900" >
+                          <span className="inline-flex items-center px-2.5 py-0.5 uppercase text-gray-900">
                             {task.priority}
                           </span>
                         </TableCell>
                         <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
-                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }) : "-"}
+                          {task.dueDate
+                            ? new Date(task.dueDate).toLocaleDateString(
+                                "en-GB",
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )
+                            : "-"}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap">
                           <div className="flex items-center">
@@ -3028,7 +3383,8 @@ export default function AllTasks({
                           </div>
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap">
-                          <div className="w-6 h-6 rounded-full shadow-md"
+                          <div
+                            className="w-6 h-6 rounded-full shadow-md"
                             style={{ backgroundColor: getTaskColorCode(task) }}
                             title={getTaskColorCode(task)}
                           ></div>
@@ -3048,17 +3404,29 @@ export default function AllTasks({
                               onMarkAsRisk={() => handleMarkAsRisk(task.id)}
                               onMarkAsDone={() => {
                                 // DONE is a final status, so require confirmation
-                                const statusObj = companyStatuses.find(s => s.code === 'DONE');
-                                const requiresConfirmation = statusObj?.isFinal || true;
+                                const statusObj = companyStatuses.find(
+                                  (s) => s.code === "DONE"
+                                );
+                                const requiresConfirmation =
+                                  statusObj?.isFinal || true;
 
-                                console.log('🎯 TaskActionsDropdown - Mark as Done clicked:', {
-                                  taskId: task.id,
+                                console.log(
+                                  "🎯 TaskActionsDropdown - Mark as Done clicked:",
+                                  {
+                                    taskId: task.id,
+                                    requiresConfirmation,
+                                  }
+                                );
+
+                                handleStatusChange(
+                                  task.id,
+                                  "DONE",
                                   requiresConfirmation
-                                });
-
-                                handleStatusChange(task.id, "DONE", requiresConfirmation);
+                                );
                               }}
-                              onQuickMarkAsDone={() => handleQuickMarkAsDone(task.id)}
+                              onQuickMarkAsDone={() =>
+                                handleQuickMarkAsDone(task.id)
+                              }
                               onDelete={() => handleDeleteTask(task.id)}
                             />
                           </div>
@@ -3077,7 +3445,8 @@ export default function AllTasks({
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center gap-2 pl-8">
                                 <span className="text-blue-500">↳</span>
-                                {editingSubtaskId === (subtask._id || subtask.id) ? (
+                                {editingSubtaskId ===
+                                (subtask._id || subtask.id) ? (
                                   <input
                                     type="text"
                                     value={editingSubtaskTitle}
@@ -3085,13 +3454,16 @@ export default function AllTasks({
                                       setEditingSubtaskTitle(e.target.value)
                                     }
                                     onBlur={() =>
-                                      handleSubtaskTitleSave(subtask._id || subtask.id, task._id || task.id)
+                                      handleSubtaskTitleSave(
+                                        subtask._id || subtask.id,
+                                        task._id || task.id
+                                      )
                                     }
                                     onKeyDown={(e) =>
                                       handleSubtaskTitleKeyDown(
                                         e,
                                         subtask._id || subtask.id,
-                                        task._id || task.id,
+                                        task._id || task.id
                                       )
                                     }
                                     className="font-medium text-gray-800 bg-white border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
@@ -3102,7 +3474,10 @@ export default function AllTasks({
                                   <span
                                     className="font-medium text-gray-800 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all duration-200 inline-block flex-1"
                                     onClick={() =>
-                                      handleSubtaskTitleClick(subtask, task._id || task.id)
+                                      handleSubtaskTitleClick(
+                                        subtask,
+                                        task._id || task.id
+                                      )
                                     }
                                     title="Click to edit"
                                   >
@@ -3118,10 +3493,12 @@ export default function AllTasks({
                               <div className="flex items-center">
                                 <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center mr-2">
                                   <span className="text-xs font-medium text-gray-600">
-                                    {subtask.assignee && subtask.assignee
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("") || "UN"}
+                                    {(subtask.assignee &&
+                                      subtask.assignee
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")) ||
+                                      "UN"}
                                   </span>
                                 </div>
                                 <span className="text-sm text-gray-700">
@@ -3138,7 +3515,7 @@ export default function AllTasks({
                                   handleSubtaskStatusChange(
                                     task.id,
                                     subtask.id,
-                                    newStatus,
+                                    newStatus
                                   )
                                 }
                                 canEdit={canEditTaskStatus(subtask)}
@@ -3146,16 +3523,23 @@ export default function AllTasks({
                               />
                             </TableCell>
                             <TableCell className="px-6 py-3">
-                              <span className={getPriorityBadge(subtask.priority)}>
+                              <span
+                                className={getPriorityBadge(subtask.priority)}
+                              >
                                 {subtask.priority}
                               </span>
                             </TableCell>
                             <TableCell className="px-6 py-3 text-sm text-gray-700">
-                              {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }) : "-"}
+                              {subtask.dueDate
+                                ? new Date(subtask.dueDate).toLocaleDateString(
+                                    "en-GB",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )
+                                : "-"}
                             </TableCell>
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center">
@@ -3186,7 +3570,10 @@ export default function AllTasks({
                                 <button
                                   className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
                                   onClick={() =>
-                                    handleDeleteSubtask(task._id || task.id, subtask._id || subtask.id)
+                                    handleDeleteSubtask(
+                                      task._id || task.id,
+                                      subtask._id || subtask.id
+                                    )
                                   }
                                   title="Delete Sub-task"
                                 >
@@ -3221,7 +3608,11 @@ export default function AllTasks({
 
       {/* Slide-in Drawer */}
       {showCreateTaskDrawer && (
-        <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 overflow-hidden"
+          role="dialog"
+          aria-modal="true"
+        >
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowCreateTaskDrawer(false)}
@@ -3246,7 +3637,7 @@ export default function AllTasks({
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                      },
+                      }
                     )}`}
                 </h2>
                 <button
@@ -3282,7 +3673,11 @@ export default function AllTasks({
 
       {/* Detail Modal */}
       {showTaskDetails && selectedTask && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0"
+          role="dialog"
+          aria-modal="true"
+        >
           <div
             className="absolute inset-0 bg-black/40 "
             onClick={() => setShowTaskDetails(false)}
@@ -3326,20 +3721,36 @@ export default function AllTasks({
                 {selectedTask && (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Title</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedTask.title}</p>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Title
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedTask.title}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Status</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedTask.status}</p>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Status
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedTask.status}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Assignee</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedTask.assignee}</p>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Assignee
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedTask.assignee}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Due Date</label>
-                      <p className="mt-1 text-sm text-gray-900">{selectedTask.dueDate || 'No due date'}</p>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Due Date
+                      </label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedTask.dueDate || "No due date"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -3351,7 +3762,11 @@ export default function AllTasks({
 
       {/* Edit Modal */}
       {showEditTaskModal && editingTask && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0"
+          role="dialog"
+          aria-modal="true"
+        >
           <div
             className="absolute inset-0 bg-black/40 "
             onClick={() => setShowEditTaskModal(false)}
@@ -3407,30 +3822,38 @@ export default function AllTasks({
           taskTitle={showStatusConfirmation.taskTitle}
           statusLabel={showStatusConfirmation.statusLabel}
           onConfirm={(reason) => {
-            console.log('🎯 Status confirmation - CONFIRMED:', {
+            console.log("🎯 Status confirmation - CONFIRMED:", {
               taskId: showStatusConfirmation.taskId,
               newStatusCode: showStatusConfirmation.newStatusCode,
               reason,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
             });
 
             // Find the task and execute status change
-            const task = apiTasks.find(t =>
-              t._id === showStatusConfirmation.taskId ||
-              t.id === showStatusConfirmation.taskId
+            const task = apiTasks.find(
+              (t) =>
+                t._id === showStatusConfirmation.taskId ||
+                t.id === showStatusConfirmation.taskId
             );
 
             if (task) {
-              console.log('🔧 Executing status change after confirmation...');
-              executeStatusChange(task, showStatusConfirmation.newStatusCode, reason);
+              console.log("🔧 Executing status change after confirmation...");
+              executeStatusChange(
+                task,
+                showStatusConfirmation.newStatusCode,
+                reason
+              );
             } else {
-              console.error('❌ Task not found for status confirmation:', showStatusConfirmation.taskId);
+              console.error(
+                "❌ Task not found for status confirmation:",
+                showStatusConfirmation.taskId
+              );
             }
 
             setShowStatusConfirmation(null);
           }}
           onCancel={() => {
-            console.log('❌ Status confirmation - CANCELLED');
+            console.log("❌ Status confirmation - CANCELLED");
             setShowStatusConfirmation(null);
           }}
         />
@@ -3438,7 +3861,11 @@ export default function AllTasks({
 
       {/* Calendar Modal for Date Selection */}
       {showCalendarModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 overflow-hidden overlay-animate mt-0"
+          role="dialog"
+          aria-modal="true"
+        >
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setShowCalendarModal(false)}
@@ -3456,8 +3883,18 @@ export default function AllTasks({
                   onClick={() => setShowCalendarModal(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -3480,7 +3917,16 @@ export default function AllTasks({
           title={confirmModal.title}
           message={confirmModal.message}
           onConfirm={confirmModal.onConfirm}
-          onCancel={() => setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null })}
+          onCancel={() =>
+            setConfirmModal({
+              isOpen: false,
+              type: "",
+              title: "",
+              message: "",
+              onConfirm: null,
+              data: null,
+            })
+          }
         />
       )}
 

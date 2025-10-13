@@ -56,21 +56,24 @@ export default function ResetPassword() {
     }
   };
 
-  const validatePassword = (password) => {
-    return password.length >= 8 && 
-           /[A-Z]/.test(password) && 
-           /[a-z]/.test(password) && 
-           /[0-9]/.test(password) &&
-           /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  // Centralized password rules used by both UI and validation
+  const PASSWORD_RULES = [
+    { key: 'len', test: (p) => p.length >= 8, text: 'At least 8 characters' },
+    { key: 'upper', test: (p) => /[A-Z]/.test(p), text: 'Contains uppercase letter' },
+    { key: 'lower', test: (p) => /[a-z]/.test(p), text: 'Contains lowercase letter' },
+    { key: 'number', test: (p) => /[0-9]/.test(p), text: 'Contains a number' },
+    { key: 'special', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p), text: 'Contains special character' }
+  ];
+
+  // Returns validity and the list of missing requirements
+  const evaluatePassword = (password) => {
+    const missing = PASSWORD_RULES.filter(r => !r.test(password)).map(r => r.text);
+    return { isValid: missing.length === 0, missing };
   };
 
-  const getPasswordStrengthText = () => [
-    { test: formData.password.length >= 8, text: 'At least 8 characters' },
-    { test: /[A-Z]/.test(formData.password), text: 'Contains uppercase letter' },
-    { test: /[a-z]/.test(formData.password), text: 'Contains lowercase letter' },
-    { test: /[0-9]/.test(formData.password), text: 'Contains a number' },
-    { test: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password), text: 'Contains special character' }
-  ];
+  // Returns UI-ready rule status for the current password
+  const getPasswordStrengthText = () =>
+    PASSWORD_RULES.map(r => ({ test: r.test(formData.password), text: r.text }));
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -85,8 +88,11 @@ export default function ResetPassword() {
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 8 characters with uppercase, lowercase, and number";
+    } else {
+      const { isValid, missing } = evaluatePassword(formData.password);
+      if (!isValid) {
+        newErrors.password = `Password requirements not met: ${missing.join(", ")}`;
+      }
     }
 
     if (formData.password !== formData.confirmPassword) {

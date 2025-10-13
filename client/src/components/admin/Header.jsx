@@ -13,7 +13,7 @@ import {
 import { Bell, Search, User, Settings, LogOut, Edit3 } from "lucide-react";
 import ProfileUpdateModal from "@/components/profile/ProfileUpdateModal";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import RoleSwitcher from "../RoleSwitcher";
+import RoleSwitcher, { getRoleDisplayName } from "../RoleSwitcher";
 import { useAuthStore } from "../../stores/useAuthStore";
 
 export default function Header({ user }) {
@@ -196,6 +196,7 @@ export default function Header({ user }) {
       return `${diffInDays}d ago`;
     }
   };
+ 
   const getNotificationIcon = (type) => {
     const icons = {
       assignment: "👤",
@@ -377,7 +378,10 @@ export default function Header({ user }) {
                   {currentUser?.email}
                 </p>
                 <p className="text-xs text-blue-600 font-medium mt-1 capitalize">
-                  {currentUser?.activeRole || currentUser?.role?.[0] || 'User'}
+          
+                  {
+                    getRoleDisplayName(currentUser?.activeRole || currentUser?.role?.[0] || 'User')
+                  }
                 </p>
               </div>
               <DropdownMenuItem
