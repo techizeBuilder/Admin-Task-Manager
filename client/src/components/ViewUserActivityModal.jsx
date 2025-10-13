@@ -6,7 +6,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Eye,
@@ -24,7 +30,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getInitials, } from "../lib/utils";
+import { getInitials } from "../lib/utils";
 import { renderRoles, roleLabels } from "../utils/roleBadge";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
@@ -35,32 +41,41 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
   // Export individual user activity data
   const exportUserActivity = () => {
     const userData = {
-      'User Name': user.name,
-      'Email': user.email,
-      'Role': user.role,
-      'License': user.licenseId,
-      'Department': user.department || 'N/A',
-      'Designation': user.designation || 'N/A',
-      'Location': user.location || 'N/A',
-      'Status': user.status,
-      'Date Joined': new Date(user.createdAt).toLocaleDateString(),
-      'Last Login': user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString(): 'Never',
-      'Tasks Assigned': user.tasksAssigned,
-      'Tasks Completed': user.tasksCompleted,
-      'Forms Created': user.formsCreated,
-      'Active Processes': user.activeProcesses,
-      'Completion Rate': user.tasksAssigned > 0 ? `${((user.tasksCompleted / user.tasksAssigned) * 100).toFixed(1)}%` : '0%'
+      "User Name": user.name,
+      Email: user.email,
+      Role: user.role,
+      License: user.licenseId,
+      Department: user.department || "N/A",
+      Designation: user.designation || "N/A",
+      Location: user.location || "N/A",
+      Status: user.status,
+      "Date Joined": new Date(user.createdAt).toLocaleDateString(),
+      "Last Login": user.lastLoginAt
+        ? new Date(user.lastLoginAt).toLocaleDateString()
+        : "Never",
+      "Tasks Assigned": user.tasksAssigned,
+      "Tasks Completed": user.tasksCompleted,
+      "Forms Created": user.formsCreated,
+      "Active Processes": user.activeProcesses,
+      "Completion Rate":
+        user.tasksAssigned > 0
+          ? `${((user.tasksCompleted / user.tasksAssigned) * 100).toFixed(1)}%`
+          : "0%",
     };
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [Object.keys(userData).join(',')]
-        .concat([Object.values(userData).join(',')])
-        .join('\n');
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [Object.keys(userData).join(",")]
+        .concat([Object.values(userData).join(",")])
+        .join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${user.name.replace(/\s+/g, '_')}_activity_data.csv`);
+    link.setAttribute(
+      "download",
+      `${user.name.replace(/\s+/g, "_")}_activity_data.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -73,24 +88,48 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
     });
   };
 
-  const completionRate = user.tasksAssigned > 0 
-    ? ((user.tasksCompleted / user.tasksAssigned) * 100).toFixed(1) 
-    : 0;
+  const completionRate =
+    user.assignedTasks > 0
+      ? ((user.completedTasks / user.assignedTasks) * 100).toFixed(1)
+      : 0;
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="h-3 w-3 mr-1" />Active</Badge>;
-      case 'inactive':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">Inactive</Badge>;
-      case 'invited':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case "active":
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-800 border-green-200"
+          >
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
+        );
+      case "inactive":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-red-100 text-red-800 border-red-200"
+          >
+            Inactive
+          </Badge>
+        );
+      case "invited":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-100 text-yellow-800 border-yellow-200"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-console.log('user in modal.........',user)
+  console.log("user in modal.........", user);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -117,9 +156,7 @@ console.log('user in modal.........',user)
                   <div className="text-xl font-semibold">{user.name}</div>
                   <div className="text-sm text-gray-500">{user.email}</div>
                 </div>
-                <div className="ml-auto">
-                  {getStatusBadge(user.status)}
-                </div>
+                <div className="ml-auto">{getStatusBadge(user.status)}</div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -127,36 +164,37 @@ console.log('user in modal.........',user)
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-500" />
                   <span className="text-sm ">
-                    <strong >Role:</strong> {user.role.map(r => roleLabels[r]).join(', ')}
+                    <strong>Role:</strong>{" "}
+                    {user.role.map((r) => roleLabels[r]).join(", ")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    <strong>Department:</strong> {user.department || 'N/A'}
+                    <strong>Department:</strong> {user.department || "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    <strong>Designation:</strong> {user.designation || 'N/A'}
+                    <strong>Designation:</strong> {user.designation || "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    <strong>Location:</strong> {user.location || 'N/A'}
+                    <strong>Location:</strong> {user.location || "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <BadgeCheck className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    <strong>License:</strong> <Badge variant="outline" className="font-mono text-xs">
-                    {user.licenseId}
-                  </Badge>
+                    <strong>License:</strong>{" "}
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {user.licenseId}
+                    </Badge>
                   </span>
                 </div>
-              
               </div>
             </CardContent>
           </Card>
@@ -165,7 +203,9 @@ console.log('user in modal.........',user)
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Date Joined</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Date Joined
+                </CardTitle>
                 <Calendar className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
@@ -173,51 +213,67 @@ console.log('user in modal.........',user)
                   {new Date(user.createdAt).toLocaleDateString()}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {Math.floor((new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24))} days ago
+                  {Math.floor(
+                    (new Date() - new Date(user.createdAt)) /
+                      (1000 * 60 * 60 * 24)
+                  )}{" "}
+                  days ago
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Last Login</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Last Login
+                </CardTitle>
                 <Clock className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-bold">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                  {user.lastLoginAt
+                    ? new Date(user.lastLoginAt).toLocaleDateString()
+                    : "Never"}
                 </div>
                 <p className="text-xs text-gray-500">
-                  {user.lastLoginAt 
-                    ? `${Math.floor((new Date() - new Date(user.lastLoginAt)) / (1000 * 60 * 60 * 24))} days ago`
-                    : 'No login recorded'
-                  }
+                  {user.lastLoginAt
+                    ? `${Math.floor(
+                        (new Date() - new Date(user.lastLoginAt)) /
+                          (1000 * 60 * 60 * 24)
+                      )} days ago`
+                    : "No login recorded"}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Tasks Assigned</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Tasks Assigned
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.tasksAssigned || 0}</div>
-                <p className="text-xs text-gray-500">
-                  Total assigned tasks
-                </p>
+                <div className="text-2xl font-bold">
+                  {user.assignedTasks || 0}
+                </div>
+                <p className="text-xs text-gray-500">Total assigned tasks</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Completion Rate
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{completionRate}%</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {completionRate}%
+                </div>
                 <p className="text-xs text-gray-500">
-                  {user.tasksCompleted || 0}/{user.tasksAssigned || 0} completed
+                  {user.completedTasks || 0}/{user.assignedTasks || 0} completed
                 </p>
               </CardContent>
             </Card>
@@ -227,51 +283,90 @@ console.log('user in modal.........',user)
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Forms Created</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Forms Created
+                </CardTitle>
                 <FileText className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{user.formsCreated || 0}</div>
-                <p className="text-xs text-gray-500">
-                  Total forms created
-                </p>
+                <div className="text-2xl font-bold">
+                  {user.formsCreated || 0}
+                </div>
+                <p className="text-xs text-gray-500">Total forms created</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Processes</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Active Processes
+                </CardTitle>
                 <Settings className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{user.activeProcesses || 0}</div>
-                <p className="text-xs text-gray-500">
-                  Currently running
-                </p>
+                <div className="text-2xl font-bold text-orange-600">
+                  {user.activeProcesses || 0}
+                </div>
+                <p className="text-xs text-gray-500">Currently running</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Performance</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Performance
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-purple-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
-                  {user.tasksAssigned > 0 ? 'Good' : 'New'}
-                </div>
-                <p className="text-xs text-gray-500">
-                  {user.tasksAssigned > 0 
-                    ? `${completionRate|| 0}% completion rate`
-                    : 'No tasks assigned yet'
-                  }
-                </p>
+                {user.assignedTasks > 0 ? (
+                  (() => {
+                    const rate = completionRate || 0;
+                    let label = "";
+                    let color = "";
+
+                    if (rate < 25) {
+                      label = "Emerging";
+                      color = "text-red-500";
+                    } else if (rate < 50) {
+                      label = "Average";
+                      color = "text-orange-500";
+                    } else if (rate < 75) {
+                      label = "Good";
+                      color = "text-blue-500";
+                    } else if (rate < 100) {
+                      label = "Excellent";
+                      color = "text-green-500";
+                    } else {
+                      label = "Outstanding";
+                      color = "text-emerald-500";
+                    }
+
+                    return (
+                      <>
+                        <div className={`text-2xl font-bold ${color}`}>
+                          {label}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {rate}% completion rate
+                        </p>
+                      </>
+                    );
+                  })()
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-gray-500">New</div>
+                    <p className="text-xs text-gray-400">
+                      No tasks assigned yet
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Performance Insights */}
-          {user.status === 'Inactive' && (
+          {user.status === "Inactive" && (
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
                 <CardTitle className="text-red-800 flex items-center gap-2">
@@ -281,16 +376,15 @@ console.log('user in modal.........',user)
               </CardHeader>
               <CardContent>
                 <p className="text-red-700">
-                  This user is currently inactive and cannot log in. 
-                  {user.activeProcesses > 0 && (
-                    ` They have ${user.activeProcesses} active task(s) that will show "Owner Inactive" label.`
-                  )}
+                  This user is currently inactive and cannot log in.
+                  {user.activeProcesses > 0 &&
+                    ` They have ${user.activeProcesses} active task(s) that will show "Owner Inactive" label.`}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {user.status === 'Pending' && (
+          {user.status === "Pending" && (
             <Card className="border-yellow-200 bg-yellow-50">
               <CardHeader>
                 <CardTitle className="text-yellow-800 flex items-center gap-2">
@@ -300,8 +394,8 @@ console.log('user in modal.........',user)
               </CardHeader>
               <CardContent>
                 <p className="text-yellow-700">
-                  This user hasn't activated their account yet. The invitation was sent on{' '}
-                  {new Date(user.dateCreated).toLocaleDateString()}. 
+                  This user hasn't activated their account yet. The invitation
+                  was sent on {new Date(user.dateCreated).toLocaleDateString()}.
                   Invitation links expire in 72 hours.
                 </p>
               </CardContent>
@@ -311,17 +405,15 @@ console.log('user in modal.........',user)
 
         {/* Modal Actions */}
         <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={exportUserActivity}
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
             Export Activity CSV
           </Button>
-          <Button onClick={onClose}>
-            Close
-          </Button>
+          <Button onClick={onClose}>Close</Button>
         </div>
       </DialogContent>
     </Dialog>

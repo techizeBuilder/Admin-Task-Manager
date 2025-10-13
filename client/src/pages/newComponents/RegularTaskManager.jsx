@@ -98,6 +98,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useShowToast } from "../../utils/ToastMessage";
 // THEME: Regular Task uses teal; Milestone uses purple
 const RT = {
   // base
@@ -236,6 +237,7 @@ const dueDateFromPriority = (priority) => {
 
 export default function RegularTaskManager() {
   // Pagination and filters
+    const { showSuccessToast, showErrorToast } = useShowToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageLimit] = useState(20);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -481,7 +483,7 @@ export default function RegularTaskManager() {
         });
 
         // Show success message
-        showSuccessToast(`Task "${editForm.taskName}" updated successfully!`, 'success');
+        showSuccessToast(`Task "${editForm.taskName}" updated successfully!`);
 
         // Close modal automatically
         closeEditModal();
@@ -494,7 +496,7 @@ export default function RegularTaskManager() {
         // Handle API error response
         const errorMessage = response.data?.message || "Failed to update task.";
         setEditError(errorMessage);
-        showSuccessToast(errorMessage, 'error');
+        showErrorToast(errorMessage);
       }
     } catch (err) {
       console.error('Error updating task:', err);
@@ -510,7 +512,7 @@ export default function RegularTaskManager() {
       }
 
       setEditError(errorMessage);
-      showSuccessToast(errorMessage, 'error');
+      showErrorToast(errorMessage);
     }
     setEditLoading(false);
   };
@@ -643,31 +645,8 @@ export default function RegularTaskManager() {
           : task
       );
     });
-  };  // Success toast state
-  const [successToast, setSuccessToast] = useState({
-    isVisible: false,
-    message: '',
-    type: 'success'
-  });
-
-  // Show success toast
-  const showSuccessToast = (message, type = 'success') => {
-    setSuccessToast({
-      isVisible: true,
-      message: message,
-      type: type
-    });
-
-    // Auto hide after different durations based on type
-    const duration = type === 'error' ? 5000 : 3000; // Errors shown longer
-    setTimeout(() => {
-      setSuccessToast({
-        isVisible: false,
-        message: '',
-        type: 'success'
-      });
-    }, duration);
-  };
+  };  
+ 
 
   // Delete confirmation modal state
   const [deleteConfirmation, setDeleteConfirmation] = useState({
@@ -755,7 +734,7 @@ export default function RegularTaskManager() {
     } catch (err) {
       console.error('Delete task error:', err);
       setDeleteError(err.message || "Error deleting task.");
-      showSuccessToast(`Error deleting task: ${err.message || 'Unknown error'}`, 'error');
+      showErrorToast(`Error deleting task: ${err.message || 'Unknown error'}`);
       setDeletingTaskId(null);
     }
   };
@@ -1123,7 +1102,7 @@ export default function RegularTaskManager() {
             {currentTasks.map((task) => (
               <div
                 key={task.id}
-                className="bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
+                className="flex flex-col justify-between bg-white rounded-md shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200"
               >
                 {/* Card Header */}
                 <div className={`p-4 ${RT.panelHeader}`}>
@@ -1415,38 +1394,6 @@ export default function RegularTaskManager() {
         )}
       </div>
 
-      {/* Success Toast Notification */}
-      {successToast.isVisible && (
-        <div className="fixed top-4 right-4 z-50">
-          <div className={`px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 ${successToast.type === 'success'
-            ? 'bg-green-500 text-white'
-            : successToast.type === 'error'
-              ? 'bg-red-500 text-white'
-              : 'bg-blue-500 text-white'
-            }`}>
-            <div className="flex-shrink-0">
-              {successToast.type === 'success' && (
-                <CheckCircle2 className="h-5 w-5" />
-              )}
-              {successToast.type === 'error' && (
-                <AlertCircle className="h-5 w-5" />
-              )}
-              {successToast.type === 'info' && (
-                <Clock className="h-5 w-5" />
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="font-medium">{successToast.message}</p>
-            </div>
-            <button
-              onClick={() => setSuccessToast({ isVisible: false, message: '', type: 'success' })}
-              className="flex-shrink-0 ml-4 text-white hover:text-gray-200"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );

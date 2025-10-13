@@ -817,7 +817,7 @@ Note: Live feed URLs require server-side implementation.`;
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <div className="calendar-container bg-white border border-gray-200 rounded-lg">
+    <div className="calendar-container bg-white border border-gray-200 rounded-md">
       {/* Calendar Header */}
       <div className="calendar-header p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">

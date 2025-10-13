@@ -4,6 +4,9 @@ import { authenticateToken, roleAuth } from "../middleware/roleAuth.js";
 
 const router = express.Router();
 
+// Get basic organization stats
+router.get("/organization/:orgId/stats", authenticateToken,  roleAuth(["org_admin"]), userController.getOrgStats);
+
 /**
  * @swagger
  * /api/organization/users/{userId}:

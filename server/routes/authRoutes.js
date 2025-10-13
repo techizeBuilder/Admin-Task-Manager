@@ -246,4 +246,100 @@ router.post("/validate-invite-token", authController.validateInviteToken);
  */
 router.post("/complete-invitation", authController.completeInvitation);
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current authenticated user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user data
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/me", authenticateToken, authController.getCurrentUser);
+
+/**
+ * @swagger
+ * /api/auth/collaborators:
+ *   get:
+ *     summary: Get list of potential collaborators for approval tasks
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of collaborators
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/collaborators", authenticateToken, authController.getCollaboratorsList);
+
+/**
+ * @swagger
+ * /api/auth/approvers:
+ *   get:
+ *     summary: Get list of potential approvers for approval tasks
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of approvers
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/approvers", authenticateToken, authController.getApproversList);
+
+/**
+ * @swagger
+ * /api/auth/verify-token:
+ *   post:
+ *     summary: Verify email token and set password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified and password set
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/verify-token", authController.verifyToken);
+
+/**
+ * @swagger
+ * /api/auth/validate-reset-token:
+ *   post:
+ *     summary: Validate a password reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       400:
+ *         description: Invalid or expired token
+ */
+router.post("/validate-reset-token", authController.validateResetToken);
+
 export default router;

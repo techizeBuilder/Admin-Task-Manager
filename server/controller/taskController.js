@@ -3,6 +3,74 @@ import { calculateNextDueDate, getTaskTypeLabel, getTaskOrganizationId } from ".
 import { User } from "../modals/userModal.js";
 import Task from "../modals/taskModal.js";
 
+// 🎨 Centralized Status Color Mapping for TaskSetu
+// Based on Tasksetu Requirement Specification (Module 4.7 – Task Status Management)
+const STATUS_COLOR_MAP = {
+  // Core Task Statuses
+  'open': '#3B82F6',           // Blue - Task created, work not started
+  'in-progress': '#F59E0B',    // Yellow/Orange - Actively working
+  'in_progress': '#F59E0B',    // Alternative format
+  'INPROGRESS': '#F59E0B',     // Database format
+  'on-hold': '#6B7280',        // Gray - Temporarily paused
+  'ONHOLD': '#6B7280',         // Database format
+  'completed': '#10B981',      // Green - Successfully finished
+  'done': '#10B981',           // Alternative format
+  'cancelled': '#EF4444',      // Red - Intentionally terminated
+  'rejected': '#DC2626',       // Dark Red - Rejected/declined
+  
+  // Review & Approval Statuses
+  'review': '#8B5CF6',         // Purple - Under review
+  'pending': '#F97316',        // Orange - Waiting for action
+  'approved': '#059669',       // Dark Green - Approved
+  'partially_approved': '#8B5CF6', // Purple - Some approvals received
+  'pending_approval': '#F59E0B',    // Orange - Waiting for approval
+  'auto_approved': '#6366F1',       // Indigo - System auto-approved
+  
+  // Additional Common Statuses
+  'todo': '#9CA3AF',           // Light Gray - To do
+  'new': '#3B82F6',            // Blue - Newly created
+  'active': '#F59E0B',         // Orange - Currently active
+  'blocked': '#F59E0B',        // Orange - Blocked by dependency
+  'overdue': '#DC2626',        // Red - Past due date
+  'paused': '#6B7280',         // Gray - Paused
+  'closed': '#10B981',         // Green - Closed/finished
+  
+  // Priority Status Colors (if needed)
+  'low': '#22C55E',            // Green - Low priority
+  'medium': '#F59E0B',         // Orange - Medium priority
+  'high': '#F97316',           // Dark Orange - High priority
+  'critical': '#EF4444',       // Red - Critical priority
+  
+  // Task Type Colors (if needed)
+  'regular': '#3B82F6',        // Blue
+  'recurring': '#8B5CF6',      // Violet
+  'milestone': '#F97316',      // Orange
+  'approval': '#059669'        // Emerald
+};
+
+// Helper: recalc assigned/completed counters for a user (counts non-deleted tasks; includes subtasks)
+async function recalcUserTaskCounters(userId) {
+  try {
+    if (!userId) return;
+    const uid = userId.toString ? userId.toString() : userId;
+    const assignedCount = await Task.countDocuments({
+      assignedTo: uid,
+      isDeleted: { $ne: true }
+    });
+    const completedCount = await Task.countDocuments({
+      assignedTo: uid,
+      status: "completed",
+      isDeleted: { $ne: true }
+    });
+    await User.findByIdAndUpdate(uid, {
+      assignedTasks: assignedCount,
+      completedTasks: completedCount
+    });
+  } catch (err) {
+    console.error("recalcUserTaskCounters error:", { userId, error: err.message });
+  }
+}
+
 export const createTask = async (req, res) => {
   try {
     const user = req.user;
@@ -137,6 +205,9 @@ export const createTask = async (req, res) => {
       }
     }
 
+    // Recalculate counters for assignee
+    await recalcUserTaskCounters(createdTask?.assignedTo);
+
     res.status(201).json({
       success: true,
       message: `${getTaskTypeLabel(parsedTaskData.taskType)} created successfully`,
@@ -263,6 +334,9 @@ export const createSubtask = async (req, res) => {
 
     // Save subtask
     const createdSubtask = await storage.createTask(subtaskData);
+
+    // Recalculate counters for subtask assignee
+    await recalcUserTaskCounters(createdSubtask?.assignedTo);
 
     res.status(201).json({
       success: true,
@@ -429,18 +503,24 @@ export const updateSubtask = async (req, res) => {
       });
     }
 
+    // Track previous assignee for counter adjustments
+    const prevAssignee = subtask.assignedTo?.toString();
+
     // Prepare update data
     const updateData = {
       ...updates,
       updatedAt: new Date()
     };
-
-    // Handle date fields
     if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
     if (updates.startDate) updateData.startDate = new Date(updates.startDate);
 
     // Update subtask
     const updatedSubtask = await storage.updateTask(subtaskId, updateData, user.id);
+
+    // Recalculate counters for affected users (old and new assignee if changed)
+    const newAssignee = (updates.assignedTo || updatedSubtask?.assignedTo || prevAssignee);
+    await recalcUserTaskCounters(prevAssignee);
+    await recalcUserTaskCounters(newAssignee);
 
     res.json({
       success: true,
@@ -537,6 +617,9 @@ export const deleteSubtask = async (req, res) => {
 
     console.log('Permissions passed, proceeding with soft delete...');
 
+    // Keep assignee for counter recalculation
+    const assignee = subtask?.assignedTo;
+
     // Soft delete subtask
     const updateResult = await storage.updateTask(subtaskId, {
       isDeleted: true,
@@ -546,6 +629,9 @@ export const deleteSubtask = async (req, res) => {
 
     console.log('Subtask soft delete result:', updateResult);
     console.log('=== DELETE SUBTASK COMPLETE ===');
+
+    // Recalculate counters for subtask assignee after delete
+    await recalcUserTaskCounters(assignee);
 
     res.json({
       success: true,
@@ -2057,17 +2143,27 @@ export const updateTask = async (req, res) => {
       }
     }
 
-    // Prepare update data
+    const prevAssignee = task.assignedTo?.toString();
+    const prevStatus = task.status;
+
     const updateData = {
       ...updates,
       updatedAt: new Date()
     };
-
-    // Handle date fields
     if (updates.dueDate) updateData.dueDate = new Date(updates.dueDate);
     if (updates.startDate) updateData.startDate = new Date(updates.startDate);
 
     const updatedTask = await storage.updateTask(id, updateData, user.id);
+
+    // Recalculate counters if assignee or status possibly changed
+    const newAssignee = (updates.assignedTo || updatedTask?.assignedTo || prevAssignee);
+    if (newAssignee) {
+      await recalcUserTaskCounters(prevAssignee);
+      await recalcUserTaskCounters(newAssignee);
+    } else {
+      // If only status changed without reassignment, still recalc assignee
+      await recalcUserTaskCounters(prevAssignee);
+    }
 
     res.json({
       success: true,
@@ -2187,6 +2283,9 @@ export const updateTaskStatus = async (req, res) => {
       completedBy: updatedTask?.completedBy
     });
 
+    // Recalculate counters for current assignee
+    await recalcUserTaskCounters(updatedTask?.assignedTo);
+
     console.log('✅ Sending success response to client');
     res.json({
       success: true,
@@ -2266,30 +2365,14 @@ export const deleteTask = async (req, res) => {
 
     console.log('Permissions passed, proceeding with soft delete...');
 
-    // Check task state before update
-    console.log('Task state BEFORE update:', {
-      id: task._id,
-      title: task.title,
-      isDeleted: task.isDeleted,
-      updatedAt: task.updatedAt
-    });
+    // Keep assignee for counter recalculation
+    const assignee = task?.assignedTo;
 
     // Soft delete
-    console.log('Calling storage.updateTask with:', {
-      id: id,
-      updateData: {
-        isDeleted: true,
-        updatedAt: new Date()
-      },
-      userId: user.id
-    });
-
     const updateResult = await storage.updateTask(id, {
       isDeleted: true,
       updatedAt: new Date()
     }, user.id);
-
-    console.log('Update result from storage:', updateResult);
 
     // Verify the update by fetching the task again
     const updatedTask = await storage.getTaskById(id);
@@ -2317,6 +2400,9 @@ export const deleteTask = async (req, res) => {
     } catch (dbError) {
       console.error('Error in direct database check:', dbError);
     }
+
+    // Recalculate counters for assignee after delete
+    await recalcUserTaskCounters(assignee);
 
     console.log('=== DELETE TASK COMPLETE ===');
 
@@ -2451,6 +2537,18 @@ export const getTasksByType = async (req, res) => {
       category
     } = req.query;
 
+    console.log('🔍 GET TASKS BY TYPE API CALLED:', {
+      type,
+      status,
+      priority,
+      page,
+      limit,
+      search,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log('🎨 Using centralized status color mapping with', Object.keys(STATUS_COLOR_MAP).length, 'status mappings');
+
     // Validate taskType parameter
     const validTaskTypes = ["regular", "recurring", "milestone", "approval"];
     if (!validTaskTypes.includes(type)) {
@@ -2529,9 +2627,21 @@ export const getTasksByType = async (req, res) => {
 
     if (tasks && tasks.length > 0) {
       for (let task of tasks) {
+        // Add status color to each task using centralized mapping
+        task.statusColor = STATUS_COLOR_MAP[task.status] || '#6B7280'; // Default gray if status not found
+        
+        console.log('🔍 Processing task:', {
+          taskId: task._id,
+          title: task.title,
+          status: task.status,
+          statusColor: task.statusColor,
+          createdByRole: task.createdByRole
+        });
+
         if (groupedTasks[task.createdByRole]) {
           groupedTasks[task.createdByRole].push(task);
         }
+        
         // Add approval details if needed
         if (task.isApprovalTask) {
           try {
@@ -2550,11 +2660,24 @@ export const getTasksByType = async (req, res) => {
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
+    // Log summary for debugging
+    console.log('✅ Final task summary for type:', type, {
+      totalTasksFound: totalTasks,
+      tasksByRole: Object.keys(groupedTasks).reduce((acc, role) => {
+        acc[role] = groupedTasks[role].length;
+        return acc;
+      }, {}),
+      pagination: { 
+        currentPage: parseInt(page), 
+        totalPages, 
+        hasNext, 
+        hasPrev 
+      }
+    });
+
     // Response (grouped by roles)
     res.json({
       success: true,
-      message: `${type} tasks retrieved successfully`,
-      taskType: type,
       data: {
         roles: groupedTasks,
         pagination: {
@@ -2563,11 +2686,11 @@ export const getTasksByType = async (req, res) => {
           totalTasks,
           hasNextPage: hasNext,
           hasPrevPage: hasPrev,
-          limit: parseInt(limit)
-        }
-      }
+          limit: parseInt(limit),
+        },
+        statusColorMap: STATUS_COLOR_MAP // Include centralized color mapping in response for frontend reference
+      },
     });
-
   } catch (error) {
     console.error('Error fetching tasks by type:', error);
     res.status(500).json({
@@ -2600,20 +2723,7 @@ export const getMyTasks = async (req, res) => {
       timestamp: new Date().toISOString()
     });
 
-    // Status color mapping configuration
-    const statusColorMap = {
-      'open': '#3B82F6',      // Blue
-      'in-progress': '#F59E0B', // Yellow/Orange
-      'review': '#8B5CF6',    // Purple
-      'completed': '#10B981', // Green
-      'cancelled': '#EF4444', // Red
-      'on-hold': '#6B7280',   // Gray
-      'pending': '#F97316',   // Orange
-      'approved': '#059669',  // Green
-      'rejected': '#DC2626'   // Red
-    };
-
-    console.log('🎨 Status color mapping configured:', statusColorMap);
+    console.log('🎨 Using centralized status color mapping with', Object.keys(STATUS_COLOR_MAP).length, 'status mappings');
 
     // Base filter for main tasks only (exclude subtasks)
     const filter = {
@@ -2682,15 +2792,15 @@ export const getMyTasks = async (req, res) => {
         completedBy: subtask.completedBy || null,
         completionNotes: subtask.completionNotes || null,
         
-        // Status color mapping
-        statusColor: statusColorMap[subtask.status] || '#6B7280' // Default gray if status not found
+        // Status color mapping using centralized constant
+        statusColor: STATUS_COLOR_MAP[subtask.status] || '#6B7280' // Default gray if status not found
       }));
 
       console.log('🔍 Processing task:', {
         taskId: task._id,
         title: task.title,
         status: task.status,
-        statusColor: statusColorMap[task.status],
+        statusColor: STATUS_COLOR_MAP[task.status],
         subtasksCount: enhancedSubtasks.length,
         createdByRole: task.createdByRole
       });
@@ -2719,8 +2829,8 @@ export const getMyTasks = async (req, res) => {
         completedBy: task.completedBy || null,
         completionNotes: task.completionNotes || null,
         
-        // Status color mapping for main task
-        statusColor: statusColorMap[task.status] || '#6B7280' // Default gray if status not found
+        // Status color mapping for main task using centralized constant
+        statusColor: STATUS_COLOR_MAP[task.status] || '#6B7280' // Default gray if status not found
       };
 
       // Group by createdByRole
@@ -2746,7 +2856,7 @@ export const getMyTasks = async (req, res) => {
       }, {}),
       pagination: {
         currentPage: parseInt(page),
-        totalPages,
+        totalPages: totalPages,
         hasNext,
         hasPrev
       }
@@ -2765,19 +2875,15 @@ export const getMyTasks = async (req, res) => {
           hasPrevPage: hasPrev,
           limit: parseInt(limit),
         },
-        statusColorMap: statusColorMap // Include color mapping in response for frontend reference
+        statusColorMap: STATUS_COLOR_MAP // Include centralized color mapping in response for frontend reference
       },
     });
   } catch (error) {
-    console.error("❌ ERROR in getMyTasks:", {
-      error: error.message,
-      stack: error.stack,
-      queryParams: req.query
-    });
+    console.error('Error fetching tasks by type:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch tasks",
-      error: error.message,
+      message: 'Failed to fetch tasks by type',
+      error: error.message
     });
   }
 };
@@ -3074,6 +3180,9 @@ export const quickMarkAsDone = async (req, res) => {
       updatedBy: user.id,
       updatedAt: new Date()
     });
+
+    // Recalculate counters for current assignee
+    await recalcUserTaskCounters(updatedTask?.assignedTo);
 
     res.json({
       success: true,

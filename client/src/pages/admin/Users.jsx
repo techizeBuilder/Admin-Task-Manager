@@ -61,13 +61,13 @@ import { useUserRole } from "../../utils/auth";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { set } from "mongoose";
-import { showErrorToast, showSuccessToast } from "../../utils/ToastMessage";
+import { useShowToast } from "../../utils/ToastMessage";
 export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
   const { user, orgId } = useUserRole();
-
+  const { showSuccessToast, showErrorToast } = useShowToast();
   const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
   useEffect(() => {
@@ -91,7 +91,32 @@ export default function Users() {
   const startIndex = (currentPage - 1) * itemsPerPage;
 
   const { toast } = useToast();
+  // Fetch users with react-query
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["users", currentPage, searchQuery],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `/api/organization/${orgId}/users?page=${currentPage}&search=${encodeURIComponent(
+          searchQuery
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      if (!res.ok) {
+        throw new Error(`Error: ${res.status} ${res.statusText}`);
+      }
+
+      return res.json();
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
+  });
   // Mutation for updating user
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, userData }) => {
@@ -115,11 +140,16 @@ export default function Users() {
         error.status = res.status;
         throw error;
       }
-      return res.json();
+      const data = await res.json();
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       showSuccessToast("Successfully updated");
-      queryClient.invalidateQueries(["users"]);
+
+      // Invalidate all users queries with any parameters
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      // Also invalidate org stats to update counters if needed
+      queryClient.invalidateQueries({ queryKey: ["orgStats"] });
     },
     onError: (error) => {
       showErrorToast(error.message || "An unexpected error occurred");
@@ -150,7 +180,6 @@ export default function Users() {
       return res.json();
     },
     onSuccess: (data) => {
-     
       showSuccessToast(data.message || "User removed successfully");
       queryClient.invalidateQueries(["users"]);
       setIsRemoveDialogOpen(false);
@@ -160,22 +189,18 @@ export default function Users() {
       showErrorToast(error.message || "An unexpected error occurred");
     },
   });
-  // Fetch users with react-query
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["users", currentPage, searchQuery],
+
+  // Add this query hook after your existing users query
+  const { data: orgStats, isLoading: isOrgStatsLoading } = useQuery({
+    queryKey: ["orgStats", orgId],
     queryFn: async () => {
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        `/api/organization/${orgId}/users?page=${currentPage}&search=${encodeURIComponent(
-          searchQuery
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const res = await fetch(`/api/organization/${orgId}/stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!res.ok) {
         throw new Error(`Error: ${res.status} ${res.statusText}`);
@@ -183,8 +208,8 @@ export default function Users() {
 
       return res.json();
     },
-    keepPreviousData: true,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Prefetch next page for smoother UX
@@ -267,6 +292,7 @@ export default function Users() {
 
   // Edit user
   const handleEditUser = (user) => {
+    
     setSelectedUser({
       ...user,
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
@@ -275,7 +301,7 @@ export default function Users() {
   };
 
   const handleUpdateUser = async (userId, userData) => {
-    updateUserMutation.mutate({ userId, userData });
+    updateUserMutation.mutateAsync({ userId, userData });
   };
 
   // Deactivate/Reactivate user using UserDataManager
@@ -432,10 +458,10 @@ export default function Users() {
     }
   };
 
-  const totalUsers = data?.user_stats?.total || 0;
-  const activeUsers = data?.user_stats?.active || 0;
-  const inactiveUsers = data?.user_stats?.inactive || 0;
-  const pendingUsers = data?.user_stats?.pending || 0;
+  const totalUsers = orgStats?.user_stats?.total || 0;
+  const activeUsers = orgStats?.user_stats?.active || 0;
+  const inactiveUsers = orgStats?.user_stats?.inactive || 0;
+  const pendingUsers = orgStats?.user_stats?.pending || 0;
 
   const usersData = data?.users || [];
 

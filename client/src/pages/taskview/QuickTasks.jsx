@@ -6,8 +6,9 @@ import axios from "axios";
 import { quickTasksAPI } from "../../services/quickTasksAPI";
 import SearchableSelect from "../SearchableSelect";
 import Toast from "../newComponents/Toast";
-import SuccessToast from "../newComponents/SuccessToast";
+
 import CustomConfirmationModal from "../newComponents/CustomConfirmationModal";
+import eventEmitter from "../../utils/eventEmitter";
 import {
   Table,
   TableHeader,
@@ -28,6 +29,7 @@ import {
   Filter,
   Search,
   RotateCw,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function QuickTasks() {
@@ -122,6 +124,23 @@ export default function QuickTasks() {
   useEffect(() => {
     fetchQuickTasks();
   }, [statusFilter, priorityFilter, searchTerm]);
+
+  // Listen for quick task creation events from other components
+  useEffect(() => {
+    const handleQuickTaskCreated = (newTask) => {
+      console.log('🔄 Received quickTaskCreated event:', newTask);
+      // Refresh the tasks list when a new task is created elsewhere
+      fetchQuickTasks();
+    };
+
+    // Subscribe to the event
+    eventEmitter.on('quickTaskCreated', handleQuickTaskCreated);
+
+    // Cleanup: unsubscribe when component unmounts
+    return () => {
+      eventEmitter.off('quickTaskCreated', handleQuickTaskCreated);
+    };
+  }, []);
 
   // Priority color mapping
   const getPriorityColor = (priority) => {
@@ -441,8 +460,18 @@ export default function QuickTasks() {
 
       {/* Create Quick Task Modal */}
       {showCreateModal && (
-        <div className="modal-overlay">
-          <div className="modal-container max-w-2xl">
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowCreateModal(false);
+            setNewTaskTitle("");
+            setNewTaskPriority("medium");
+            setNewTaskDueDate("");
+          }}>
+          <div
+            className="modal-container max-w-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Header */}
             <div className="modal-header" style={{ background: '#4f46e5' }}>
@@ -479,9 +508,8 @@ export default function QuickTasks() {
                   {/* Task Title */}
                   <div className="form-group">
                     <label className="form-label flex justify-between">
-                      <div>
-                        <Plus size={16} />
-                        Task Title
+                      <div className="flex">
+                        <Plus size={16} /> <span>Task Title</span>
                       </div>
                       <span className="text-gray-500">{newTaskTitle.length}/200</span>
                     </label>
@@ -506,7 +534,7 @@ export default function QuickTasks() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">
-                        <Circle size={16} />
+                        <AlertTriangle size={16} />
                         Priority
                       </label>
                       <select
@@ -567,11 +595,23 @@ export default function QuickTasks() {
 
       {/* Edit Quick Task Modal */}
       {showEditModal && editModalTask && (
-        <div className="modal-overlay">
-          <div className="modal-container max-w-2xl">
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowEditModal(false);
+            setEditModalTask(null);
+            setEditTaskTitle("");
+            setEditTaskPriority("medium");
+            setEditTaskDueDate("");
+          }}
+        >
+          <div
+            className="modal-container max-w-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Header */}
-            <div className="modal-header" style={{ background: '#059669' }}>
+            <div className="modal-header" style={{ background: '#4f46d6' }}>
               <div className="modal-title-section">
                 <div className="modal-icon">
                   <Edit3 size={20} />
@@ -633,7 +673,7 @@ export default function QuickTasks() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">
-                        <Circle size={16} />
+                        <AlertTriangle size={16} />
                         Priority
                       </label>
                       <select
@@ -694,7 +734,7 @@ export default function QuickTasks() {
       )}
 
       {/* Search and Filters */}
-      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-4 mb-4 gap-2">
+      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-2 mb-4 gap-2">
         {/* Search Bar */}
         <div className="relative w-50 max-w-md min-w-[170px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -883,8 +923,7 @@ export default function QuickTasks() {
                   sortedTasks.map((task) => (
                     <TableRow
                       key={task.id}
-                      className={`hover:bg-gray-50 transition-colors ${
-                        task.status === "done" ? "opacity-75" : ""
+                      className={`hover:bg-gray-50 transition-colors ${task.status === "done" ? "opacity-75" : ""
                       } border-b`}
                     >
                       <TableCell className="px-6 py-4">
@@ -919,8 +958,7 @@ export default function QuickTasks() {
                             />
                           ) : (
                             <span
-                              className={`font-medium ${
-                                task.status === "done" 
+                              className={`font-medium ${task.status === "done"
                                   ? "line-through text-gray-500" 
                                   : "text-gray-900"
                               } cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-all`}
@@ -1076,6 +1114,14 @@ export default function QuickTasks() {
           title={confirmModal.title}
           message={confirmModal.message}
           onConfirm={confirmModal.onConfirm}
+          onClose={() => setConfirmModal({
+            isOpen: false,
+            type: '',
+            title: '',
+            message: '',
+            onConfirm: null,
+            data: null
+          })}
           onCancel={() => setConfirmModal({ 
             isOpen: false, 
             type: '', 

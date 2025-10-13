@@ -2255,9 +2255,7 @@ export class MongoStorage {
     return tasks;
   }
 
-  async countTasksByFilter(filter) {
-    return await Task.countDocuments(filter);
-  }  // async updateTask(id, updateData) {
+  // async updateTask(id, updateData) {
   //   return await Task.findByIdAndUpdate(id, updateData, { new: true });
   // }
 

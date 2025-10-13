@@ -5619,7 +5619,9 @@ kbd {
 .custom-editor .ql-container {
   height: 90px;
   /* or whatever you want */
-}@tailwind base;
+}
+
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -5717,6 +5719,7 @@ kbd {
   ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+
 }
 
 @layer components {
@@ -7009,7 +7012,7 @@ kbd {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 2rem;
+    padding: 1rem;
     border-bottom: 1px solid rgba(233, 236, 239, 0.5);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -11240,4 +11243,10 @@ kbd {
 .custom-editor .ql-container {
   height: 90px;
   /* or whatever you want */
+}
+
+.scroll-container {
+  overflow-x: auto;
+  padding-bottom: 5px;
+  /* space between content and scrollbar */
 }
