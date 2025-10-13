@@ -478,22 +478,30 @@ export const sidebarMenus = {
   ],
 };
 
-// ✅ Role name mapping for consistency
+// ✅ Role name mapping for consistency (canonical keys must exist in sidebarMenus)
 export const roleMapping = {
   employee: "employee",
-  individual: "individual",
   manager: "manager",
-  individial: "employee",
-  org_admin: "admin",
-
-  superadmin: "superadmin",
+  // treat "individual" like employee for menus (no dedicated menu defined)
+  individual: "employee",
+  // common admin variants
+  admin: "admin",
+  org_admin: "org_admin", // changed from "admin" to "org_admin"
+  company_admin: "admin",
+  // super admin variants
   super_admin: "superadmin",
   superadmin: "superadmin",
 };
 
+// Canonicalize any incoming role to a sidebarMenus key
+export const normalizeRole = (role) => {
+  const key = String(role || "").toLowerCase();
+  return roleMapping[key] || key;
+};
+
 export const getMenuByRole = (role) => {
-  console.log("Getting menu for role:", roleMapping[role]);
-  return sidebarMenus[roleMapping[role]] || sidebarMenus.employee;
+  const key = normalizeRole(role);
+  return sidebarMenus[key] || sidebarMenus.employee;
 };
 
 export const findActiveItem = (menu, currentPath) => {

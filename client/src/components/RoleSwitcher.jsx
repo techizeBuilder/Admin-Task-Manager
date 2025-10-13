@@ -91,35 +91,44 @@ const RoleSwitcher = () => {
   const [location, navigate] = useLocation(); // navigate function from wouter
   const { activeRole, setActiveRole } = useActiveRole();
   const queryClient = useQueryClient();
-  
+
   // Check if current page is a billing/upgrade/payment page where role switching should be disabled
   const isBillingPage = location.includes('/billing') || 
                        location.includes('/upgrade') || 
                        location.includes('/payment') ||
                        location.includes('/subscription');
   
-  // Get current active role or default to first role
-  const currentRole = activeRole || user?.role?.[0];
-  const userRoles = user?.role || [];
+  // Get roles safely and ensure currentRole is always one of userRoles
+  const userRoles = Array.isArray(user?.role) ? user.role : [];
 
-  // Auto-set default role if not already set
+  // Ensure initial selection matches sidebar's default (first role)
+  const didInitRef = React.useRef(false);
   React.useEffect(() => {
-    if (user?.role?.[0] && !activeRole) {
-      const defaultRole = user.role[0];
+    if (!userRoles.length) return;
+
+    if (!didInitRef.current) {
+      const defaultRole = userRoles[0];
       setActiveRole(defaultRole);
       localStorage.setItem('activeRole', defaultRole);
+      didInitRef.current = true;
+      return;
     }
-  }, [user, activeRole, setActiveRole]);
+
+    // If current stored role is no longer valid, fall back to first role
+    if (activeRole && !userRoles.includes(activeRole)) {
+      const fallbackRole = userRoles[0];
+      setActiveRole(fallbackRole);
+      localStorage.setItem('activeRole', fallbackRole);
+    }
+  }, [userRoles, activeRole, setActiveRole]);
+
+  // Derive currentRole only from allowed roles
+  const currentRole = userRoles.includes(activeRole) ? activeRole : userRoles[0];
 
   // Show switcher for development - remove the multiple roles check temporarily
   if (!user || isBillingPage) {
     return null;
   }
-
-  // For development: always show the switcher to test it
-  // if (!user || userRoles.length <= 1) {
-  //   return null;
-  // }
 
   const handleRoleSwitch = (newRole) => {
     // Prevent role switching on billing/payment pages for security
@@ -130,19 +139,23 @@ const RoleSwitcher = () => {
       console.warn('Role switching disabled on billing/payment pages');
       return;
     }
+
+    // Ignore switching to a role not available to the user
+    if (!userRoles.includes(newRole)) {
+      console.warn('Selected role not available for this user');
+      const fallback = userRoles[0];
+      setActiveRole(fallback);
+      localStorage.setItem('activeRole', fallback);
+      return;
+    }
     
     setActiveRole(newRole);
-    
-    // Store activeRole in localStorage for persistence
     localStorage.setItem('activeRole', newRole);
 
-    // Update user data in cache with new active role
     queryClient.setQueryData(["/api/auth/verify"], (oldData) => ({
       ...oldData,
       activeRole: newRole
     }));
-    
-    // Refresh the page to apply new role context
     // window.location.reload();
   };
 
@@ -173,7 +186,7 @@ const RoleSwitcher = () => {
 
           {userRoles.map((role) => {
             const RoleIcon = getRoleIcon(role);
-            const isActive = role === currentRole;
+            const isActive = (role || "").toLowerCase() === (currentRole || "").toLowerCase();
 
             return (
               <DropdownMenuItem

@@ -3297,7 +3297,7 @@ export default function AllTasks({
                             <span className="text-sm text-gray-900">
                               {task.assignee || "Unassigned"}
                             </span>
-                            {task.assignedTo.status === "inactive" && (
+                            {task?.assignedTo?.status === "inactive" && (
                               <span className="inline-flex items-center mx-2 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-full">
                                 Inactive
                               </span>

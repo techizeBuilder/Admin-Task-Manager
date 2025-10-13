@@ -2078,7 +2078,7 @@ async getOrganizationByName(name) {
 
   async completeUserInvitation(token, userData) {
     try {
-      const { firstName, lastName, password } = userData;
+      const { firstName, lastName = '', password } = userData;
 
       const user = await this.getUserByInviteToken(token);
       if (!user) {

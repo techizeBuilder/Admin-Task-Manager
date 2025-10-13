@@ -328,10 +328,10 @@ export const authController = {
 
   async acceptInvite(req, res) {
     try {
-      const { token, firstName, lastName, password } = req.body;
-      if (!token || !firstName || !lastName || !password) {
+      const { token, firstName, lastName = '', password } = req.body;
+      if (!token || !firstName || !password) {
         return res.status(400).json({
-          message: "Token, first name, last name, and password are required",
+          message: "Token, first name and password are required",
         });
       }
       const result = await storage.completeUserInvitation(token, {
@@ -458,10 +458,10 @@ export const authController = {
 
   async completeInvitation(req, res) {
     try {
-      const { token, firstName, lastName, password } = req.body;
-      if (!token || !firstName || !lastName || !password) {
+      const { token, firstName,  password } = req.body;
+      if (!token || !firstName || !password) {
         return res.status(400).json({
-          message: "Token, first name, last name, and password are required",
+          message: "Token, first name and password are required",
         });
       }
       const result = await storage.completeUserInvitation(token, {
