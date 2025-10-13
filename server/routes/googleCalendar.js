@@ -10,7 +10,7 @@ router.get('/config', (req, res) => {
     hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
     clientIdLength: process.env.GOOGLE_CLIENT_ID?.length || 0,
     clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
-    redirectUri: `${process.env.CLIENT_URL || 'http://localhost:8001'}/google-calendar-callback`,
+    redirectUri: `${process.env.CLIENT_URL || 'http://localhost:5000'}/google-calendar-callback`,
     clientIdPreview: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...',
     clientSecretPreview: process.env.GOOGLE_CLIENT_SECRET?.substring(0, 10) + '...'
   });
@@ -20,7 +20,7 @@ router.get('/config', (req, res) => {
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.CLIENT_URL || 'http://localhost:8001'}/google-calendar-callback`
+  `${process.env.CLIENT_URL || 'http://localhost:5000'}/google-calendar-callback`
 );
 
 // Exchange authorization code for access token
@@ -66,16 +66,15 @@ router.post('/auth', async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     console.log('Token exchange successful');
     
-    // Store tokens securely in database
-    // Note: You'll need to update your User model to include googleCalendarTokens field
+    // Store tokens securely in database using new storage method
     const { storage } = await import('../mongodb-storage.js');
     
-    await storage.updateUser(userId, {
-      googleCalendarTokens: {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expiry_date: tokens.expiry_date
-      }
+    await storage.storeGoogleCalendarTokens(userId, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expiry_date: tokens.expiry_date,
+      scope: tokens.scope,
+      token_type: tokens.token_type
     });
 
     console.log('Google Calendar tokens stored successfully for user:', userId);
@@ -209,9 +208,7 @@ router.delete('/disconnect', async (req, res) => {
     }
 
     const { storage } = await import('../mongodb-storage.js');
-    await storage.updateUser(userId, {
-      $unset: { googleCalendarTokens: 1 }
-    });
+    await storage.removeGoogleCalendarTokens(userId);
 
     res.json({
       success: true,
@@ -242,8 +239,9 @@ router.get('/status', async (req, res) => {
     const user = await storage.getUser(userId);
     
     res.json({
-      connected: !!user?.googleCalendarTokens,
-      hasValidTokens: user?.googleCalendarTokens && user.googleCalendarTokens.access_token
+      connected: !!user?.googleCalendarConnected,
+      hasValidTokens: user?.googleCalendarTokens && user.googleCalendarTokens.access_token,
+      email: user?.googleCalendarEmail || null
     });
   } catch (error) {
     console.error('Google Calendar status check error:', error);

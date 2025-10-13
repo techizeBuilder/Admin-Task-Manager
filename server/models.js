@@ -306,6 +306,9 @@ const taskSchema = new mongoose.Schema(
     completedDate: { type: Date, default: null },
     completedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     completionNotes: { type: String, default: null },
+    
+    // Google Calendar Integration
+    googleCalendarEventId: { type: String, default: null },
   },
   {
     timestamps: true,

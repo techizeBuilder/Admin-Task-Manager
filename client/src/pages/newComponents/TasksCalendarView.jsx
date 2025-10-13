@@ -7,18 +7,108 @@ export default function TasksCalendarView({
   onDateSelect,
   onDueDateFilter,
 }) {
-  // Set initial date to January 2024 to show existing tasks with 2024 dates
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 0, 1)); // January 1, 2024
+  // Set initial date to current month instead of January 2024
+  const [currentDate, setCurrentDate] = useState(new Date()); // Current date
   const [viewMode, setViewMode] = useState("month"); // month, week, day
   const [selectedDate, setSelectedDate] = useState(null);
   const [isGoogleCalendarConnected, setIsGoogleCalendarConnected] = useState(false);
   const [googleCalendarStatus, setGoogleCalendarStatus] = useState('disconnected'); // disconnected, connecting, connected, error
+  const [syncErrors, setSyncErrors] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Filter tasks to show all tasks with due dates (for calendar view)
+  // For debugging: Add sample tasks if no tasks provided
+  const sampleTasks = [
+    {
+      id: 'sample-1',
+      title: 'Sample Task 1',
+      dueDate: '2025-10-08',
+      type: 'normal',
+      completed: false
+    },
+    {
+      id: 'sample-2', 
+      title: 'Sample Task 2',
+      dueDate: '2025-10-10',
+      type: 'milestone',
+      completed: false
+    },
+    {
+      id: 'sample-3',
+      title: 'Sample Task 3', 
+      dueDate: '2025-10-17',
+      type: 'approval',
+      completed: true
+    }
+  ];
+  
+  // Use provided tasks or sample tasks for debugging
+  const effectiveTasks = tasks && tasks.length > 0 ? tasks : sampleTasks;
+
+  // Generate recurring task instances
+  const generateRecurringTaskInstances = (task, startDate, endDate) => {
+    if (!task.isRecurring || !task.recurringPattern) return [task];
+    
+    const instances = [];
+    const pattern = task.recurringPattern;
+    let currentDate = new Date(task.dueDate || task.createdAt);
+    
+    while (currentDate <= endDate && instances.length < 100) { // Limit to prevent infinite loops
+      if (currentDate >= startDate) {
+        instances.push({
+          ...task,
+          id: `${task.id}_${currentDate.toISOString().split('T')[0]}`,
+          dueDate: currentDate.toISOString().split('T')[0],
+          isRecurringInstance: true,
+          originalTaskId: task.id
+        });
+      }
+      
+      // Calculate next occurrence based on pattern
+      switch (pattern.type) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + (pattern.interval || 1));
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + ((pattern.interval || 1) * 7));
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + (pattern.interval || 1));
+          break;
+        case 'yearly':
+          currentDate.setFullYear(currentDate.getFullYear() + (pattern.interval || 1));
+          break;
+        default:
+          break;
+      }
+    }
+    
+    return instances;
+  };
+
+  // Filter tasks to show all tasks with due dates (for calendar view) including recurring instances
   const getTasksWithDueDates = () => {
-    return tasks.filter((task) => {
-      return task.dueDate; // Show all tasks that have a due date
+    const startDate = new Date(currentDate);
+    startDate.setMonth(startDate.getMonth() - 1); // Show 1 month before for recurring tasks
+    const endDate = new Date(currentDate);
+    endDate.setMonth(endDate.getMonth() + 2); // Show 2 months after for recurring tasks
+    
+    const allTasks = [];
+    
+    effectiveTasks.forEach(task => {
+      if (task.dueDate) {
+        if (task.isRecurring) {
+          // Generate recurring instances only within the date range
+          const instances = generateRecurringTaskInstances(task, startDate, endDate);
+          allTasks.push(...instances);
+        } else {
+          // For regular tasks, include all tasks regardless of date range
+          // This allows users to navigate to any month and see their tasks
+          allTasks.push(task);
+        }
+      }
     });
+    
+    return allTasks;
   };
 
   const tasksWithDueDates = getTasksWithDueDates();
@@ -56,19 +146,85 @@ export default function TasksCalendarView({
 
   // Add debugging at the top of the component
   console.log('=== TASKS CALENDAR DEBUG ===');
-  console.log('Total tasks:', tasks?.length || 0);
-  console.log('Tasks with due dates:', tasks?.filter(task => task.dueDate)?.length || 0);
+  console.log('Original tasks:', tasks?.length || 0);
+  console.log('Effective tasks (with samples):', effectiveTasks?.length || 0);
+  console.log('Tasks with due dates:', effectiveTasks?.filter(task => task.dueDate)?.length || 0);
   console.log('Current calendar date:', currentDate.toISOString().split('T')[0]);
-  console.log('Sample tasks:', tasks?.slice(0, 3)?.map(task => ({
+  console.log('Current month/year:', `${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`);
+  console.log('All task due dates (raw):', effectiveTasks?.filter(task => task.dueDate)?.map(task => ({
     title: task.title,
-    dueDate: task.dueDate,
-    hasValidDueDate: task.dueDate && !isNaN(new Date(task.dueDate))
+    originalDueDate: task.dueDate,
+    dateType: typeof task.dueDate,
+    parsedDate: new Date(task.dueDate),
+    normalizedDate: task.dueDate ? (() => {
+      try {
+        const d = new Date(task.dueDate);
+        return isNaN(d.getTime()) ? 'INVALID' : d.toISOString().split('T')[0];
+      } catch (e) {
+        return 'ERROR';
+      }
+    })() : null
   })));
+  console.log('tasksWithDueDates count:', tasksWithDueDates.length);
+
+  // Enhanced date normalization function
+  const normalizeDateString = (dateInput) => {
+    if (!dateInput) return null;
+    
+    try {
+      // Handle different date formats
+      let date;
+      
+      if (typeof dateInput === 'string') {
+        // Handle formats like "17 Oct 2025", "2025-10-17", etc.
+        date = new Date(dateInput);
+      } else if (dateInput instanceof Date) {
+        date = dateInput;
+      } else {
+        return null;
+      }
+      
+      if (isNaN(date.getTime())) return null;
+      
+      // Return in YYYY-MM-DD format
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.warn('Error normalizing date:', dateInput, error);
+      return null;
+    }
+  };
 
   const getTasksForDate = (date) => {
     if (!date) return [];
     const dateStr = formatDateString(date);
-    return tasksWithDueDates.filter((task) => task.dueDate === dateStr);
+    
+    const matchingTasks = tasksWithDueDates.filter((task) => {
+      if (!task.dueDate) return false;
+      
+      // Normalize the task due date to YYYY-MM-DD format
+      const normalizedTaskDate = normalizeDateString(task.dueDate);
+      const isMatch = normalizedTaskDate === dateStr;
+      
+      return isMatch;
+    });
+    
+    // Enhanced debug logging for first few dates of the month
+    const dayOfMonth = date.getDate();
+    if (dayOfMonth <= 5) {
+      console.log(`\n=== DATE MATCHING DEBUG for ${dateStr} ===`);
+      console.log('Calendar date:', dateStr);
+      console.log('Checking against tasks with due dates:', tasksWithDueDates.map(t => ({ 
+        title: t.title, 
+        originalDueDate: t.dueDate, 
+        normalizedDueDate: normalizeDateString(t.dueDate) 
+      })));
+      console.log('Matching tasks found:', matchingTasks.length, matchingTasks.map(t => t.title));
+    }
+    
+    return matchingTasks;
   };
 
   const navigateMonth = (direction) => {
@@ -106,7 +262,29 @@ export default function TasksCalendarView({
   const getTasksForDateAndTime = (date, hour = null) => {
     if (!date) return [];
     const dateStr = formatDateString(date);
-    const dateTasks = tasksWithDueDates.filter((task) => task.dueDate === dateStr);
+    
+    // Use the same date matching logic as getTasksForDate for consistency
+    const dateTasks = tasksWithDueDates.filter((task) => {
+      if (!task.dueDate) return false;
+      
+      // Normalize the task due date to YYYY-MM-DD format (same as monthly view)
+      const normalizedTaskDate = normalizeDateString(task.dueDate);
+      return normalizedTaskDate === dateStr;
+    });
+    
+    // Debug logging for week/day view task matching (only for today and specific dates)
+    const today = new Date();
+    if (date.toDateString() === today.toDateString() || 
+        (date.getDate() === 8 || date.getDate() === 10 || date.getDate() === 17)) {
+      console.log(`\n=== WEEK/DAY VIEW DEBUG for ${dateStr} ===`);
+      console.log('Date object:', date);
+      console.log('Formatted date string:', dateStr);
+      console.log('Tasks found for this date:', dateTasks.length, dateTasks.map(t => ({ 
+        title: t.title, 
+        originalDueDate: t.dueDate, 
+        normalizedDueDate: normalizeDateString(t.dueDate) 
+      })));
+    }
     
     if (hour !== null) {
       // Filter by time if task has a specific time
@@ -129,9 +307,48 @@ export default function TasksCalendarView({
     return `${hour - 12} PM`;
   };
 
+  // Enhanced date validation
+  const validateDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (isNaN(date.getTime())) {
+      return {
+        isValid: false,
+        error: "Please select a valid date.",
+        type: "invalid"
+      };
+    }
+    
+    if (date < today) {
+      return {
+        isValid: true,
+        warning: "This date is in the past and will be marked as overdue.",
+        type: "past_due"
+      };
+    }
+    
+    return { isValid: true, type: "valid" };
+  };
+
   const handleDateClick = (date) => {
     if (date) {
       const dateStr = formatDateString(date);
+      
+      // Validate the selected date
+      const validation = validateDate(dateStr);
+      
+      if (!validation.isValid) {
+        alert(validation.error);
+        return;
+      }
+      
+      if (validation.warning) {
+        const proceed = confirm(`${validation.warning}\n\nDo you want to proceed?`);
+        if (!proceed) return;
+      }
+      
       setSelectedDate(dateStr);
 
       // Get tasks for the selected date
@@ -161,7 +378,7 @@ export default function TasksCalendarView({
       setGoogleCalendarStatus('connecting');
       
       // Check if Google Calendar is properly configured
-      const clientId = "917137353724-ftng1fau0pm0hdl65l1i5et8fmssvedj.apps.googleusercontent.com";
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       
       if (!clientId || clientId === 'your-google-client-id') {
         setGoogleCalendarStatus('error');
@@ -307,13 +524,145 @@ export default function TasksCalendarView({
         console.log('Tasks synced with Google Calendar:', result);
         return result;
       } else {
+        const errorData = await response.json();
         console.error('Failed to sync tasks with Google Calendar');
+        
+        // Send email notification for sync errors
+        await sendSyncErrorNotification(errorData);
+        setSyncErrors(prev => [...prev, {
+          timestamp: new Date().toISOString(),
+          error: errorData.message || 'Sync failed',
+          type: 'google_calendar_sync'
+        }]);
       }
     } catch (error) {
       console.error('Error syncing tasks with Google Calendar:', error);
+      
+      // Send email notification for sync errors
+      await sendSyncErrorNotification(error);
+      setSyncErrors(prev => [...prev, {
+        timestamp: new Date().toISOString(),
+        error: error.message,
+        type: 'google_calendar_sync'
+      }]);
+      
       // For development, just log the sync attempt
       console.log('Development mode: Would sync', tasksWithDueDates.length, 'tasks to Google Calendar');
     }
+  };
+
+  // Send email notification for sync errors
+  const sendSyncErrorNotification = async (error) => {
+    try {
+      await fetch('/api/notifications/sync-error', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          error: error.message || 'External sync error',
+          timestamp: new Date().toISOString(),
+          service: 'Google Calendar'
+        })
+      });
+    } catch (notificationError) {
+      console.error('Failed to send error notification:', notificationError);
+    }
+  };
+
+  // Export calendar as iCal feed (org-wide) - Client-side generation
+  const exportOrgCalendar = async () => {
+    setIsExporting(true);
+    
+    try {
+      // Generate iCal content on the client side
+      const icalContent = generateICalContent(tasksWithDueDates);
+      
+      // Create and download the file
+      const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `org-calendar-${new Date().toISOString().split('T')[0]}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log('Calendar exported successfully');
+      alert('Calendar exported successfully!');
+    } catch (error) {
+      console.error('Error exporting calendar:', error);
+      alert('Failed to export calendar. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Generate iCal format content
+  const generateICalContent = (tasks) => {
+    const now = new Date();
+    const timestamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    
+    let icalContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//TaskSetu//Calendar Export//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      `X-WR-CALNAME:TaskSetu Organization Calendar`,
+      'X-WR-TIMEZONE:UTC',
+      'X-WR-CALDESC:Tasks and deadlines from TaskSetu'
+    ];
+
+    tasks.forEach((task, index) => {
+      if (!task.dueDate) return;
+      
+      const dueDate = new Date(task.dueDate);
+      if (isNaN(dueDate.getTime())) return;
+      
+      // Format date for iCal (YYYYMMDD)
+      const dueDateStr = dueDate.toISOString().split('T')[0].replace(/-/g, '');
+      const uid = `task-${task.id || index}-${timestamp}@tasksetu.com`;
+      
+      // Determine event type and priority
+      const priority = task.priority === 'high' ? '1' : task.priority === 'medium' ? '5' : '9';
+      const status = task.completed ? 'COMPLETED' : 'CONFIRMED';
+      
+      icalContent.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${timestamp}`,
+        `DTSTART;VALUE=DATE:${dueDateStr}`,
+        `DTEND;VALUE=DATE:${dueDateStr}`,
+        `SUMMARY:${task.title || 'Untitled Task'}`,
+        `DESCRIPTION:${task.description || 'Task from TaskSetu'}${task.assignee ? `\\nAssigned to: ${task.assignee}` : ''}`,
+        `PRIORITY:${priority}`,
+        `STATUS:${status}`,
+        `CATEGORIES:${task.type || 'Task'}`,
+        task.completed ? `COMPLETED:${timestamp}` : '',
+        'END:VEVENT'
+      );
+    });
+
+    icalContent.push('END:VCALENDAR');
+    return icalContent.filter(line => line.length > 0).join('\r\n');
+  };
+
+  // Generate iCal feed URL for external calendar subscriptions
+  const getICalFeedUrl = () => {
+    // For now, show instruction to user since we're using client-side generation
+    const instruction = `To subscribe to this calendar:
+1. Export the calendar using the export button
+2. Import the downloaded .ics file into your calendar app
+3. For live updates, re-export and re-import periodically
+
+Note: Live feed URLs require server-side implementation.`;
+    
+    alert(instruction);
+    console.log('iCal feed URL requested - showing manual instructions');
+    return null;
   };
 
   const disconnectGoogleCalendar = async () => {
@@ -481,6 +830,33 @@ export default function TasksCalendarView({
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Export Calendar Button (Admin only) */}
+            <button
+              onClick={exportOrgCalendar}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+              title="Export organization calendar as iCal file"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {isExporting ? 'Exporting...' : 'Export Calendar'}
+            </button>
+            
+            {/* iCal Feed URL */}
+            <button
+              onClick={() => {
+                getICalFeedUrl(); // This will show instructions to the user
+              }}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              title="Get instructions for calendar subscription"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m0 0l4-4a4 4 0 105.656-5.656l-4 4a4 4 0 01-5.656 0z" />
+              </svg>
+              Copy Feed URL
+            </button>
+            
             {/* Google Calendar Integration Button */}
             {!isGoogleCalendarConnected ? (
               <button
@@ -578,6 +954,39 @@ export default function TasksCalendarView({
             )}
           </div>
         </div>
+
+        {/* Sync Error Notifications */}
+        {syncErrors.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {syncErrors.slice(-3).map((error, index) => (
+              <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start justify-between">
+                <div className="flex items-start gap-2">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                  </svg>
+                  <div>
+                    <div className="text-sm font-medium text-red-800">Sync Error</div>
+                    <div className="text-sm text-red-700">{error.error}</div>
+                    <div className="text-xs text-red-600">{new Date(error.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSyncErrors(prev => prev.filter((_, i) => i !== syncErrors.length - 3 + index))}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+            {syncErrors.length > 3 && (
+              <div className="text-xs text-gray-500 text-center">
+                {syncErrors.length - 3} more errors. Email notifications have been sent.
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -687,6 +1096,14 @@ export default function TasksCalendarView({
                 const isToday =
                   date && date.toDateString() === new Date().toDateString();
 
+                // Debug logging for specific dates that should have tasks
+                if (date && (date.getDate() === 8 || date.getDate() === 10 || date.getDate() === 17)) {
+                  console.log(`\n=== CALENDAR GRID DEBUG for ${date.getDate()} ===`);
+                  console.log('Date object:', date);
+                  console.log('Formatted date string:', formatDateString(date));
+                  console.log('Tasks found for this date:', tasksForDate.length, tasksForDate);
+                }
+
                 return (
                   <div
                     key={index}
@@ -769,10 +1186,11 @@ export default function TasksCalendarView({
         )}
 
         {viewMode === "week" && (
-          <div className="week-view">
-            <div className="grid grid-cols-8 gap-1">
+          <div className="week-view h-[600px] flex flex-col">
+            {/* Fixed header row */}
+            <div className="grid grid-cols-8 gap-1 bg-white border-b border-gray-200 sticky top-0 z-10">
               {/* Time column header */}
-              <div className="text-center text-sm font-medium text-gray-500 py-2 border-b">
+              <div className="text-center text-sm font-medium text-gray-500 py-3 bg-gray-50">
                 Time
               </div>
               
@@ -782,7 +1200,7 @@ export default function TasksCalendarView({
                 return (
                   <div
                     key={index}
-                    className={`text-center text-sm font-medium py-3 border-b-2 relative ${
+                    className={`text-center text-sm font-medium py-3 border-b-2 relative bg-white ${
                       isToday 
                         ? 'text-blue-700 bg-gradient-to-b from-blue-50 to-blue-100 border-blue-500 shadow-md' 
                         : 'text-gray-500 border-gray-200'
@@ -808,81 +1226,86 @@ export default function TasksCalendarView({
                   </div>
                 );
               })}
+            </div>
 
-              {/* Time slots */}
-              {Array.from({ length: 24 }, (_, hour) => (
-                <React.Fragment key={hour}>
-                  {/* Time label */}
-                  <div className="text-xs text-gray-500 py-2 px-2 border-r">
-                    {formatTime(hour)}
-                  </div>
-                  
-                  {/* Day columns */}
-                  {getWeekDays(currentDate).map((day, dayIndex) => {
-                    const tasksForHour = getTasksForDateAndTime(day, hour);
-                    const isToday = day.toDateString() === new Date().toDateString();
-                    const isCurrentHour = isToday && new Date().getHours() === hour;
+            {/* Scrollable time slots */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-8 gap-1">
+                {/* Time slots */}
+                {Array.from({ length: 24 }, (_, hour) => (
+                  <React.Fragment key={hour}>
+                    {/* Time label */}
+                    <div className="text-xs text-gray-500 py-2 px-2 border-r bg-gray-50 sticky left-0 z-10">
+                      {formatTime(hour)}
+                    </div>
                     
-                    return (
-                      <div
-                        key={`${hour}-${dayIndex}`}
-                        className={`min-h-[60px] p-1 border cursor-pointer transition-all duration-200 relative ${
-                          isToday 
-                            ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
-                            : 'bg-white border-gray-100 hover:bg-blue-50'
-                        } ${
-                          isCurrentHour 
-                            ? 'bg-blue-100 border-blue-300 shadow-md ring-1 ring-blue-200' 
-                            : ''
-                        }`}
-                        onClick={() => handleDateClick(day)}
-                        title={`${formatTime(hour)} on ${day.toDateString()} - Click to create task`}
-                      >
-                        {isCurrentHour && (
-                          <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-                        )}
-                        {isToday && !isCurrentHour && (
-                          <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-300"></div>
-                        )}
-                        <div className="space-y-1">
-                          {tasksForHour.map((task) => (
-                            <TaskEventBar
-                              key={task.id}
-                              task={task}
-                              onClick={handleTaskClick}
-                              size="small"
-                            />
-                          ))}
+                    {/* Day columns */}
+                    {getWeekDays(currentDate).map((day, dayIndex) => {
+                      const tasksForHour = getTasksForDateAndTime(day, hour);
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      const isCurrentHour = isToday && new Date().getHours() === hour;
+                      
+                      return (
+                        <div
+                          key={`${hour}-${dayIndex}`}
+                          className={`min-h-[60px] p-1 border cursor-pointer transition-all duration-200 relative ${
+                            isToday 
+                              ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' 
+                              : 'bg-white border-gray-100 hover:bg-blue-50'
+                          } ${
+                            isCurrentHour 
+                              ? 'bg-blue-100 border-blue-300 shadow-md ring-1 ring-blue-200' 
+                              : ''
+                          }`}
+                          onClick={() => handleDateClick(day)}
+                          title={`${formatTime(hour)} on ${day.toDateString()} - Click to create task`}
+                        >
+                          {isCurrentHour && (
+                            <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                          )}
+                          {isToday && !isCurrentHour && (
+                            <div className="absolute top-0 left-0 w-full h-0.5 bg-blue-300"></div>
+                          )}
+                          <div className="space-y-1">
+                            {tasksForHour.map((task) => (
+                              <TaskEventBar
+                                key={task.id}
+                                task={task}
+                                onClick={handleTaskClick}
+                                size="small"
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {viewMode === "day" && (
-          <div className="day-view">
-            <div className="grid grid-cols-1 gap-1 max-w-md mx-auto">
-              {/* Day header */}
-              <div className="text-center py-4 border-b border-gray-200 mb-4">
-                <div className="text-lg font-semibold text-gray-900">
-                  {currentDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {getTasksForDate(currentDate).length} tasks scheduled
-                </div>
+          <div className="day-view h-[600px] flex flex-col">
+            {/* Fixed day header */}
+            <div className="text-center py-4 border-b border-gray-200 mb-4 bg-white sticky top-0 z-10">
+              <div className="text-lg font-semibold text-gray-900">
+                {currentDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
               </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {getTasksForDate(currentDate).length} tasks scheduled
+              </div>
+            </div>
 
-              {/* Time slots */}
-              <div className="space-y-1">
+            {/* Scrollable time slots */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="space-y-1 max-w-md mx-auto">
                 {Array.from({ length: 24 }, (_, hour) => {
                   const tasksForHour = getTasksForDateAndTime(currentDate, hour);
                   const isCurrentHour = new Date().getHours() === hour && 

@@ -312,7 +312,246 @@ export class MongoStorage {
       }
     });
 
+    // Create Google Calendar event if user has connected Google Calendar
+    if (taskData.assignedTo && taskData.dueDate) {
+      await this.createGoogleCalendarEventForTask(savedTask);
+    }
+
     return savedTask;
+  }
+
+  // Google Calendar integration methods
+  async storeGoogleCalendarTokens(userId, tokens) {
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          googleCalendarTokens: tokens,
+          googleCalendarConnected: true,
+          googleCalendarEmail: tokens.email || null
+        },
+        { new: true }
+      );
+
+      console.log('Google Calendar tokens stored successfully for user:', userId);
+      return updatedUser;
+    } catch (error) {
+      console.error('Error storing Google Calendar tokens:', error);
+      throw error;
+    }
+  }
+
+  async getGoogleCalendarTokens(userId) {
+    try {
+      const user = await User.findById(userId).select('googleCalendarTokens googleCalendarConnected');
+      return user?.googleCalendarTokens || null;
+    } catch (error) {
+      console.error('Error retrieving Google Calendar tokens:', error);
+      return null;
+    }
+  }
+
+  async removeGoogleCalendarTokens(userId) {
+    try {
+      await User.findByIdAndUpdate(
+        userId,
+        {
+          $unset: { 
+            googleCalendarTokens: 1,
+            googleCalendarEmail: 1
+          },
+          googleCalendarConnected: false
+        }
+      );
+      console.log('Google Calendar tokens removed for user:', userId);
+    } catch (error) {
+      console.error('Error removing Google Calendar tokens:', error);
+      throw error;
+    }
+  }
+
+  async createGoogleCalendarEventForTask(task) {
+    try {
+      if (!task.assignedTo || !task.dueDate) {
+        return null;
+      }
+
+      // Get assignee's Google Calendar tokens
+      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
+      
+      if (!assigneeTokens || !assigneeTokens.access_token) {
+        console.log('No Google Calendar tokens found for user:', task.assignedTo);
+        return null;
+      }
+
+      // Import Google Calendar API
+      const { google } = await import('googleapis');
+      
+      // Set up OAuth2 client
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
+
+      oauth2Client.setCredentials(assigneeTokens);
+
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      // Create event object
+      const eventStartTime = new Date(task.dueDate);
+      const eventEndTime = new Date(eventStartTime.getTime() + (60 * 60 * 1000)); // 1 hour duration
+
+      const event = {
+        summary: `Task: ${task.title}`,
+        description: `${task.description || ''}\n\nTask ID: ${task._id}\nPriority: ${task.priority || 'Normal'}\nStatus: ${task.status || 'Pending'}`,
+        start: {
+          dateTime: eventStartTime.toISOString(),
+          timeZone: 'UTC',
+        },
+        end: {
+          dateTime: eventEndTime.toISOString(),
+          timeZone: 'UTC',
+        },
+        colorId: this.getCalendarColorForPriority(task.priority),
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 24 * 60 }, // 1 day before
+            { method: 'popup', minutes: 30 }, // 30 minutes before
+          ],
+        },
+      };
+
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        resource: event,
+      });
+
+      // Store the Google Calendar event ID in the task
+      await Task.findByIdAndUpdate(task._id, {
+        googleCalendarEventId: response.data.id
+      });
+
+      console.log('Google Calendar event created:', response.data.id);
+      return response.data;
+
+    } catch (error) {
+      console.error('Error creating Google Calendar event:', error);
+      // Don't throw error to prevent task creation from failing
+      return null;
+    }
+  }
+
+  getCalendarColorForPriority(priority) {
+    const colorMap = {
+      'urgent': '11', // Red
+      'high': '6',    // Orange
+      'medium': '5',  // Yellow
+      'low': '10',    // Green
+    };
+    return colorMap[priority?.toLowerCase()] || '1'; // Default blue
+  }
+
+  async updateGoogleCalendarEventForTask(task) {
+    try {
+      if (!task.assignedTo || !task.googleCalendarEventId) {
+        return null;
+      }
+
+      // Get assignee's Google Calendar tokens
+      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
+      
+      if (!assigneeTokens || !assigneeTokens.access_token) {
+        return null;
+      }
+
+      // Import Google Calendar API
+      const { google } = await import('googleapis');
+      
+      // Set up OAuth2 client
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
+
+      oauth2Client.setCredentials(assigneeTokens);
+
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      // Update event object
+      const eventStartTime = new Date(task.dueDate);
+      const eventEndTime = new Date(eventStartTime.getTime() + (60 * 60 * 1000));
+
+      const event = {
+        summary: `Task: ${task.title}`,
+        description: `${task.description || ''}\n\nTask ID: ${task._id}\nPriority: ${task.priority || 'Normal'}\nStatus: ${task.status || 'Pending'}`,
+        start: {
+          dateTime: eventStartTime.toISOString(),
+          timeZone: 'UTC',
+        },
+        end: {
+          dateTime: eventEndTime.toISOString(),
+          timeZone: 'UTC',
+        },
+        colorId: this.getCalendarColorForPriority(task.priority),
+      };
+
+      const response = await calendar.events.update({
+        calendarId: 'primary',
+        eventId: task.googleCalendarEventId,
+        resource: event,
+      });
+
+      console.log('Google Calendar event updated:', response.data.id);
+      return response.data;
+
+    } catch (error) {
+      console.error('Error updating Google Calendar event:', error);
+      return null;
+    }
+  }
+
+  async deleteGoogleCalendarEventForTask(task) {
+    try {
+      if (!task.assignedTo || !task.googleCalendarEventId) {
+        return null;
+      }
+
+      // Get assignee's Google Calendar tokens
+      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
+      
+      if (!assigneeTokens || !assigneeTokens.access_token) {
+        return null;
+      }
+
+      // Import Google Calendar API
+      const { google } = await import('googleapis');
+      
+      // Set up OAuth2 client
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
+
+      oauth2Client.setCredentials(assigneeTokens);
+
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId: task.googleCalendarEventId,
+      });
+
+      console.log('Google Calendar event deleted:', task.googleCalendarEventId);
+      return true;
+
+    } catch (error) {
+      console.error('Error deleting Google Calendar event:', error);
+      return false;
+    }
   }
 
   async updateTask(id, taskData, userId) {
@@ -396,6 +635,17 @@ export class MongoStorage {
           }
         });
       }
+
+      // Update Google Calendar event if task details changed
+      if (task.assignedTo && task.dueDate && (
+        oldTask.title !== task.title ||
+        oldTask.description !== task.description ||
+        oldTask.priority !== task.priority ||
+        oldTask.dueDate !== task.dueDate ||
+        oldTask.status !== task.status
+      )) {
+        await this.updateGoogleCalendarEventForTask(task);
+      }
     }
 
     return task;
@@ -414,6 +664,11 @@ export class MongoStorage {
           taskTitle: task.title
         }
       });
+
+      // Delete Google Calendar event if it exists
+      if (task.googleCalendarEventId) {
+        await this.deleteGoogleCalendarEventForTask(task);
+      }
     }
     return await Task.findByIdAndDelete(id);
   }

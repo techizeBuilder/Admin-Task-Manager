@@ -53,8 +53,7 @@ import GoogleCalendarCallback from './components/GoogleCalendarCallback';
 Create a `.env` file in your project root with:
 
 ```env
-REACT_APP_GOOGLE_CLIENT_ID=917137353724-ftng1fau0pm0hdl65l1i5et8fmssvedj.apps.googleusercontent.com
-GOOGLE_CLIENT_ID=917137353724-ftng1fau0pm0hdl65l1i5et8fmssvedj.apps.googleusercontent.com
+
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 CLIENT_URL=http://localhost:8001
 ```

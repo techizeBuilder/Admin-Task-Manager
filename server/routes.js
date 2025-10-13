@@ -21,6 +21,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
 import authRoutes from "./routes/authRoutes.js";
 import { googleCalendarRoutes } from "./routes/googleCalendar.js";
+import { testGoogleCalendarRoutes } from "./routes/testGoogleCalendar.js";
 import rateLimit from 'express-rate-limit';
 
 export async function registerRoutes(app) {
@@ -986,13 +987,16 @@ export async function registerRoutes(app) {
       hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
       clientIdLength: process.env.GOOGLE_CLIENT_ID?.length || 0,
       clientSecretLength: process.env.GOOGLE_CLIENT_SECRET?.length || 0,
-      redirectUri: `${process.env.CLIENT_URL || 'http://localhost:8001'}/google-calendar-callback`,
+      redirectUri: `${process.env.CLIENT_URL || 'http://localhost:5000'}/google-calendar-callback`,
       clientIdPreview: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...',
       clientSecretPreview: process.env.GOOGLE_CLIENT_SECRET?.substring(0, 10) + '...'
     });
   });
   
   app.use("/api/google-calendar", authenticateToken, googleCalendarRoutes);
+  
+  // Test Google Calendar routes (for development)
+  app.use("/api/test-google-calendar", authenticateToken, testGoogleCalendarRoutes);
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {

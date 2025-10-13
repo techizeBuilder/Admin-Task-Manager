@@ -20,9 +20,6 @@ Your `.env` file has `GOOGLE_CLIENT_SECRET=your-google-client-secret` which is a
 3. Click the **Edit** button (pencil icon)
 
 ### Step 4: Get the Client Secret
-1. You'll see:
-   - **Client ID**: `917137353724-ftng1fau0pm0hdl65l1i5et8fmssvedj.apps.googleusercontent.com`
-   - **Client Secret**: `GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxxx` (this is what you need)
 
 ### Step 5: Update Your .env File
 Replace this line in your `.env` file:
