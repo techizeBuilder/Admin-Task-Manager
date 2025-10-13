@@ -91,8 +91,12 @@ this.baseUrl = isLocal
                 <p>Thank you for registering your organization, <strong>${organizationName}</strong>, with Tasksetu.</p>
                 <p>To complete the setup and define your password, click below:</p>
                 
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
+                <div style="text-align: center; margin: 30px 0;color:white">
+                  <a
+                    style="color:#ffffff !important; text-decoration:none !important;"
+                    href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}"
+                    class="button"
+                  >
                     Verify & Set Password
                   </a>
                 </div>
@@ -106,7 +110,7 @@ this.baseUrl = isLocal
                 <p><strong>Let's make teamwork easier!</strong></p>
                 
                 <p><strong>— Tasksetu Team</strong><br>
-                <a href="https://www.Tasksetu.com" style="color: #10B981;">www.Tasksetu.com</a></p>
+                <a href="https://www.Tasksetu.com" style="color: inherit;">www.Tasksetu.com</a></p>
               </div>
               <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
@@ -140,8 +144,12 @@ this.baseUrl = isLocal
                 <p>Thanks for signing up with Tasksetu!</p>
                 <p>To activate your account and set your password, please click the link below:</p>
                 
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}" class="button">
+                <div style="text-align: center; margin: 30px 0;color:#fff">
+                  <a
+                    style="color:#ffffff !important; text-decoration:none !important;"
+                    href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}"
+                    class="button"
+                  >
                     👉 Verify Email & Set My Password
                   </a>
                 </div>
@@ -156,7 +164,7 @@ this.baseUrl = isLocal
                 <p>See you enrolled in!</p>
                 
                 <p><strong>— The Tasksetu Team</strong><br>
-                <a href="https://www.tasksetu.com" style="color: #3B82F6;">www.Tasksetu.com</a></p>
+                <a href="https://www.tasksetu.com" style="color: inherit;">www.Tasksetu.com</a></p>
               </div>
               <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
@@ -235,7 +243,7 @@ www.Tasksetu.com`,
                 <p>We received a request to reset your password for your TaskSetu account.</p>
                 
                 <p>Click the button below to reset your password:</p>
-                <a href="${resetUrl}" class="button">Reset Password</a>
+                <a href="${resetUrl}" class="button" style="color:#ffffff !important; text-decoration:none !important;">Reset Password</a>
                 
                 <p>Or copy and paste this link into your browser:</p>
                 <p style="word-break: break-all; color: #666;">${resetUrl}</p>
@@ -350,7 +358,7 @@ www.Tasksetu.com`,
 
 </p>
                 <p>Click the button below to accept the invitation and create your account:</p>
-                <a href="${inviteUrl}" class="button">Accept Invitation</a>
+                <a href="${inviteUrl}" class="button" style="color:#ffffff !important; text-decoration:none !important;">Accept Invitation</a>
                 
                 <p>Or copy and paste this link into your browser:</p>
                 <p style="word-break: break-all; color: #666;">${inviteUrl}</p>

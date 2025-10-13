@@ -53,13 +53,13 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
       "Last Login": user.lastLoginAt
         ? new Date(user.lastLoginAt).toLocaleDateString()
         : "Never",
-      "Tasks Assigned": user.tasksAssigned,
-      "Tasks Completed": user.tasksCompleted,
-      "Forms Created": user.formsCreated,
-      "Active Processes": user.activeProcesses,
+      "Tasks Assigned": user.assignedTasks || 0,
+      "Tasks Completed": user.completedTasks || 0,
+      "Forms Created": user.formsCreated || 0,
+      "Active Processes": user.activeProcesses || 0,
       "Completion Rate":
-        user.tasksAssigned > 0
-          ? `${((user.tasksCompleted / user.tasksAssigned) * 100).toFixed(1)}%`
+        user.assignedTasks > 0
+          ? `${((user.completedTasks / user.assignedTasks) * 100).toFixed(1)}%`
           : "0%",
     };
 

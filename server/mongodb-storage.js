@@ -63,7 +63,9 @@ export class MongoStorage {
   // async getOrganizationBySlug(slug) {
   //   return await Organization.findOne({ slug });
   // }
-
+async getOrganizationByName(name) {
+    return await Organization.findOne({ name });
+  }
   async updateOrganization(id, orgData) {
     return await Organization.findByIdAndUpdate(id, orgData, { new: true });
   }
@@ -2225,7 +2227,7 @@ export class MongoStorage {
     const skip = (page - 1) * limit;
 
     const tasks = await Task.find(filter)
-      .populate('assignedTo', 'firstName lastName email')
+      .populate('assignedTo', 'firstName lastName email status')
       .populate('createdBy', 'firstName lastName email')
       .populate('project', 'name')
       .sort(sort)

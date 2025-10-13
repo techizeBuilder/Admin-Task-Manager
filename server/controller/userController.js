@@ -99,25 +99,29 @@ export const getUsersByOrg = async (req, res) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    // Build search query
-    const searchQuery = {
+   // Common base query (always exclude primary admin)
+    const baseQuery = {
       organization_id: orgId,
-      $or: [
-        { firstName: { $regex: search, $options: "i" } },
-        { lastName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ],
+      isPrimaryAdmin: { $ne: true }, // ✅ exclude primary admin
     };
 
-    // Count total users for pagination
-    const total = await User.countDocuments(
-      search ? searchQuery : { organization_id: orgId }
-    );
+    // If searching, extend with OR conditions
+    const searchQuery = search
+      ? {
+          ...baseQuery,
+          $or: [
+            { firstName: { $regex: search, $options: "i" } },
+            { lastName: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+          ],
+        }
+      : baseQuery;
 
-    // Fetch users (page)
-    const users = await User.find(
-      search ? searchQuery : { organization_id: orgId }
-    )
+    // Count total users for pagination
+    const total = await User.countDocuments(searchQuery);
+
+    // Fetch paginated users
+    const users = await User.find(searchQuery)
       .select(
         "firstName lastName role department designation location assignedTasks completedTasks status lastLoginAt   email createdAt"
       )

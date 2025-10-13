@@ -12,7 +12,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { set } from "mongoose";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -105,9 +104,25 @@ export default function Register() {
     if (formType === "organization") {
       setOrganizationData((prev) => ({ ...prev, [field]: value }));
       validateField("organization", field, value);
+      // Clear submit error on any change
+      setOrganizationErrors((prev) => {
+        if (prev && prev.submit) {
+          const { submit, ...rest } = prev;
+          return rest;
+        }
+        return prev;
+      });
     } else {
       setIndividualData((prev) => ({ ...prev, [field]: value }));
       validateField("individual", field, value);
+      // Clear submit error on any change
+      setIndividualErrors((prev) => {
+        if (prev && prev.submit) {
+          const { submit, ...rest } = prev;
+          return rest;
+        }
+        return prev;
+      });
     }
   };
 
@@ -240,10 +255,26 @@ export default function Register() {
     }
   };
 
-  const hasOrganizationErrors = Object.values(organizationErrors).some(
-    (v) => v
+  // Only consider field-level errors, ignore 'submit' so button isn't locked after server error
+  const hasOrganizationErrors = Object.entries(organizationErrors).some(
+    ([k, v]) => k !== "submit" && v
   );
-  const hasIndividualErrors = Object.values(individualErrors).some((v) => v);
+  const hasIndividualErrors = Object.entries(individualErrors).some(
+    ([k, v]) => k !== "submit" && v
+  );
+
+  // Require all mandatory fields and a valid email before enabling the button
+  const isIndividualComplete =
+    Boolean(individualData.firstName.trim()) &&
+    Boolean(individualData.email.trim()) &&
+    validateEmail(individualData.email);
+
+  const isOrganizationComplete =
+    Boolean(organizationData.organizationName.trim()) &&
+    Boolean(organizationData.firstName.trim()) &&
+    Boolean(organizationData.email.trim()) &&
+    validateEmail(organizationData.email);
+
   useEffect(() => {
     console.log("error", individualErrors, organizationErrors, selectedType);
     handleReset();
@@ -534,7 +565,7 @@ export default function Register() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         individualErrors.firstName
                           ? "border-red-300"
                           : "border-gray-300"
@@ -560,7 +591,7 @@ export default function Register() {
                           lastName: e.target.value,
                         }));
                       }}
-                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                         individualErrors.lastName
                           ? "border-red-300"
                           : "border-gray-300"
@@ -580,7 +611,7 @@ export default function Register() {
                     onChange={(e) =>
                       handleInputChange("individual", "email", e.target.value)
                     }
-                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
                       individualErrors.email
                         ? "border-red-300"
                         : "border-gray-300"
@@ -604,7 +635,7 @@ export default function Register() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading || hasIndividualErrors}
+                    disabled={isLoading || hasIndividualErrors || !isIndividualComplete}
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading ? "Creating account..." : "Create Account"}
@@ -743,7 +774,7 @@ export default function Register() {
                         e.target.value
                       )
                     }
-                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                       organizationErrors.organizationName
                         ? "border-red-300"
                         : "border-gray-300"
@@ -772,7 +803,7 @@ export default function Register() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                         organizationErrors.firstName
                           ? "border-red-300"
                           : "border-gray-300"
@@ -798,7 +829,7 @@ export default function Register() {
                           lastName: e.target.value,
                         }));
                       }}
-                      className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                         organizationErrors.lastName
                           ? "border-red-300"
                           : "border-gray-300"
@@ -818,7 +849,7 @@ export default function Register() {
                     onChange={(e) =>
                       handleInputChange("organization", "email", e.target.value)
                     }
-                    className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors ${
                       organizationErrors.email
                         ? "border-red-300"
                         : "border-gray-300"
@@ -845,7 +876,7 @@ export default function Register() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={isLoading || hasOrganizationErrors}
+                    disabled={isLoading || hasOrganizationErrors || !isOrganizationComplete}
                     className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white py-3 px-4 text-sm rounded-lg hover:from-indigo-700 hover:to-indigo-800 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg"
                   >
                     {isLoading

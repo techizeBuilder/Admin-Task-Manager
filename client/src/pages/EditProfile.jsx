@@ -110,7 +110,9 @@ export default function EditProfile() {
   });
   // Inline server error for password update
   const [passwordFormError, setPasswordFormError] = useState("");
- const passwordRequirements = getPasswordRequirements(passwordData.newPassword);
+  const passwordRequirements = getPasswordRequirements(
+    passwordData.newPassword
+  );
 
   // Fetch current user profile - try auth/verify first as fallback
   const { data: authUser } = useQuery({
@@ -136,7 +138,7 @@ export default function EditProfile() {
       }
       return null;
     },
-    retry: 1,
+
     enabled: !!authUser?.id,
   });
   // Fetch organization details once
@@ -171,10 +173,10 @@ export default function EditProfile() {
     cacheTime: Infinity,
   });
 
- // Use profile data primarily, fallback to auth data
+  // Use profile data primarily, fallback to auth data
   const currentUser = user || authUser;
   // Helper to validate password fields and return errors
-   function validatePasswordFields({
+  function validatePasswordFields({
     currentPassword,
     newPassword,
     confirmPassword,
@@ -203,7 +205,8 @@ export default function EditProfile() {
 
       // New password must differ from current
       if (currentPassword && newPassword === currentPassword) {
-        errors.newPassword = "New password must be different from current password";
+        errors.newPassword =
+          "New password must be different from current password";
       }
     }
 
@@ -221,7 +224,8 @@ export default function EditProfile() {
       const userData = {
         firstName: currentUser.firstName || "",
         lastName: currentUser.lastName || "",
-        phoneNumber: currentUser.phoneNumber || "",
+        // Backend uses `phone`, keep UI field phoneNumber for now
+        phoneNumber: currentUser.phone || "",
         department: currentUser.department || "",
         manager: currentUser.manager || "no-manager",
         organizationName: organization?.name,
@@ -322,7 +326,7 @@ export default function EditProfile() {
       // Optimistic cache update (header + edit profile dono refresh ho jayenge)
       queryClient.setQueryData(["/api/auth/verify"], updatedUserData);
       queryClient.setQueryData(["/api/profile"], updatedUserData);
-
+      queryClient.invalidateQueries(["/api/profile"]);
       // Invalidate the header's user data query to trigger immediate header update
       if (data.user?.id) {
         queryClient.invalidateQueries({
@@ -337,9 +341,14 @@ export default function EditProfile() {
       setLocation("/dashboard");
     },
     onError: (error) => {
+  
+      setFormData({
+        ...formData,
+        organizationName: originalData.organizationName,
+      });
       toast({
         title: "Error",
-        description: error.message,
+        description: JSON.parse(error.message).message,
         variant: "destructive",
       });
     },
@@ -398,9 +407,14 @@ export default function EditProfile() {
 
     try {
       setPasswordSubmitting(true);
+      // Use POST method and include auth token header
+      const token = localStorage.getItem("token");
       const response = await fetch("/api/auth/change-password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(passwordData),
       });
 
@@ -422,9 +436,59 @@ export default function EditProfile() {
         setPasswordFormError("");
         setShowPasswordModal(false);
       } else {
-        const error = await response.text();
-        // Show server error inline
-        setPasswordFormError(error || "Failed to change password");
+        // Try to parse JSON error and map to fields when possible
+        let serverMessage = "";
+        try {
+          const data = await response.json();
+          serverMessage = data?.message || data?.error || "";
+        } catch (_) {
+          serverMessage = await response.text();
+        }
+
+        const msg = (serverMessage || "").toString();
+        const lower = msg.toLowerCase();
+        const fieldErrs = { ...passwordErrors };
+        let applied = false;
+
+        // Map common backend messages to field-level errors
+        if (
+          lower.includes("current password") &&
+          (lower.includes("incorrect") || lower.includes("invalid"))
+        ) {
+          fieldErrs.currentPassword = msg || "Current password is incorrect";
+          applied = true;
+        } else if (
+          lower.includes("new and confirm") &&
+          lower.includes("match")
+        ) {
+          fieldErrs.confirmPassword = "Passwords do not match";
+          applied = true;
+        } else if (
+          lower.includes("must be different") ||
+          lower.includes("same as current")
+        ) {
+          fieldErrs.newPassword =
+            msg || "New password must be different from current";
+          applied = true;
+        } else if (
+          lower.includes("weak") ||
+          lower.includes("requirements") ||
+          lower.includes("at least") ||
+          lower.includes("uppercase") ||
+          lower.includes("lowercase") ||
+          lower.includes("special")
+        ) {
+          fieldErrs.newPassword = msg || "Password does not meet requirements";
+          applied = true;
+        }
+
+        if (applied) {
+          setPasswordErrors(fieldErrs);
+          setPasswordFormError("");
+        } else {
+          // Fallback to top-level form error
+          setPasswordFormError(msg || "Failed to change password");
+        }
       }
     } catch (error) {
       setPasswordFormError(error.message || "Failed to change password");
@@ -508,7 +572,6 @@ export default function EditProfile() {
     });
     setPasswordFormError("");
     setShowPasswords({ current: false, new: false, confirm: false });
-    
   };
   // Cleanup effect for object URLs
   useEffect(() => {
@@ -527,7 +590,7 @@ export default function EditProfile() {
     if (!formData.firstName.trim()) {
       newErrors.firstName = "First name is required";
     }
-    
+
     if (errors.phoneNumber) {
       newErrors.phoneNumber =
         "Please fix the phone number error before submitting";
@@ -541,13 +604,17 @@ export default function EditProfile() {
     setErrors((prev) => ({
       ...prev,
       firstName: "",
-
     }));
 
+    // Map UI field names to backend expectations
     const dataToSend = { ...formData };
+    if (dataToSend.phoneNumber !== undefined) {
+      dataToSend.phone = dataToSend.phoneNumber;
+      delete dataToSend.phoneNumber;
+    }
     if (isAdminWithReadOnlyOrg()) delete dataToSend.organizationName;
     if (dataToSend.manager === "no-manager") dataToSend.manager = "";
-    updateProfile.mutate(dataToSend);
+    updateProfile.mutateAsync(dataToSend);
   };
 
   // Validation functions
@@ -602,7 +669,7 @@ export default function EditProfile() {
       org_admin: "Organization Admin",
       admin: "Company Admin",
       manager: "Manager",
-      employee: "Regular User",
+      employee: "Employee",
       individual: "Individual",
     };
     return names[role] || role;
@@ -627,8 +694,6 @@ export default function EditProfile() {
     });
   };
 
-
-
   const getCurrentProfileImage = () => {
     if (imagePreview) return imagePreview;
     if (currentUser?.profileImageUrl) return currentUser.profileImageUrl;
@@ -647,7 +712,7 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-2">
+    <div className="max-w-2xl  mx-auto p-2 overflow-x-hidden">
       {/* Header */}
 
       <Card>
@@ -722,7 +787,9 @@ export default function EditProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* First Name */}
                   <div className="w-full">
-                    <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="firstName">
+                      First Name <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="firstName"
                       name="firstName"
@@ -756,12 +823,10 @@ export default function EditProfile() {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                     
                       placeholder="Last name"
                       data-testid="input-last-name"
                       className={`w-full  p-2  `}
                     />
-                   
                   </div>
                   {/* Email */}
                   <div className="w-full">
@@ -792,6 +857,9 @@ export default function EditProfile() {
                     <Input
                       id="phoneNumber"
                       name="phoneNumber"
+                      type="tel"
+                      inputMode="tel"
+                      pattern="^[+]?\d{10,15}$"
                       value={formData.phoneNumber}
                       onChange={handleInputChange}
                       placeholder="10-15 digits"
@@ -1147,7 +1215,13 @@ export default function EditProfile() {
                 type="submit"
                 size="sm"
                 disabled={
-                  updateProfile.isPending || !hasChanges || errors.phoneNumber
+                  updateProfile.isPending ||
+                  !hasChanges ||
+                  !!errors.phoneNumber ||
+                  !!errors.firstName ||
+                  !formData.firstName?.trim() ||
+                  (formData.phoneNumber?.trim() &&
+                    !validatePhoneNumber(formData.phoneNumber))
                 }
                 className="bg-blue-800 hover:bg-blue-700 text-white cursor-pointer text-xs"
               >
@@ -1201,6 +1275,7 @@ export default function EditProfile() {
                       value={passwordData.currentPassword}
                       onChange={handlePasswordChange}
                       data-testid="input-current-password"
+                      placeholder="Enter Current Password"
                     />
                     {passwordErrors.currentPassword ? (
                       <p className="text-xs text-red-600 mt-1">
@@ -1234,6 +1309,7 @@ export default function EditProfile() {
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     data-testid="input-new-password"
+                    placeholder="Enter new Password"
                     endAdornment={
                       <button
                         type="button"
@@ -1259,17 +1335,29 @@ export default function EditProfile() {
                     </p>
                   )}
 
-                   <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
-          <ul className="text-sm text-gray-600 space-y-1">
-            {passwordRequirements.map((req) => (
-              <li key={req.id} className="flex items-center">
-                <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <span className={req.ok ? 'text-green-700' : 'text-gray-600'}>{req.text}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  <div className="bg-gray-50 rounded-lg p-4 mt-2">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Password requirements
+                    </h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      {passwordRequirements.map((req) => (
+                        <li key={req.id} className="flex items-center">
+                          <span
+                            className={`w-2 h-2 rounded-full mr-2 ${
+                              req.ok ? "bg-green-500" : "bg-gray-300"
+                            }`}
+                          />
+                          <span
+                            className={
+                              req.ok ? "text-green-700" : "text-gray-600"
+                            }
+                          >
+                            {req.text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
                 <div>
@@ -1283,6 +1371,7 @@ export default function EditProfile() {
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
                     data-testid="input-confirm-password"
+                    placeholder="Enter Confirm Password"
                     endAdornment={
                       <button
                         type="button"
@@ -1328,7 +1417,7 @@ export default function EditProfile() {
                       type="submit"
                       size="sm"
                       className="w-full bg-blue-500 text-white"
-                      // disabled={passwordSubmitting || !isPasswordFormValid}
+                      disabled={passwordSubmitting || !isPasswordFormValid}
                       data-testid="button-save-password"
                     >
                       {passwordSubmitting ? (
