@@ -588,7 +588,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
       });
 
       const response = await axios.patch(
-        `http://localhost:5000/api/tasks/${taskId}/status`,
+        `${baseUrl}/api/tasks/${taskId}/status`,
         { status: newStatusCode },
         {
           headers: {

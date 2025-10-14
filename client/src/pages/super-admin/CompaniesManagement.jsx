@@ -34,7 +34,7 @@ export default function CompaniesManagement() {
 
       // API call to update company status
       const response = await axios.patch(
-        `http://localhost:5000/api/companies/${companyId}/status`,
+        `${baseUrl}/api/companies/${companyId}/status`,
         { status: newStatus },
         {
           headers: {
