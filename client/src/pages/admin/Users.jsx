@@ -63,6 +63,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { set } from "mongoose";
 import { useShowToast } from "../../utils/ToastMessage";
 import CommonLoader from "../../components/common/CommonLoader";
+import { getStatusBadge } from "../../components/common/statusBadge";
 export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
@@ -89,7 +90,7 @@ export default function Users() {
   const itemsPerPage = 10; // change as needed
   // Pagination
   const startIndex = (currentPage - 1) * itemsPerPage;
-console.log('???????',orgId)
+
   const { toast } = useToast();
   // Fetch users with react-query
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -372,52 +373,7 @@ console.log('???????',orgId)
     });
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge
-            variant="default"
-            className="bg-green-100 text-green-800 border-green-200"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Active
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-red-100 text-red-800 border-red-200"
-          >
-            <UserX className="h-3 w-3 mr-1" />
-            Inactive
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-100 text-yellow-800 border-yellow-200"
-          >
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      case "invited":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-100 text-yellow-800 border-yellow-200"
-          >
-            <Clock className="h-3 w-3 mr-1" />
-            Invited
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+ 
 
   const getRoleIcon = (role) => {
     switch (role) {
@@ -436,6 +392,7 @@ console.log('???????',orgId)
   const pendingUsers = orgStats?.user_stats?.pending || 0;
 
   const usersData = data?.users || [];
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

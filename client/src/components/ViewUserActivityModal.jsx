@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { getInitials } from "../lib/utils";
 import { renderRoles, roleLabels } from "../utils/roleBadge";
+import { getStatusBadge } from "./common/statusBadge";
 
 export function ViewUserActivityModal({ isOpen, onClose, user }) {
   const { toast } = useToast();
@@ -93,44 +94,8 @@ export function ViewUserActivityModal({ isOpen, onClose, user }) {
       ? ((user.completedTasks / user.assignedTasks) * 100).toFixed(1)
       : 0;
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "active":
-        return (
-          <Badge
-            variant="default"
-            className="bg-green-100 text-green-800 border-green-200"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Active
-          </Badge>
-        );
-      case "inactive":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-red-100 text-red-800 border-red-200"
-          >
-            Inactive
-          </Badge>
-        );
-      case "invited":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-yellow-100 text-yellow-800 border-yellow-200"
-          >
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  console.log("user in modal.........", user);
-
+ 
+ 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto z-50">
