@@ -62,6 +62,7 @@ import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { set } from "mongoose";
 import { useShowToast } from "../../utils/ToastMessage";
+import CommonLoader from "../../components/common/CommonLoader";
 export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
@@ -291,7 +292,6 @@ export default function Users() {
 
   // Edit user
   const handleEditUser = (user) => {
-    
     setSelectedUser({
       ...user,
       name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
@@ -623,122 +623,151 @@ export default function Users() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {usersData.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                        {user.firstName || user.lastName
-                          ? `${(user.firstName || "").charAt(0)}${(
-                              user.lastName || ""
-                            ).charAt(0)}`.toUpperCase()
-                          : (user.email || "-").charAt(0).toUpperCase()}
+              {/* Show loader first */}
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-6">
+                    <CommonLoader label="Loading users..." />
+                  </TableCell>
+                </TableRow>
+              ) : usersData.length === 0 ? (
+                // Show empty message if no users and not loading
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="text-center py-6 text-gray-500"
+                  >
+                    No users found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                // Otherwise, render all users
+                usersData.map((user) => (
+                  <TableRow key={user._id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        {/* Avatar Circle with Initials */}
+                        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                          {(() => {
+                            const first =
+                              user.firstName?.trim()?.charAt(0) || "";
+                            const last = user.lastName?.trim()?.charAt(0) || "";
+                            const emailInitial =
+                              user.email?.charAt(0)?.toUpperCase() || "-";
+                            return (first + last).toUpperCase() || emailInitial;
+                          })()}
+                        </div>
+
+                        {/* Name + Email */}
+                        <div>
+                          <div className="font-medium">
+                            {user.firstName || user.lastName
+                              ? `${safe(user.firstName || "")} ${safe(
+                                  user.lastName || ""
+                                )}`.trim()
+                              : safe(user.email) || ""}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {safe(user.email) || "-"}
+                          </div>
+                        </div>
                       </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex flex-wrap items-center space-x-1">
+                        {renderRoles(user.role)}
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {safe(user.licenseId)}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell>
                       <div>
                         <div className="font-medium">
-                          {user.firstName || user.lastName
-                            ? `${safe(user.firstName)} ${safe(user.lastName)}`
-                            : "-"}
+                          {safe(user.department)}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {safe(user.email)}
+                          {safe(user.designation)}
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap items-center space-x-1">
-                      {renderRoles(user.role)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {safe(user.licenseId)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{safe(user.department)}</div>
-                      <div className="text-sm text-gray-500">
-                        {safe(user.designation)}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {user.lastLoginAt
-                      ? new Date(user.lastLoginAt).toLocaleDateString()
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>
+                    </TableCell>
+
+                    <TableCell>{getStatusBadge(user.status)}</TableCell>
+
+                    <TableCell className="text-sm text-gray-500">
+                      {user.lastLoginAt
+                        ? new Date(user.lastLoginAt).toLocaleDateString()
+                        : "-"}
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="text-sm">
                         {safe(user.completedTasks)}/{safe(user.assignedTasks)}{" "}
                         completed
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {/* 3. 3-DOT ACTIONS MENU */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="bg-white" align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                          <Edit3 className="h-4 w-4 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleViewActivity(user)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" /> View Activity
-                        </DropdownMenuItem>
-                        {user.status?.toLowerCase() === "active" && (
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      {/* 3-dot actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-white" align="end">
                           <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setStatusAction("deactivate");
-                              setIsStatusDialogOpen(true);
-                            }}
+                            onClick={() => handleEditUser(user)}
                           >
-                            <UserX className="h-4 w-4 mr-2 text-red-600" />{" "}
-                            Deactivate
+                            <Edit3 className="h-4 w-4 mr-2" /> Edit
                           </DropdownMenuItem>
-                        )}
-                        {user.status?.toLowerCase() === "inactive" && (
                           <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setStatusAction("activate");
-                              setIsStatusDialogOpen(true);
-                            }}
+                            onClick={() => handleViewActivity(user)}
                           >
-                            <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
-                            Reactivate
+                            <Eye className="h-4 w-4 mr-2" /> View Activity
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          onClick={() => handleRemoveUser(user)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" /> Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {
-                usersData.length === 0  && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-4">  
-                      No users found.
+
+                          {user.status?.toLowerCase() === "active" && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setStatusAction("deactivate");
+                                setIsStatusDialogOpen(true);
+                              }}
+                            >
+                              <UserX className="h-4 w-4 mr-2 text-red-600" />{" "}
+                              Deactivate
+                            </DropdownMenuItem>
+                          )}
+                          {user.status?.toLowerCase() === "inactive" && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setStatusAction("activate");
+                                setIsStatusDialogOpen(true);
+                              }}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
+                              Reactivate
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() => handleRemoveUser(user)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )}  
-              
+                ))
+              )}
             </TableBody>
           </Table>
           {/* Pagination */}
@@ -804,11 +833,14 @@ export default function Users() {
                   <strong>{selectedUser.name}</strong> from your organization?
                   <br />
                   <br />
-                  {selectedUser?.assignedTasks - selectedUser?.completedTasks > 0 ? (
+                  {selectedUser?.assignedTasks - selectedUser?.completedTasks >
+                  0 ? (
                     <span className="text-red-600 font-medium">
-                      ⚠️ This user has {selectedUser?.assignedTasks - selectedUser?.completedTasks} active
-                      task. Please reassign these tasks before removing the
-                      user.
+                      ⚠️ This user has{" "}
+                      {selectedUser?.assignedTasks -
+                        selectedUser?.completedTasks}{" "}
+                      active task. Please reassign these tasks before removing
+                      the user.
                     </span>
                   ) : (
                     <>
@@ -825,7 +857,9 @@ export default function Users() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveUser}
-              disabled={selectedUser?.assignedTasks - selectedUser?.completedTasks > 0}
+              disabled={
+                selectedUser?.assignedTasks - selectedUser?.completedTasks > 0
+              }
               className={"bg-red-600 text-white hover:bg-red-700"}
             >
               {removeUserMutation.isLoading ? "Removing..." : "Remove User"}
