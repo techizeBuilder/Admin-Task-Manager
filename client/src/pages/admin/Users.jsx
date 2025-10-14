@@ -89,7 +89,7 @@ export default function Users() {
   const itemsPerPage = 10; // change as needed
   // Pagination
   const startIndex = (currentPage - 1) * itemsPerPage;
-
+console.log('???????',orgId)
   const { toast } = useToast();
   // Fetch users with react-query
   const { data, isLoading, isError, error, refetch } = useQuery({
@@ -212,34 +212,7 @@ export default function Users() {
     refetchOnWindowFocus: false,
   });
 
-  // Prefetch next page for smoother UX
-  useEffect(() => {
-    if (data?.page < data?.pages) {
-      queryClient.prefetchQuery({
-        queryKey: ["users", currentPage + 1, searchQuery],
-        queryFn: async () => {
-          const token = localStorage.getItem("token");
-          const res = await fetch(
-            `/api/organization/68c7b212e70a5ea02a4b0abe/users?page=${
-              currentPage + 1
-            }&search=${encodeURIComponent(searchQuery)}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          if (!res.ok) {
-            throw new Error(`Error: ${res.status} ${res.statusText}`);
-          }
-
-          return res.json();
-        },
-      });
-    }
-  }, [data, currentPage, searchQuery, queryClient]);
+  
 
   // Helper for null/empty fields
   const safe = (val) =>
@@ -661,11 +634,7 @@ export default function Users() {
                         {/* Name + Email */}
                         <div>
                           <div className="font-medium">
-                            {user.firstName || user.lastName
-                              ? `${safe(user.firstName || "")} ${safe(
-                                  user.lastName || ""
-                                )}`.trim()
-                              : safe(user.email) || ""}
+                           {user.firstName + " " + user.lastName}
                           </div>
                           <div className="text-sm text-gray-500">
                             {safe(user.email) || "-"}

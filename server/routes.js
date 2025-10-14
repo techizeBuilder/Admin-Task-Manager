@@ -236,15 +236,7 @@ export async function registerRoutes(app) {
                 const existingOrg = await storage.getOrganizationByName(
                   organizationName.trim()
                 );
-                if (existingOrg && String(existingOrg._id) !== String(orgId)) {
-                  return res
-                    .status(409)
-                    .json({
-                      message:
-                        "Organization name already exists. Please choose another name.",
-                      organizationName: organizationName,
-                    });
-                }
+               
               }
               if (typeof storage.updateOrganizationName === "function") {
                 await storage.updateOrganizationName(

@@ -613,23 +613,26 @@ export const authController = {
         });
       }
 
-      const organizationSlug = organizationName
+      // Generate base slug from org name
+      const baseSlug = organizationName
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, "")
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-")
-        .trim();
+        .trim() || "org";
 
-      const existingOrg = await storage.getOrganizationBySlug(organizationSlug);
-      if (existingOrg) {
-        return res
-          .status(400)
-          .json({ message: "Organization name is already taken" });
+      // Ensure slug uniqueness by appending an incrementing suffix
+      let uniqueSlug = baseSlug;
+      let counter = 1;
+      // Note: first duplicate will become baseSlug-2
+      while (await storage.getOrganizationBySlug(uniqueSlug)) {
+        counter += 1;
+        uniqueSlug = `${baseSlug}-${counter}`;
       }
 
       const orgData = {
         name: organizationName.trim(),
-        slug: organizationSlug.toLowerCase().trim(),
+        slug: uniqueSlug,
         licenseCount: 10,
         isActive: true,
       };

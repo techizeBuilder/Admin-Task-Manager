@@ -9,8 +9,7 @@ import Task from "../modals/taskModal.js"; // <-- added
 export const removeUser = async (req, res) => {
   try {
     const { userId } = req.params;
-  
-    
+
     // Check if user is authenticated
     if (!req.user) {
       return res.status(401).json({
@@ -29,7 +28,9 @@ export const removeUser = async (req, res) => {
     }
 
     // Check if user belongs to the same organization as the admin
-    if (user.organization_id.toString() !== req.user.organizationId.toString()) {
+    if (
+      user.organization_id.toString() !== req.user.organizationId.toString()
+    ) {
       return res.status(403).json({
         status: 403,
         message: "Cannot remove user from different organization",
@@ -69,7 +70,10 @@ export const getOrgStats = async (req, res) => {
     const { orgId } = req.params;
 
     // Fetch all users for the organization
-    const allUsers = await User.find({ organization_id: orgId })
+    const allUsers = await User.find({
+      organization_id: orgId,
+      isPrimaryAdmin: { $ne: true },
+    })
       .select("status")
       .lean();
 
@@ -99,12 +103,12 @@ export const getUsersByOrg = async (req, res) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-   // Common base query (always exclude primary admin)
+    // Common base query (always exclude primary admin)
     const baseQuery = {
       organization_id: orgId,
       isPrimaryAdmin: { $ne: true }, // ✅ exclude primary admin
     };
-
+    console.log("Base Query:", baseQuery);
     // If searching, extend with OR conditions
     const searchQuery = search
       ? {
@@ -113,6 +117,8 @@ export const getUsersByOrg = async (req, res) => {
             { firstName: { $regex: search, $options: "i" } },
             { lastName: { $regex: search, $options: "i" } },
             { email: { $regex: search, $options: "i" } },
+            {department: { $regex: search, $options: "i" } },
+            {designation: { $regex: search, $options: "i" } },
           ],
         }
       : baseQuery;
@@ -135,7 +141,11 @@ export const getUsersByOrg = async (req, res) => {
         const userId = u._id;
         const [assignedCount, completedCount] = await Promise.all([
           Task.countDocuments({ assignedTo: userId, isDeleted: { $ne: true } }),
-          Task.countDocuments({ assignedTo: userId, status: "completed", isDeleted: { $ne: true } }),
+          Task.countDocuments({
+            assignedTo: userId,
+            status: "completed",
+            isDeleted: { $ne: true },
+          }),
         ]);
         return {
           id: userId.toString(),
@@ -208,7 +218,6 @@ export const updateUser = async (req, res) => {
   }
 };
 
-
 /**
  * Update user status (active/inactive)
  * If activating and last login > 90 days, send invitation email
@@ -228,7 +237,9 @@ export const updateUserStatus = async (req, res) => {
 
     // Check if status is changing
     if (user.status === status) {
-      return res.status(200).json({ message: "Status already set", data: user });
+      return res
+        .status(200)
+        .json({ message: "Status already set", data: user });
     }
 
     // Update status
@@ -270,6 +281,8 @@ export const updateUserStatus = async (req, res) => {
       data: updatedUser,
     });
   } catch (err) {
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
