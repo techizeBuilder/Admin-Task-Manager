@@ -67,7 +67,7 @@ const createSubtask = async (parentTaskId, formData, token) => {
     console.log('📎 No attachments to add');
   }
 
-  const apiUrl = `http://localhost:5000/api/tasks/${parentTaskId}/create-subtask`;
+  const apiUrl = `/api/tasks/${parentTaskId}/create-subtask`;
   console.log('🌐 API URL:', apiUrl);
   console.log('🔍 URL Analysis:');
   console.log('🔍 - parentTaskId in URL:', parentTaskId);

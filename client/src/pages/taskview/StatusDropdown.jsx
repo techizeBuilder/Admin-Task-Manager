@@ -35,7 +35,7 @@ function StatusDropdown({ status, onChange, canEdit, task, currentUser }) {
       });
 
       const response = await axios.patch(
-        `http://localhost:5000/api/tasks/${taskId}/status`,
+        `${baseUrl}/api/tasks/${taskId}/status`,
         { status: newStatusCode },
         {
           headers: {

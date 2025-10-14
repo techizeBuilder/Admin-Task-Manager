@@ -1,14 +1,14 @@
 // Simple test script to check comment functionality
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:5000';
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const TASK_ID = '68da7e286b4192284d71d88a'; // From the logs
 
 async function testComments() {
   try {
     console.log('Testing comment retrieval...');
     
-    const response = await axios.get(`${BASE_URL}/api/tasks/${TASK_ID}/comments`, {
+    const response = await axios.get(`/api/tasks/${TASK_ID}/comments`, {
       headers: {
         'Authorization': `Bearer YOUR_TOKEN_HERE` // Replace with actual token
       }

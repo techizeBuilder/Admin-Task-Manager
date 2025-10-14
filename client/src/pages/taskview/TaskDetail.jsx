@@ -115,7 +115,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
 
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/tasks/${taskId}`,
+        `/api/tasks/${taskId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -240,10 +240,10 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Check if this is a subtask by looking for parentTask
       if (task?.parentTask || task?.parentTaskId) {
         const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
-        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments`;
+        apiUrl = `/api/tasks/${parentTaskId}/subtasks/${taskId}/comments`;
         console.log('DEBUG - Fetching subtask comments from:', apiUrl);
       } else {
-        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments`;
+        apiUrl = `/api/tasks/${taskId}/comments`;
         console.log('DEBUG - Fetching task comments from:', apiUrl);
       }
 
@@ -302,7 +302,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       
       console.log('DEBUG - Fetching activities for task:', taskId);
       
-      const response = await fetch(`${baseUrl}/api/tasks/${taskId}/activities?limit=50`, {
+      const response = await fetch(`/api/tasks/${taskId}/activities?limit=50`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -403,7 +403,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const response = await fetch('http://localhost:5000/api/auth/me', {
+          const response = await fetch(`/api/auth/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -638,10 +638,10 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Check if this is a subtask
       if (task?.parentTask || task?.parentTaskId) {
         const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
-        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments`;
+        apiUrl = `/api/tasks/${parentTaskId}/subtasks/${taskId}/comments`;
         console.log('DEBUG - Adding subtask comment to:', apiUrl);
       } else {
-        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments`;
+        apiUrl = `/api/tasks/${taskId}/comments`;
         console.log('DEBUG - Adding task comment to:', apiUrl);
       }
 
@@ -685,10 +685,10 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Check if this is a subtask
       if (task?.parentTask || task?.parentTaskId) {
         const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
-        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}/reply`;
+        apiUrl = `/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}/reply`;
         console.log('DEBUG - Adding subtask reply to:', apiUrl);
       } else {
-        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments/${commentId}/reply`;
+        apiUrl = `/api/tasks/${taskId}/comments/${commentId}/reply`;
         console.log('DEBUG - Adding task reply to:', apiUrl);
       }
 
@@ -730,10 +730,10 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Check if this is a subtask
       if (task?.parentTask || task?.parentTaskId) {
         const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
-        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}`;
+        apiUrl = `/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}`;
         console.log('DEBUG - Editing subtask comment at:', apiUrl);
       } else {
-        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments/${commentId}`;
+        apiUrl = `/api/tasks/${taskId}/comments/${commentId}`;
         console.log('DEBUG - Editing task comment at:', apiUrl);
       }
 
@@ -775,9 +775,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       // Check if this is a subtask
       if (task?.parentTask || task?.parentTaskId) {
         const parentTaskId = task.parentTask?._id || task.parentTask || task.parentTaskId;
-        apiUrl = `${baseUrl}/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}`;
+        apiUrl = `/api/tasks/${parentTaskId}/subtasks/${taskId}/comments/${commentId}`;
       } else {
-        apiUrl = `${baseUrl}/api/tasks/${taskId}/comments/${commentId}`;
+        apiUrl = `/api/tasks/${taskId}/comments/${commentId}`;
       }
 
       const response = await fetch(apiUrl, {
@@ -1002,7 +1002,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
       });
 
       const response = await axios.patch(
-        `http://localhost:5000/api/tasks/${taskId}/status`,
+        `/api/tasks/${taskId}/status`,
         { status: newStatus },
         {
           headers: {

@@ -28,13 +28,13 @@ const ActivityFeed = ({
           if (!taskId) {
             throw new Error('Task ID required for task activities');
           }
-          apiUrl = `${baseUrl}/api/tasks/${taskId}/activities?limit=${limit}`;
+          apiUrl = `/api/tasks/${taskId}/activities?limit=${limit}`;
           break;
         case 'organization':
-          apiUrl = `${baseUrl}/api/activities/organization?limit=${limit}`;
+          apiUrl = `/api/activities/organization?limit=${limit}`;
           break;
         case 'recent':
-          apiUrl = `${baseUrl}/api/activities/recent?limit=${limit}`;
+          apiUrl = `/api/activities/recent?limit=${limit}`;
           break;
         default:
           throw new Error('Invalid activity type');

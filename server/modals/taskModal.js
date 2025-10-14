@@ -254,7 +254,7 @@ const TaskSchema = mongoose.Schema(
     recurrencePattern: {
       frequency: {
         type: String,
-        enum: ["daily", "weekly", "monthly", "yearly"],
+        enum: ["daily", "weekly", "monthly", "yearly", "custom"],
       },
       interval: {
         type: Number,
@@ -272,6 +272,27 @@ const TaskSchema = mongoose.Schema(
       maxOccurrences: {
         type: Number,
       },
+      // 🔄 Enhanced Recurring Task Fields
+      anchorField: {
+        type: String,
+        enum: ["startDate", "completionDate"],
+        default: "startDate"
+      },
+      skipHolidays: {
+        type: Boolean,
+        default: false
+      },
+      customPattern: {
+        type: {
+          type: String,
+          enum: ["every_n_days", "first_and_fifteenth", "last_day_of_month"]
+        },
+        days: Number, // For every_n_days pattern
+      },
+      occurrenceCount: {
+        type: Number,
+        default: 0 // Track how many occurrences have been created
+      }
     },
     nextDueDate: {
       type: Date,

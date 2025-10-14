@@ -34,7 +34,11 @@ import {
   quickMarkAsDone,
   getTaskActivities,
   getOrganizationActivities,
-  getRecentActivities
+  getRecentActivities,
+  // 🔄 Recurring Task Management Functions
+  generateScheduledRecurringTasks,
+  skipRecurringTaskOccurrence,
+  stopRecurringTask
 } from "../controller/taskController.js";
 
 const router = express.Router();
@@ -3702,5 +3706,213 @@ router.post("/tasks/:taskId/links", authenticateToken, addLink);
  *         description: Task or link not found
  */
 router.delete("/tasks/:taskId/links/:linkId", authenticateToken, deleteLink);
+
+// 🔄 ========== RECURRING TASK MANAGEMENT ROUTES ==========
+
+/**
+ * @swagger
+ * /api/recurring-tasks/generate:
+ *   post:
+ *     summary: Generate scheduled recurring task occurrences (Cron Job Endpoint)
+ *     description: |
+ *       Manually triggers the generation of scheduled recurring task occurrences.
+ *       This is typically called by a cron job but can be triggered manually for testing.
+ *       
+ *       **Process:**
+ *       - Finds all active recurring tasks with nextDueDate within 24 hours
+ *       - Creates new task occurrences based on recurrence patterns
+ *       - Uses enhanced due date calculation logic
+ *       - Handles various frequency types (daily, weekly, monthly, yearly, custom)
+ *     tags:
+ *       - Recurring Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Recurring tasks generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     processed:
+ *                       type: number
+ *                       description: Number of tasks processed
+ *                     errors:
+ *                       type: number
+ *                       description: Number of errors encountered
+ *                     total:
+ *                       type: number
+ *                       description: Total recurring tasks found
+ *       500:
+ *         description: Server error
+ */
+router.post("/recurring-tasks/generate", authenticateToken, async (req, res) => {
+  try {
+    const result = await generateScheduledRecurringTasks();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Recurring tasks generated successfully',
+        data: {
+          processed: result.processed,
+          errors: result.errors,
+          total: result.total
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate recurring tasks',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/tasks/{id}/recurring/skip:
+ *   post:
+ *     summary: Skip next occurrence of recurring task
+ *     description: |
+ *       Manually skips the next scheduled occurrence of a recurring task.
+ *       The system will calculate and set the subsequent due date.
+ *       
+ *       **Process:**
+ *       - Skips the current nextDueDate
+ *       - Calculates new nextDueDate based on recurrence pattern
+ *       - Adds activity log entry for audit trail
+ *       - Maintains recurrence sequence integrity
+ *     tags:
+ *       - Recurring Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Recurring task ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for skipping
+ *                 example: "Holiday - office closed"
+ *     responses:
+ *       200:
+ *         description: Occurrence skipped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     skippedDate:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date that was skipped
+ *                     nextDueDate:
+ *                       type: string
+ *                       format: date-time
+ *                       description: New next due date
+ *                     task:
+ *                       type: object
+ *                       description: Updated task object
+ *       400:
+ *         description: Not a recurring task
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/tasks/:id/recurring/skip", authenticateToken, skipRecurringTaskOccurrence);
+
+/**
+ * @swagger
+ * /api/tasks/{id}/recurring/stop:
+ *   post:
+ *     summary: Stop/pause recurring task sequence
+ *     description: |
+ *       Permanently stops the recurrence of a recurring task.
+ *       No further occurrences will be generated automatically.
+ *       
+ *       **Process:**
+ *       - Sets recurrence end date to current date
+ *       - Removes nextDueDate to prevent future generations
+ *       - Adds activity log entry for audit trail
+ *       - Current task remains active and can still be completed
+ *     tags:
+ *       - Recurring Tasks
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Recurring task ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Optional reason for stopping recurrence
+ *                 example: "Project completed - no longer needed"
+ *     responses:
+ *       200:
+ *         description: Recurring task stopped successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   description: Updated task object
+ *       400:
+ *         description: Not a recurring task
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/tasks/:id/recurring/stop", authenticateToken, stopRecurringTask);
 
 export default router;
