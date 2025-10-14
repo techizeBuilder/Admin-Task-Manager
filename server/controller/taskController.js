@@ -3001,6 +3001,7 @@ export const approveOrRejectTask = async (req, res) => {
 export const getTasksByType = async (req, res) => {
   try {
     const user = req.user;
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
     const { type } = req.params;
     const {
       status,
@@ -3036,17 +3037,36 @@ export const getTasksByType = async (req, res) => {
       });
     }
 
+
     const filter = {
       taskType: type,
       isDeleted: { $ne: true }
     };
 
-    // Filter by organization for org users, or by creator for individual users
-    if (user.organizationId) {
-      filter.organization = user.organizationId;
+    // Role-based filtering
+    if (userRoles.includes('org_admin')) {
+      // Org admin: show tasks for their organization
+      if (user.organizationId) {
+        filter.organization = user.organizationId;
+      }
+    } else if (userRoles.includes('manager') || userRoles.includes('employee')) {
+      // Manager/Employee: show tasks assigned to or created by them
+      filter.$or = [
+        { assignedTo: user.id },
+        { createdBy: user.id }
+      ];
     } else {
+      // Default: show only tasks created by the user
       filter.createdBy = user.id;
     }
+
+    // Debug log for filter and user info
+    console.log('🔍 getTasksByType - User:', {
+      userId: user.id,
+      userRoles,
+      organizationId: user.organizationId
+    });
+    console.log('🔍 getTasksByType - Final Filter:', filter);
 
     // Apply additional filters
     if (status) filter.status = status;
@@ -3181,6 +3201,7 @@ export const getTasksByType = async (req, res) => {
 
 export const getMyTasks = async (req, res) => {
   try {
+
     const {
       status,
       priority,
@@ -3190,6 +3211,9 @@ export const getMyTasks = async (req, res) => {
       role // 👈 frontend se filter role aa sakta hai
     } = req.query;
 
+    const user = req.user;
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+
     console.log('🔍 GET MY TASKS API CALLED - Enhanced Debug Mode:', {
       status,
       priority,
@@ -3197,6 +3221,9 @@ export const getMyTasks = async (req, res) => {
       limit,
       search,
       role,
+      userId: user.id,
+      userRoles,
+      organizationId: user.organizationId,
       timestamp: new Date().toISOString()
     });
 
@@ -3215,8 +3242,26 @@ export const getMyTasks = async (req, res) => {
         { description: { $regex: search, $options: "i" } },
       ];
     }
+
+    // Role-based filtering for "My Tasks"
+    if (userRoles.includes('org_admin')) {
+      // Org admin: show tasks for their organization
+      if (user.organizationId) {
+        filter.organization = user.organizationId;
+      }
+    } else if (userRoles.includes('manager') || userRoles.includes('employee')) {
+      // Manager/Employee: show tasks assigned to or created by them
+      filter.$or = [
+        { assignedTo: user.id },
+        { createdBy: user.id }
+      ];
+    } else {
+      // Default: show only tasks created by the user
+      filter.createdBy = user.id;
+    }
+
+    // Optionally, allow frontend to further filter by createdByRole if needed
     if (role) {
-      // 👈 agar query me role diya hai to us role ka hi filter
       filter.createdByRole = role;
     }
 
