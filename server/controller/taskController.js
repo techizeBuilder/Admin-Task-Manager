@@ -1,5 +1,5 @@
 import { storage } from "../mongodb-storage.js";
-import { calculateNextDueDate, getTaskTypeLabel, getTaskOrganizationId } from "../utils/helperFunction.js";
+import { calculateNextDueDate, getTaskTypeLabel, getTaskOrganizationId, createNextRecurringOccurrence } from "../utils/helperFunction.js";
 import { User } from "../modals/userModal.js";
 import Task from "../modals/taskModal.js";
 
@@ -101,8 +101,9 @@ export const createTask = async (req, res) => {
 
     console.log('DEBUG - final createdByRole:', createdByRole);
 
-    // Base Task
-    const baseTask = {
+
+    // Base Task (with improved recurring logic)
+    let baseTask = {
       title: parsedTaskData.title,
       description: parsedTaskData.description || "",
       createdBy: user.id,
@@ -139,15 +140,42 @@ export const createTask = async (req, res) => {
 
     // Task type specific fields
     switch (parsedTaskData.taskType) {
-      case "recurring":
+      case "recurring": {
         baseTask.isRecurring = true;
         baseTask.recurrencePattern = parsedTaskData.recurrencePattern;
-        baseTask.nextDueDate = calculateNextDueDate(
-          parsedTaskData.recurrencePattern,
-          baseTask.dueDate
-        );
-        break;
 
+        // If dueDate is missing, try to set from startDate or today
+        if (!baseTask.dueDate) {
+          if (baseTask.startDate) {
+            baseTask.dueDate = new Date(baseTask.startDate);
+          } else {
+            baseTask.dueDate = new Date();
+          }
+        }
+
+        // Calculate nextDueDate using enhanced logic
+        if (baseTask.recurrencePattern) {
+          baseTask.nextDueDate = calculateNextDueDate(
+            baseTask.recurrencePattern,
+            baseTask.dueDate,
+            baseTask.recurrencePattern.anchorField || 'startDate'
+          );
+        } else {
+          baseTask.nextDueDate = null;
+        }
+
+        // Debug log
+        console.log('🔄 Recurring Task Created (improved):', {
+          title: baseTask.title,
+          startDate: baseTask.startDate,
+          dueDate: baseTask.dueDate,
+          nextDueDate: baseTask.nextDueDate,
+          frequency: baseTask.recurrencePattern?.frequency,
+          interval: baseTask.recurrencePattern?.interval,
+          anchorField: baseTask.recurrencePattern?.anchorField || 'startDate'
+        });
+        break;
+      }
       case "milestone":
         baseTask.isMilestone = true;
         baseTask.milestoneType = parsedTaskData.milestoneType || "standalone";
@@ -156,7 +184,6 @@ export const createTask = async (req, res) => {
           baseTask.linkedTasks = parsedTaskData.linkedTaskIds;
         }
         break;
-
       case "approval":
         baseTask.isApprovalTask = true;
         baseTask.approvalMode = parsedTaskData.approvalMode || "any";
@@ -169,6 +196,69 @@ export const createTask = async (req, res) => {
 
     // Save task
     const createdTask = await storage.createTask(baseTask);
+
+    // 🔄 Enhanced Debug: Log created task details with complete analysis
+    if (createdTask.isRecurring) {
+      console.log('🔄 === RECURRING TASK CREATION ANALYSIS ===');
+      console.log('🔄 Task Created Successfully:', {
+        taskId: createdTask._id,
+        title: createdTask.title,
+        isRecurring: createdTask.isRecurring,
+        taskType: createdTask.taskType,
+        
+        // Due Date Analysis
+        originalDueDate: createdTask.dueDate,
+        originalDueDateType: typeof createdTask.dueDate,
+        originalDueDateValue: createdTask.dueDate ? createdTask.dueDate.toString() : 'NULL',
+        
+        nextDueDate: createdTask.nextDueDate,
+        nextDueDateType: typeof createdTask.nextDueDate,
+        nextDueDateValue: createdTask.nextDueDate ? createdTask.nextDueDate.toString() : 'NULL',
+        
+        // Pattern Analysis
+        recurrencePattern: createdTask.recurrencePattern,
+        frequency: createdTask.recurrencePattern?.frequency,
+        interval: createdTask.recurrencePattern?.interval,
+        anchorField: createdTask.recurrencePattern?.anchorField,
+        
+        // Validation
+        hasValidDueDate: !!createdTask.dueDate,
+        hasValidNextDueDate: !!createdTask.nextDueDate,
+        hasValidPattern: !!createdTask.recurrencePattern,
+        
+        // Frontend Display Logic Test
+        displayDateForFrontend: createdTask.nextDueDate || createdTask.dueDate,
+        shouldShowInTable: !!(createdTask.nextDueDate || createdTask.dueDate),
+        
+        // MongoDB State
+        mongoState: {
+          _id: createdTask._id,
+          dueDate: createdTask.dueDate,
+          nextDueDate: createdTask.nextDueDate,
+          isRecurring: createdTask.isRecurring
+        }
+      });
+      
+      // Additional validation checks
+      if (!createdTask.dueDate && !createdTask.nextDueDate) {
+        console.log('⚠️  WARNING: Recurring task created without any due date!');
+      }
+      
+      if (!createdTask.recurrencePattern) {
+        console.log('⚠️  WARNING: Recurring task created without recurrence pattern!');
+      }
+      
+      console.log('🔄 === END RECURRING TASK CREATION ANALYSIS ===');
+    } else {
+      // Also log regular tasks for comparison
+      console.log('📝 Regular Task Created:', {
+        taskId: createdTask._id,
+        title: createdTask.title,
+        taskType: createdTask.taskType,
+        dueDate: createdTask.dueDate,
+        hasDueDate: !!createdTask.dueDate
+      });
+    }
 
     // If approval task, create approval records
     if (parsedTaskData.taskType === "approval" && parsedTaskData.approverIds) {
@@ -1950,6 +2040,8 @@ export const getTasks = async (req, res) => {
       search
     } = req.query;
 
+    console.log('🔍 GET TASKS API CALLED - Enhanced Debug Mode');
+
     const filter = {
       isDeleted: { $ne: true }
     };
@@ -1974,11 +2066,126 @@ export const getTasks = async (req, res) => {
       ];
     }
 
+    console.log('🔍 Applied Filter:', filter);
+
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 }
     });
+
+    console.log('🔍 Total Tasks Found:', tasks ? tasks.length : 0);
+
+    // 🔄 Enhanced Debug: Log ALL task data with focus on recurring tasks
+    if (tasks && tasks.length > 0) {
+      console.log('🔄 === COMPLETE TASK DEBUG ANALYSIS ===');
+      
+      tasks.forEach((task, index) => {
+        console.log(`🔍 Task ${index + 1}:`, {
+          id: task._id,
+          title: task.title,
+          taskType: task.taskType,
+          isRecurring: task.isRecurring,
+          status: task.status,
+          
+          // Due Date Fields Debug
+          dueDate: task.dueDate,
+          dueDateType: typeof task.dueDate,
+          dueDateValue: task.dueDate ? task.dueDate.toString() : 'NULL',
+          
+          // Recurring Specific Fields
+          nextDueDate: task.nextDueDate,
+          nextDueDateType: typeof task.nextDueDate,
+          nextDueDateValue: task.nextDueDate ? task.nextDueDate.toString() : 'NULL',
+          
+          // Recurrence Pattern
+          recurrencePattern: task.recurrencePattern,
+          hasRecurrencePattern: !!task.recurrencePattern,
+          
+          // Date Analysis
+          hasDueDate: !!task.dueDate,
+          hasNextDueDate: !!task.nextDueDate,
+          isValidDueDate: task.dueDate instanceof Date,
+          isValidNextDueDate: task.nextDueDate instanceof Date,
+          
+          // Frontend Display Logic Test
+          calculatedDisplayDate: task.isRecurring 
+            ? (task.nextDueDate || task.dueDate) 
+            : task.dueDate,
+          
+          // Complete Raw Object for Debugging
+          fullTask: JSON.stringify(task, null, 2)
+        });
+        
+        // Special focus on recurring tasks
+        if (task.isRecurring) {
+          console.log('🔄 RECURRING TASK DEEP ANALYSIS:', {
+            taskId: task._id,
+            title: task.title,
+            
+            // Date Validation
+            originalDueDateExists: !!task.dueDate,
+            nextDueDateExists: !!task.nextDueDate,
+            
+            // Date Values
+            originalDueDate: task.dueDate,
+            nextDueDate: task.nextDueDate,
+            
+            // Pattern Analysis
+            recurrencePattern: task.recurrencePattern,
+            frequency: task.recurrencePattern?.frequency,
+            interval: task.recurrencePattern?.interval,
+            
+            // Status
+            currentStatus: task.status,
+            
+            // What Frontend Should Display
+            shouldDisplayDate: task.nextDueDate || task.dueDate,
+            shouldDisplayDateFormatted: task.nextDueDate 
+              ? new Date(task.nextDueDate).toLocaleDateString() 
+              : (task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Date'),
+              
+            // Database State Check
+            mongoDbState: {
+              _id: task._id,
+              dueDate: task.dueDate,
+              nextDueDate: task.nextDueDate,
+              isRecurring: task.isRecurring,
+              taskType: task.taskType
+            }
+          });
+        }
+      });
+      
+      // Summary Analysis
+      const recurringTasks = tasks.filter(task => task.isRecurring);
+      const tasksWithDueDate = tasks.filter(task => task.dueDate);
+      const tasksWithNextDueDate = tasks.filter(task => task.nextDueDate);
+      const recurringTasksWithDueDate = recurringTasks.filter(task => task.dueDate);
+      const recurringTasksWithNextDueDate = recurringTasks.filter(task => task.nextDueDate);
+      
+      console.log('📊 TASK SUMMARY ANALYSIS:', {
+        totalTasks: tasks.length,
+        recurringTasks: recurringTasks.length,
+        tasksWithDueDate: tasksWithDueDate.length,
+        tasksWithNextDueDate: tasksWithNextDueDate.length,
+        recurringTasksWithDueDate: recurringTasksWithDueDate.length,
+        recurringTasksWithNextDueDate: recurringTasksWithNextDueDate.length,
+        
+        // Problem Detection
+        recurringTasksWithoutAnyDate: recurringTasks.filter(task => !task.dueDate && !task.nextDueDate).length,
+        problemTasks: recurringTasks.filter(task => !task.dueDate && !task.nextDueDate).map(task => ({
+          id: task._id,
+          title: task.title,
+          taskType: task.taskType,
+          isRecurring: task.isRecurring
+        }))
+      });
+      
+      console.log('🔄 === END TASK DEBUG ANALYSIS ===');
+    }
+
+    console.log('✅ Sending response to frontend with', tasks ? tasks.length : 0, 'tasks');
 
     res.json({
       success: true,
@@ -1986,7 +2193,7 @@ export const getTasks = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    console.error('❌ Error fetching tasks:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch tasks',
@@ -2217,6 +2424,78 @@ export const updateTaskStatus = async (req, res) => {
     if (status === 'completed') {
       updateData.completedDate = new Date();
       updateData.completedBy = user.id;
+      
+      // 🔄 Handle Recurring Task Auto-generation on Completion
+      if (task.isRecurring && task.recurrencePattern) {
+        console.log('🔄 Processing recurring task completion:', {
+          taskId: task._id,
+          title: task.title,
+          currentDueDate: task.dueDate,
+          completedDate: updateData.completedDate
+        });
+        
+        try {
+          // Create next occurrence using enhanced logic
+          const nextOccurrence = createNextRecurringOccurrence(task, updateData.completedDate);
+          
+          if (nextOccurrence) {
+            // Save next occurrence
+            const createdNextTask = await storage.createTask(nextOccurrence);
+            
+            console.log('✅ Next recurring occurrence created:', {
+              originalTaskId: task._id,
+              nextTaskId: createdNextTask._id,
+              nextDueDate: createdNextTask.dueDate,
+              nextNextDueDate: createdNextTask.nextDueDate
+            });
+            
+            // Add activity log for recurrence
+            if (!task.comments) task.comments = [];
+            task.comments.push({
+              _id: Date.now().toString() + Math.random(),
+              text: `🔄 Recurring Task: Next occurrence generated with due date ${new Date(createdNextTask.dueDate).toLocaleDateString()}`,
+              author: user.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              isEdited: false
+            });
+            
+            updateData.comments = task.comments;
+            
+          } else {
+            console.log('🏁 Recurring task sequence ended - no more occurrences');
+            
+            // Add completion log for ended recurrence
+            if (!task.comments) task.comments = [];
+            task.comments.push({
+              _id: Date.now().toString() + Math.random(),
+              text: `🏁 Recurring Task: Sequence completed - no more occurrences scheduled`,
+              author: user.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              isEdited: false
+            });
+            
+            updateData.comments = task.comments;
+          }
+          
+        } catch (recurringError) {
+          console.error('❌ Error creating next recurring occurrence:', recurringError);
+          
+          // Add error log but don't fail the completion
+          if (!task.comments) task.comments = [];
+          task.comments.push({
+            _id: Date.now().toString() + Math.random(),
+            text: `⚠️ Recurring Task: Error creating next occurrence - ${recurringError.message}`,
+            author: user.id,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isEdited: false
+          });
+          
+          updateData.comments = task.comments;
+        }
+      }
     }
     
     console.log('🔍 Updating task with data:', updateData);
@@ -2250,6 +2529,204 @@ export const updateTaskStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update task status',
+      error: error.message
+    });
+  }
+};
+
+// 🔄 Scheduled Recurring Task Generation (Cron Job Function)
+export const generateScheduledRecurringTasks = async () => {
+  try {
+    console.log('🔄 Starting scheduled recurring task generation...');
+    
+    // Find all active recurring tasks that need next occurrence
+    const recurringTasks = await storage.getAllTasks({
+      isRecurring: true,
+      status: { $ne: 'cancelled' },
+      nextDueDate: { $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) } // Within next 24 hours
+    });
+    
+    console.log(`🔍 Found ${recurringTasks.length} recurring tasks to process`);
+    
+    let processedCount = 0;
+    let errorCount = 0;
+    
+    for (const task of recurringTasks) {
+      try {
+        // Check if next occurrence already exists
+        const existingNextTask = await storage.getAllTasks({
+          title: task.title,
+          dueDate: task.nextDueDate,
+          createdBy: task.createdBy,
+          isRecurring: true
+        });
+        
+        if (existingNextTask.length === 0) {
+          // Create next occurrence
+          const nextOccurrence = createNextRecurringOccurrence(task);
+          
+          if (nextOccurrence) {
+            await storage.createTask(nextOccurrence);
+            processedCount++;
+            
+            console.log(`✅ Created scheduled occurrence for: ${task.title} (Due: ${nextOccurrence.dueDate})`);
+          }
+        } else {
+          console.log(`⏭️  Next occurrence already exists for: ${task.title}`);
+        }
+        
+      } catch (taskError) {
+        console.error(`❌ Error processing recurring task ${task._id}:`, taskError);
+        errorCount++;
+      }
+    }
+    
+    console.log(`🔄 Recurring task generation completed: ${processedCount} created, ${errorCount} errors`);
+    
+    return {
+      success: true,
+      processed: processedCount,
+      errors: errorCount,
+      total: recurringTasks.length
+    };
+    
+  } catch (error) {
+    console.error('❌ Error in scheduled recurring task generation:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 🔄 Manual Skip Recurring Task Occurrence
+export const skipRecurringTaskOccurrence = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const user = req.user;
+    
+    const task = await storage.getTaskById(id);
+    
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+    
+    if (!task.isRecurring) {
+      return res.status(400).json({
+        success: false,
+        message: 'This is not a recurring task'
+      });
+    }
+    
+    // Calculate next occurrence after skipping current one
+    const skippedDueDate = task.nextDueDate;
+    const newNextDueDate = calculateNextDueDate(
+      task.recurrencePattern,
+      skippedDueDate,
+      task.recurrencePattern.anchorField || 'startDate'
+    );
+    
+    // Update task with new next due date
+    const updateData = {
+      nextDueDate: newNextDueDate,
+      updatedAt: new Date()
+    };
+    
+    // Add skip activity log
+    if (!task.comments) task.comments = [];
+    task.comments.push({
+      _id: Date.now().toString() + Math.random(),
+      text: `⏭️ Recurring Task: Occurrence skipped for ${new Date(skippedDueDate).toLocaleDateString()}${reason ? ` - Reason: ${reason}` : ''}`,
+      author: user.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isEdited: false
+    });
+    
+    updateData.comments = task.comments;
+    
+    const updatedTask = await storage.updateTask(id, updateData, user.id);
+    
+    res.json({
+      success: true,
+      message: 'Recurring task occurrence skipped successfully',
+      data: {
+        skippedDate: skippedDueDate,
+        nextDueDate: newNextDueDate,
+        task: updatedTask
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error skipping recurring task occurrence:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to skip recurring task occurrence',
+      error: error.message
+    });
+  }
+};
+
+// 🔄 Stop/Pause Recurring Task
+export const stopRecurringTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const user = req.user;
+    
+    const task = await storage.getTaskById(id);
+    
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+    
+    if (!task.isRecurring) {
+      return res.status(400).json({
+        success: false,
+        message: 'This is not a recurring task'
+      });
+    }
+    
+    // Stop recurrence by removing nextDueDate and adding end date
+    const updateData = {
+      nextDueDate: null,
+      'recurrencePattern.endDate': new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Add stop activity log
+    if (!task.comments) task.comments = [];
+    task.comments.push({
+      _id: Date.now().toString() + Math.random(),
+      text: `🛑 Recurring Task: Recurrence stopped manually${reason ? ` - Reason: ${reason}` : ''}`,
+      author: user.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isEdited: false
+    });
+    
+    updateData.comments = task.comments;
+    
+    const updatedTask = await storage.updateTask(id, updateData, user.id);
+    
+    res.json({
+      success: true,
+      message: 'Recurring task stopped successfully',
+      data: updatedTask
+    });
+    
+  } catch (error) {
+    console.error('Error stopping recurring task:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to stop recurring task',
       error: error.message
     });
   }
@@ -2672,7 +3149,7 @@ export const getMyTasks = async (req, res) => {
       role // 👈 frontend se filter role aa sakta hai
     } = req.query;
 
-    console.log('🔍 GET MY TASKS API CALLED:', {
+    console.log('🔍 GET MY TASKS API CALLED - Enhanced Debug Mode:', {
       status,
       priority,
       page,
@@ -2702,12 +3179,16 @@ export const getMyTasks = async (req, res) => {
       filter.createdByRole = role;
     }
 
+    console.log('🔍 MyTasks Filter Applied:', filter);
+
     // Get main tasks
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 },
     });
+
+    console.log('🔍 MyTasks - Total Main Tasks Found:', tasks ? tasks.length : 0);
 
     // Initialize all roles
     const roleList = ["super_admin", "org_admin", "manager", "individual", "employee"];
@@ -2718,6 +3199,24 @@ export const getMyTasks = async (req, res) => {
 
     // Group tasks by createdByRole and fetch subtasks for each task
     for (const task of tasks) {
+      console.log(`🔍 Processing Main Task: ${task.title}`, {
+        id: task._id,
+        taskType: task.taskType,
+        isRecurring: task.isRecurring,
+        dueDate: task.dueDate,
+        dueDateType: typeof task.dueDate,
+        nextDueDate: task.nextDueDate,
+        nextDueDateType: typeof task.nextDueDate,
+        recurrencePattern: task.recurrencePattern,
+        
+        // Due Date Analysis for MyTasks
+        hasDueDate: !!task.dueDate,
+        hasNextDueDate: !!task.nextDueDate,
+        calculatedDisplayDate: task.isRecurring 
+          ? (task.nextDueDate || task.dueDate) 
+          : task.dueDate
+      });
+      
       // Get subtasks for this main task
       const subtasksFilter = {
         parentTaskId: task._id.toString(),
@@ -2729,7 +3228,9 @@ export const getMyTasks = async (req, res) => {
         sort: { createdAt: -1 }
       });
 
-      // Enhance subtasks with additional action status
+      console.log(`🔍 Found ${subtasks.length} subtasks for task: ${task.title}`);
+
+      // Enhance subtasks with additional action status and due date debug
       const enhancedSubtasks = subtasks.map(subtask => ({
         ...subtask,
         // Snooze fields
@@ -2755,13 +3256,33 @@ export const getMyTasks = async (req, res) => {
         statusColor: STATUS_COLOR_MAP[subtask.status] || '#6B7280' // Default gray if status not found
       }));
 
-      console.log('🔍 Processing task:', {
+      // Log subtask due date info
+      if (enhancedSubtasks.length > 0) {
+        enhancedSubtasks.forEach((subtask, index) => {
+          console.log(`  🔍 Subtask ${index + 1}: ${subtask.title}`, {
+            dueDate: subtask.dueDate,
+            dueDateType: typeof subtask.dueDate,
+            hasDueDate: !!subtask.dueDate,
+            status: subtask.status
+          });
+        });
+      }
+
+      console.log('🔍 Processing task with complete data:', {
         taskId: task._id,
         title: task.title,
         status: task.status,
         statusColor: STATUS_COLOR_MAP[task.status],
         subtasksCount: enhancedSubtasks.length,
-        createdByRole: task.createdByRole
+        createdByRole: task.createdByRole,
+        
+        // Main Task Due Date Debug
+        mainTaskDueDate: task.dueDate,
+        mainTaskNextDueDate: task.nextDueDate,
+        isMainTaskRecurring: task.isRecurring,
+        mainTaskDisplayDate: task.isRecurring 
+          ? (task.nextDueDate || task.dueDate) 
+          : task.dueDate
       });
 
       // Add subtasks to the main task with additional action status
@@ -2807,8 +3328,16 @@ export const getMyTasks = async (req, res) => {
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
-    console.log('✅ Final grouped tasks summary:', {
+    // Enhanced Summary with Due Date Analysis
+    const recurringTasksCount = tasks.filter(task => task.isRecurring).length;
+    const recurringTasksWithDueDate = tasks.filter(task => task.isRecurring && task.dueDate).length;
+    const recurringTasksWithNextDueDate = tasks.filter(task => task.isRecurring && task.nextDueDate).length;
+
+    console.log('✅ Final MyTasks grouped tasks summary:', {
       totalTasksFound: totalTasks,
+      recurringTasksCount,
+      recurringTasksWithDueDate,
+      recurringTasksWithNextDueDate,
       tasksByRole: Object.keys(groupedTasks).reduce((acc, role) => {
         acc[role] = groupedTasks[role].length;
         return acc;
@@ -2838,7 +3367,7 @@ export const getMyTasks = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching tasks by type:', error);
+    console.error('❌ Error fetching MyTasks:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch tasks by type',

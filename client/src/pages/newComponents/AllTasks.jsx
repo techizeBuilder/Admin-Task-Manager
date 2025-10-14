@@ -145,6 +145,7 @@ export default function AllTasks({
     addCustomReminder,
     snoozeTask,
   } = useTasksStore();
+// const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
@@ -168,7 +169,7 @@ export default function AllTasks({
         throw new Error("Authorization token not found.");
       }
       const response = await axios.get(
-        "http://localhost:5000/api/mytasks?page=1&limit=100",
+        `/api/mytasks?page=1&limit=100`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -458,7 +459,7 @@ export default function AllTasks({
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const response = await axios.get("http://localhost:5000/api/users", {
+        const response = await axios.get(`/api/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -860,13 +861,13 @@ export default function AllTasks({
       }
 
       console.log('📤 Updating task status with payload:', payload);
-      console.log('🌐 API endpoint URL:', `http://localhost:5000/api/tasks/${apiTaskId}/status`);
+      console.log('🌐 API endpoint URL:', `/api/tasks/${apiTaskId}/status`);
       console.log('🔑 Auth token exists:', !!localStorage.getItem('token'));
 
       // Use correct API endpoint format
       console.log('🚀 Making API call now...');
       const response = await axios.patch(
-        `http://localhost:5000/api/tasks/${apiTaskId}/status`,
+        `/api/tasks/${apiTaskId}/status`,
         payload,
         {
           headers: {
@@ -1058,7 +1059,7 @@ export default function AllTasks({
 
       // Call API to delete task
       const token = localStorage.getItem("token");
-      const response = await axios.delete(`http://localhost:5000/api/tasks/delete/${taskId}`, {
+      const response = await axios.delete(`/api/tasks/delete/${taskId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1120,7 +1121,7 @@ export default function AllTasks({
     try {
       const token = localStorage.getItem("token");
       const deletePromises = selectedTaskObjects.map(task =>
-        axios.delete(`http://localhost:5000/api/tasks/delete/${task.id}`, {
+        axios.delete(`/api/tasks/delete/${task.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -1264,7 +1265,7 @@ export default function AllTasks({
       try {
         const token = localStorage.getItem("token");
         const response = await axios.put(
-          `http://localhost:5000/api/tasks/${taskId}`,
+          `/api/tasks/${taskId}`,
           { title: editingTitle.trim() },
           {
             headers: {
@@ -1369,7 +1370,7 @@ export default function AllTasks({
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `http://localhost:5000/api/tasks/${updatedTask.id}`,
+        `/api/tasks/${updatedTask.id}`,
         updatedTask,
         {
           headers: {
@@ -1654,7 +1655,7 @@ export default function AllTasks({
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:5000/api/tasks/create",
+        `/api/tasks/create`,
         {
           title: approvalTaskData.title,
           description: approvalTaskData.description || "",
@@ -1695,7 +1696,7 @@ export default function AllTasks({
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:5000/api/tasks/create",
+        `/api/tasks/create`,
         {
           title: milestoneData.title,
           description: milestoneData.description || "",
@@ -1758,7 +1759,7 @@ export default function AllTasks({
       if (isCurrentlySnoozing) {
         // Unsnooze task
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/unsnooze`,
+          `/api/tasks/${apiTaskId}/unsnooze`,
           {},
           {
             headers: {
@@ -1790,7 +1791,7 @@ export default function AllTasks({
         console.log('DEBUG - Snooze request payload:', { snoozeUntil, reason });
 
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/snooze`,
+          `/api/tasks/${apiTaskId}/snooze`,
           {
             snoozeUntil,
             reason
@@ -1852,7 +1853,7 @@ export default function AllTasks({
       if (isCurrentlyRisky) {
         // Unmark as risk
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/unmark-risk`,
+          `/api/tasks/${apiTaskId}/unmark-risk`,
           {},
           {
             headers: {
@@ -1886,7 +1887,7 @@ export default function AllTasks({
         console.log('DEBUG - Risk request payload:', { riskLevel, riskReason });
 
         const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/mark-risk`,
+          `/api/tasks/${apiTaskId}/mark-risk`,
           {
             riskLevel,
             riskReason
@@ -1937,7 +1938,7 @@ export default function AllTasks({
       const token = localStorage.getItem("token");
 
       const response = await axios.patch(
-        `http://localhost:5000/api/tasks/${taskId}/quick-done`,
+        `/api/tasks/${taskId}/quick-done`,
         {
           completionNotes: completionNotes || `Task completed quickly by user`
         },
@@ -2000,36 +2001,62 @@ export default function AllTasks({
     const matchesTaskType =
       taskTypeFilter === "all" || taskType === taskTypeFilter;
 
-    // Apply due date filter
+    // Apply due date filter with enhanced recurring task logic
     const matchesDueDate = (() => {
       if (dueDateFilter === "all") return true;
-      if (!task.dueDate) return dueDateFilter === "no_due_date";
+      
+      // 🔄 Enhanced Due Date Logic for Recurring Tasks
+      const displayDueDate = getDisplayDueDate(task);
+      
+      if (!displayDueDate) {
+        return dueDateFilter === "no_due_date";
+      }
 
       const today = new Date();
-      const dueDate = new Date(task.dueDate);
-      const timeDiff = dueDate.getTime() - today.getTime();
+      // Clear time part for accurate date comparison
+      const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const dueDateOnly = new Date(displayDueDate.getFullYear(), displayDueDate.getMonth(), displayDueDate.getDate());
+      
+      const timeDiff = dueDateOnly.getTime() - todayDateOnly.getTime();
       const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
       switch (dueDateFilter) {
         case "overdue":
+          // For recurring tasks, consider if current occurrence is overdue
+          if (task.isRecurring) {
+            // If task is completed, don't show as overdue
+            if (task.status === 'DONE' || task.status === 'completed') {
+              return false;
+            }
+            // Check if current due date is overdue
+            return daysDiff < 0;
+          }
           return daysDiff < 0;
+          
         case "due_today":
           return daysDiff === 0;
+          
         case "due_tomorrow":
           return daysDiff === 1;
+          
         case "due_this_week":
           return daysDiff >= 0 && daysDiff <= 7;
+          
         case "due_next_week":
           return daysDiff > 7 && daysDiff <= 14;
+          
         case "due_this_month":
           return daysDiff >= 0 && daysDiff <= 30;
+          
         case "no_due_date":
           return false;
+          
         case "specific_date":
           return (
             window.calendarSpecificDate &&
-            task.dueDate === window.calendarSpecificDate
+            displayDueDate.toISOString().split('T')[0] === window.calendarSpecificDate.split('T')[0]
           );
+          
         default:
           return true;
       }
@@ -2048,17 +2075,188 @@ export default function AllTasks({
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
 
+  // 🔄 Enhanced Recurring Task Helper Functions for Frontend Display
+  
+  // Debug function for recurring task troubleshooting
+  const debugRecurringTask = (task, context = '') => {
+    if (task.isRecurring) {
+      console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
+        taskId: task.id || task._id,
+        title: task.title,
+        isRecurring: task.isRecurring,
+        taskType: task.taskType,
+        originalDueDate: task.dueDate,
+        nextDueDate: task.nextDueDate,
+        recurrencePattern: task.recurrencePattern,
+        status: task.status,
+        completedDate: task.completedDate,
+        hasRecurrencePattern: !!task.recurrencePattern,
+        patternDetails: task.recurrencePattern ? {
+          frequency: task.recurrencePattern.frequency,
+          interval: task.recurrencePattern.interval,
+          anchorField: task.recurrencePattern.anchorField
+        } : null
+      });
+    }
+  };
+
+  // Calculate enhanced due date for recurring tasks (client-side display logic)
+  const calculateEnhancedDueDate = (task) => {
+    // For non-recurring tasks, return original due date
+    if (!task.isRecurring || !task.recurrencePattern) {
+      return task.dueDate;
+    }
+
+    // For recurring tasks, show the most relevant due date:
+    // 1. If task is completed, show original due date (historical)
+    // 2. If task has nextDueDate, show that (upcoming occurrence)
+    // 3. Otherwise, show current due date
+    
+    if (task.status === 'DONE' || task.status === 'completed') {
+      // For completed recurring tasks, show original due date for reference
+      return task.dueDate;
+    }
+    
+    if (task.nextDueDate) {
+      // Show next due date for active recurring tasks
+      return task.nextDueDate;
+    }
+    
+    return task.dueDate;
+  };
+
+  // Get display due date with recurring task logic
+  const getDisplayDueDate = (task) => {
+    debugRecurringTask(task, 'getDisplayDueDate');
+    
+    const enhancedDueDate = calculateEnhancedDueDate(task);
+    
+    console.log('🔍 DEBUG - getDisplayDueDate result:', {
+      taskId: task.id || task._id,
+      title: task.title,
+      isRecurring: task.isRecurring,
+      enhancedDueDate,
+      finalDate: enhancedDueDate ? new Date(enhancedDueDate) : null
+    });
+    
+    if (!enhancedDueDate) {
+      return null;
+    }
+    
+    return new Date(enhancedDueDate);
+  };
+
+  // Check if recurring task has upcoming occurrence
+  const hasUpcomingRecurrence = (task) => {
+    if (!task.isRecurring || !task.nextDueDate) {
+      return false;
+    }
+    
+    const nextDue = new Date(task.nextDueDate);
+    const now = new Date();
+    
+    return nextDue > now;
+  };
+
+  // Get recurring task status info for display
+  const getRecurringTaskInfo = (task) => {
+    if (!task.isRecurring) {
+      return null;
+    }
+
+    const info = {
+      isRecurring: true,
+      frequency: task.recurrencePattern?.frequency || 'unknown',
+      interval: task.recurrencePattern?.interval || 1,
+      hasNextOccurrence: !!task.nextDueDate,
+      nextDueDate: task.nextDueDate,
+      isCompleted: task.status === 'DONE' || task.status === 'completed'
+    };
+
+    // Generate human-readable recurrence description
+    const { frequency, interval } = info;
+    let description = '';
+    
+    switch (frequency) {
+      case 'daily':
+        description = interval === 1 ? 'Daily' : `Every ${interval} days`;
+        break;
+      case 'weekly':
+        description = interval === 1 ? 'Weekly' : `Every ${interval} weeks`;
+        break;
+      case 'monthly':
+        description = interval === 1 ? 'Monthly' : `Every ${interval} months`;
+        break;
+      case 'yearly':
+        description = interval === 1 ? 'Yearly' : `Every ${interval} years`;
+        break;
+      case 'custom':
+        description = 'Custom pattern';
+        break;
+      default:
+        description = 'Recurring';
+    }
+    
+    info.description = description;
+    return info;
+  };
+
   // Helper function to get task visual indicators
   const getTaskIndicators = (task) => {
     const status = getTaskStatus(task.id);
     const indicators = [];
 
-    if (status?.isOverdue) {
+    // 🔄 Recurring Task Indicators
+    const recurringInfo = getRecurringTaskInfo(task);
+    if (recurringInfo) {
       indicators.push({
-        icon: "🔴",
-        text: "Overdue",
-        className: "bg-red-100 text-red-800 border-red-200",
+        icon: "🔄",
+        text: recurringInfo.description,
+        className: "bg-purple-100 text-purple-800 border-purple-200",
       });
+
+      // Show next occurrence info for active recurring tasks
+      if (recurringInfo.hasNextOccurrence && !recurringInfo.isCompleted) {
+        const nextDue = new Date(recurringInfo.nextDueDate);
+        const today = new Date();
+        const daysDiff = Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 3600 * 24));
+        
+        let nextText = 'Next: ';
+        if (daysDiff === 0) {
+          nextText += 'Today';
+        } else if (daysDiff === 1) {
+          nextText += 'Tomorrow';
+        } else if (daysDiff > 0) {
+          nextText += `${daysDiff} days`;
+        } else {
+          nextText += 'Overdue';
+        }
+
+        indicators.push({
+          icon: "📅",
+          text: nextText,
+          className: daysDiff < 0 
+            ? "bg-red-100 text-red-800 border-red-200"
+            : daysDiff <= 1
+            ? "bg-orange-100 text-orange-800 border-orange-200" 
+            : "bg-blue-100 text-blue-800 border-blue-200",
+        });
+      }
+    }
+
+    // Enhanced overdue check with recurring task logic
+    const displayDueDate = getDisplayDueDate(task);
+    if (displayDueDate) {
+      const today = new Date();
+      const isOverdue = displayDueDate < today && (task.status !== 'DONE' && task.status !== 'completed');
+      
+      if (isOverdue) {
+        indicators.push({
+          icon: "🔴",
+          text: "Overdue",
+          className: "bg-red-100 text-red-800 border-red-200",
+        });
+      }
     }
 
     if (status?.isSnoozed) {
@@ -2078,6 +2276,87 @@ export default function AllTasks({
     }
 
     return indicators;
+  };
+
+  // 🔄 Enhanced Due Date Formatting for Display
+  const formatTaskDueDate = (task) => {
+    console.log('🔍 DEBUG - formatTaskDueDate called for task:', {
+      taskId: task.id || task._id,
+      title: task.title,
+      isRecurring: task.isRecurring,
+      taskType: task.taskType,
+      dueDate: task.dueDate,
+      nextDueDate: task.nextDueDate
+    });
+    
+    const displayDueDate = getDisplayDueDate(task);
+    
+    console.log('🔍 DEBUG - formatTaskDueDate displayDueDate result:', displayDueDate);
+    
+    if (!displayDueDate) {
+      console.log('🔍 DEBUG - No display due date, returning default');
+      return {
+        formatted: 'No due date',
+        isOverdue: false,
+        className: 'text-gray-500'
+      };
+    }
+
+    const today = new Date();
+    const dueDateOnly = new Date(displayDueDate.getFullYear(), displayDueDate.getMonth(), displayDueDate.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const daysDiff = Math.ceil((dueDateOnly.getTime() - todayOnly.getTime()) / (1000 * 3600 * 24));
+    const isCompleted = task.status === 'DONE' || task.status === 'completed';
+    const isOverdue = daysDiff < 0 && !isCompleted;
+
+    let formatted = displayDueDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: displayDueDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    });
+
+    // Add relative time info
+    if (daysDiff === 0) {
+      formatted += ' (Today)';
+    } else if (daysDiff === 1) {
+      formatted += ' (Tomorrow)';
+    } else if (daysDiff === -1) {
+      formatted += ' (Yesterday)';
+    } else if (daysDiff > 1 && daysDiff <= 7) {
+      formatted += ` (${daysDiff} days)`;
+    } else if (daysDiff < -1 && daysDiff >= -7) {
+      formatted += ` (${Math.abs(daysDiff)} days ago)`;
+    }
+
+    // Add recurring task context
+    const recurringInfo = getRecurringTaskInfo(task);
+    if (recurringInfo && recurringInfo.hasNextOccurrence && !recurringInfo.isCompleted) {
+      if (task.nextDueDate && displayDueDate.getTime() === new Date(task.nextDueDate).getTime()) {
+        formatted += ' 🔄';
+      }
+    }
+
+    let className = '';
+    if (isOverdue) {
+      className = 'text-red-600 font-medium';
+    } else if (daysDiff === 0) {
+      className = 'text-orange-600 font-medium';
+    } else if (daysDiff === 1) {
+      className = 'text-yellow-600 font-medium';
+    } else if (isCompleted) {
+      className = 'text-green-600';
+    } else {
+      className = 'text-gray-700';
+    }
+
+    return {
+      formatted,
+      isOverdue,
+      className,
+      daysDiff,
+      displayDueDate
+    };
   };
 
   // Function to get task color code
@@ -2994,11 +3273,24 @@ export default function AllTasks({
                           </span>
                         </TableCell>
                         <TableCell className="px-6 py-4 text-sm text-gray-900 text-nowrap">
-                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }) : "-"}
+                          {(() => {
+                            // 🔄 Enhanced Due Date Display with Recurring Task Support
+                            const dueDateInfo = formatTaskDueDate(task);
+                            console.log('🔍 DEBUG - Table Due Date:', {
+                              taskId: task.id || task._id,
+                              taskTitle: task.title,
+                              isRecurring: task.isRecurring,
+                              originalDueDate: task.dueDate,
+                              nextDueDate: task.nextDueDate,
+                              formattedDate: dueDateInfo.formatted,
+                              displayDueDate: dueDateInfo.displayDueDate
+                            });
+                            return (
+                              <span className={dueDateInfo.className}>
+                                {dueDateInfo.formatted}
+                              </span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap">
                           <div className="flex items-center">
@@ -3151,11 +3443,23 @@ export default function AllTasks({
                               </span>
                             </TableCell>
                             <TableCell className="px-6 py-3 text-sm text-gray-700">
-                              {subtask.dueDate ? new Date(subtask.dueDate).toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              }) : "-"}
+                              {(() => {
+                                // 🔄 Enhanced Subtask Due Date Display
+                                const dueDateInfo = formatTaskDueDate(subtask);
+                                console.log('🔍 DEBUG - Subtask Due Date:', {
+                                  subtaskId: subtask.id || subtask._id,
+                                  subtaskTitle: subtask.title,
+                                  isRecurring: subtask.isRecurring,
+                                  originalDueDate: subtask.dueDate,
+                                  nextDueDate: subtask.nextDueDate,
+                                  formattedDate: dueDateInfo.formatted
+                                });
+                                return (
+                                  <span className={dueDateInfo.className}>
+                                    {dueDateInfo.formatted}
+                                  </span>
+                                );
+                              })()}
                             </TableCell>
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center">

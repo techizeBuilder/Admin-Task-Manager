@@ -1,7 +1,7 @@
 // Test script for new Task APIs
 const axios = require('axios');
 
-const baseURL = 'http://localhost:5000/api';
+// const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 const taskId = '671b5df2b83cb5a8c14b9bb5'; // Replace with actual task ID
 
 // Mock authentication token - replace with actual token
@@ -15,7 +15,7 @@ const headers = {
 async function testSnoozeAPI() {
     try {
         console.log('\n🔍 Testing Snooze API...');
-        const response = await axios.patch(`${baseURL}/tasks/${taskId}/snooze`, {
+        const response = await axios.patch(`/tasks/${taskId}/snooze`, {
             snoozeUntil: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
             reason: 'Need more time to review requirements'
         }, { headers });
@@ -29,7 +29,7 @@ async function testSnoozeAPI() {
 async function testUnsnoozeAPI() {
     try {
         console.log('\n🔍 Testing Unsnooze API...');
-        const response = await axios.patch(`${baseURL}/tasks/${taskId}/unsnooze`, {}, { headers });
+        const response = await axios.patch(`/tasks/${taskId}/unsnooze`, {}, { headers });
 
         console.log('✅ Unsnooze API Response:', response.status, response.data);
     } catch (error) {
@@ -40,7 +40,7 @@ async function testUnsnoozeAPI() {
 async function testMarkAsRiskAPI() {
     try {
         console.log('\n🔍 Testing Mark as Risk API...');
-        const response = await axios.patch(`${baseURL}/tasks/${taskId}/mark-risk`, {
+        const response = await axios.patch(`/tasks/${taskId}/mark-risk`, {
             riskType: 'deadline',
             reason: 'Approaching deadline with pending dependencies'
         }, { headers });
@@ -54,7 +54,7 @@ async function testMarkAsRiskAPI() {
 async function testUnmarkRiskAPI() {
     try {
         console.log('\n🔍 Testing Unmark Risk API...');
-        const response = await axios.patch(`${baseURL}/tasks/${taskId}/unmark-risk`, {}, { headers });
+        const response = await axios.patch(`/tasks/${taskId}/unmark-risk`, {}, { headers });
 
         console.log('✅ Unmark Risk API Response:', response.status, response.data);
     } catch (error) {
@@ -65,7 +65,7 @@ async function testUnmarkRiskAPI() {
 async function testQuickMarkAsDoneAPI() {
     try {
         console.log('\n🔍 Testing Quick Mark as Done API...');
-        const response = await axios.patch(`${baseURL}/tasks/${taskId}/quick-done`, {
+        const response = await axios.patch(`/tasks/${taskId}/quick-done`, {
             completionNotes: 'Completed quickly without review'
         }, { headers });
 

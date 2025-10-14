@@ -1,10 +1,11 @@
+const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 // Test PUT API with real task ID
 async function testPutAPI() {
   try {
     console.log('🚀 Testing PUT API Fix...\n');
     
     // Login first
-    const loginResponse = await fetch('http://localhost:5000/api/auth/login', {
+    const loginResponse = await fetch(`/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -23,7 +24,7 @@ async function testPutAPI() {
     
     // Create a quick task first
     console.log('\n1. Creating Quick Task...');
-    const createResponse = await fetch('http://localhost:5000/api/quick-tasks', {
+    const createResponse = await fetch(`/api/quick-tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,7 +48,7 @@ async function testPutAPI() {
     
     // Now test PUT
     console.log('\n2. Testing PUT /api/quick-tasks/' + taskId + '...');
-    const updateResponse = await fetch(`http://localhost:5000/api/quick-tasks/${taskId}`, {
+    const updateResponse = await fetch(`/api/quick-tasks/${taskId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
