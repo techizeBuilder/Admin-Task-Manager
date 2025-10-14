@@ -439,7 +439,7 @@ const RegularTaskForm = ({
                 },
               })}
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="Enter task name..."
               data-testid="input-task-name"
             />
@@ -474,7 +474,7 @@ const RegularTaskForm = ({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
           {/* Priority */}
 
           {/* Assigned To */}
@@ -548,7 +548,7 @@ const RegularTaskForm = ({
               })}
               type="date"
               min={getTodayDate()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               data-testid="input-due-date"
             />
             {errors.dueDate && (
@@ -557,6 +557,38 @@ const RegularTaskForm = ({
               </p>
             )}
           </div>
+           {/* Tags */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900  mb-0">
+            Labels / Tags
+          </label>
+          <Controller
+            name="tags"
+            control={control}
+            render={({ field }) => (
+              <CreatableSelect
+                {...field}
+                isMulti
+                options={[
+                  { value: "urgent", label: "Urgent" },
+                  { value: "review", label: "Review" },
+                  { value: "meeting", label: "Meeting" },
+                  { value: "development", label: "Development" },
+                ]}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder="Enter add tags..."
+                noOptionsMessage={() => "Type to create new tag"}
+                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+                createOptionPosition="first"
+                data-testid="select-tags"
+              />
+            )}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Enter or comma to create new tags
+          </p>
+        </div>
         </div>
 
         <div>
@@ -593,38 +625,7 @@ const RegularTaskForm = ({
           </div>
         </div>
 
-        {/* Tags */}
-        <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
-            Labels / Tags
-          </label>
-          <Controller
-            name="tags"
-            control={control}
-            render={({ field }) => (
-              <CreatableSelect
-                {...field}
-                isMulti
-                options={[
-                  { value: "urgent", label: "Urgent" },
-                  { value: "review", label: "Review" },
-                  { value: "meeting", label: "Meeting" },
-                  { value: "development", label: "Development" },
-                ]}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder="Type and press Enter or comma to add tags..."
-                noOptionsMessage={() => "Type to create new tag"}
-                formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
-                createOptionPosition="first"
-                data-testid="select-tags"
-              />
-            )}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Type tag name and press Enter or comma to create new tags
-          </p>
-        </div>
+       
 
         {/* Attachments */}
         <div>

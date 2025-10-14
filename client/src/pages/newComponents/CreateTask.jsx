@@ -53,6 +53,7 @@ export default function CreateTask({
     setSelectedTaskType(type);
   }, [location]);
 
+
   // Fetch collaborators list
   const fetchCollaborators = async () => {
     try {
@@ -321,7 +322,7 @@ export default function CreateTask({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-stretch">
+        <div className={`grid  ${location==='/tasks/create'?'lg:grid-cols-4 ':'lg:grid-cols-2 '}  md:grid-cols-2  gap-2 items-stretch`}>
           {taskTypes.map((taskType) => {
             const isSelected = selectedTaskType === taskType.id;
             const colorClass =
@@ -794,7 +795,7 @@ function LegacyCreateTask({
             Choose the type of task you want to create
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <button
             onClick={() => setTaskType("modular")}
             className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "modular"

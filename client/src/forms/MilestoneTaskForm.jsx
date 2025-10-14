@@ -315,7 +315,7 @@ const MilestoneTaskForm = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
         {/* Due Date */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
@@ -332,7 +332,7 @@ const MilestoneTaskForm = ({
             })}
             type="date"
             min={getTodayDate()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             data-testid="input-due-date"
           />
           {watchedMilestoneType === "linked" && (
@@ -398,6 +398,36 @@ const MilestoneTaskForm = ({
             )}
           />
         </div>
+             {/* Collaborators */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+          <Users className="w-4 h-4 mr-1" />
+          Collaborators
+        </label>
+        <Controller
+          name="collaborators"
+          control={control}
+          
+          render={({ field }) => (
+            <Select
+              {...field}
+              isMulti
+              options={collaboratorsList}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder={isCollaboratorsLoading ? "Loading collaborators..." : "Select collaborators..."}
+              isLoading={isCollaboratorsLoading}
+              isDisabled={isCollaboratorsLoading}
+              data-testid="select-collaborators"
+              
+              
+            />
+          )}
+        />
+        {/* <p className="text-xs text-gray-500 mt-1">
+          Collaborators will be notified when milestone is achieved
+        </p> */}
+      </div>
       </div>
 
 
@@ -430,36 +460,10 @@ const MilestoneTaskForm = ({
         </div>
       </div>
 
-      {/* Collaborators */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
-          <Users className="w-4 h-4 mr-1" />
-          Collaborators
-        </label>
-        <Controller
-          name="collaborators"
-          control={control}
-          render={({ field }) => (
-            <Select
-              {...field}
-              isMulti
-              options={collaboratorsList}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder={isCollaboratorsLoading ? "Loading collaborators..." : "Select collaborators for notifications..."}
-              isLoading={isCollaboratorsLoading}
-              isDisabled={isCollaboratorsLoading}
-              data-testid="select-collaborators"
-            />
-          )}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Collaborators will be notified when milestone is achieved
-        </p>
-      </div>
+ 
 
       {/* Status Information */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start space-x-2">
           <Info className="w-4 h-4 text-blue-600 mt-0.5" />
           <div>
@@ -472,10 +476,10 @@ const MilestoneTaskForm = ({
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Restrictions Information */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      {/* <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start space-x-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
           <div>
@@ -489,7 +493,7 @@ const MilestoneTaskForm = ({
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
