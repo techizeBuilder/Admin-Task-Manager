@@ -2777,8 +2777,8 @@ export default function AllTasks({
         <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${
-              showSnooze ? "btn-primary" : "btn-secondary"
+            className={`btn  ${
+              showSnooze ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
             } whitespace-nowrap`}
           >
             <svg
@@ -2798,7 +2798,7 @@ export default function AllTasks({
           </button>
           <button
             className={`btn ${
-              showCalendarView ? "btn-primary" : "btn-secondary"
+              showCalendarView ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
             } whitespace-nowrap`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
@@ -2838,7 +2838,7 @@ export default function AllTasks({
               Create Task
             </button>
             <button
-              className="btn btn-secondary ml-2 whitespace-nowrap"
+              className="btn btn-secondary hover:text-purple-700 ml-2 whitespace-nowrap"
               onClick={() => setShowSmartParser(!showSmartParser)}
               title="Smart Task Parser - Create tasks from natural language"
             >
