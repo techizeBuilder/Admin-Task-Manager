@@ -198,7 +198,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="number"
             min="1"
-            className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="1"
             data-testid="input-repeat-every"
           />
@@ -212,9 +212,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </p>
         )}
       </div>
-    </div>
-
-      {/* Pattern-specific controls */}
+           {/* Pattern-specific controls */}
       {watchedPattern?.value === "weekly" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">
@@ -245,6 +243,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
         </div>
       )}
+    </div>
+
+ 
 
       {watchedPattern?.value === "monthly" && (
         <div className="space-y-4">
@@ -472,7 +473,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       )}
 
       {/* Start Date & Time */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">
             Start Date <span className="text-red-500">*</span>
@@ -487,7 +488,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="date"
             min={getTodayDate()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             data-testid="input-start-date"
           />
           {errors.recurrence?.startDate && (
@@ -504,14 +505,12 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           <input
             {...register("recurrence.startTime")}
             type="time"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             defaultValue="09:00"
             data-testid="input-start-time"
           />
         </div>
-      </div>
-
-      {/* End Condition */}
+           {/* End Condition */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">
           End Condition <span className="text-red-500">*</span>
@@ -593,6 +592,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </div>
         )}
       </div>
+      </div>
+
+   
 
       {/* Summary */}
       {summary && (
@@ -632,6 +634,7 @@ export const RecurringTaskForm = ({
   defaultValues = {},
   collaboratorOptions = [],
   isLoadingCollaborators = false,
+  drawer=false,
 }) => {
   const {
     register,
@@ -804,7 +807,7 @@ export const RecurringTaskForm = ({
           )}
         />
       </div>
-          <div className="grid grid-cols-4 md:grid-cols-2 gap-6">
+          <div className={`grid ${drawer ? 'grid-cols-2' : 'grid-cols-4'} gap-6`}>
       {/* Assigned To - Single assignee only for recurring tasks */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">

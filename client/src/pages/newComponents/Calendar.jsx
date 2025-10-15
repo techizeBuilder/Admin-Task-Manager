@@ -316,6 +316,7 @@ export default function Calendar({ onClose }) {
                   console.log('Task created:', taskData);
                   setShowCreateTask(false);
                 }}
+                  drawer={false}
               />
             </div>
           </div>

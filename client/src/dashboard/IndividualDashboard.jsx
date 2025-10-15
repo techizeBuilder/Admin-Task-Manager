@@ -1205,6 +1205,7 @@ const IndividualDashboard = ({
                 onSubmit={handleCreateTaskSubmit}
                 onClose={handleCloseCreateTask}
                 initialTaskType="regular"
+                 drawer={false}
               />
             </div>
           </div>

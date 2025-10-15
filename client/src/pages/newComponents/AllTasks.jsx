@@ -3953,6 +3953,7 @@ export default function AllTasks({
                 onSubmit={handleTaskCreated}
                 onClose={() => setShowCreateTaskDrawer(false)}
                 preFilledDate={selectedDateForTask}
+                drawer={true}
               />
             </div>
           </div>

@@ -572,6 +572,7 @@ export default function Dashboard() {
               <CreateTask
                 onClose={() => setShowCreateTask(false)}
                 initialTaskType={selectedTaskType}
+                  drawer={true}
               />
             </div>
           </div>

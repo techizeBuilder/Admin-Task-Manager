@@ -213,6 +213,7 @@ const RegularTaskForm = ({
   onCancel,
   isOrgUser = false,
   defaultValues = {},
+  drawer=false
 }) => {
   const {
     register,
@@ -474,7 +475,7 @@ const RegularTaskForm = ({
           />
         </div>
 
-        <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+        <div className={`grid ${!drawer ? 'grid-cols-4' : 'grid-cols-2'} gap-4`}>
           {/* Priority */}
 
           {/* Assigned To */}
