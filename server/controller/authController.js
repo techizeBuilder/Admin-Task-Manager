@@ -283,45 +283,46 @@ export const authController = {
   },
 
   async verifyToken(req, res) {
-    try {
+  try {
       const { token, password } = req.body;
-      if (!token || !password) {
-        return res
-          .status(400)
-          .json({ message: "Token and password are required" });
-      }
-      const user = await storage.getUserByVerificationToken(token);
-      if (!user) {
-        return res
-          .status(400)
-          .json({ message: "Invalid or expired verification token" });
-      }
-      if (
-        user.emailVerificationExpires &&
-        new Date() > user.emailVerificationExpires
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Verification token has expired" });
-      }
-      const hashedPassword = await storage.hashPassword(password);
-      await storage.updateUser(user._id, {
-        passwordHash: hashedPassword,
-        status: "active",
-        emailVerified: true,
-        emailVerificationToken: null,
-        emailVerificationExpires: null,
-      });
-      res.json({
-        message: "Email verified and password set successfully",
-        success: true,
-      });
-    } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Verification failed. Please try again." });
+
+    const user = await storage.getUserByVerificationToken(token);
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired verification token" });
     }
-  },
+      
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required",token:true });
+    }
+
+    if (
+      user.emailVerificationExpires &&
+      new Date() > user.emailVerificationExpires
+    ) {
+      return res.status(400).json({ message: "Verification token has expired" });
+    }
+
+    const hashedPassword = await storage.hashPassword(password);
+    await storage.updateUser(user._id, {
+      passwordHash: hashedPassword,
+      status: "active",
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
+    });
+
+    res.json({
+      message: "Email verified and password set successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("verifyToken error:", error);
+    res
+      .status(500)
+      .json({ message: "Verification failed. Please try again." });
+  }
+}
+,
 
 
   // ...existing code...
@@ -511,7 +512,7 @@ export const authController = {
           const verificationToken = storage.generateEmailVerificationToken();
           await storage.updateUser(existingUser._id, {
             emailVerificationToken: verificationToken,
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000),
           });
           await emailService.sendVerificationEmail(
             email,
@@ -543,7 +544,7 @@ export const authController = {
       const verificationToken = storage.generateEmailVerificationToken();
       await storage.updateUser(user._id, {
         emailVerificationToken: verificationToken,
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000),
       });
 
       await emailService.sendVerificationEmail(
@@ -595,7 +596,7 @@ export const authController = {
           const verificationToken = storage.generateEmailVerificationToken();
           await storage.updateUser(existingUser._id, {
             emailVerificationToken: verificationToken,
-            emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000),
           });
           await emailService.sendVerificationEmail(
             email,
@@ -655,7 +656,7 @@ export const authController = {
       const verificationToken = storage.generateEmailVerificationToken();
       await storage.updateUser(user._id, {
         emailVerificationToken: verificationToken,
-        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000),
       });
 
       await emailService.sendVerificationEmail(
@@ -681,7 +682,71 @@ export const authController = {
       res.status(500).json({ message: "Registration failed. Please try again." });
     }
   },
+/**
+ * Resend Email Verification Link
+ * Endpoint: POST /api/auth/resend-verification
+ */
+async resendVerificationLink(req, res) {
+  try {
+    const { email } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // 🔍 Find user by email
+    const user = await storage.getUserByEmail(email.toLowerCase().trim());
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 🛑 If already verified
+    if (user.emailVerified) {
+      return res.status(400).json({
+        message: "This email is already verified. Please log in instead.",
+      });
+    }
+
+    // 🕒 Rate-limit: prevent resending link too soon
+    if (
+      user.lastVerificationSent &&
+      new Date() - new Date(user.lastVerificationSent) < 60 * 1000 // 1 min
+    ) {
+      return res.status(429).json({
+        message: "Please wait a minute before requesting another link.",
+      });
+    }
+
+    // 🔑 Generate new verification token
+    const verificationToken = storage.generateEmailVerificationToken();
+
+    // ⏳ Update user with new token + expiry (1 hour here)
+    await storage.updateUser(user._id, {
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000), // 1 minute
+      lastVerificationSent: new Date(), // save timestamp for rate-limit
+    });
+
+    // ✉️ Send new verification email
+    await emailService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.firstName || "User",
+      null
+    );
+
+    return res.status(200).json({
+      message: "A new verification link has been sent to your email.",
+      resent: true,
+    });
+  } catch (error) {
+    console.error("Resend verification link error:", error);
+    return res.status(500).json({
+      message: "Failed to resend verification link. Please try again.",
+    });
+  }
+}
+,
   async getCurrentUser(req, res) {
     try {
       // The user data is already attached to req by the authenticateToken middleware

@@ -382,5 +382,5 @@ router.post("/verify-token", authController.verifyToken);
  *         description: Invalid or expired token
  */
 router.post("/validate-reset-token", authController.validateResetToken);
-
+router.post("/resend-verification", authController.resendVerificationLink);
 export default router;
