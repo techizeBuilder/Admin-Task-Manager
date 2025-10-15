@@ -220,7 +220,7 @@ export const authController = {
         });
       }
       const resetToken = storage.generatePasswordResetToken();
-      const resetExpiry = new Date(Date.now() + 3600000);
+      const resetExpiry = new Date(Date.now() + 60000); //1 min
       await storage.updateUser(user._id, {
         passwordResetToken: resetToken,
         passwordResetExpires: resetExpiry,
