@@ -16,6 +16,7 @@ import {
   getPasswordRequirements,
   validatePassword,
 } from "../../utils/passwordUtils";
+import { url } from "zod/v4";
 
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
@@ -28,6 +29,7 @@ export default function VerifyEmail() {
   const [verificationToken, setVerificationToken] = useState("");
   const [errors, setErrors] = useState({});
   const [email,setemail]=useState('')
+  const [org,setorg]=useState('')
   const [userName, setUserName] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(null); // null = loading, true = valid, false = invalid
   const passwordRequirements = getPasswordRequirements(password);
@@ -38,6 +40,7 @@ export default function VerifyEmail() {
     const token = urlParams.get("token");
     const name = urlParams.get("name");
     const email = urlParams.get("email");
+    const org = urlParams.get("org");
 
     if (!token) {
       setIsTokenValid(false);
@@ -47,6 +50,7 @@ export default function VerifyEmail() {
     setVerificationToken(token);
     if (name) setUserName(name);
     if(email)setemail(email);
+    if(org)setorg(org);
     // 🔹 Check token validity with backend
     const checkToken = async () => {
       try {
@@ -145,10 +149,10 @@ export default function VerifyEmail() {
   };
 
   const handleResendVerification = async () => {
-    if (!verificationToken) {
+    if (!email) {
       toast({
         title: "Cannot resend link",
-        description: "Missing token. Please log in and request a new link.",
+        description: "Missing email. Please log in and request a new link.",
         variant: "destructive",
       });
       setLocation("/login");
@@ -159,7 +163,7 @@ export default function VerifyEmail() {
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email  }),
+        body: JSON.stringify({ email }), // org will be resolved on server
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -183,6 +187,7 @@ export default function VerifyEmail() {
       });
     } finally {
       setIsResending(false);
+      setLocation("/login");
     }
   };
 

@@ -55,7 +55,9 @@ class EmailService {
       // Determine if this is organization registration
       const isOrganization =
         organizationName !== null && organizationName !== undefined;
-      const url = `${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}&email=${email}`;
+      const url = isOrganization
+        ? `${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}&email=${email}&org=${encodeURIComponent(organizationName)}`
+        : `${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}&email=${email}`;
       const mailOptions = {
         to: email,
         from: "noreply@tasksetu.com",

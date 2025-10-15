@@ -517,7 +517,7 @@ export const authController = {
           await emailService.sendVerificationEmail(
             email,
             verificationToken,
-            existingUser.firstName || firstName,
+           firstName,
             null
           );
           return res.status(200).json({
@@ -601,7 +601,7 @@ export const authController = {
           await emailService.sendVerificationEmail(
             email,
             verificationToken,
-            existingUser.firstName || firstName,
+            firstName,
             organizationName
           );
           return res.status(200).json({
@@ -694,45 +694,49 @@ async resendVerificationLink(req, res) {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    // 🔍 Find user by email
     const user = await storage.getUserByEmail(email.toLowerCase().trim());
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 🛑 If already verified
     if (user.emailVerified) {
       return res.status(400).json({
         message: "This email is already verified. Please log in instead.",
       });
     }
 
-    // 🕒 Rate-limit: prevent resending link too soon
     if (
       user.lastVerificationSent &&
-      new Date() - new Date(user.lastVerificationSent) < 60 * 1000 // 1 min
+      new Date() - new Date(user.lastVerificationSent) < 60 * 1000
     ) {
       return res.status(429).json({
         message: "Please wait a minute before requesting another link.",
       });
     }
 
-    // 🔑 Generate new verification token
     const verificationToken = storage.generateEmailVerificationToken();
 
-    // ⏳ Update user with new token + expiry (1 hour here)
     await storage.updateUser(user._id, {
       emailVerificationToken: verificationToken,
-      emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000), // 1 minute
-      lastVerificationSent: new Date(), // save timestamp for rate-limit
+      emailVerificationExpires: new Date(Date.now() + 1 * 60 * 1000),
+      lastVerificationSent: new Date(),
     });
 
-    // ✉️ Send new verification email
+    // Derive org name on the server (do not trust client input)
+    let organizationName = null;
+    const orgId = user.organization_id || user.organizationId;
+    if (orgId) {
+      try {
+        const org = await storage.getOrganization(orgId);
+        organizationName = org?.name || null;
+      } catch (_) {}
+    }
+
     await emailService.sendVerificationEmail(
       user.email,
       verificationToken,
       user.firstName || "User",
-      null
+      organizationName
     );
 
     return res.status(200).json({
