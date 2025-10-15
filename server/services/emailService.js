@@ -299,6 +299,27 @@ www.Tasksetu.com`,
     try {
       const inviteUrl = `${this.baseUrl}/accept-invite?token=${inviteToken}`;
 
+      // Compute a friendly roles display string
+      const rolesDisplay = (() => {
+        const list = Array.isArray(roles) ? roles : (roles ? [roles] : []);
+        const roleMap = {
+          org_admin: "Organization Admin",
+          admin: "Company Admin",
+          employee: "Employee",
+          manager: "Manager",
+          individual: "Individual",
+          member: "Member",
+        };
+        const pretty = list
+          .map((r) =>
+            roleMap[r] || String(r).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          )
+          .filter(Boolean);
+        return pretty.length ? pretty.join(", ") : "Member";
+      })();
+
+      const recipientName = name || (typeof email === "string" ? email.split("@")[0] : "there");
+
       const mailOptions = {
         to: email,
         from: "noreply@tasksetu.com",
@@ -326,46 +347,10 @@ www.Tasksetu.com`,
               </div>
               <div class="content">
                 <h2>You're invited to join ${organizationName}!</h2>
-                <p>Hi ${name || "there"},</p>
+                <p>Hi ${recipientName},</p>
                 <p><strong>${invitedByName}</strong> has invited you to join their team on TaskSetu.</p>
                 
-              <p>
-  You'll be joining as:
-  <strong>
-  ${
-    Array.isArray(roles)
-      ? roles
-          .map((r) => {
-            const roleMap = {
-              org_admin: "Organization Admin",
-              admin: "Company Admin",
-              employee: "Employee",
-              manager: "Manager",
-              individual: "Individual",
-            };
-            return (
-              roleMap[r] ||
-              r.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-            );
-          })
-          .join(", ")
-      : (() => {
-          const roleMap = {
-            org_admin: "Organization Admin",
-            admin: "Company Admin",
-            employee: "Employee",
-            manager: "Manager",
-            individual: "Individual",
-          };
-          return (
-            roleMap[roles] ||
-            roles.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-          );
-        })()
-  }
-</strong>
-
-</p>
+              <p>You'll be joining as: <strong>${rolesDisplay}</strong></p>
                 <p>Click the button below to accept the invitation and create your account:</p>
                 <a href="${inviteUrl}" class="button" style="color:#ffffff !important; text-decoration:none !important;">Accept Invitation</a>
                 
@@ -385,9 +370,7 @@ www.Tasksetu.com`,
           </body>
           </html>
         `,
-        text: `You're invited to join ${organizationName}!\n\n${invitedByName} has invited you to join their team on TaskSetu.\n\nYou'll be joining as: ${
-          Array.isArray(roles) ? roles.join(", ") : roles
-        }\n\nClick this link to accept the invitation: ${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nWelcome to TaskSetu!\nThe TaskSetu Team`,
+        text: `You're invited to join ${organizationName}!\n\nHi ${recipientName},\n\n${invitedByName} has invited you to join their team on TaskSetu.\n\nYou'll be joining as: ${rolesDisplay}\n\nClick this link to accept the invitation: ${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nWelcome to TaskSetu!\nThe TaskSetu Team`,
       };
 
       await this.transporter.sendMail(mailOptions);

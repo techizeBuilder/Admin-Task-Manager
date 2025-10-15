@@ -260,6 +260,35 @@ router.post("/validate-invite-token", authController.validateInviteToken);
 
 /**
  * @swagger
+ * /api/auth/resend-invite:
+ *   post:
+ *     summary: Resend an invitation when the link has expired or is invalid
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The expired/invalid invite token
+ *               email:
+ *                 type: string
+ *                 description: The invited user's email, used if token isn't available
+ *     responses:
+ *       200:
+ *         description: Invitation resent
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: Invite not found
+ */
+router.post("/resend-invite", authController.resendInvitePublic);
+
+/**
+ * @swagger
  * /api/auth/complete-invitation:
  *   post:
  *     summary: Complete invitation and create user account

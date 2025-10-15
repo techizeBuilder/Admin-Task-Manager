@@ -329,15 +329,14 @@ export const authController = {
 
   async acceptInvite(req, res) {
     try {
-      const { token, firstName, lastName = '', password } = req.body;
-      if (!token || !firstName || !password) {
+      const { token, password } = req.body;
+      if (!token || !password) {
         return res.status(400).json({
-          message: "Token, first name and password are required",
+          message: "Token and password are required",
         });
       }
       const result = await storage.completeUserInvitation(token, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+    
         password,
       });
       if (!result.success) {
@@ -350,8 +349,7 @@ export const authController = {
         user: {
           id: result.user._id,
           email: result.user.email,
-          firstName: result.user.firstName,
-          lastName: result.user.lastName,
+          
           role: result.user.role,
         },
       });
@@ -456,6 +454,99 @@ export const authController = {
       res.status(500).json({ message: "Failed to validate invitation token" });
     }
   },
+
+  // Resend invite without requiring admin login (for expired links)
+  async resendInvitePublic(req, res) {
+  try {
+    const { token, email } = req.body || {};
+
+    if (!token && !email) {
+      return res.status(400).json({ message: "Provide token or email" });
+    }
+
+    // 🔍 Find invited user by token or email
+    let invitedUser = token
+      ? await storage.getUserByExactInviteToken(token)
+      : null;
+
+    if (!invitedUser && email) {
+      invitedUser = await storage.getInvitedUserByEmail(email);
+    }
+
+    if (!invitedUser) {
+      return res.status(404).json({ message: "Invitation not found" });
+    }
+
+    if (invitedUser.status !== "invited") {
+      return res.status(400).json({ message: "User is not in invited status" });
+    }
+
+    // 🔐 Generate new invite token (1 min expiry)
+    const newInviteToken = storage.generateEmailVerificationToken();
+    const newExpiry = new Date(Date.now() + 1 * 60 * 1000);
+
+    await storage.updateUser(invitedUser._id, {
+      inviteToken: newInviteToken,
+      inviteTokenExpiry: newExpiry,
+      invitedAt: new Date(),
+    });
+
+    // 📩 Get inviter info (the admin who sent the invite)
+    const inviter = invitedUser.invitedBy
+      ? await storage.getUser(invitedUser.invitedBy)
+      : null;
+
+    // 🏢 Get organization info (if any)
+    const orgId = invitedUser.organization || invitedUser.organization_id;
+    let organization = null;
+    if (orgId) {
+      try {
+        organization = await storage.getOrganization(orgId);
+      } catch (err) {
+        console.warn("Organization fetch failed:", err.message);
+      }
+    }
+
+    // 👤 Resolve invite display names
+    const rolesToSend = Array.isArray(invitedUser.roles) && invitedUser.roles.length > 0
+      ? invitedUser.roles
+      : [invitedUser.role || "employee"];
+
+    const nameToSend =
+      invitedUser.firstName?.trim() ||
+      invitedUser.name?.trim() ||
+      invitedUser.fullName?.trim() ||
+      (typeof invitedUser.email === "string" ? invitedUser.email.split("@")[0] : "");
+
+   
+
+    // ✉️ Send email
+    try {
+      await storage.sendInvitationEmail(
+        invitedUser.email,
+        newInviteToken,
+        organization?.name || "Organization",
+        rolesToSend,
+        inviter?.email ||
+      "Admin",
+        nameToSend
+      );
+    } catch (err) {
+      console.warn("Resend invite: email send failed:", err.message);
+    }
+
+    // ✅ Final response
+    return res.json({
+      message: "Invitation resent successfully",
+      email: invitedUser.email,
+      invitedByEmail: inviter?.email || null, // optional: useful for debugging
+    });
+  } catch (error) {
+    console.error("Resend invite public error:", error);
+    return res.status(500).json({ message: "Failed to resend invitation" });
+  }
+}
+,
 
   async completeInvitation(req, res) {
     try {

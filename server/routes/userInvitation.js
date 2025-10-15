@@ -225,7 +225,7 @@ router.post(
             email: invite.email,
             organizationId: adminUser.organizationId,
             roles: invite.role,
-            invitedBy: adminUser.id,
+            invitedBy: adminUser._id,
             invitedByName: adminUser.name || adminUser.email,
             organizationName,
             licenseId: invite.licenseId || null,

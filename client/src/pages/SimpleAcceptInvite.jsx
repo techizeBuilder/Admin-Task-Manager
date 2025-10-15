@@ -11,9 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getPasswordRequirements, validatePassword } from "../utils/passwordUtils";
+import {
+  getPasswordRequirements,
+  validatePassword,
+} from "../utils/passwordUtils";
 
 export function SimpleAcceptInvite() {
   const [, setLocation] = useLocation();
@@ -24,17 +27,18 @@ export function SimpleAcceptInvite() {
   const token = urlParams.get("token");
 
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    // firstName: "",
+    // lastName: "",
     password: "",
     confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isResending, setIsResending] = useState(false);
 
   // Password requirement checks
- const passwordRequirements = getPasswordRequirements(formData.password);
+  const passwordRequirements = getPasswordRequirements(formData.password);
 
   // Validate invitation token
   const {
@@ -54,6 +58,36 @@ export function SimpleAcceptInvite() {
     enabled: !!token,
     retry: false,
   });
+
+  const handleResendVerification = async () => {
+    try {
+      setIsResending(true);
+      const res = await fetch("/api/auth/resend-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to resend invite");
+      }
+      toast({
+        title: "Invite sent",
+        description:
+          "We emailed you a fresh invite link. Please check your inbox (and spam).",
+      });
+    } catch (e) {
+      toast({
+        title: "Unable to resend",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResending(false);
+        setLocation("/login");
+      
+    }
+  };
 
   // Complete invitation mutation
   const completeInviteMutation = useMutation({
@@ -84,7 +118,7 @@ export function SimpleAcceptInvite() {
 
       if (data.token) {
         localStorage.setItem("token", data.token);
-       setLocation("/login");
+        setLocation("/login");
       } else {
         setLocation("/login");
       }
@@ -101,11 +135,12 @@ export function SimpleAcceptInvite() {
   // Add a small helper to validate the whole form (for submit)
   const validateForm = (data) => {
     const next = {};
-    if (!data.firstName.trim()) next.firstName = "First name is required.";
+
     const { valid } = validatePassword(data.password);
     if (!data.password) next.password = "Password is required.";
     else if (!valid) next.password = "Password does not meet requirements.";
-    if (!data.confirmPassword) next.confirmPassword = "Please confirm your password.";
+    if (!data.confirmPassword)
+      next.confirmPassword = "Please confirm your password.";
     else if (data.password !== data.confirmPassword)
       next.confirmPassword = "Passwords do not match.";
     return next;
@@ -160,6 +195,20 @@ export function SimpleAcceptInvite() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Button
+              onClick={handleResendVerification}
+              disabled={isResending}
+              className="w-full mt-4 mb-2 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200"
+            >
+              {isResending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Request New Invite"
+              )}
+            </Button>
             <Button onClick={() => setLocation("/login")} className="w-full">
               Go to Login
             </Button>
@@ -168,7 +217,7 @@ export function SimpleAcceptInvite() {
       </div>
     );
   }
-
+  console.log("Invite Data:", inviteData.role);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-6">
@@ -201,16 +250,18 @@ export function SimpleAcceptInvite() {
             </div>
             <div>
               <Label className="text-sm text-gray-600">Role</Label>
-             <div className="flex flex-wrap gap-2">
-  {inviteData.role.map((r, i) => (
-    <span 
-      key={i} 
-      className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize"
-    >
-      {r.replace("_", " ")}
-    </span>
-  ))}
-</div>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  inviteData.role || (inviteData.role ? [inviteData.role] : [])
+                ).map((r, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize"
+                  >
+                    {r && r?.replace("_", " ")}
+                  </span>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -222,49 +273,6 @@ export function SimpleAcceptInvite() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    type="text"
-                    placeholder="Enter first name"
-                    value={formData.firstName}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData((prev) => ({ ...prev, firstName: value }));
-                      setErrors((prev) => ({
-                        ...prev,
-                        firstName: value.trim() ? undefined : prev.firstName,
-                      }));
-                    }}
-                    className={errors.firstName ? "border-red-500 focus-visible:ring-red-500" : ""}
-                    aria-invalid={!!errors.firstName}
-                    aria-describedby={errors.firstName ? "firstName-error" : undefined}
-                  />
-                  {errors.firstName && (
-                    <p id="firstName-error" className="mt-1 text-sm text-red-600">
-                      {errors.firstName}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name (optional)</Label>
-                  <Input
-                    id="lastName"
-                    type="text"
-                    placeholder="Enter last name"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        lastName: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-
               <div className="space-y-4">
                 {/* Password */}
                 <div>
@@ -281,7 +289,9 @@ export function SimpleAcceptInvite() {
                           const next = { ...prev };
                           const { valid } = validatePassword(value);
                           if (!value) next.password = "Password is required.";
-                          else if (!valid) next.password = "Password does not meet requirements.";
+                          else if (!valid)
+                            next.password =
+                              "Password does not meet requirements.";
                           else delete next.password;
 
                           if (formData.confirmPassword) {
@@ -293,9 +303,15 @@ export function SimpleAcceptInvite() {
                         });
                       }}
                       placeholder="Create a secure password"
-                      className={errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
+                      className={
+                        errors.password
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : ""
+                      }
                       aria-invalid={!!errors.password}
-                      aria-describedby={errors.password ? "password-error" : undefined}
+                      aria-describedby={
+                        errors.password ? "password-error" : undefined
+                      }
                     />
                     <button
                       type="button"
@@ -310,17 +326,32 @@ export function SimpleAcceptInvite() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p id="password-error" className="mt-1 text-sm text-red-600">
+                    <p
+                      id="password-error"
+                      className="mt-1 text-sm text-red-600"
+                    >
                       {errors.password}
                     </p>
                   )}
                   <div className="bg-gray-50 rounded-lg p-4 mt-3">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Password requirements</h4>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Password requirements
+                    </h4>
                     <ul className="text-sm text-gray-600 space-y-1">
                       {passwordRequirements.map((req) => (
                         <li key={req.id} className="flex items-center">
-                          <span className={`w-2 h-2 rounded-full mr-2 ${req.ok ? "bg-green-500" : "bg-gray-300"}`} />
-                          <span className={req.ok ? "text-green-700" : "text-gray-600"}>{req.text}</span>
+                          <span
+                            className={`w-2 h-2 rounded-full mr-2 ${
+                              req.ok ? "bg-green-500" : "bg-gray-300"
+                            }`}
+                          />
+                          <span
+                            className={
+                              req.ok ? "text-green-700" : "text-gray-600"
+                            }
+                          >
+                            {req.text}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -337,10 +368,15 @@ export function SimpleAcceptInvite() {
                       value={formData.confirmPassword}
                       onChange={(e) => {
                         const value = e.target.value;
-                        setFormData((prev) => ({ ...prev, confirmPassword: value }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          confirmPassword: value,
+                        }));
                         setErrors((prev) => {
                           const next = { ...prev };
-                          if (!value) next.confirmPassword = "Please confirm your password.";
+                          if (!value)
+                            next.confirmPassword =
+                              "Please confirm your password.";
                           else if (value !== formData.password)
                             next.confirmPassword = "Passwords do not match.";
                           else delete next.confirmPassword;
@@ -348,14 +384,24 @@ export function SimpleAcceptInvite() {
                         });
                       }}
                       placeholder="Confirm your password"
-                      className={errors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+                      className={
+                        errors.confirmPassword
+                          ? "border-red-500 focus-visible:ring-red-500"
+                          : ""
+                      }
                       aria-invalid={!!errors.confirmPassword}
-                      aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
+                      aria-describedby={
+                        errors.confirmPassword
+                          ? "confirmPassword-error"
+                          : undefined
+                      }
                     />
                     <button
                       type="button"
                       className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-4 w-4 text-gray-400" />
@@ -365,7 +411,10 @@ export function SimpleAcceptInvite() {
                     </button>
                   </div>
                   {errors.confirmPassword && (
-                    <p id="confirmPassword-error" className="mt-1 text-sm text-red-600">
+                    <p
+                      id="confirmPassword-error"
+                      className="mt-1 text-sm text-red-600"
+                    >
                       {errors.confirmPassword}
                     </p>
                   )}
@@ -377,7 +426,9 @@ export function SimpleAcceptInvite() {
                 className="w-full text-white bg-blue-600 hover:bg-blue-700"
                 disabled={completeInviteMutation.isPending}
               >
-                {completeInviteMutation.isPending ? "Creating Account..." : "Complete Registration"}
+                {completeInviteMutation.isPending
+                  ? "Creating Account..."
+                  : "Complete Registration"}
               </Button>
             </form>
           </CardContent>
