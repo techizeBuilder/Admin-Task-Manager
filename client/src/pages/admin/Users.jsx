@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Search,
   Send,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +70,8 @@ export default function Users() {
   const queryClient = useQueryClient();
   const [users, setUsers] = useState([]);
   const [licensePool, setLicensePool] = useState({});
-  const { user, orgId } = useUserRole();
+  // Rename to avoid shadowing with "user" in the map() below
+  const { user: currentUser, orgId } = useUserRole();
   const { showSuccessToast, showErrorToast } = useShowToast();
   const [, setLocation] = useLocation();
   // Load data from UserDataManager on component mount
@@ -281,6 +283,7 @@ export default function Users() {
     ) : (
       <Badge variant="outline">-</Badge>
     );
+
   // Add new user using UserDataManager
   const handleAddUser = (newUserData) => {
     try {
@@ -634,7 +637,13 @@ export default function Users() {
 
                     <TableCell>
                       <div className="flex flex-wrap items-center space-x-1">
-                        {renderRoles(user.role)}
+                        {user.isPrimaryAdmin ? (
+                          <Badge className="bg-green-500 text-white mx-2">
+                            Primary Admin
+                          </Badge>
+                        ) : (
+                          renderRoles(user.role)
+                        )}
                       </div>
                     </TableCell>
 
@@ -672,6 +681,7 @@ export default function Users() {
 
                     <TableCell className="text-right">
                       {/* 3-dot actions */}
+
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -680,63 +690,82 @@ export default function Users() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-white" align="end">
                           <DropdownMenuItem
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit3 className="h-4 w-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
                             onClick={() => handleViewActivity(user)}
                           >
                             <Eye className="h-4 w-4 mr-2" /> View Activity
                           </DropdownMenuItem>
 
-                          {user.status?.toLowerCase() === "active" && (
+                          {/* Allow Edit if:
+                           - user is NOT primary admin, OR
+                           - user IS primary admin AND it's the logged-in user's own row */}
+                          {(!user.isPrimaryAdmin ||
+                            (user.isPrimaryAdmin &&
+                              currentUser?.email?.toLowerCase() ===
+                                user?.email?.toLowerCase())) && (
                             <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setStatusAction("deactivate");
-                                setIsStatusDialogOpen(true);
-                              }}
+                              onClick={() => handleEditUser(user)}
                             >
-                              <UserX className="h-4 w-4 mr-2 text-red-600" />{" "}
-                              Deactivate
+                              <Edit3 className="h-4 w-4 mr-2" /> Edit
                             </DropdownMenuItem>
                           )}
-                          {user.status?.toLowerCase() === "inactive" && (
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setStatusAction("activate");
-                                setIsStatusDialogOpen(true);
-                              }}
-                            >
-                              <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
-                              Reactivate
-                            </DropdownMenuItem>
+
+                          {/* Keep other actions hidden for primary admin */}
+                          {!user.isPrimaryAdmin && (
+                            <>
+                              {/* Deactivate/Reactivate */}
+                              {user.status?.toLowerCase() === "active" && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setStatusAction("deactivate");
+                                    setIsStatusDialogOpen(true);
+                                  }}
+                                >
+                                  <UserX className="h-4 w-4 mr-2 text-red-600" />{" "}
+                                  Deactivate
+                                </DropdownMenuItem>
+                              )}
+                              {user.status?.toLowerCase() === "inactive" && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setStatusAction("activate");
+                                    setIsStatusDialogOpen(true);
+                                  }}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
+                                  Reactivate
+                                </DropdownMenuItem>
+                              )}
+
+                              {/* Invite */}
+                              {(user.status?.toLowerCase() === "invited" ||
+                                user.status?.toLowerCase() === "pending") && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUser({
+                                      ...user,
+                                      name: `${user.firstName || ""} ${
+                                        user.lastName || ""
+                                      }`.trim(),
+                                    });
+                                    setIsInviteDialogOpen(true);
+                                  }}
+                                >
+                                  <Send className="h-4 w-4 mr-2 text-green-600" />{" "}
+                                  Invite User
+                                </DropdownMenuItem>
+                              )}
+
+                              {/* Remove */}
+                              <DropdownMenuItem
+                                onClick={() => handleRemoveUser(user)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" /> Remove
+                              </DropdownMenuItem>
+                            </>
                           )}
-                          {(user.status?.toLowerCase() === "invited" ||
-                            user.status?.toLowerCase() === "pending") && (
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedUser({
-                                  ...user,
-                                  name: `${user.firstName || ""} ${
-                                    user.lastName || ""
-                                  }`.trim(),
-                                });
-                                setIsInviteDialogOpen(true);
-                              }}
-                            >
-                              <Send className="h-4 w-4 mr-2 text-green-600" />{" "}
-                              Invite User
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => handleRemoveUser(user)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" /> Remove
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -915,7 +944,6 @@ export default function Users() {
       <AlertDialog
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
-        
       >
         <AlertDialogContent className="bg-white max-w-fit  ">
           <AlertDialogHeader>
@@ -925,67 +953,67 @@ export default function Users() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {selectedUser && (
-             <>
-  <h2 className="text-lg font-semibold text-gray-900">
-    You are about to send an invitation to:
-  </h2>
+                <>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    You are about to send an invitation to:
+                  </h2>
 
-  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-    <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 text-gray-800">
-      {/* Name */}
-      <div className="flex flex-col">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Name
-        </span>
-        <span className="mt-1 text-sm font-semibold text-gray-900">
-          {selectedUser.name ||
-            `${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`.trim() ||
-            "-"}
-        </span>
-      </div>
+                  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 text-gray-800">
+                      {/* Name */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Name
+                        </span>
+                        <span className="mt-1 text-sm font-semibold text-gray-900">
+                          {selectedUser.name ||
+                            `${selectedUser.firstName || ""} ${
+                              selectedUser.lastName || ""
+                            }`.trim() ||
+                            "-"}
+                        </span>
+                      </div>
 
-      {/* Email */}
-      <div className="flex flex-col">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Email
-        </span>
-        <span className="mt-1 text-sm font-semibold text-gray-900">
-          {selectedUser.email || "-"}
-        </span>
-      </div>
+                      {/* Email */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Email
+                        </span>
+                        <span className="mt-1 text-sm font-semibold text-gray-900">
+                          {selectedUser.email || "-"}
+                        </span>
+                      </div>
 
-      {/* Role */}
-      <div className="flex flex-col">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Role
-        </span>
-        <span className="mt-1 w-fit text-sm font-semibold text-gray-900">
-      
-            {renderRoles(selectedUser.role)}
-        </span>
-      </div>
-    </div>
-  </div>
+                      {/* Role */}
+                      <div className="flex flex-col">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Role
+                        </span>
+                        <span className="mt-1 w-fit text-sm font-semibold text-gray-900">
+                          {renderRoles(selectedUser.role)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-  <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4 text-blue-500"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M16 12H8m8 0l-4 4m4-4l-4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
-    The user will receive an email with instructions to join.
-  </div>
-</>
-
+                  <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 text-blue-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16 12H8m8 0l-4 4m4-4l-4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    The user will receive an email with instructions to join.
+                  </div>
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

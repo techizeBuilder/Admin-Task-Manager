@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-
+import { cn } from "@/lib/utils"
 export function MultiSelect({ 
   options = [], 
   value = [], 
   onChange, 
   placeholder = "Select options...",
-  dataTestId = "multi-select"
+  dataTestId = "multi-select",
+  className="",
+  disabled=false
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,8 +48,13 @@ export function MultiSelect({
     <div className="relative" ref={containerRef} data-testid={dataTestId}>
       {/* Input/Trigger */}
       <div
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500"
-        onClick={() => setIsOpen(!isOpen)}
+      className={cn(
+    `w-full px-3 py-2 border border-gray-300 rounded-lg bg-white cursor-pointer 
+     focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500`,
+    disabled && "opacity-60 cursor-not-allowed bg-gray-100",
+    className // 👈 merge user-supplied className
+  )}
+  onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         {value.length === 0 ? (
           <span className="text-gray-500">{placeholder}</span>
