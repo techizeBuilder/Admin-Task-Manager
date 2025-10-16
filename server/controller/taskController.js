@@ -17,7 +17,7 @@ const STATUS_COLOR_MAP = {
   'done': '#10B981',           // Alternative format
   'cancelled': '#EF4444',      // Red - Intentionally terminated
   'rejected': '#DC2626',       // Dark Red - Rejected/declined
-  
+
   // Review & Approval Statuses
   'review': '#8B5CF6',         // Purple - Under review
   'pending': '#F97316',        // Orange - Waiting for action
@@ -25,7 +25,7 @@ const STATUS_COLOR_MAP = {
   'partially_approved': '#8B5CF6', // Purple - Some approvals received
   'pending_approval': '#F59E0B',    // Orange - Waiting for approval
   'auto_approved': '#6366F1',       // Indigo - System auto-approved
-  
+
   // Additional Common Statuses
   'todo': '#9CA3AF',           // Light Gray - To do
   'new': '#3B82F6',            // Blue - Newly created
@@ -34,13 +34,13 @@ const STATUS_COLOR_MAP = {
   'overdue': '#DC2626',        // Red - Past due date
   'paused': '#6B7280',         // Gray - Paused
   'closed': '#10B981',         // Green - Closed/finished
-  
+
   // Priority Status Colors (if needed)
   'low': '#22C55E',            // Green - Low priority
   'medium': '#F59E0B',         // Orange - Medium priority
   'high': '#F97316',           // Dark Orange - High priority
   'critical': '#EF4444',       // Red - Critical priority
-  
+
   // Task Type Colors (if needed)
   'regular': '#3B82F6',        // Blue
   'recurring': '#8B5CF6',      // Violet
@@ -228,31 +228,31 @@ export const createTask = async (req, res) => {
         title: createdTask.title,
         isRecurring: createdTask.isRecurring,
         taskType: createdTask.taskType,
-        
+
         // Due Date Analysis
         originalDueDate: createdTask.dueDate,
         originalDueDateType: typeof createdTask.dueDate,
         originalDueDateValue: createdTask.dueDate ? createdTask.dueDate.toString() : 'NULL',
-        
+
         nextDueDate: createdTask.nextDueDate,
         nextDueDateType: typeof createdTask.nextDueDate,
         nextDueDateValue: createdTask.nextDueDate ? createdTask.nextDueDate.toString() : 'NULL',
-        
+
         // Pattern Analysis
         recurrencePattern: createdTask.recurrencePattern,
         frequency: createdTask.recurrencePattern?.frequency,
         interval: createdTask.recurrencePattern?.interval,
         anchorField: createdTask.recurrencePattern?.anchorField,
-        
+
         // Validation
         hasValidDueDate: !!createdTask.dueDate,
         hasValidNextDueDate: !!createdTask.nextDueDate,
         hasValidPattern: !!createdTask.recurrencePattern,
-        
+
         // Frontend Display Logic Test
         displayDateForFrontend: createdTask.nextDueDate || createdTask.dueDate,
         shouldShowInTable: !!(createdTask.nextDueDate || createdTask.dueDate),
-        
+
         // MongoDB State
         mongoState: {
           _id: createdTask._id,
@@ -261,16 +261,16 @@ export const createTask = async (req, res) => {
           isRecurring: createdTask.isRecurring
         }
       });
-      
+
       // Additional validation checks
       if (!createdTask.dueDate && !createdTask.nextDueDate) {
         console.log('⚠️  WARNING: Recurring task created without any due date!');
       }
-      
+
       if (!createdTask.recurrencePattern) {
         console.log('⚠️  WARNING: Recurring task created without recurrence pattern!');
       }
-      
+
       console.log('🔄 === END RECURRING TASK CREATION ANALYSIS ===');
     } else {
       // Also log regular tasks for comparison
@@ -1271,7 +1271,7 @@ export const addTaskComment = async (req, res) => {
         lastName: authorData.lastName,
         email: authorData.email
       } : 'NOT FOUND');
-      
+
       // If storage fails, try direct User model lookup
       if (!authorData) {
         console.log('DEBUG - addTaskComment - Trying direct User lookup');
@@ -1486,14 +1486,14 @@ export const getTaskComments = async (req, res) => {
       console.error('DEBUG - Population failed:', populateError);
       populatedTask = null;
     }
-    
+
     const comments = populatedTask?.comments || task.comments || [];
 
     console.log('DEBUG - Found task comments:', comments.length);
-    console.log('DEBUG - Raw comments with parentId check:', comments.map(c => ({ 
-      id: c._id, 
-      content: c.content, 
-      text: c.text, 
+    console.log('DEBUG - Raw comments with parentId check:', comments.map(c => ({
+      id: c._id,
+      content: c.content,
+      text: c.text,
       parentId: c.parentId,
       hasParentId: !!c.parentId,
       hasContent: !!(c.content || c.text),
@@ -1505,7 +1505,7 @@ export const getTaskComments = async (req, res) => {
     const processedComments = comments.map((comment) => {
       // Handle both content and text fields for backward compatibility
       const text = comment.content || comment.text || '[Content not available]';
-      
+
       console.log('DEBUG - Processing comment:', {
         id: comment._id,
         hasContent: !!(comment.content),
@@ -1522,10 +1522,10 @@ export const getTaskComments = async (req, res) => {
           email: comment.author.email
         } : 'Not populated'
       });
-      
+
       // Handle author information based on whether it's populated or not
       let authorInfo;
-      
+
       if (comment.author && typeof comment.author === 'object' && comment.author.firstName) {
         // Author is populated from our populate query
         authorInfo = {
@@ -1557,7 +1557,7 @@ export const getTaskComments = async (req, res) => {
         updatedAt: comment.updatedAt,
         isEdited: comment.isEdited || false
       };
-      
+
       console.log('DEBUG - Final processed comment:', {
         id: processedComment._id,
         hasText: !!processedComment.text,
@@ -1567,7 +1567,7 @@ export const getTaskComments = async (req, res) => {
         authorId: processedComment.author._id,
         authorPopulated: processedComment.author.firstName !== 'Unknown'
       });
-      
+
       return processedComment;
     });
 
@@ -1585,7 +1585,7 @@ export const getTaskComments = async (req, res) => {
 
     // Create a map to hold all comments
     const commentMap = new Map();
-    
+
     // Initialize all comments in the map with empty replies array
     processedComments.forEach(comment => {
       commentMap.set(comment._id.toString(), {
@@ -1601,7 +1601,7 @@ export const getTaskComments = async (req, res) => {
 
     // Separate top-level comments from replies and nest replies
     const topLevelComments = [];
-    
+
     processedComments.forEach(comment => {
       const commentId = comment._id.toString();
       const parentId = comment.parentId?.toString();
@@ -1620,7 +1620,7 @@ export const getTaskComments = async (req, res) => {
       } else {
         // This is a reply - add it to parent's replies array
         const parentComment = commentMap.get(parentId);
-        
+
         console.log('DEBUG - Reply processing:', {
           replyId: commentId,
           parentId,
@@ -1883,8 +1883,8 @@ function checkCommentEditPermission(user, task, comment) {
   // Handle role as array or string - Tasksetu Admin or Company Admin can edit any comment
   const userRoles = Array.isArray(user.role) ? user.role : [user.role];
   if (userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin') ||
-      userRoles.includes('company-admin') || userRoles.includes('admin') ||
-      userRoles.includes('org_admin')) {
+    userRoles.includes('company-admin') || userRoles.includes('admin') ||
+    userRoles.includes('org_admin')) {
     console.log('DEBUG - Edit permission granted: Admin role');
     return true;
   }
@@ -1924,8 +1924,8 @@ function checkCommentDeletePermission(user, task, comment) {
   // Handle role as array or string - Tasksetu Admin or Company Admin can delete any comment (moderation)
   const userRoles = Array.isArray(user.role) ? user.role : [user.role];
   if (userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin') ||
-      userRoles.includes('company-admin') || userRoles.includes('admin') ||
-      userRoles.includes('org_admin')) {
+    userRoles.includes('company-admin') || userRoles.includes('admin') ||
+    userRoles.includes('org_admin')) {
     console.log('DEBUG - Delete permission granted: Admin role');
     return true;
   }
@@ -2120,7 +2120,7 @@ export const getTasks = async (req, res) => {
     // 🔄 Enhanced Debug: Log ALL task data with focus on recurring tasks
     if (tasks && tasks.length > 0) {
       console.log('🔄 === COMPLETE TASK DEBUG ANALYSIS ===');
-      
+
       tasks.forEach((task, index) => {
         console.log(`🔍 Task ${index + 1}:`, {
           id: task._id,
@@ -2128,64 +2128,64 @@ export const getTasks = async (req, res) => {
           taskType: task.taskType,
           isRecurring: task.isRecurring,
           status: task.status,
-          
+
           // Due Date Fields Debug
           dueDate: task.dueDate,
           dueDateType: typeof task.dueDate,
           dueDateValue: task.dueDate ? task.dueDate.toString() : 'NULL',
-          
+
           // Recurring Specific Fields
           nextDueDate: task.nextDueDate,
           nextDueDateType: typeof task.nextDueDate,
           nextDueDateValue: task.nextDueDate ? task.nextDueDate.toString() : 'NULL',
-          
+
           // Recurrence Pattern
           recurrencePattern: task.recurrencePattern,
           hasRecurrencePattern: !!task.recurrencePattern,
-          
+
           // Date Analysis
           hasDueDate: !!task.dueDate,
           hasNextDueDate: !!task.nextDueDate,
           isValidDueDate: task.dueDate instanceof Date,
           isValidNextDueDate: task.nextDueDate instanceof Date,
-          
+
           // Frontend Display Logic Test
-          calculatedDisplayDate: task.isRecurring 
-            ? (task.nextDueDate || task.dueDate) 
+          calculatedDisplayDate: task.isRecurring
+            ? (task.nextDueDate || task.dueDate)
             : task.dueDate,
-          
+
           // Complete Raw Object for Debugging
           fullTask: JSON.stringify(task, null, 2)
         });
-        
+
         // Special focus on recurring tasks
         if (task.isRecurring) {
           console.log('🔄 RECURRING TASK DEEP ANALYSIS:', {
             taskId: task._id,
             title: task.title,
-            
+
             // Date Validation
             originalDueDateExists: !!task.dueDate,
             nextDueDateExists: !!task.nextDueDate,
-            
+
             // Date Values
             originalDueDate: task.dueDate,
             nextDueDate: task.nextDueDate,
-            
+
             // Pattern Analysis
             recurrencePattern: task.recurrencePattern,
             frequency: task.recurrencePattern?.frequency,
             interval: task.recurrencePattern?.interval,
-            
+
             // Status
             currentStatus: task.status,
-            
+
             // What Frontend Should Display
             shouldDisplayDate: task.nextDueDate || task.dueDate,
-            shouldDisplayDateFormatted: task.nextDueDate 
-              ? new Date(task.nextDueDate).toLocaleDateString() 
+            shouldDisplayDateFormatted: task.nextDueDate
+              ? new Date(task.nextDueDate).toLocaleDateString()
               : (task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Date'),
-              
+
             // Database State Check
             mongoDbState: {
               _id: task._id,
@@ -2197,14 +2197,14 @@ export const getTasks = async (req, res) => {
           });
         }
       });
-      
+
       // Summary Analysis
       const recurringTasks = tasks.filter(task => task.isRecurring);
       const tasksWithDueDate = tasks.filter(task => task.dueDate);
       const tasksWithNextDueDate = tasks.filter(task => task.nextDueDate);
       const recurringTasksWithDueDate = recurringTasks.filter(task => task.dueDate);
       const recurringTasksWithNextDueDate = recurringTasks.filter(task => task.nextDueDate);
-      
+
       console.log('📊 TASK SUMMARY ANALYSIS:', {
         totalTasks: tasks.length,
         recurringTasks: recurringTasks.length,
@@ -2212,7 +2212,7 @@ export const getTasks = async (req, res) => {
         tasksWithNextDueDate: tasksWithNextDueDate.length,
         recurringTasksWithDueDate: recurringTasksWithDueDate.length,
         recurringTasksWithNextDueDate: recurringTasksWithNextDueDate.length,
-        
+
         // Problem Detection
         recurringTasksWithoutAnyDate: recurringTasks.filter(task => !task.dueDate && !task.nextDueDate).length,
         problemTasks: recurringTasks.filter(task => !task.dueDate && !task.nextDueDate).map(task => ({
@@ -2222,7 +2222,7 @@ export const getTasks = async (req, res) => {
           isRecurring: task.isRecurring
         }))
       });
-      
+
       console.log('🔄 === END TASK DEBUG ANALYSIS ===');
     }
 
@@ -2411,6 +2411,33 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
 
+    // Validate status against allowed values (as per document)
+    const allowedStatuses = ['OPEN', 'INPROGRESS', 'ONHOLD', 'DONE', 'CANCELLED', 'open', 'in-progress', 'on-hold', 'completed', 'cancelled'];
+    if (!allowedStatuses.includes(status)) {
+      console.log('❌ Status validation failed - invalid status:', status);
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Allowed values: ${allowedStatuses.join(', ')}`
+      });
+    }
+
+    // Normalize status to core system values (as per document)
+    const statusMapping = {
+      'OPEN': 'open',
+      'INPROGRESS': 'in-progress',
+      'ONHOLD': 'on-hold',
+      'DONE': 'completed',
+      'CANCELLED': 'cancelled',
+      'open': 'open',
+      'in-progress': 'in-progress',
+      'on-hold': 'on-hold',
+      'completed': 'completed',
+      'cancelled': 'cancelled'
+    };
+
+    const normalizedStatus = statusMapping[status] || status;
+    console.log('🔍 Status normalization:', { originalStatus: status, normalizedStatus });
+
     console.log('🔍 Fetching task from database...');
     const task = await storage.getTaskById(id);
 
@@ -2436,7 +2463,7 @@ export const updateTaskStatus = async (req, res) => {
     if (task.organization && user.organizationId) {
       const taskOrgId = getTaskOrganizationId(task.organization);
       const userOrgId = user.organizationId?.toString() || user.organizationId;
-      
+
       console.log('🔍 Organization permission check:', { taskOrgId, userOrgId });
 
       if (taskOrgId !== userOrgId) {
@@ -2451,7 +2478,7 @@ export const updateTaskStatus = async (req, res) => {
       const userId = user.id?.toString() || user.id;
       const taskCreatedBy = task.createdBy?.toString() || task.createdBy;
       const taskAssignedTo = task.assignedTo?.toString() || task.assignedTo;
-      
+
       console.log('🔍 Individual user permission check:', { userId, taskCreatedBy, taskAssignedTo });
 
       if (taskCreatedBy !== userId && taskAssignedTo !== userId) {
@@ -2464,18 +2491,149 @@ export const updateTaskStatus = async (req, res) => {
     }
 
     console.log('✅ Permission check passed');
-    
-    // Prepare update data with completion fields if status is completed
+
+    // --- Parent-Subtask Status Sync Logic (Document Spec) ---
+    // Helper: get all subtasks for a task
+    async function getSubtasksOfTask(taskId) {
+      const Task = (await import("../modals/taskModal.js")).default;
+      return Task.find({ parentTask: taskId, isDeleted: { $ne: true } }).lean();
+    }
+
+    // Helper: get parent task if this is a subtask
+    async function getParentTaskIfSubtask(task) {
+      if (task.parentTask) {
+        const Task = (await import("../modals/taskModal.js")).default;
+        return Task.findById(task.parentTask).lean();
+      }
+      return null;
+    }
+
+    // Helper: derive parent status from subtasks (document logic)
+    function deriveParentStatusFromSubtasks(subtasks) {
+      if (!subtasks || subtasks.length === 0) return null;
+      const statusSet = new Set(subtasks.map(st => (st.status || '').toUpperCase()));
+      if (statusSet.size === 1) {
+        const only = Array.from(statusSet)[0];
+        if (only === 'OPEN') return 'OPEN';
+        if (only === 'INPROGRESS') return 'INPROGRESS';
+        if (only === 'ONHOLD') return 'ONHOLD';
+        if (only === 'DONE') return 'DONE';
+        if (only === 'CANCELLED') return 'CANCELLED';
+      }
+      if (statusSet.has('ONHOLD')) return 'ONHOLD';
+      if (statusSet.has('INPROGRESS')) return 'INPROGRESS';
+      if (statusSet.has('OPEN')) return 'INPROGRESS'; // Mixed Open+InProgress = InProgress
+      if (statusSet.has('DONE') && statusSet.size === 1) return 'DONE';
+      if (statusSet.has('CANCELLED') && statusSet.size === 1) return 'CANCELLED';
+      // Mixed: if any in progress, parent is in progress
+      if (statusSet.has('INPROGRESS')) return 'INPROGRESS';
+      return null;
+    }
+
+    // Helper: get core status for validation
+    function toCoreStatus(val) {
+      if (!val) return '';
+      const map = {
+        'OPEN': 'OPEN',
+        'INPROGRESS': 'INPROGRESS',
+        'ONHOLD': 'ONHOLD',
+        'DONE': 'DONE',
+        'CANCELLED': 'CANCELLED',
+        'open': 'OPEN',
+        'in-progress': 'INPROGRESS',
+        'on-hold': 'ONHOLD',
+        'completed': 'DONE',
+        'cancelled': 'CANCELLED',
+      };
+      return map[val] || val;
+    }
+
+    // 1. If this is a subtask, update subtask and then auto-sync parent
+    if (task.parentTask) {
+      // Update subtask status
+      const updateData = {
+        status: normalizedStatus,
+        updatedAt: new Date()
+      };
+      if (normalizedStatus === 'completed') {
+        updateData.completedDate = new Date();
+        updateData.completedBy = user.id;
+      }
+      const Task = (await import("../modals/taskModal.js")).default;
+      await Task.findByIdAndUpdate(id, updateData);
+
+      // After subtask update, fetch all siblings and auto-update parent
+      const parentTask = await getParentTaskIfSubtask(task);
+      if (parentTask) {
+        const subtasks = await getSubtasksOfTask(parentTask._id);
+        const derivedStatus = deriveParentStatusFromSubtasks(subtasks);
+        if (derivedStatus && toCoreStatus(parentTask.status) !== derivedStatus) {
+          // Only update if parent status is not already correct
+          const Task = (await import("../modals/taskModal.js")).default;
+          await Task.findByIdAndUpdate(parentTask._id, { status: derivedStatus, updatedAt: new Date() });
+        }
+      }
+      // Return updated subtask
+      const updatedSubtask = await Task.findById(id).lean();
+      return res.json({
+        success: true,
+        message: 'Subtask status updated successfully (parent auto-synced)',
+        data: updatedSubtask
+      });
+    }
+
+    // 2. If this is a parent task, validate against subtasks before allowing status change
+    const subtasks = await getSubtasksOfTask(task._id);
+    if (subtasks && subtasks.length > 0) {
+      // Parent cannot be set to a lower progress than any subtask
+      const subtaskStatuses = subtasks.map(st => toCoreStatus(st.status));
+      const maxSubtaskStatus = (() => {
+        if (subtaskStatuses.includes('INPROGRESS')) return 'INPROGRESS';
+        if (subtaskStatuses.includes('ONHOLD')) return 'ONHOLD';
+        if (subtaskStatuses.includes('OPEN')) return 'OPEN';
+        if (subtaskStatuses.includes('DONE')) return 'DONE';
+        if (subtaskStatuses.includes('CANCELLED')) return 'CANCELLED';
+        return 'OPEN';
+      })();
+      const parentCoreStatus = toCoreStatus(normalizedStatus);
+      // If any subtask is in progress, parent cannot be set to OPEN
+      if (maxSubtaskStatus === 'INPROGRESS' && parentCoreStatus === 'OPEN') {
+        return res.status(400).json({
+          success: false,
+          message: 'Parent cannot be set to OPEN while any subtask is INPROGRESS (document rule)'
+        });
+      }
+      // If all subtasks are DONE, parent can be set to DONE
+      if (subtaskStatuses.every(s => s === 'DONE') && parentCoreStatus === 'DONE') {
+        // allow
+      } else if (subtaskStatuses.some(s => s === 'INPROGRESS') && parentCoreStatus === 'DONE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Parent cannot be set to DONE while any subtask is INPROGRESS (document rule)'
+        });
+      }
+      // If all subtasks are CANCELLED, parent can be set to CANCELLED
+      if (subtaskStatuses.every(s => s === 'CANCELLED') && parentCoreStatus === 'CANCELLED') {
+        // allow
+      }
+      // If any subtask is ONHOLD, parent must be ONHOLD
+      if (subtaskStatuses.includes('ONHOLD') && parentCoreStatus !== 'ONHOLD') {
+        return res.status(400).json({
+          success: false,
+          message: 'Parent must be ONHOLD if any subtask is ONHOLD (document rule)'
+        });
+      }
+    }
+
+    // --- Continue with original update logic for parent task ---
     const updateData = {
-      status: status,
+      status: normalizedStatus,
       updatedAt: new Date()
     };
-    
     // Add completion data for completed status
-    if (status === 'completed') {
+    if (normalizedStatus === 'completed') {
       updateData.completedDate = new Date();
       updateData.completedBy = user.id;
-      
       // 🔄 Handle Recurring Task Auto-generation on Completion
       if (task.isRecurring && task.recurrencePattern) {
         console.log('🔄 Processing recurring task completion:', {
@@ -2484,22 +2642,18 @@ export const updateTaskStatus = async (req, res) => {
           currentDueDate: task.dueDate,
           completedDate: updateData.completedDate
         });
-        
         try {
           // Create next occurrence using enhanced logic
           const nextOccurrence = createNextRecurringOccurrence(task, updateData.completedDate);
-          
           if (nextOccurrence) {
             // Save next occurrence
             const createdNextTask = await storage.createTask(nextOccurrence);
-            
             console.log('✅ Next recurring occurrence created:', {
               originalTaskId: task._id,
               nextTaskId: createdNextTask._id,
               nextDueDate: createdNextTask.dueDate,
               nextNextDueDate: createdNextTask.nextDueDate
             });
-            
             // Add activity log for recurrence
             if (!task.comments) task.comments = [];
             task.comments.push({
@@ -2510,12 +2664,9 @@ export const updateTaskStatus = async (req, res) => {
               updatedAt: new Date(),
               isEdited: false
             });
-            
             updateData.comments = task.comments;
-            
           } else {
             console.log('🏁 Recurring task sequence ended - no more occurrences');
-            
             // Add completion log for ended recurrence
             if (!task.comments) task.comments = [];
             task.comments.push({
@@ -2526,13 +2677,10 @@ export const updateTaskStatus = async (req, res) => {
               updatedAt: new Date(),
               isEdited: false
             });
-            
             updateData.comments = task.comments;
           }
-          
         } catch (recurringError) {
           console.error('❌ Error creating next recurring occurrence:', recurringError);
-          
           // Add error log but don't fail the completion
           if (!task.comments) task.comments = [];
           task.comments.push({
@@ -2543,28 +2691,25 @@ export const updateTaskStatus = async (req, res) => {
             updatedAt: new Date(),
             isEdited: false
           });
-          
           updateData.comments = task.comments;
         }
       }
     }
-    
-    console.log('🔍 Updating task with data:', updateData);
 
+    console.log('🔍 Updating task with data:', updateData);
     // Update only the status
     const updatedTask = await storage.updateTask(id, updateData, user.id);
-    
     console.log('✅ Task updated successfully:', {
       taskId: updatedTask?._id,
       oldStatus: task.status,
+      originalRequestedStatus: status,
+      normalizedStatus: normalizedStatus,
       newStatus: updatedTask?.status,
       completedDate: updatedTask?.completedDate,
       completedBy: updatedTask?.completedBy
     });
-
     // Recalculate counters for current assignee
     await recalcUserTaskCounters(updatedTask?.assignedTo);
-
     console.log('✅ Sending success response to client');
     res.json({
       success: true,
@@ -2592,19 +2737,19 @@ export const updateTaskStatus = async (req, res) => {
 export const generateScheduledRecurringTasks = async () => {
   try {
     console.log('🔄 Starting scheduled recurring task generation...');
-    
+
     // Find all active recurring tasks that need next occurrence
     const recurringTasks = await storage.getAllTasks({
       isRecurring: true,
       status: { $ne: 'cancelled' },
       nextDueDate: { $lte: new Date(Date.now() + 24 * 60 * 60 * 1000) } // Within next 24 hours
     });
-    
+
     console.log(`🔍 Found ${recurringTasks.length} recurring tasks to process`);
-    
+
     let processedCount = 0;
     let errorCount = 0;
-    
+
     for (const task of recurringTasks) {
       try {
         // Check if next occurrence already exists
@@ -2614,36 +2759,36 @@ export const generateScheduledRecurringTasks = async () => {
           createdBy: task.createdBy,
           isRecurring: true
         });
-        
+
         if (existingNextTask.length === 0) {
           // Create next occurrence
           const nextOccurrence = createNextRecurringOccurrence(task);
-          
+
           if (nextOccurrence) {
             await storage.createTask(nextOccurrence);
             processedCount++;
-            
+
             console.log(`✅ Created scheduled occurrence for: ${task.title} (Due: ${nextOccurrence.dueDate})`);
           }
         } else {
           console.log(`⏭️  Next occurrence already exists for: ${task.title}`);
         }
-        
+
       } catch (taskError) {
         console.error(`❌ Error processing recurring task ${task._id}:`, taskError);
         errorCount++;
       }
     }
-    
+
     console.log(`🔄 Recurring task generation completed: ${processedCount} created, ${errorCount} errors`);
-    
+
     return {
       success: true,
       processed: processedCount,
       errors: errorCount,
       total: recurringTasks.length
     };
-    
+
   } catch (error) {
     console.error('❌ Error in scheduled recurring task generation:', error);
     return {
@@ -2659,23 +2804,23 @@ export const skipRecurringTaskOccurrence = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     const user = req.user;
-    
+
     const task = await storage.getTaskById(id);
-    
+
     if (!task) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
-    
+
     if (!task.isRecurring) {
       return res.status(400).json({
         success: false,
         message: 'This is not a recurring task'
       });
     }
-    
+
     // Calculate next occurrence after skipping current one
     const skippedDueDate = task.nextDueDate;
     const newNextDueDate = calculateNextDueDate(
@@ -2683,13 +2828,13 @@ export const skipRecurringTaskOccurrence = async (req, res) => {
       skippedDueDate,
       task.recurrencePattern.anchorField || 'startDate'
     );
-    
+
     // Update task with new next due date
     const updateData = {
       nextDueDate: newNextDueDate,
       updatedAt: new Date()
     };
-    
+
     // Add skip activity log
     if (!task.comments) task.comments = [];
     task.comments.push({
@@ -2700,11 +2845,11 @@ export const skipRecurringTaskOccurrence = async (req, res) => {
       updatedAt: new Date(),
       isEdited: false
     });
-    
+
     updateData.comments = task.comments;
-    
+
     const updatedTask = await storage.updateTask(id, updateData, user.id);
-    
+
     res.json({
       success: true,
       message: 'Recurring task occurrence skipped successfully',
@@ -2714,7 +2859,7 @@ export const skipRecurringTaskOccurrence = async (req, res) => {
         task: updatedTask
       }
     });
-    
+
   } catch (error) {
     console.error('Error skipping recurring task occurrence:', error);
     res.status(500).json({
@@ -2731,30 +2876,30 @@ export const stopRecurringTask = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     const user = req.user;
-    
+
     const task = await storage.getTaskById(id);
-    
+
     if (!task) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
-    
+
     if (!task.isRecurring) {
       return res.status(400).json({
         success: false,
         message: 'This is not a recurring task'
       });
     }
-    
+
     // Stop recurrence by removing nextDueDate and adding end date
     const updateData = {
       nextDueDate: null,
       'recurrencePattern.endDate': new Date(),
       updatedAt: new Date()
     };
-    
+
     // Add stop activity log
     if (!task.comments) task.comments = [];
     task.comments.push({
@@ -2765,17 +2910,17 @@ export const stopRecurringTask = async (req, res) => {
       updatedAt: new Date(),
       isEdited: false
     });
-    
+
     updateData.comments = task.comments;
-    
+
     const updatedTask = await storage.updateTask(id, updateData, user.id);
-    
+
     res.json({
       success: true,
       message: 'Recurring task stopped successfully',
       data: updatedTask
     });
-    
+
   } catch (error) {
     console.error('Error stopping recurring task:', error);
     res.status(500).json({
@@ -2794,6 +2939,8 @@ export const deleteTask = async (req, res) => {
     console.log('=== DELETE TASK DEBUG ===');
     console.log('Task ID to delete:', id);
     console.log('User attempting delete:', { id: user.id, organizationId: user.organizationId });
+    console.log('🔍 DELETE FUNCTION CALLED - Starting validation...');
+    console.log('🚨 TESTING - If you see this, deleteTask function is being called!');
 
     const task = await storage.getTaskById(id);
     console.log('Found task:', task ? {
@@ -2840,7 +2987,349 @@ export const deleteTask = async (req, res) => {
       }
     }
 
-    console.log('Permissions passed, proceeding with soft delete...');
+    console.log('✅ Permissions passed, checking task-specific delete conditions...');
+
+    // TASK TYPE-SPECIFIC DELETE VALIDATION
+    const taskType = task.taskType || 'regular';
+    console.log('🔍 Task type detection:', {
+      taskType: taskType,
+      taskTaskType: task.taskType,
+      mainTaskType: task.mainTaskType,
+      taskId: id,
+      taskTitle: task.title
+    });
+
+    // Helper function to check if task has subtasks
+    const hasSubtasks = async (taskId) => {
+      try {
+        const subtasks = await storage.getSubtasksByParentId(taskId);
+        return subtasks && subtasks.length > 0;
+      } catch (error) {
+        console.error('Error checking subtasks:', error);
+        return false;
+      }
+    };
+
+    // Helper function to check if user is admin
+    const isAdmin = (user) => {
+      return user.role === 'admin' || user.role === 'company_admin' || user.role === 'tasksetu_admin';
+    };
+
+    // Helper function to check if task is linked to milestone
+    const isLinkedToMilestone = (task) => {
+      return task.milestone && task.milestone !== null && task.milestone !== '';
+    };
+
+    // Helper function to check if task is part of approval workflow
+    const isApprovalLinked = (task) => {
+      return task.approvalWorkflow && task.approvalWorkflow !== null;
+    };
+
+    // Helper function to check if task is recurring child
+    const isRecurringChild = (task) => {
+      return task.parentRecurringId && task.parentRecurringId !== null;
+    };
+
+    // Helper function to check if task is converted from quick task
+    const isConvertedFromQuickTask = (task) => {
+      return task.convertedFromQuickTask === true;
+    };
+
+    // TASK-SPECIFIC DELETE CONDITIONS
+    let deleteAllowed = true;
+    let errorMessage = '';
+
+    console.log('🔍 Switch statement - taskType.toLowerCase():', taskType.toLowerCase());
+
+    switch (taskType.toLowerCase()) {
+      case 'regular':
+        console.log('🔍 Validating Regular Task delete conditions...', task.status);
+
+        // Condition 1: Task Status must be OPEN/NOT_STARTED
+        if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete a started or dependent task.';
+          console.log('❌ Regular Task: Status check failed -', task.status);
+        }
+
+        // Condition 2: No Subtasks Exist
+        if (deleteAllowed) {
+          const hasSubs = await hasSubtasks(id);
+          if (hasSubs) {
+            deleteAllowed = false;
+            errorMessage = 'Cannot delete a started or dependent task.';
+            console.log('❌ Regular Task: Has subtasks');
+          }
+        }
+
+        // Condition 3: Created by Current User (already checked above)
+        console.log('✅ Regular Task: Creator check passed');
+
+        // Condition 4: Not Linked with Milestone
+        if (deleteAllowed && isLinkedToMilestone(task)) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete a started or dependent task.';
+          console.log('❌ Regular Task: Linked to milestone');
+        }
+
+        // Condition 5: Not Part of Approval Workflow
+        if (deleteAllowed && isApprovalLinked(task)) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete a started or dependent task.';
+          console.log('❌ Regular Task: Part of approval workflow');
+        }
+
+        // Condition 6: Not Recurring Child
+        if (deleteAllowed && isRecurringChild(task)) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete a started or dependent task.';
+          console.log('❌ Regular Task: Is recurring child');
+        }
+
+        // Admin Override
+        if (!deleteAllowed && isAdmin(user)) {
+          console.log('⚙️ Admin override: Allowing delete despite restrictions');
+          deleteAllowed = true;
+          errorMessage = '';
+        }
+
+        break;
+
+      case 'recurring':
+        console.log('🔍 Validating Recurring Task delete conditions...');
+
+        // Check if this is parent pattern or instance
+        if (task.isRecurringInstance) {
+          console.log('🔍 Validating Recurring Instance delete conditions...');
+
+          // Instance conditions
+          if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+            deleteAllowed = false;
+            errorMessage = 'Cannot delete active recurring instance; mark as cancelled instead.';
+            console.log('❌ Recurring Instance: Status check failed -', task.status);
+          }
+
+          if (deleteAllowed) {
+            const hasSubs = await hasSubtasks(id);
+            if (hasSubs) {
+              deleteAllowed = false;
+              errorMessage = 'Cannot delete active recurring instance; mark as cancelled instead.';
+              console.log('❌ Recurring Instance: Has subtasks');
+            }
+          }
+
+        } else {
+          console.log('🔍 Validating Recurring Pattern delete conditions...');
+
+          // Parent pattern conditions
+          // Check if any instances are in progress
+          try {
+            const activeInstances = await storage.getActiveRecurringInstances(id);
+            if (activeInstances && activeInstances.length > 0) {
+              deleteAllowed = false;
+              errorMessage = 'Stop recurring pattern before deletion.';
+              console.log('❌ Recurring Pattern: Has active instances');
+            }
+          } catch (error) {
+            console.error('Error checking active instances:', error);
+          }
+
+          // Check if recurrence is stopped
+          if (deleteAllowed && task.recurrenceActive === true) {
+            deleteAllowed = false;
+            errorMessage = 'Stop recurring pattern before deletion.';
+            console.log('❌ Recurring Pattern: Recurrence still active');
+          }
+        }
+
+        // Admin Override
+        if (!deleteAllowed && isAdmin(user)) {
+          console.log('⚙️ Admin override: Allowing delete despite restrictions');
+          deleteAllowed = true;
+          errorMessage = '';
+        }
+
+        break;
+
+      case 'milestone':
+        console.log('🔍 Validating Milestone Task delete conditions...');
+
+        // Condition 1: Milestone Status = Draft / Not Started
+        if (task.status && !['draft', 'open', 'todo'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Milestone already active or completed — cannot delete.';
+          console.log('❌ Milestone: Status check failed -', task.status);
+        }
+
+        // Condition 2: No linked sub-tasks / child tasks
+        if (deleteAllowed) {
+          const hasSubs = await hasSubtasks(id);
+          if (hasSubs) {
+            deleteAllowed = false;
+            errorMessage = 'Cannot delete milestone with active child tasks.';
+            console.log('❌ Milestone: Has child tasks');
+          }
+        }
+
+        // Condition 3: Created by Manager / Admin
+        if (deleteAllowed && !['manager', 'admin', 'company_admin'].includes(user.role?.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Only managers and admins can delete milestones.';
+          console.log('❌ Milestone: Insufficient role -', user.role);
+        }
+
+        // Admin Override
+        if (!deleteAllowed && isAdmin(user)) {
+          console.log('⚙️ Admin override: Allowing delete despite restrictions');
+          deleteAllowed = true;
+          errorMessage = '';
+        }
+
+        break;
+
+      case 'approval':
+        console.log('🔍 Validating Approval Task delete conditions...');
+
+        // Condition 1: Approval Task = Not yet started
+        if (task.status && !['draft', 'open', 'todo'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Approval task cannot be deleted once submitted for approval.';
+          console.log('❌ Approval: Status check failed -', task.status);
+        }
+
+        // Condition 2: Any approval/rejection/comment exists
+        if (deleteAllowed && (task.approvalComments?.length > 0 || task.approvalStatus)) {
+          deleteAllowed = false;
+          errorMessage = 'Locked for audit compliance.';
+          console.log('❌ Approval: Has approval actions');
+        }
+
+        // Condition 3: No linked sub-tasks
+        if (deleteAllowed) {
+          const hasSubs = await hasSubtasks(id);
+          if (hasSubs) {
+            deleteAllowed = false;
+            errorMessage = 'Approval tasks cannot have sub-tasks.';
+            console.log('❌ Approval: Has subtasks');
+          }
+        }
+
+        // Admin Override (Only by Tasksetu Admin)
+        if (!deleteAllowed && user.role === 'tasksetu_admin') {
+          console.log('⚙️ Tasksetu Admin override: Allowing delete despite restrictions');
+          deleteAllowed = true;
+          errorMessage = '';
+        }
+
+        break;
+
+      case 'subtask':
+        console.log('🔍 Validating Sub-task delete conditions...');
+
+        // Condition 1: Parent Task Active
+        if (task.parentTaskId) {
+          try {
+            const parentTask = await storage.getTaskById(task.parentTaskId);
+            if (!parentTask || parentTask.isDeleted) {
+              deleteAllowed = false;
+              errorMessage = 'Cannot delete sub-task after work has started or if parent completed.';
+              console.log('❌ Sub-task: Parent task not found or deleted');
+            }
+          } catch (error) {
+            console.error('Error checking parent task:', error);
+            deleteAllowed = false;
+            errorMessage = 'Cannot delete sub-task after work has started or if parent completed.';
+          }
+        }
+
+        // Condition 2: Sub-task Status = OPEN
+        if (deleteAllowed && task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete sub-task after work has started or if parent completed.';
+          console.log('❌ Sub-task: Status check failed -', task.status);
+        }
+
+        // Condition 3: Created by parent owner (already checked above)
+        console.log('✅ Sub-task: Creator check passed');
+
+        // Condition 4: Not linked to milestone/approval
+        if (deleteAllowed && (isLinkedToMilestone(task) || isApprovalLinked(task))) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete sub-task after work has started or if parent completed.';
+          console.log('❌ Sub-task: Linked to milestone/approval');
+        }
+
+        break;
+
+      case 'quick':
+        console.log('🔍 Validating Quick Task delete conditions...');
+
+        // Condition 1: Task not converted to full task
+        if (isConvertedFromQuickTask(task)) {
+          deleteAllowed = false;
+          errorMessage = 'Quick task already converted or completed; cannot delete.';
+          console.log('❌ Quick Task: Already converted');
+        }
+
+        // Condition 2: Created by self (already checked above)
+        console.log('✅ Quick Task: Creator check passed');
+
+        // Condition 3: Status = Open
+        if (deleteAllowed && task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Quick task already converted or completed; cannot delete.';
+          console.log('❌ Quick Task: Status check failed -', task.status);
+        }
+
+        break;
+
+      default:
+        console.log('🔍 Validating Default Task delete conditions...', {
+          taskType: taskType,
+          taskTypeLowerCase: taskType.toLowerCase(),
+          taskStatus: task.status
+        });
+        // For unknown task types, apply basic conditions
+        if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+          deleteAllowed = false;
+          errorMessage = 'Cannot delete a started or dependent task.';
+          console.log('❌ Default Task: Status check failed -', task.status);
+        }
+
+        if (deleteAllowed) {
+          const hasSubs = await hasSubtasks(id);
+          if (hasSubs) {
+            deleteAllowed = false;
+            errorMessage = 'Cannot delete a started or dependent task.';
+            console.log('❌ Default Task: Has subtasks');
+          }
+        }
+
+        // Admin Override
+        if (!deleteAllowed && isAdmin(user)) {
+          console.log('⚙️ Admin override: Allowing delete despite restrictions');
+          deleteAllowed = true;
+          errorMessage = '';
+        }
+    }
+
+    // FINAL VALIDATION RESULT
+    console.log('🔍 FINAL VALIDATION RESULT:', {
+      deleteAllowed: deleteAllowed,
+      errorMessage: errorMessage,
+      taskType: taskType,
+      taskStatus: task.status
+    });
+
+    if (!deleteAllowed) {
+      console.log('❌ DELETE REJECTED:', errorMessage);
+      return res.status(400).json({
+        success: false,
+        message: errorMessage
+      });
+    }
+
+    console.log('✅ All delete conditions passed, proceeding with soft delete...');
 
     // Keep assignee for counter recalculation
     const assignee = task?.assignedTo;
@@ -3108,12 +3597,44 @@ export const getTasksByType = async (req, res) => {
         break;
     }
 
+
     // Get tasks
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 }
     });
+
+    // Prepare to populate collaborators as user objects
+    const allCollaboratorIds = new Set();
+    if (tasks && tasks.length > 0) {
+      for (let task of tasks) {
+        if (Array.isArray(task.collaborators)) {
+          task.collaborators.forEach(id => {
+            if (id) allCollaboratorIds.add(id.toString());
+          });
+        }
+      }
+    }
+
+    let collaboratorsMap = {};
+    if (allCollaboratorIds.size > 0) {
+      const { User } = await import("../modals/userModal.js");
+      const users = await User.find({ _id: { $in: Array.from(allCollaboratorIds) }, status: "active" })
+        .select('_id firstName lastName email role department designation avatar')
+        .lean();
+      users.forEach(u => {
+        collaboratorsMap[u._id.toString()] = {
+          id: u._id,
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+          email: u.email,
+          role: Array.isArray(u.role) ? u.role : [u.role],
+          department: u.department || '',
+          designation: u.designation || '',
+          avatar: u.avatar || null
+        };
+      });
+    }
 
     // Group tasks by createdByRole
     const roleList = ["super_admin", "org_admin", "manager", "individual", "employee"];
@@ -3126,7 +3647,16 @@ export const getTasksByType = async (req, res) => {
       for (let task of tasks) {
         // Add status color to each task using centralized mapping
         task.statusColor = STATUS_COLOR_MAP[task.status] || '#6B7280'; // Default gray if status not found
-        
+
+        // Replace collaborators array of IDs with array of user objects
+        if (Array.isArray(task.collaborators)) {
+          task.collaborators = task.collaborators
+            .map(id => collaboratorsMap[id?.toString()])
+            .filter(Boolean);
+        } else {
+          task.collaborators = [];
+        }
+
         console.log('🔍 Processing task:', {
           taskId: task._id,
           title: task.title,
@@ -3138,7 +3668,7 @@ export const getTasksByType = async (req, res) => {
         if (groupedTasks[task.createdByRole]) {
           groupedTasks[task.createdByRole].push(task);
         }
-        
+
         // Add approval details if needed
         if (task.isApprovalTask) {
           try {
@@ -3164,11 +3694,11 @@ export const getTasksByType = async (req, res) => {
         acc[role] = groupedTasks[role].length;
         return acc;
       }, {}),
-      pagination: { 
-        currentPage: parseInt(page), 
-        totalPages, 
-        hasNext, 
-        hasPrev 
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        hasNext,
+        hasPrev
       }
     });
 
@@ -3198,7 +3728,6 @@ export const getTasksByType = async (req, res) => {
   }
 };
 
-// comment
 export const getMyTasks = async (req, res) => {
   try {
 
@@ -3294,15 +3823,15 @@ export const getMyTasks = async (req, res) => {
         nextDueDate: task.nextDueDate,
         nextDueDateType: typeof task.nextDueDate,
         recurrencePattern: task.recurrencePattern,
-        
+
         // Due Date Analysis for MyTasks
         hasDueDate: !!task.dueDate,
         hasNextDueDate: !!task.nextDueDate,
-        calculatedDisplayDate: task.isRecurring 
-          ? (task.nextDueDate || task.dueDate) 
+        calculatedDisplayDate: task.isRecurring
+          ? (task.nextDueDate || task.dueDate)
           : task.dueDate
       });
-      
+
       // Get subtasks for this main task
       const subtasksFilter = {
         parentTaskId: task._id.toString(),
@@ -3325,19 +3854,19 @@ export const getMyTasks = async (req, res) => {
         snoozeReason: subtask.snoozeReason || null,
         snoozedBy: subtask.snoozedBy || null,
         snoozedAt: subtask.snoozedAt || null,
-        
+
         // Risk fields
         isRisk: subtask.isRisk || false,
         riskLevel: subtask.riskLevel || null,
         riskReason: subtask.riskReason || null,
         riskMarkedBy: subtask.riskMarkedBy || null,
         riskMarkedAt: subtask.riskMarkedAt || null,
-        
+
         // Completion fields
         completedDate: subtask.completedDate || null,
         completedBy: subtask.completedBy || null,
         completionNotes: subtask.completionNotes || null,
-        
+
         // Status color mapping using centralized constant
         statusColor: STATUS_COLOR_MAP[subtask.status] || '#6B7280' // Default gray if status not found
       }));
@@ -3361,13 +3890,13 @@ export const getMyTasks = async (req, res) => {
         statusColor: STATUS_COLOR_MAP[task.status],
         subtasksCount: enhancedSubtasks.length,
         createdByRole: task.createdByRole,
-        
+
         // Main Task Due Date Debug
         mainTaskDueDate: task.dueDate,
         mainTaskNextDueDate: task.nextDueDate,
         isMainTaskRecurring: task.isRecurring,
-        mainTaskDisplayDate: task.isRecurring 
-          ? (task.nextDueDate || task.dueDate) 
+        mainTaskDisplayDate: task.isRecurring
+          ? (task.nextDueDate || task.dueDate)
           : task.dueDate
       });
 
@@ -3375,26 +3904,26 @@ export const getMyTasks = async (req, res) => {
       const taskWithSubtasks = {
         ...task,
         subtasks: enhancedSubtasks || [],
-        
+
         // Snooze fields for main task
         isSnooze: task.isSnooze || false,
         snoozeUntil: task.snoozeUntil || null,
         snoozeReason: task.snoozeReason || null,
         snoozedBy: task.snoozedBy || null,
         snoozedAt: task.snoozedAt || null,
-        
+
         // Risk fields for main task
         isRisk: task.isRisk || false,
         riskLevel: task.riskLevel || null,
         riskReason: task.riskReason || null,
         riskMarkedBy: task.riskMarkedBy || null,
         riskMarkedAt: task.riskMarkedAt || null,
-        
+
         // Completion fields for main task
         completedDate: task.completedDate || null,
         completedBy: task.completedBy || null,
         completionNotes: task.completionNotes || null,
-        
+
         // Status color mapping for main task using centralized constant
         statusColor: STATUS_COLOR_MAP[task.status] || '#6B7280' // Default gray if status not found
       };
@@ -3804,7 +4333,7 @@ export const getTaskActivities = async (req, res) => {
     }
 
     const activities = await storage.getActivitiesForTask(taskId, parseInt(limit));
-    
+
     res.json({
       success: true,
       data: {
@@ -3837,7 +4366,7 @@ export const getOrganizationActivities = async (req, res) => {
     }
 
     const activities = await storage.getActivitiesForOrganization(user.organizationId, parseInt(limit));
-    
+
     res.json({
       success: true,
       data: {
@@ -3861,7 +4390,7 @@ export const getRecentActivities = async (req, res) => {
     const { limit = 10 } = req.query;
 
     const activities = await storage.getRecentActivities(parseInt(limit));
-    
+
     res.json({
       success: true,
       data: {

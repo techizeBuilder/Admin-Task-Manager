@@ -2199,10 +2199,10 @@ async getOrganizationByName(name) {
     console.log('DEBUG - Found task:', task ? 'Yes' : 'No');
 
     if (task) {
-      console.log('DEBUG - Looking for subtasks with parentTaskId:', id);
+      console.log('DEBUG - Looking for subtasks with parentTask:', id);
       // Get subtasks for this task
       const subtasks = await Task.find({
-        parentTaskId: id,
+        parentTask: id,
         isDeleted: { $ne: true }
       })
         .populate('assignedTo', 'firstName lastName email')
@@ -2210,7 +2210,7 @@ async getOrganizationByName(name) {
         .sort({ createdAt: 1 });
 
       console.log('DEBUG - Found subtasks count:', subtasks.length);
-      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTaskId: s.parentTaskId })));
+      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTask: s.parentTask })));
 
       // Convert to plain object and add subtasks
       const taskObj = task.toObject();
