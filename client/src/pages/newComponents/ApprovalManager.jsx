@@ -630,7 +630,7 @@ export default function ApprovalManager() {
         {!loading && !error && filteredTasks.length === 0 && (
           <div className="text-center py-12">
             <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No approval tasks found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No approval tasks found</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first approval task.</p>
             <Link href="/tasks/create?type=approval">
               <button
@@ -673,7 +673,7 @@ export default function ApprovalManager() {
               <form onSubmit={handleEditSubmit} className="space-y-4">
                 {/* Task Title */}
                 <div className="form-group">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     📝 Task Title
                   </label>
                   <input
@@ -692,7 +692,7 @@ export default function ApprovalManager() {
                 {/* Row 1: Priority & Mode */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-group">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       ⚡ Priority
                     </label>
                     <select
@@ -707,7 +707,7 @@ export default function ApprovalManager() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       🔄 Approval Mode
                     </label>
                     <select
@@ -725,7 +725,7 @@ export default function ApprovalManager() {
                 {/* Row 2: Due Date & Status */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-group">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       📅 Due Date
                     </label>
                     <input
@@ -736,7 +736,7 @@ export default function ApprovalManager() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       🎯 Status
                     </label>
                     <select
@@ -753,7 +753,7 @@ export default function ApprovalManager() {
 
                 {/* Visibility */}
                 <div className="form-group">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     🔒 Visibility
                   </label>
                   <select
@@ -768,7 +768,7 @@ export default function ApprovalManager() {
 
                 {/* Description */}
                 <div className="form-group">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     📝 Description
                   </label>
                   <textarea

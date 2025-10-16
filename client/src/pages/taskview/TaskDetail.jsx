@@ -1104,7 +1104,7 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
   };
 
   return (
-    <div className="task-view-container">
+  <div className="task-view-container">
       {/* Top Action Bar */}
       <div className="task-action-bar">
         <div className="action-buttons-left">
@@ -1185,23 +1185,32 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                 </div>
                 <div className="reminder-content">
                   <strong>Active Reminders:</strong>
-                  <div className="reminder-text">
-                    {task.dueDate !== 'No due date' ? (
-                      (() => {
-                        const dueDate = new Date(task.dueDate);
-                        const today = new Date();
-                        const diffTime = dueDate.getTime() - today.getTime();
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                        if (diffDays < 0) {
-                          return `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} - ${task.dueDate}`;
-                        } else if (diffDays === 0) {
-                          return `Due today - ${task.dueDate}`;
-                        } else {
-                          return `Due in ${diffDays} day${diffDays !== 1 ? 's' : ''} - ${task.dueDate}`;
-                        }
-                      })()
-                    ) : 'No due date set'}
+                  <div className="reminder-text" style={{ display: 'inline-block', marginLeft: 8 }}>
+                    {task.dueDate !== 'No due date' ? (() => {
+                      const dueDate = new Date(task.dueDate);
+                      const today = new Date();
+                      const diffTime = dueDate.getTime() - today.getTime();
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      const months = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ];
+                      const formattedDate = `${dueDate.getDate()} ${months[dueDate.getMonth()]} ${dueDate.getFullYear()}`;
+                      const usDate = `${dueDate.getMonth() + 1}/${dueDate.getDate()}/${dueDate.getFullYear()}`;
+                      let msg = '';
+                      if (diffDays < 0) {
+                        msg = `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} - ${formattedDate}`;
+                      } else if (diffDays === 0) {
+                        msg = `Due today - ${formattedDate}`;
+                      } else {
+                        msg = `Due in ${diffDays} day${diffDays !== 1 ? 's' : ''} - ${formattedDate}`;
+                      }
+                      return <>
+                        {msg}
+                        <span style={{ marginLeft: 12, color: '#888', fontSize: '90%' }}>({usDate})</span>
+                        <span style={{ minWidth: 12, display: 'inline-block' }} />
+                      </>;
+                    })() : 'No due date set'}
                   </div>
                 </div>
               </div>
@@ -1226,10 +1235,9 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                     <X size={20} />
                   </button>
                 </div>
-
-                <div className="details-grid">
-                  {/* Task Details */}
-                  <div className="detail-card">
+                <div className="details-two-card-grid">
+                  {/* First Card: Top Three Cards Combined */}
+                  <div className="detail-card combined-card">
                     <div className="detail-header">
                       <ClipboardList size={16} className="detail-icon" />
                       <h4>Task Details</h4>
@@ -1237,32 +1245,47 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                     <div className="detail-content">
                       <div className="detail-row">
                         <span className="detail-label">Type:</span>
-                        <div className="detail-value">
-                          <span>{task.taskType}</span>
-                        </div>
+                        <span className="detail-value">{task.taskType}</span>
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">Color Code:</span>
-                        <span className="detail-value">{task.colorCode}</span>
+                        <span className="detail-value">
+                          {(() => {
+                            const typeColors = {
+                              regular: {
+                                color: "#3B82F6",
+                              },
+                              recurring: {
+                                color: "#10B981",
+                              },
+                              milestone: {
+                                color: "#8B5CF6",
+                              },
+                              approval: {
+                                color: "#F59E0B",
+                              },
+                            };
+                            const typeKey = (task.taskType || '').toLowerCase().replace(/ .*/, '');
+                            const color = typeColors[typeKey]?.color || task.colorCode || task.color || '#007bff';
+                            return (
+                              <span style={{
+                                display: 'inline-block',
+                                width: 20,
+                                height: 20,
+                                borderRadius: '50%',
+                                background: color,
+                                border: '1px solid #ccc',
+                                verticalAlign: 'middle'
+                              }} />
+                            );
+                          })()}
+                        </span>
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">Visibility:</span>
                         <span className="detail-value">{task.visibility}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Timeline */}
-                  <div className="detail-card">
-                    <div className="detail-header">
-                      <Calendar size={16} className="detail-icon" />
-                      <h4>Timeline</h4>
-                    </div>
-                    <div className="detail-content">
-                      <div className="detail-row">
-                        <span className="detail-label">Start Date:</span>
-                        <span className="detail-value">{task.startDate}</span>
-                      </div>
+                     
                       <div className="detail-row">
                         <span className="detail-label">Due Date:</span>
                         <span className="detail-value">{task.dueDate}</span>
@@ -1271,16 +1294,6 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                         <span className="detail-label">Time Estimate:</span>
                         <span className="detail-value">{task.timeEstimate}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Creation Info */}
-                  <div className="detail-card">
-                    <div className="detail-header">
-                      <User size={16} className="detail-icon" />
-                      <h4>Creation Info</h4>
-                    </div>
-                    <div className="detail-content">
                       <div className="detail-row">
                         <span className="detail-label">Created By:</span>
                         <span className="detail-value">{task.createdBy}</span>
@@ -1295,14 +1308,11 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="assignment-grid">
-                  {/* Assignment & Status */}
-                  <div className="detail-card">
+                  {/* Second Card: Bottom Three Cards Combined */}
+                  <div className="detail-card combined-card">
                     <div className="detail-header">
                       <Users size={16} className="detail-icon" />
-                      <h4>Assignment & Status</h4>
+                      <h4>Assignment, Tags & Hierarchy</h4>
                     </div>
                     <div className="detail-content">
                       <div className="detail-row">
@@ -1317,16 +1327,6 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                         <span className="detail-label">Priority:</span>
                         <span className={`detail-value priority-badge ${task.priority.toLowerCase()}`}>{task.priority}</span>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Collaborators & Tags */}
-                  <div className="detail-card">
-                    <div className="detail-header">
-                      <Tag size={16} className="detail-icon" />
-                      <h4>Collaborators & Tags</h4>
-                    </div>
-                    <div className="detail-content">
                       <div className="detail-row">
                         <span className="detail-label">Collaborators:</span>
                         <div className="collaborators-list">
@@ -1351,16 +1351,6 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Relationships & Hierarchy */}
-                  <div className="detail-card">
-                    <div className="detail-header">
-                      <Link size={16} className="detail-icon" />
-                      <h4>Relationships & Hierarchy</h4>
-                    </div>
-                    <div className="detail-content">
                       <div className="detail-row">
                         <span className="detail-label">Parent Task:</span>
                         <span className="detail-value">{task.parentTaskId ? `Task #${task.parentTaskId}` : 'None'}</span>
@@ -1376,7 +1366,6 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
                     </div>
                   </div>
                 </div>
-
                 {/* Attached Forms */}
                 <div className="attached-forms-section">
                   <div className="forms-header">

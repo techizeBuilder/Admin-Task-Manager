@@ -886,6 +886,7 @@ async resendVerificationLink(req, res) {
 async getCollaboratorsList(req, res) {
   try {
     const user = req.user;
+    
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -893,50 +894,47 @@ async getCollaboratorsList(req, res) {
       });
     }
 
-    // Accept collaboratorIds as query or body (array of user IDs)
-    let collaboratorIds = [];
-    if (req.method === 'GET' && req.query.collaboratorIds) {
-      try {
-        collaboratorIds = JSON.parse(req.query.collaboratorIds);
-      } catch {
-        collaboratorIds = Array.isArray(req.query.collaboratorIds)
-          ? req.query.collaboratorIds
-          : [req.query.collaboratorIds];
-      }
-    } else if (req.body && req.body.collaboratorIds) {
-      collaboratorIds = Array.isArray(req.body.collaboratorIds)
-        ? req.body.collaboratorIds
-        : [req.body.collaboratorIds];
-    }
+    let collaborators = [];
 
-    if (!Array.isArray(collaboratorIds) || collaboratorIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "collaboratorIds (array of user IDs) is required"
+    // For individual users - no collaborators available
+    if (user.role.includes('individual')) {
+      return res.json({
+        success: true,
+        data: [],
+        message: "Individual users cannot add collaborators"
       });
     }
 
-    const { User } = await import("../modals/userModal.js");
-    const users = await User.find({
-      _id: { $in: collaboratorIds },
-      status: "active"
-    })
-      .select('_id firstName lastName email role')
+    // For organization users - get users from same organization
+    if (user.organizationId) {
+      const { User } = await import("../modals/userModal.js");
+      
+      collaborators = await User.find({
+        organization_id: user.organizationId,
+        status: "active",
+        _id: { $ne: user.id } // Exclude current user
+      })
+      .select('_id firstName lastName email role department designation')
       .lean();
 
-    // Format collaborators data
-    const collaborators = users.map(collab => ({
-      id: collab._id,
-      name: `${collab.firstName || ''} ${collab.lastName || ''}`.trim() || collab.email,
-      email: collab.email,
-      role: Array.isArray(collab.role) ? collab.role : [collab.role]
-    }));
+      // Format collaborators data
+      collaborators = collaborators.map(collab => ({
+        id: collab._id,
+        name: `${collab.firstName} ${collab.lastName}`.trim(),
+        email: collab.email,
+        role: Array.isArray(collab.role) ? collab.role : [collab.role],
+        department: collab.department || '',
+        designation: collab.designation || '',
+        avatar: null // Add avatar logic if needed
+      }));
+    }
 
     res.json({
       success: true,
       data: collaborators,
       count: collaborators.length
     });
+
   } catch (error) {
     console.error("Get collaborators list error:", error);
     res.status(500).json({

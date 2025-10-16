@@ -199,7 +199,7 @@ export function TaskForm({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8 pt-6">
           {/* Title Field */}
           <div className="space-y-3">
-            <Label htmlFor="title" className="text-sm font-semibold text-slate-900 ">
+            <Label htmlFor="title" className="text-sm font-semibold text-slate-900 mb-1">
               Task Title <span className="text-red-600 dark:text-red-400">*</span>
             </Label>
             <div className="relative">
@@ -223,7 +223,7 @@ export function TaskForm({
 
           {/* Description Field */}
           <div className="space-y-3">
-            <Label htmlFor="description" className="text-sm font-semibold text-slate-900 ">
+            <Label htmlFor="description" className="text-sm font-semibold text-slate-900 mb-1">
               Description
             </Label>
             <Textarea
@@ -244,7 +244,7 @@ export function TaskForm({
           {/* Priority and Status Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-slate-900 ">
+              <Label className="text-sm font-semibold text-slate-900 mb-1">
                 Priority <span className="text-red-600 dark:text-red-400">*</span>
               </Label>
               <Controller
@@ -281,7 +281,7 @@ export function TaskForm({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-semibold text-slate-900 ">Status</Label>
+              <Label className="text-sm font-semibold text-slate-900 mb-1">Status</Label>
               <Controller
                 name="statusId"
                 control={control}

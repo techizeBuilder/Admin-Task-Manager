@@ -930,7 +930,7 @@ export default function QuickTasks() {
                         <button
                           onClick={() => handleStatusToggle(task.id, task.status)}
                           className="hover:scale-110 transition-transform"
-                          title={task.status === "done" ? "Mark as pending" : "Mark as done"}
+                          // title={task.status === "done" ? "Mark as pending" : "Mark as done"}
                         >
                           {getStatusIcon(task.status)}
                         </button>

@@ -1,3 +1,14 @@
+/* Hide scrollbar for all modal and form containers */
+.modal-container,
+.form-card {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+.modal-container::-webkit-scrollbar,
+.form-card::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 /* Drawer Overlay and Container */
 .drawer-overlay {
   position: fixed;
@@ -94,6 +105,22 @@
   flex: 1;
   overflow-y: auto;
   background: #f8fafc;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.drawer-form::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbar for modal-body in all forms */
+.modal-body {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+.modal-body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .form-card {
@@ -105,11 +132,12 @@
   margin: 20px;
 }
 
+
 .form-group {
   display: flex !important;
   flex-direction: column !important;
-  gap: 0px !important;
-  margin-bottom: 16px !important;
+  gap: 2px !important; /* Add vertical space between label and input */
+  margin-bottom: 20px !important;
 }
 
 .form-row {
@@ -127,7 +155,7 @@
   font-size: 13px !important;
   font-weight: 500 !important;
   color: #374151 !important;
-  margin-bottom: 0px !important;
+  margin-bottom: 0px !important; /* Slightly less space below label */
 }
 
 .form-input,

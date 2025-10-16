@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSubtask } from '../../contexts/SubtaskContext';
 
 // Subtasks Panel component
@@ -7,9 +7,16 @@ function SubtasksPanel({ subtasks, parentTask, currentUser }) {
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showInlineAdd, setShowInlineAdd] = useState(false);
-  const [selectedSubtask, setSelectedSubtask] = useState(null);
   const [subtaskList, setSubtaskList] = useState(subtasks);
-  const [isCollapsed, setIsCollapsed] = useState(true); // Default collapsed as per requirement
+  const [isCollapsed, setIsCollapsed] = useState(false); // Default open
+  const [expandedSubtasks, setExpandedSubtasks] = useState([]);
+
+  // On first open, expand all subtasks
+  useEffect(() => {
+    if (!isCollapsed && expandedSubtasks.length === 0 && subtaskList.length > 0) {
+      setExpandedSubtasks(subtaskList.map(st => st.id));
+    }
+  }, [isCollapsed, subtaskList, expandedSubtasks.length]);
 
   const filteredSubtasks = subtaskList.filter((subtask) => {
     // Search filter based on title
@@ -178,15 +185,17 @@ function SubtasksPanel({ subtasks, parentTask, currentUser }) {
                 {/* Sub-task Row */}
                 <div
                   className={`border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                    selectedSubtask?.id === subtask.id
+                    expandedSubtasks.includes(subtask.id)
                       ? "bg-blue-50 border-l-2 border-l-blue-500"
                       : ""
                   }`}
-                  onClick={() =>
-                    setSelectedSubtask(
-                      selectedSubtask?.id === subtask.id ? null : subtask,
-                    )
-                  }
+                  onClick={() => {
+                    setExpandedSubtasks(prev =>
+                      prev.includes(subtask.id)
+                        ? prev.filter(id => id !== subtask.id)
+                        : [...prev, subtask.id]
+                    );
+                  }}
                 >
                   <div className="flex items-center justify-between px-3 py-3">
                     {/* Left side - Name */}
@@ -234,7 +243,7 @@ function SubtasksPanel({ subtasks, parentTask, currentUser }) {
                 </div>
 
                 {/* Expanded Sub-task Details */}
-                {selectedSubtask?.id === subtask.id && (
+                {expandedSubtasks.includes(subtask.id) && (
                   <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>

@@ -2361,10 +2361,10 @@ export class MongoStorage {
     console.log("DEBUG - Found task:", task ? "Yes" : "No");
 
     if (task) {
-      console.log('DEBUG - Looking for subtasks with parentTask:', id);
+      console.log('DEBUG - Looking for subtasks with parentTaskId:', id);
       // Get subtasks for this task
       const subtasks = await Task.find({
-        parentTask: id,
+        parentTaskId: id,
         isDeleted: { $ne: true }
       })
         .populate("assignedTo", "firstName lastName email")
@@ -2372,7 +2372,7 @@ export class MongoStorage {
         .sort({ createdAt: 1 });
 
       console.log('DEBUG - Found subtasks count:', subtasks.length);
-      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTask: s.parentTask })));
+      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTaskId: s.parentTaskId })));
 
       // Convert to plain object and add subtasks
       const taskObj = task.toObject();

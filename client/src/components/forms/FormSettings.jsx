@@ -69,7 +69,7 @@ export function FormSettings({
           </div>
                     {/* <div className="h-6 border-b border-gray-300 mx-4"></div> */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-1">
               Submit Message
             </label>
             <Textarea
@@ -81,7 +81,7 @@ export function FormSettings({
           </div>
           {/* <div className="h-6 border-b border-gray-300 mx-4"></div> */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-1">
               Maximum Submissions (optional)
             </label>
             <Input
@@ -98,7 +98,7 @@ export function FormSettings({
           </div>
           {/* <div className="h-6 border-b border-gray-300 mx-4"></div> */}
           <div>
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-1">
               Redirect URL (optional)
             </label>
             <Input

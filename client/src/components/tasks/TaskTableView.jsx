@@ -2600,7 +2600,7 @@ function TaskEditModal({ task, onSave, onClose }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Task Title *
             </label>
             <input
@@ -2617,7 +2617,7 @@ function TaskEditModal({ task, onSave, onClose }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Assignee */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assignee
               </label>
               <select
@@ -2634,7 +2634,7 @@ function TaskEditModal({ task, onSave, onClose }) {
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
               </label>
               <select
@@ -2651,7 +2651,7 @@ function TaskEditModal({ task, onSave, onClose }) {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Priority
               </label>
               <select
@@ -2668,7 +2668,7 @@ function TaskEditModal({ task, onSave, onClose }) {
 
             {/* Due Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Due Date
               </label>
               <input
@@ -2681,7 +2681,7 @@ function TaskEditModal({ task, onSave, onClose }) {
 
             {/* Category */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
               <select
@@ -3262,7 +3262,7 @@ function SubtaskDetailPanel({
         <div className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Title
             </label>
             {isEditing ? (
@@ -3284,7 +3284,7 @@ function SubtaskDetailPanel({
           <div className="grid grid-cols-2 gap-6">
             {/* Assignee */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Assignee
               </label>
               {isEditing ? (
@@ -3317,7 +3317,7 @@ function SubtaskDetailPanel({
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status
               </label>
               {isEditing ? (
@@ -3349,7 +3349,7 @@ function SubtaskDetailPanel({
           <div className="grid grid-cols-2 gap-6">
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Priority
               </label>
               {isEditing ? (
@@ -3381,7 +3381,7 @@ function SubtaskDetailPanel({
 
             {/* Due Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Due Date
               </label>
               {isEditing ? (
@@ -3406,7 +3406,7 @@ function SubtaskDetailPanel({
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
             {isEditing ? (
@@ -3430,7 +3430,7 @@ function SubtaskDetailPanel({
 
           {/* Metadata */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Metadata</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-1">Metadata</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Created by:</span>
@@ -3720,7 +3720,7 @@ function ApprovalTaskDetailModal({ task, onClose, currentUser, onApproval }) {
 
             {task.description && (
               <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
                 </label>
                 <div className="bg-white p-4 rounded-lg border border-gray-200">

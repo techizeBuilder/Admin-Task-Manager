@@ -162,7 +162,7 @@ const PlanManagementModal = ({ isOpen, onClose, plan = null }) => {
           {/* Basic Plan Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Tag className="inline h-4 w-4 mr-1" />
                 Plan Code *
               </label>
@@ -182,7 +182,7 @@ const PlanManagementModal = ({ isOpen, onClose, plan = null }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Plan Name *
               </label>
               <input
@@ -198,7 +198,7 @@ const PlanManagementModal = ({ isOpen, onClose, plan = null }) => {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
               <textarea
@@ -212,7 +212,7 @@ const PlanManagementModal = ({ isOpen, onClose, plan = null }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 <DollarSign className="inline h-4 w-4 mr-1" />
                 Monthly Price
               </label>
@@ -230,7 +230,7 @@ const PlanManagementModal = ({ isOpen, onClose, plan = null }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Annual Price
               </label>
               <input

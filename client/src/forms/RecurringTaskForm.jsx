@@ -159,7 +159,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
 
       {/* Pattern Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Pattern Type <span className="text-red-500">*</span>
         </label>
         <Controller
@@ -186,7 +186,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
 
       {/* Repeat Every */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Repeat Every <span className="text-red-500">*</span>
         </label>
         <div className="flex items-center space-x-2">
@@ -215,7 +215,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
            {/* Pattern-specific controls */}
       {watchedPattern?.value === "weekly" && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Days of Week <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -250,7 +250,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       {watchedPattern?.value === "monthly" && (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-0">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
               Monthly Mode <span className="text-red-500">*</span>
             </label>
             <div className="flex space-x-4">
@@ -399,7 +399,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       {watchedPattern?.value === "yearly" && (
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-0">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
               Month(s) <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -454,7 +454,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       {/* Custom Pattern (Ad-hoc Dates) */}
       {watchedPattern?.value === "custom" && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Custom Dates <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
@@ -475,7 +475,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       {/* Start Date & Time */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Start Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -499,7 +499,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Start Time
           </label>
           <input
@@ -512,7 +512,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
         </div>
            {/* End Condition */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           End Condition <span className="text-red-500">*</span>
         </label>
         <Controller
@@ -761,7 +761,7 @@ export const RecurringTaskForm = ({
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       {/* Task Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Task Name <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -789,7 +789,7 @@ export const RecurringTaskForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Description
         </label>
         <Controller
@@ -810,7 +810,7 @@ export const RecurringTaskForm = ({
           <div className={`grid ${drawer ? 'grid-cols-2' : 'grid-cols-4'} gap-6`}>
       {/* Assigned To - Single assignee only for recurring tasks */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Assigned To <span className="text-red-500">*</span>
         </label>
         <Controller
@@ -842,7 +842,7 @@ export const RecurringTaskForm = ({
 
       {/* Priority */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Priority <span className="text-red-500">*</span>
         </label>
         <Controller
@@ -867,7 +867,7 @@ export const RecurringTaskForm = ({
 
         {/* Contributors */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Contributors
         </label>
         <Controller
@@ -929,7 +929,7 @@ export const RecurringTaskForm = ({
       {/* Visibility */}
       {isOrgUser && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Visibility <span className="text-red-500">*</span>
           </label>
           <div className="flex space-x-4">
@@ -963,7 +963,7 @@ export const RecurringTaskForm = ({
 
       {/* Notes / Instructions */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Notes / Instructions
         </label>
         <Controller
@@ -987,7 +987,7 @@ export const RecurringTaskForm = ({
 
       {/* Attachments */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Attachments
           <span className="text-xs text-gray-500 ml-2">(Max 5MB total)</span>
         </label>

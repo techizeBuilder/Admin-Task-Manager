@@ -145,7 +145,7 @@ const ApprovalTaskForm = ({
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* Task Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Task Name <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -176,7 +176,7 @@ const ApprovalTaskForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Description
         </label>
         <Controller
@@ -197,7 +197,7 @@ const ApprovalTaskForm = ({
 
       {/* Approvers */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Approvers <span className="text-red-500">*</span>
           {isLoadingApprovers && (
             <Loader2 className="w-4 h-4 animate-spin inline-block ml-2" />
@@ -248,7 +248,7 @@ const ApprovalTaskForm = ({
 
       {/* Approval Mode */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+        <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
           Approval Mode <span className="text-red-500">*</span>
           <div className="relative group ml-2">
             <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -286,7 +286,7 @@ const ApprovalTaskForm = ({
       {/* Sequential Order - Only show if Sequential mode */}
       {watchedApprovalMode === "sequential" && approverOrder.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Approval Order
           </label>
           <div className="space-y-1.5 bg-gray-50 p-3 rounded-md border border-gray-200">
@@ -378,7 +378,7 @@ const ApprovalTaskForm = ({
    <div className={`grid ${!drawer ? 'grid-cols-4' : 'grid-cols-2'} gap-4`}>
         {/* Approval Due Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Approval Due Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -406,7 +406,7 @@ const ApprovalTaskForm = ({
 
         {/* Priority */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Priority
           </label>
           <Controller
@@ -427,7 +427,7 @@ const ApprovalTaskForm = ({
 
         {/* Assigned To */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Assigned To <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -457,55 +457,56 @@ const ApprovalTaskForm = ({
             </p>
           )}
         </div>
-        {/* Collaborators */}
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
-            <Users className="w-4 h-4 mr-1" />
-            Collaborators
-            {isLoadingCollaborators && (
-              <Loader2 className="w-4 h-4 animate-spin ml-2" />
-            )}
-          </label>
-          <Controller
-            name="collaborators"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                isMulti
-                options={collaboratorOptions.filter(
-                  (opt) =>
-                    opt.value !== "self" &&
-                    !watchedApprovers?.some(
-                      (approver) => approver.value === opt.value
-                    )
-                )}
-                isLoading={isLoadingCollaborators}
-                className="react-select-container"
-                classNamePrefix="react-select"
-                placeholder={
-                  isLoadingCollaborators
-                    ? "Loading collaborators..."
-                    : "Select collaborators"
-                }
-                noOptionsMessage={() =>
-                  isLoadingCollaborators
-                    ? "Loading..."
-                    : "No collaborators available"
-                }
-                data-testid="select-collaborators"
-              />
-            )}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Collaborators will be notified but are not approvers
-          </p>
-        </div>
+      </div>
+
+      {/* Collaborators */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
+          <Users className="w-4 h-4 mr-1" />
+          Collaborators
+          {isLoadingCollaborators && (
+            <Loader2 className="w-4 h-4 animate-spin ml-2" />
+          )}
+        </label>
+        <Controller
+          name="collaborators"
+          control={control}
+          render={({ field }) => (
+            <Select
+              {...field}
+              isMulti
+              options={collaboratorOptions.filter(
+                (opt) =>
+                  opt.value !== "self" &&
+                  !watchedApprovers?.some(
+                    (approver) => approver.value === opt.value,
+                  ),
+              )}
+              isLoading={isLoadingCollaborators}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder={
+                isLoadingCollaborators
+                  ? "Loading collaborators..."
+                  : "Select collaborators for notifications..."
+              }
+              noOptionsMessage={() =>
+                isLoadingCollaborators
+                  ? "Loading..."
+                  : "No collaborators available"
+              }
+              data-testid="select-collaborators"
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Collaborators will be notified but are not approvers
+        </p>
       </div>
 
       {/* Visibility */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Visibility <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">
