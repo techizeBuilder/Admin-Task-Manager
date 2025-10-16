@@ -326,99 +326,152 @@ const OrganizationDashboard = () => {
         </div>
       </div>
 
-
       {/* Organizational KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-total-employees">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-total-employees"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-2 rounded-lg">
               <Users className="text-blue-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Employees</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.totalEmployees}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.totalEmployees}
+              </p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-completed-tasks">
+
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-completed-tasks"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-purple-100 p-2 rounded-lg">
               <CheckSquare className="text-purple-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Tasks Completed</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.completedTasksThisMonth}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.completedTasksThisMonth}
+              </p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-pending-approvals">
+
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-pending-approvals"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-yellow-100 p-2 rounded-lg">
               <Clock className="text-yellow-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Pending Approvals</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.pendingApprovals}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.pendingApprovals}
+              </p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-productivity">
+
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-productivity"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-indigo-100 p-2 rounded-lg">
               <TrendingUp className="text-indigo-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Team Productivity</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.teamProductivity}%</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.teamProductivity}%
+              </p>
             </div>
           </div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border" data-testid="card-upcoming-deadlines">
+
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border"
+          data-testid="card-upcoming-deadlines"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-red-100 p-2 rounded-lg">
               <AlertTriangle className="text-red-600" size={20} />
             </div>
             <div>
               <p className="text-sm text-gray-600">Upcoming Deadlines</p>
-              <p className="text-xl font-bold text-gray-900">{orgStats.upcomingDeadlines}</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgStats.upcomingDeadlines}
+              </p>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Team Performance */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1" data-testid="card-on-time-rate">
+        <div
+          className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1"
+          data-testid="card-on-time-rate"
+        >
           <div className="flex items-center gap-3">
             <div className="bg-green-100 p-2 rounded-lg">
               <Target className="text-green-600" size={20} />
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-600">On-Time Completion</p>
-              <p className="text-xl font-bold text-gray-900">{orgOnTimeRate}%</p>
+              <p className="text-xl font-bold text-gray-900">
+                {orgOnTimeRate}%
+              </p>
               <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${orgOnTimeRate}%` }} />
+                <div
+                  className="bg-green-600 h-2 rounded-full"
+                  style={{ width: `${orgOnTimeRate}%` }}
+                />
               </div>
-              <p className="text-[11px] text-gray-500 mt-1">On-time {orgCompletion.onTime} · Overdue closed {orgCompletion.overdueClosed}</p>
+              <p className="text-[11px] text-gray-500 mt-1">
+                On-time {orgCompletion.onTime} · Overdue closed{" "}
+                {orgCompletion.overdueClosed}
+              </p>
             </div>
           </div>
         </div>
+
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-sm border" data-testid="card-adoption-dashboard">
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-adoption-dashboard"
+        >
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Users className="text-blue-600" size={18} /> Adoption Dashboard
+              <Users className="text-blue-600" size={18} />
+              Adoption Dashboard
             </h2>
-            <span className="text-sm text-gray-600">Active: <span className="font-semibold text-gray-900">{adoption.activeUsers}</span> / {adoption.totalUsers}</span>
+            <span className="text-sm text-gray-600">
+              Active:{" "}
+              <span className="font-semibold text-gray-900">
+                {adoption.activeUsers}
+              </span>{" "}
+              / {adoption.totalUsers}
+            </span>
           </div>
           <div className="p-6 space-y-6">
             {/* Logins trend */}
             <TooltipProvider>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-800">Logins (7d)</span>
-                  <span className="text-xs text-gray-500">peak {maxLogins}</span>
+                  <span className="text-sm font-medium text-gray-800">
+                    Logins (7d)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    peak {maxLogins}
+                  </span>
                 </div>
                 <div className="flex items-end gap-3">
                   {adoption.logins7d.map((v, i) => (
@@ -426,76 +479,128 @@ const OrganizationDashboard = () => {
                       <div className="group relative flex items-end h-20">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="bg-blue-500 w-6 rounded-sm" style={{ height: `${(v / maxLogins) * 100}%` }} />
+                            <div
+                              className="bg-blue-500 w-6 rounded-sm"
+                              style={{ height: `${(v / maxLogins) * 100}%` }}
+                          
+                            />
                           </TooltipTrigger>
-                          <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">{v || 0} logins</TooltipContent>
+                          <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} logins
+                          </TooltipContent>
                         </Tooltip>
                       </div>
-                      <span className="mt-1 text-[10px] text-gray-500">{last7DayLabels[i]}</span>
+                       <span className="mt-1 text-[10px] text-gray-500">{last7DayLabels[i]}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              {/* Comments/updates trend */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-800">Comments/Updates (7d)</span>
-                  <span className="text-xs text-gray-500">peak {maxUpdates}</span>
-                </div>
-                <div className="flex items-end gap-3">
-                  {adoption.updates7d.map((v, i) => (
-                    <div key={i} className="flex flex-col items-center">
-                      <div className="group relative flex items-end h-20">
-                        <Tooltip>
+      
+            {/* Comments/updates trend */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-800">
+                  Comments/Updates (7d)
+                </span>
+                <span className="text-xs text-gray-500">peak {maxUpdates}</span>
+              </div>
+              <div className="flex items-end gap-3">
+                {adoption.updates7d.map((v, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="group relative flex items-end h-20">
+                     <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="bg-indigo-500 w-6 rounded-sm" style={{ height: `${((v || 0) / maxUpdates) * 100}%` }} />
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">{v || 0} comments/updates</TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <span className="mt-1 text-[10px] text-gray-500">{last7DayLabels[i]}</span>
+                      <div
+                        className="bg-indigo-500 w-6 rounded-sm"
+                        style={{ height: `${((v || 0) / maxUpdates) * 100}%` }}
+                     
+                      />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-900 text-white text-xs rounded-md p-1">
+                           {v || 0} comments/updates
+                          </TooltipContent>
+                      </Tooltip>
                     </div>
-                  ))}
-                </div>
+                    <span className="mt-1 text-[10px] text-gray-500">
+                      {last7DayLabels[i]}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </TooltipProvider>
+            </div>
+                  </TooltipProvider>
           </div>
         </div>
+
         {/* Overdue % by Department */}
-        <div className="bg-white rounded-lg shadow-sm border" data-testid="card-overdue-by-dept">
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-overdue-by-dept"
+        >
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <PieChart className="text-red-600" size={18} /> Overdue % by Department
+              <PieChart className="text-red-600" size={18} />
+              Overdue % by Department
             </h2>
           </div>
           <div className="p-6">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-gray-700">Full Tasks</span>
-              <span className="font-medium text-gray-900">{moduleUsage.full}</span>
+            {/* <div className="space-y-4">
+              {recentActivity.map((activity) => (
+                <div
+                  className="h-3 rounded-l-full bg-emerald-500"
+                  style={{ width: `${quickPct}%` }}
+                />
+              </div> */}
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-gray-700">Full Tasks</span>
+                <span className="font-medium text-gray-900">
+                  {moduleUsage.full}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="h-3 rounded-l-full bg-blue-500"
+                  style={{ width: `${fullPct}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Quick vs Full usage ratio: {quickPct}% / {fullPct}%
+              </p>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div className="h-3 rounded-l-full bg-blue-500" style={{ width: `${fullPct}%` }} />
-            </div>
-            <p className="text-xs text-gray-500 mt-2">Quick vs Full usage ratio: {quickPct}% / {fullPct}%</p>
           </div>
+
           {/* System Health */}
-          <div className="bg-white rounded-lg shadow-sm border" data-testid="card-system-health">
+          <div
+            className="bg-white rounded-lg shadow-sm border"
+            data-testid="card-system-health"
+          >
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="text-orange-600" size={18} /> System Health
+                <AlertTriangle className="text-orange-600" size={18} />
+                System Health
               </h2>
             </div>
             <div className="p-6 space-y-3">
               {systemHealth.map((e) => (
                 <div key={e.id} className="flex items-start gap-3">
-                  <div className={`w-2.5 h-2.5 mt-1 rounded-full ${e.severity === "error" ? "bg-red-600" : e.severity === "warning" ? "bg-yellow-500" : "bg-green-500"}`} />
+                  <div
+                    className={`w-2.5 h-2.5 mt-1 rounded-full ${
+                      e.severity === "error"
+                        ? "bg-red-600"
+                        : e.severity === "warning"
+                        ? "bg-yellow-500"
+                        : "bg-green-500"
+                    }`}
+                  />
                   <div className="flex-1">
                     <div className="text-sm text-gray-900">{e.message}</div>
                     <div className="text-xs text-gray-500">{e.time}</div>
                   </div>
                 </div>
               ))}
-              {systemHealth.length === 0 && (<div className="text-sm text-gray-500">No issues detected.</div>)}
+              {systemHealth.length === 0 && (
+                <div className="text-sm text-gray-500">No issues detected.</div>
+              )}
             </div>
           </div>
         </div>

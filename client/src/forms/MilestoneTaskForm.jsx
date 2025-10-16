@@ -183,7 +183,7 @@ const MilestoneTaskForm = ({
 
       {/* Milestone Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Milestone Type <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">
@@ -216,7 +216,7 @@ const MilestoneTaskForm = ({
 
       {/* Task Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Milestone Name <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -247,7 +247,7 @@ const MilestoneTaskForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Description
         </label>
         <Controller
@@ -269,7 +269,7 @@ const MilestoneTaskForm = ({
       {/* Linked Tasks - Only show if milestone type is 'linked' */}
       {watchedMilestoneType === "linked" && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Link to Tasks/Sub-tasks <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -318,7 +318,7 @@ const MilestoneTaskForm = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Due Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+          <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
             <Calendar className="w-4 h-4 mr-1" />
             Due Date <span className="text-red-500">*</span>
           </label>
@@ -350,7 +350,7 @@ const MilestoneTaskForm = ({
 
         {/* Assigned To */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Assigned To <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -380,7 +380,7 @@ const MilestoneTaskForm = ({
 
         {/* Priority */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Priority
           </label>
           <Controller
@@ -403,7 +403,7 @@ const MilestoneTaskForm = ({
 
       {/* Visibility */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Visibility <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">
@@ -432,7 +432,7 @@ const MilestoneTaskForm = ({
 
       {/* Collaborators */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+        <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
           <Users className="w-4 h-4 mr-1" />
           Collaborators
         </label>

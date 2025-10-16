@@ -86,7 +86,7 @@ const AdvancedFieldsModal = ({
         <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {/* Reference Process */}
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Reference Process
             </label>
             <Controller
@@ -109,7 +109,7 @@ const AdvancedFieldsModal = ({
 
           {/* Custom Form */}
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Custom Form
             </label>
             <Controller
@@ -132,7 +132,7 @@ const AdvancedFieldsModal = ({
 
           {/* Dependencies */}
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Dependencies
             </label>
             <Controller
@@ -158,7 +158,7 @@ const AdvancedFieldsModal = ({
 
           {/* Task Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Task Type <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -426,7 +426,7 @@ const RegularTaskForm = ({
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
         {/* Task Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
+          <label className="block text-sm font-medium text-gray-900  mb-1">
             Task Name <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -456,7 +456,7 @@ const RegularTaskForm = ({
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
+          <label className="block text-sm font-medium text-gray-900  mb-1">
             Description
           </label>
           <Controller
@@ -479,7 +479,7 @@ const RegularTaskForm = ({
 
           {/* Assigned To */}
           <div>
-            <label className=" block text-sm font-medium text-gray-900  mb-0">
+            <label className=" block text-sm font-medium text-gray-900  mb-1">
               Assigned To <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -509,7 +509,7 @@ const RegularTaskForm = ({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Priority <span className="text-red-500">*</span>
             </label>
             <Controller
@@ -536,7 +536,7 @@ const RegularTaskForm = ({
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-900  mb-0">
+            <label className="block text-sm font-medium text-gray-900  mb-1">
               Due Date <span className="text-red-500">*</span>
             </label>
             <input
@@ -561,7 +561,7 @@ const RegularTaskForm = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
+          <label className="block text-sm font-medium text-gray-900  mb-1">
             Visibility <span className="text-red-500">*</span>
           </label>
           <div className="flex space-x-4">
@@ -596,7 +596,7 @@ const RegularTaskForm = ({
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
+          <label className="block text-sm font-medium text-gray-900  mb-1">
             Labels / Tags
           </label>
           <Controller
@@ -629,7 +629,7 @@ const RegularTaskForm = ({
 
         {/* Attachments */}
         <div>
-          <label className="block text-sm font-medium text-gray-900  mb-0">
+          <label className="block text-sm font-medium text-gray-900  mb-1">
             Attachments
             <span className="text-xs text-gray-500 ml-2">(Max 5MB total)</span>
           </label>

@@ -225,39 +225,29 @@
 
 /* Active Reminders */
 .active-reminders {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
+  padding: 6px 12px !important;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
   border-radius: 8px;
-  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  font-size: 15px;
+  min-height: 36px;
 }
 
-.reminder-icon {
-  color: #d97706;
+.active-reminders .reminder-icon {
+  margin-right: 8px;
+  color: #faad14;
+  display: flex;
+  align-items: center;
 }
 
-.description-text {
-  color: #374151;
-  line-height: 1.6;
-  font-size: 14px;
-  background: #f9fafb;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-}
-
-.reminder-content strong {
-  color: #92400e;
-  font-weight: 600;
-}
-
-.reminder-text {
-  color: #92400e;
-  font-size: 14px;
-  margin-top: 4px;
+.active-reminders .reminder-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0;
 }
 
 /* Description Section */
@@ -1422,5 +1412,56 @@ select:focus {
   .activity-filter {
     flex: 1;
     min-width: auto;
+  }
+}
+
+/* New Two-Card Layout for Details Section */
+.details-two-card-grid {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  margin-top: 24px;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.details-two-card-grid .detail-card.combined-card {
+  flex: 1 1 0;
+  min-width: 320px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  margin-bottom: 0;
+}
+
+.details-two-card-grid .detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.details-two-card-grid .detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.details-two-card-grid .detail-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .details-two-card-grid {
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }

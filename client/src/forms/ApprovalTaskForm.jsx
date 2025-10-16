@@ -144,7 +144,7 @@ const ApprovalTaskForm = ({
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* Task Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Task Name <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -175,7 +175,7 @@ const ApprovalTaskForm = ({
 
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Description
         </label>
         <Controller
@@ -196,7 +196,7 @@ const ApprovalTaskForm = ({
 
       {/* Approvers */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Approvers <span className="text-red-500">*</span>
           {isLoadingApprovers && (
             <Loader2 className="w-4 h-4 animate-spin inline-block ml-2" />
@@ -249,7 +249,7 @@ const ApprovalTaskForm = ({
 
       {/* Approval Mode */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+        <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
           Approval Mode <span className="text-red-500">*</span>
           <div className="relative group ml-2">
             <Info className="w-4 h-4 text-gray-400 cursor-help" />
@@ -287,7 +287,7 @@ const ApprovalTaskForm = ({
       {/* Sequential Order - Only show if Sequential mode */}
       {watchedApprovalMode === "sequential" && approverOrder.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Approval Order
           </label>
           <div className="space-y-1.5 bg-gray-50 p-3 rounded-md border border-gray-200">
@@ -379,7 +379,7 @@ const ApprovalTaskForm = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Approval Due Date */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Approval Due Date <span className="text-red-500">*</span>
           </label>
           <input
@@ -405,7 +405,7 @@ const ApprovalTaskForm = ({
 
         {/* Priority */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Priority
           </label>
           <Controller
@@ -426,7 +426,7 @@ const ApprovalTaskForm = ({
 
         {/* Assigned To */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-0">
+          <label className="block text-sm font-medium text-gray-900 mb-1">
             Assigned To <span className="text-red-500">*</span>
           </label>
           <Controller
@@ -460,7 +460,7 @@ const ApprovalTaskForm = ({
 
       {/* Collaborators */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+        <label className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
           <Users className="w-4 h-4 mr-1" />
           Collaborators
           {isLoadingCollaborators && (
@@ -505,7 +505,7 @@ const ApprovalTaskForm = ({
 
       {/* Visibility */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
+        <label className="block text-sm font-medium text-gray-900 mb-1">
           Visibility <span className="text-red-500">*</span>
         </label>
         <div className="flex space-x-4">

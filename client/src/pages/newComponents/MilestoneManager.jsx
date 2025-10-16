@@ -528,22 +528,11 @@ export default function MilestoneManager() {
 
                 {/* Collaborators */}
                 <div className="px-4 py-2 flex items-center space-x-1 overflow-x-auto">
-                  {Array.isArray(milestone.collaborators) && milestone.collaborators.map((collab, i) => {
-                    // collab: { id, name, email, role, ... }
-                    const initials = collab.name
-                      ? collab.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                      : (collab.email ? collab.email[0].toUpperCase() : 'Y');
-                    const roleLabel = Array.isArray(collab.role) ? collab.role.join(', ') : collab.role;
-                    return (
-                      <div
-                        key={collab.id || i}
-                        className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
-                        title={`${collab.name}${roleLabel ? ' (' + roleLabel + ')' : ''}`}
-                      >
-                        {initials}
-                      </div>
-                    );
-                  })}
+                  {milestone.collaborators.map((c, i) => (
+                    <div key={i} className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                      {c.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
                   <button className="h-6 w-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 flex-shrink-0">
                     <Plus className="h-3 w-3" />
                   </button>

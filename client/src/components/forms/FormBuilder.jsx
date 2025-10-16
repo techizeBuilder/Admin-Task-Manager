@@ -528,7 +528,7 @@ export default function FormBuilder() {
             </CardHeader>
             <CardContent className="space-y-6 p-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Form Title *
                 </label>
                 <Input
@@ -541,7 +541,7 @@ export default function FormBuilder() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Description
                 </label>
                 <Textarea

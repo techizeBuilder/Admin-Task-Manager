@@ -66,7 +66,7 @@ export function ApprovalForm({ formData, onInputChange, validationErrors = {} })
     <div className="space-y-6">
       {/* Approvers */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Approvers *
         </label>
         <MultiSelect
@@ -88,7 +88,7 @@ export function ApprovalForm({ formData, onInputChange, validationErrors = {} })
 
       {/* Approval Mode */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Approval Mode *
         </label>
         <select
@@ -109,7 +109,7 @@ export function ApprovalForm({ formData, onInputChange, validationErrors = {} })
       {/* Approver Order (only for Sequential) */}
       {approvalData.approvalMode === 'sequential' && approvalData.approvers?.length > 0 && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Approver Order *
           </label>
           <div className="space-y-2">
@@ -156,7 +156,7 @@ export function ApprovalForm({ formData, onInputChange, validationErrors = {} })
 
       {/* Auto-Approval */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
           Auto-Approval
         </label>
         <div className="flex items-center gap-4">

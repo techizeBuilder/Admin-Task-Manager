@@ -1499,7 +1499,7 @@
 
   .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0px !important;
     font-weight: 500;
     color: #495057;
     font-size: 0.875rem;
