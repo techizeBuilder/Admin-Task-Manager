@@ -52,12 +52,14 @@ import {
   AtSign,
 } from "lucide-react";
 import { useSubtask } from "../../contexts/SubtaskContext";
+import { useShowToast } from "../../utils/ToastMessage";
 
 export default function AllTasks({
   onCreateTask,
   onNavigateToTask,
   initialDueDateFilter,
 }) {
+  const { showSuccessToast, showErrorToast } = useShowToast();
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -145,7 +147,7 @@ export default function AllTasks({
     addCustomReminder,
     snoozeTask,
   } = useTasksStore();
-// const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  // const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
   const [apiTasks, setApiTasks] = useState([]);
   const [apiLoading, setApiLoading] = useState(true);
@@ -279,7 +281,7 @@ export default function AllTasks({
             status: feStatus, // This will override the raw status from taskData
             priority: taskData.priority
               ? taskData.priority.charAt(0).toUpperCase() +
-                taskData.priority.slice(1)
+              taskData.priority.slice(1)
               : "Medium",
             dueDate: taskData.dueDate
               ? new Date(taskData.dueDate).toISOString().split("T")[0]
@@ -331,8 +333,8 @@ export default function AllTasks({
     } catch (error) {
       setApiError(
         error.response?.data?.message ||
-          error.message ||
-          "An error occurred while fetching tasks."
+        error.message ||
+        "An error occurred while fetching tasks."
       );
     }
   };
@@ -614,64 +616,65 @@ export default function AllTasks({
     };
   };
   // Debug function for recurring task troubleshooting
-  const debugRecurringTask = (task, context = '') => {
-    if (task.isRecurring) {
-      console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
-        taskId: task.id || task._id,
-        title: task.title,
-        isRecurring: task.isRecurring,
-        taskType: task.taskType,
-        originalDueDate: task.dueDate,
-        nextDueDate: task.nextDueDate,
-        recurrencePattern: task.recurrencePattern,
-        status: task.status,
-        completedDate: task.completedDate,
-        hasRecurrencePattern: !!task.recurrencePattern,
-        patternDetails: task.recurrencePattern ? {
-          frequency: task.recurrencePattern.frequency,
-          interval: task.recurrencePattern.interval,
-          anchorField: task.recurrencePattern.anchorField
-        } : null
-      });
-    }
-  };
-    // Calculate enhanced due date for recurring tasks (client-side display logic)
-  const calculateEnhancedDueDate = (task) => {
-    // For non-recurring tasks, return original due date
-    if (!task.isRecurring || !task.recurrencePattern) {
-      return task.dueDate;
-    }
+  // const debugRecurringTask = (task, context = '') => {
+  //   if (task.isRecurring) {
+  //     console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
+  //       taskId: task.id || task._id,
+  //       title: task.title,
+  //       isRecurring: task.isRecurring,
+  //       taskType: task.taskType,
+  //       originalDueDate: task.dueDate,
+  //       nextDueDate: task.nextDueDate,
+  //       recurrencePattern: task.recurrencePattern,
+  //       status: task.status,
+  //       completedDate: task.completedDate,
+  //       hasRecurrencePattern: !!task.recurrencePattern,
+  //       patternDetails: task.recurrencePattern ? {
+  //         frequency: task.recurrencePattern.frequency,
+  //         interval: task.recurrencePattern.interval,
+  //         anchorField: task.recurrencePattern.anchorField
+  //       } : null
+  //     });
+  //   }
+  // };
+  //   // Calculate enhanced due date for recurring tasks (client-side display logic)
+  // const calculateEnhancedDueDate = (task) => {
+  //   // For non-recurring tasks, return original due date
+  //   if (!task.isRecurring || !task.recurrencePattern) {
+  //     return task.dueDate;
+  //   }
 
-    // For recurring tasks, show the most relevant due date:
-    // 1. If task is completed, show original due date (historical)
-    // 2. If task has nextDueDate, show that (upcoming occurrence)
-    // 3. Otherwise, show current due date
+  //   // For recurring tasks, show the most relevant due date:
+  //   // 1. If task is completed, show original due date (historical)
+  //   // 2. If task has nextDueDate, show that (upcoming occurrence)
+  //   // 3. Otherwise, show current due date
     
-    if (task.status === 'DONE' || task.status === 'completed') {
-      // For completed recurring tasks, show original due date for reference
-      return task.dueDate;
-    }
+  //   if (task.status === 'DONE' || task.status === 'completed') {
+  //     // For completed recurring tasks, show original due date for reference
+  //     return task.dueDate;
+  //   }
     
-    if (task.nextDueDate) {
-      // Show next due date for active recurring tasks
-      return task.nextDueDate;
-    }
+  //   if (task.nextDueDate) {
+  //     // Show next due date for active recurring tasks
+  //     return task.nextDueDate;
+  //   }
     
-    return task.dueDate;
-  };
-  // Get display due date with recurring task logic
-  const getDisplayDueDate = (task) => {
-    debugRecurringTask(task, 'getDisplayDueDate');
+  //   return task.dueDate;
+  // };
+  // // Get display due date with recurring task logic
+  // const getDisplayDueDate = (task) => {
+  //   debugRecurringTask(task, 'getDisplayDueDate');
     
-    const enhancedDueDate = calculateEnhancedDueDate(task);
+  //   const enhancedDueDate = calculateEnhancedDueDate(task);
     
    
-    if (!enhancedDueDate) {
-      return null;
-    }
+  //   if (!enhancedDueDate) {
+  //     return null;
+  //   }
     
-    return new Date(enhancedDueDate);
-  };
+  //   return new Date(enhancedDueDate);
+  // };
+
   // Permission check function
   const canEditTaskStatus = (task) => {
     return (
@@ -874,9 +877,8 @@ export default function AllTasks({
         (s) => s.code === task.status
       );
       setToast({
-        message: `Invalid status transition from "${
-          currentStatusObj?.label || task.status
-        }" to "${newStatus.label}". Please follow the allowed workflow.`,
+        message: `Invalid status transition from "${currentStatusObj?.label || task.status
+          }" to "${newStatus.label}". Please follow the allowed workflow.`,
         type: "error",
         isVisible: true,
       });
@@ -1050,9 +1052,8 @@ export default function AllTasks({
 
         // Show success toast
         const newStatus = companyStatuses.find((s) => s.code === newStatusCode);
-        const message = `Task "${task.title}" status updated to "${
-          newStatus?.label || newStatusCode
-        }"`;
+        const message = `Task "${task.title}" status updated to "${newStatus?.label || newStatusCode
+          }"`;
 
         setToast({
           message: message,
@@ -1123,13 +1124,13 @@ export default function AllTasks({
       const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
 
       if (!task) {
-        showToast("Task not found", "error");
+        showErrorToast("Task not found");
         return;
       }
 
       // Check permissions
       if (!canDeleteTask(task)) {
-        showToast("You do not have permission to delete this task", "error");
+        showErrorToast("You do not have permission to delete this task");
         return;
       }
 
@@ -1153,35 +1154,36 @@ export default function AllTasks({
 
       console.log("🌐 Delete API response status:", response.status);
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log("✅ Delete API response:", result);
+      // Always parse response to get the message
+      const result = await response.json().catch(() => ({}));
+      console.log("✅ Delete API response:", result);
 
+      if (response.ok) {
         if (result.success) {
           // Remove from local state
           setApiTasks((prev) =>
             prev.filter((t) => t.id !== taskId && t._id !== taskId)
           );
 
-          // Show success toast
-          showToast(`Task "${task.title}" deleted successfully`, "success");
+          // Show success toast with server message
+          showSuccessToast(result.message || `Task "${task.title}" deleted successfully`);
 
           // Refetch tasks to ensure sync
           await refetchTasks();
         } else {
-          throw new Error(result.message || "Failed to delete task");
+          // Show error message from server
+          showErrorToast(result.message || "Failed to delete task");
         }
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `HTTP error! status: ${response.status}`
-        );
+        // Show error message from server for non-200 responses
+        showErrorToast(result.message || `HTTP error! status: ${response.status}`);
       }
     } catch (error) {
       console.error("❌ Error deleting task:", error);
-      showToast(error.message || "Error deleting task", "error");
+      showErrorToast(error.message || "Error deleting task");
     }
-  }; // Execute task deletion
+  }; 
+  
   const executeTaskDeletion = async (taskId, options) => {
     try {
       const task = apiTasks.find((t) => t.id === taskId);
@@ -1491,9 +1493,9 @@ export default function AllTasks({
     if (
       editingSubtaskTitle.trim() &&
       editingSubtaskTitle !==
-        tasks
-          .find((t) => t.id === parentTaskId)
-          ?.subtasks?.find((s) => s.id === subtaskId)?.title
+      tasks
+        .find((t) => t.id === parentTaskId)
+        ?.subtasks?.find((s) => s.id === subtaskId)?.title
     ) {
       updateSubtask(parentTaskId, subtaskId, {
         title: editingSubtaskTitle.trim(),
@@ -1738,12 +1740,12 @@ export default function AllTasks({
             prev.map((task) =>
               task.id === parentTaskId || task._id === parentTaskId
                 ? {
-                    ...task,
-                    subtasks:
-                      task.subtasks?.filter(
-                        (s) => s.id !== subtaskId && s._id !== subtaskId
-                      ) || [],
-                  }
+                  ...task,
+                  subtasks:
+                    task.subtasks?.filter(
+                      (s) => s.id !== subtaskId && s._id !== subtaskId
+                    ) || [],
+                }
                 : task
             )
           );
@@ -2017,11 +2019,11 @@ export default function AllTasks({
             prev.map((t) =>
               t.id === taskId || t._id === taskId
                 ? {
-                    ...t,
-                    isSnooze: false,
-                    snoozeUntil: null,
-                    snoozeReason: null,
-                  }
+                  ...t,
+                  isSnooze: false,
+                  snoozeUntil: null,
+                  snoozeReason: null,
+                }
                 : t
             )
           );
@@ -2060,11 +2062,11 @@ export default function AllTasks({
             prev.map((t) =>
               t.id === taskId || t._id === taskId
                 ? {
-                    ...t,
-                    isSnooze: true,
-                    snoozeUntil: snoozeUntil,
-                    snoozeReason: reason,
-                  }
+                  ...t,
+                  isSnooze: true,
+                  snoozeUntil: snoozeUntil,
+                  snoozeReason: reason,
+                }
                 : t
             )
           );
@@ -2125,11 +2127,11 @@ export default function AllTasks({
             prev.map((t) =>
               t.id === taskId || t._id === taskId
                 ? {
-                    ...t,
-                    isRisk: false,
-                    riskLevel: null,
-                    riskReason: null,
-                  }
+                  ...t,
+                  isRisk: false,
+                  riskLevel: null,
+                  riskReason: null,
+                }
                 : t
             )
           );
@@ -2164,11 +2166,11 @@ export default function AllTasks({
             prev.map((t) =>
               t.id === taskId || t._id === taskId
                 ? {
-                    ...t,
-                    isRisk: true,
-                    riskLevel,
-                    riskReason,
-                  }
+                  ...t,
+                  isRisk: true,
+                  riskLevel,
+                  riskReason,
+                }
                 : t
             )
           );
@@ -2216,11 +2218,11 @@ export default function AllTasks({
           prev.map((t) =>
             t.id === taskId || t._id === taskId
               ? {
-                  ...t,
-                  status: "DONE",
-                  completedDate: new Date().toISOString(),
-                  completionNotes: completionNotes,
-                }
+                ...t,
+                status: "DONE",
+                completedDate: new Date().toISOString(),
+                completionNotes: completionNotes,
+              }
               : t
           )
         );
@@ -2272,10 +2274,10 @@ export default function AllTasks({
     // Apply due date filter with enhanced recurring task logic
     const matchesDueDate = (() => {
       if (dueDateFilter === "all") return true;
-      
+
       // 🔄 Enhanced Due Date Logic for Recurring Tasks
       const displayDueDate = getDisplayDueDate(task);
-      
+
       if (!displayDueDate) {
         return dueDateFilter === "no_due_date";
       }
@@ -2284,7 +2286,7 @@ export default function AllTasks({
       // Clear time part for accurate date comparison
       const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const dueDateOnly = new Date(displayDueDate.getFullYear(), displayDueDate.getMonth(), displayDueDate.getDate());
-      
+
       const timeDiff = dueDateOnly.getTime() - todayDateOnly.getTime();
       const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -2300,31 +2302,31 @@ export default function AllTasks({
             return daysDiff < 0;
           }
           return daysDiff < 0;
-          
+
         case "due_today":
           return daysDiff === 0;
-          
+
         case "due_tomorrow":
           return daysDiff === 1;
-          
+
         case "due_this_week":
           return daysDiff >= 0 && daysDiff <= 7;
-          
+
         case "due_next_week":
           return daysDiff > 7 && daysDiff <= 14;
-          
+
         case "due_this_month":
           return daysDiff >= 0 && daysDiff <= 30;
-          
+
         case "no_due_date":
           return false;
-          
+
         case "specific_date":
           return (
             window.calendarSpecificDate &&
             displayDueDate.toISOString().split('T')[0] === window.calendarSpecificDate.split('T')[0]
           );
-          
+
         default:
           return true;
       }
@@ -2344,22 +2346,85 @@ export default function AllTasks({
   const [filterPriority, setFilterPriority] = useState("all");
 
   // 🔄 Enhanced Recurring Task Helper Functions for Frontend Display
-  
-  
 
+  // Debug function for recurring task troubleshooting
+  const debugRecurringTask = (task, context = '') => {
+    if (task.isRecurring) {
+      console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
+        taskId: task.id || task._id,
+        title: task.title,
+        isRecurring: task.isRecurring,
+        taskType: task.taskType,
+        originalDueDate: task.dueDate,
+        nextDueDate: task.nextDueDate,
+        recurrencePattern: task.recurrencePattern,
+        status: task.status,
+        completedDate: task.completedDate,
+        hasRecurrencePattern: !!task.recurrencePattern,
+        patternDetails: task.recurrencePattern ? {
+          frequency: task.recurrencePattern.frequency,
+          interval: task.recurrencePattern.interval,
+          anchorField: task.recurrencePattern.anchorField
+        } : null
+      });
+    }
+  };
 
+  // Calculate enhanced due date for recurring tasks (client-side display logic)
+  const calculateEnhancedDueDate = (task) => {
+    // For non-recurring tasks, return original due date
+    if (!task.isRecurring || !task.recurrencePattern) {
+      return task.dueDate;
+    }
 
+    // For recurring tasks, show the most relevant due date:
+    // 1. If task is completed, show original due date (historical)
+    // 2. If task has nextDueDate, show that (upcoming occurrence)
+    // 3. Otherwise, show current due date
 
+    if (task.status === 'DONE' || task.status === 'completed') {
+      // For completed recurring tasks, show original due date for reference
+      return task.dueDate;
+    }
+
+    if (task.nextDueDate) {
+      // Show next due date for active recurring tasks
+      return task.nextDueDate;
+    }
+
+    return task.dueDate;
+  };
+
+  // Get display due date with recurring task logic
+  const getDisplayDueDate = (task) => {
+    debugRecurringTask(task, 'getDisplayDueDate');
+
+    const enhancedDueDate = calculateEnhancedDueDate(task);
+
+    console.log('🔍 DEBUG - getDisplayDueDate result:', {
+      taskId: task.id || task._id,
+      title: task.title,
+      isRecurring: task.isRecurring,
+      enhancedDueDate,
+      finalDate: enhancedDueDate ? new Date(enhancedDueDate) : null
+    });
+
+    if (!enhancedDueDate) {
+      return null;
+    }
+
+    return new Date(enhancedDueDate);
+  };
 
   // Check if recurring task has upcoming occurrence
   const hasUpcomingRecurrence = (task) => {
     if (!task.isRecurring || !task.nextDueDate) {
       return false;
     }
-    
+
     const nextDue = new Date(task.nextDueDate);
     const now = new Date();
-    
+
     return nextDue > now;
   };
 
@@ -2381,7 +2446,7 @@ export default function AllTasks({
     // Generate human-readable recurrence description
     const { frequency, interval } = info;
     let description = '';
-    
+
     switch (frequency) {
       case 'daily':
         description = interval === 1 ? 'Daily' : `Every ${interval} days`;
@@ -2401,7 +2466,7 @@ export default function AllTasks({
       default:
         description = 'Recurring';
     }
-    
+
     info.description = description;
     return info;
   };
@@ -2425,7 +2490,7 @@ export default function AllTasks({
         const nextDue = new Date(recurringInfo.nextDueDate);
         const today = new Date();
         const daysDiff = Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 3600 * 24));
-        
+
         let nextText = 'Next: ';
         if (daysDiff === 0) {
           nextText += 'Today';
@@ -2440,11 +2505,11 @@ export default function AllTasks({
         indicators.push({
           icon: "📅",
           text: nextText,
-          className: daysDiff < 0 
+          className: daysDiff < 0
             ? "bg-red-100 text-red-800 border-red-200"
             : daysDiff <= 1
-            ? "bg-orange-100 text-orange-800 border-orange-200" 
-            : "bg-blue-100 text-blue-800 border-blue-200",
+              ? "bg-orange-100 text-orange-800 border-orange-200"
+              : "bg-blue-100 text-blue-800 border-blue-200",
         });
       }
     }
@@ -2454,7 +2519,7 @@ export default function AllTasks({
     if (displayDueDate) {
       const today = new Date();
       const isOverdue = displayDueDate < today && (task.status !== 'DONE' && task.status !== 'completed');
-      
+
       if (isOverdue) {
         indicators.push({
           icon: "🔴",
@@ -2493,11 +2558,11 @@ export default function AllTasks({
       dueDate: task.dueDate,
       nextDueDate: task.nextDueDate
     });
-    
+
     const displayDueDate = getDisplayDueDate(task);
-    
+
     console.log('🔍 DEBUG - formatTaskDueDate displayDueDate result:', displayDueDate);
-    
+
     if (!displayDueDate) {
       console.log('🔍 DEBUG - No display due date, returning default');
       return {
@@ -2510,7 +2575,7 @@ export default function AllTasks({
     const today = new Date();
     const dueDateOnly = new Date(displayDueDate.getFullYear(), displayDueDate.getMonth(), displayDueDate.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    
+
     const daysDiff = Math.ceil((dueDateOnly.getTime() - todayOnly.getTime()) / (1000 * 3600 * 24));
     const isCompleted = task.status === 'DONE' || task.status === 'completed';
     const isOverdue = daysDiff < 0 && !isCompleted;
@@ -2600,32 +2665,20 @@ export default function AllTasks({
     return statusColorMap[statusCode] || "#6B7280"; // Default gray
   };
 
-  const getTaskColorCode = (task) => {
-    console.log("Getting color code for task::::::::::::::::::", task);
+const getTaskColorCode = (task, companyStatuses = []) => {
+  console.log("Getting color code for task::::::::::::::::::", task);
 
-    // Priority: statusColor from API > status-based color > taskType color > default
-    if (task.statusColor) {
-      console.log("Using statusColor from API:", task.statusColor);
-      return task.statusColor;
-    }
+  // Step 3: Task type–based color (from your taskType utility)
+  const taskInfo = getTaskTypeInfo(task.taskType);
+  if (taskInfo?.color) {
+    console.log("Using taskType color:", taskInfo.color, "for taskType:", task.taskType);
+    return taskInfo.color;
+  }
 
-    if (task.status) {
-      const statusColor = getStatusColor(task.status);
-      console.log(
-        "Using status-based color:",
-        statusColor,
-        "for status:",
-        task.status
-      );
-      return statusColor;
-    }
-
-    // Fallback to task type color
-    const taskInfo = getTaskTypeInfo(task.taskType);
-    const fallbackColor = task.colorCode || taskInfo.defaultColor || "#6B7280";
-    console.log("Using fallback color:", fallbackColor);
-    return fallbackColor;
-  };
+  // Step 4: Fallback (in case nothing matches)
+  console.log("Using fallback color: #6B7280");
+  return "#6B7280";
+};
 
   // Smart task handlers
   const handleOpenThread = (task) => {
@@ -2689,7 +2742,7 @@ export default function AllTasks({
       console.error("Error updating milestone:", error);
       showToast(
         "Failed to update milestone: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         "error"
       );
     }
@@ -2705,7 +2758,7 @@ export default function AllTasks({
       console.error("Error deleting milestone:", error);
       showToast(
         "Failed to delete milestone: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         "error"
       );
     }
@@ -2721,7 +2774,7 @@ export default function AllTasks({
       console.error("Error marking milestone as achieved:", error);
       showToast(
         "Failed to mark milestone as achieved: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         "error"
       );
     }
@@ -2737,7 +2790,7 @@ export default function AllTasks({
       console.error("Error linking task to milestone:", error);
       showToast(
         "Failed to link task to milestone: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         "error"
       );
     }
@@ -2753,7 +2806,7 @@ export default function AllTasks({
       console.error("Error unlinking task from milestone:", error);
       showToast(
         "Failed to unlink task from milestone: " +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         "error"
       );
     }
@@ -3024,13 +3077,13 @@ export default function AllTasks({
               { value: "no_due_date", label: "No Due Date" },
               ...(window.calendarSpecificDate
                 ? [
-                    {
-                      value: "specific_date",
-                      label: `Date: ${new Date(
-                        window.calendarSpecificDate
-                      ).toLocaleDateString()}`,
-                    },
-                  ]
+                  {
+                    value: "specific_date",
+                    label: `Date: ${new Date(
+                      window.calendarSpecificDate
+                    ).toLocaleDateString()}`,
+                  },
+                ]
                 : []),
             ]}
             placeholder="Filter by Due Date"
@@ -3126,95 +3179,95 @@ export default function AllTasks({
         taskTypeFilter !== "all" ||
         dueDateFilter !== "all" ||
         searchTerm) && (
-        <div className="card bg-blue-50 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-800">
-                Active Filters:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {searchTerm && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Search: "{searchTerm}"
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {statusFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Status: {statusFilter}
-                    <button
-                      onClick={() => setStatusFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {priorityFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Priority: {priorityFilter}
-                    <button
-                      onClick={() => setPriorityFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {taskTypeFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Type: {taskTypeFilter}
-                    <button
-                      onClick={() => setTaskTypeFilter("all")}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                {dueDateFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Due:{" "}
-                    {dueDateFilter === "specific_date" &&
-                    window.calendarSpecificDate
-                      ? `Date: ${new Date(
+          <div className="card bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-800">
+                  Active Filters:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Search: "{searchTerm}"
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {statusFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Status: {statusFilter}
+                      <button
+                        onClick={() => setStatusFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {priorityFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Priority: {priorityFilter}
+                      <button
+                        onClick={() => setPriorityFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {taskTypeFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Type: {taskTypeFilter}
+                      <button
+                        onClick={() => setTaskTypeFilter("all")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {dueDateFilter !== "all" && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Due:{" "}
+                      {dueDateFilter === "specific_date" &&
+                        window.calendarSpecificDate
+                        ? `Date: ${new Date(
                           window.calendarSpecificDate
                         ).toLocaleDateString()}`
-                      : dueDateFilter.replace(/_/g, " ")}
-                    <button
-                      onClick={() => {
-                        setDueDateFilter("all");
-                        window.calendarSpecificDate = null;
-                      }}
-                      className="ml-1 text-blue-600 hover:text-blue-800"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
+                        : dueDateFilter.replace(/_/g, " ")}
+                      <button
+                        onClick={() => {
+                          setDueDateFilter("all");
+                          window.calendarSpecificDate = null;
+                        }}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setPriorityFilter("all");
+                  setTaskTypeFilter("all");
+                  setDueDateFilter("all");
+                  window.calendarSpecificDate = null;
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear All Filters
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-                setPriorityFilter("all");
-                setTaskTypeFilter("all");
-                setDueDateFilter("all");
-                window.calendarSpecificDate = null;
-              }}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Clear All Filters
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Tasks Table */}
       {apiLoading ? (
@@ -3365,9 +3418,8 @@ export default function AllTasks({
                   filteredTasks.map((task) => (
                     <React.Fragment key={task.id}>
                       <TableRow
-                        className={`hover:bg-gray-50 transition-colors ${
-                          selectedTasks.includes(task.id) ? "bg-blue-50" : ""
-                        }`}
+                        className={`hover:bg-gray-50 transition-colors ${selectedTasks.includes(task.id) ? "bg-blue-50" : ""
+                          }`}
                         style={{
                           borderLeft: `4px solid ${getTaskColorCode(task)}`,
                         }}
@@ -3500,40 +3552,36 @@ export default function AllTasks({
                                       {task.title}
                                       {(riskyTasks.has(task.id) ||
                                         task.isRisk) && (
-                                        <span
-                                          className="ml-2 text-orange-500"
-                                          title={`Risky Task${
-                                            task.riskLevel
-                                              ? ` (${task.riskLevel})`
-                                              : ""
-                                          }${
-                                            task.riskReason
-                                              ? `: ${task.riskReason}`
-                                              : ""
-                                          }`}
-                                        >
-                                          ⚠️
-                                        </span>
-                                      )}
+                                          <span
+                                            className="ml-2 text-orange-500"
+                                            title={`Risky Task${task.riskLevel
+                                                ? ` (${task.riskLevel})`
+                                                : ""
+                                              }${task.riskReason
+                                                ? `: ${task.riskReason}`
+                                                : ""
+                                              }`}
+                                          >
+                                            ⚠️
+                                          </span>
+                                        )}
                                       {(snoozedTasks.has(task.id) ||
                                         task.isSnooze) && (
-                                        <span
-                                          className="ml-2 text-yellow-500"
-                                          title={`Snoozed Task${
-                                            task.snoozeUntil
-                                              ? ` until ${new Date(
+                                          <span
+                                            className="ml-2 text-yellow-500"
+                                            title={`Snoozed Task${task.snoozeUntil
+                                                ? ` until ${new Date(
                                                   task.snoozeUntil
                                                 ).toLocaleString()}`
-                                              : ""
-                                          }${
-                                            task.snoozeReason
-                                              ? `: ${task.snoozeReason}`
-                                              : ""
-                                          }`}
-                                        >
-                                          ⏸️
-                                        </span>
-                                      )}
+                                                : ""
+                                              }${task.snoozeReason
+                                                ? `: ${task.snoozeReason}`
+                                                : ""
+                                              }`}
+                                          >
+                                            ⏸️
+                                          </span>
+                                        )}
                                     </span>
 
                                     {task.recurringFromTaskId && (
@@ -3727,7 +3775,7 @@ export default function AllTasks({
                               <div className="flex items-center gap-2 pl-8">
                                 <span className="text-blue-500">↳</span>
                                 {editingSubtaskId ===
-                                (subtask._id || subtask.id) ? (
+                                  (subtask._id || subtask.id) ? (
                                   <input
                                     type="text"
                                     value={editingSubtaskTitle}

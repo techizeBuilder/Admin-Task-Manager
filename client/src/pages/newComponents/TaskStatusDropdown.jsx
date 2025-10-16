@@ -48,7 +48,7 @@ export default function TaskStatusDropdown({
       });
 
       const response = await axios.patch(
-        `${baseUrl}/api/tasks/${taskId}/status`,
+        `/api/tasks/${taskId}/status`,
         { status: newStatusCode },
         {
           headers: {

@@ -1,5 +1,3 @@
-
-// jjjjjjjjjjjjjjjjjjjjjjjjjjjjj
 export const superAdminController = {
   async test(req, res) {
     try {

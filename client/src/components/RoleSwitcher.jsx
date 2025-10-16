@@ -66,19 +66,34 @@ const getRoleIcon = (role) => {
 
 // Role display name mapping
 export const getRoleDisplayName = (role) => {
-  switch (role.toLowerCase()) {
-    case 'super_admin':
-      return 'Super Admin';
-    case 'org_admin':
-      return 'Organization Admin';
-    case 'manager':
-      return 'Manager';
-    case 'employee':
-      return 'Employee';
-    case 'individual':
-      return 'Individual User';
+  if (!role) return "";
+  
+  // Handle array or object cases safely
+  if (Array.isArray(role)) {
+    role = role[0] || "";
+  } else if (typeof role !== "string") {
+    role = String(role || "");
+  }
+
+  const normalized = role.toLowerCase();
+
+  switch (normalized) {
+    case "super_admin":
+    case "superadmin":
+      return "Super Admin";
+    case "org_admin":
+    case "admin":
+    case "company_admin":
+      return "Organization Admin";
+    case "manager":
+      return "Manager";
+    case "employee":
+      return "Employee";
+    case "individual":
+      return "Individual User";
     default:
-      return role.charAt(0).toUpperCase() + role.slice(1);
+      return ''
+      // return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 };
 

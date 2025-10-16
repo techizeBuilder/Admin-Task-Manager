@@ -112,11 +112,12 @@ function SubtaskForm({
   onSubmit,
   parentTask,
   editData = null,
-  mode = 'create' // 'create' or 'edit'
+  mode = 'create', // 'create' or 'edit'
+  isOrgUser = false
 }) {
   const [formData, setFormData] = useState({
     title: 'New Sub-task',
-    assignee: '',
+    assignee: isOrgUser ? '' : 'Self',
     dueDate: parentTask?.dueDate || '',
     priority: 'Low Priority',
     status: 'To Do',
@@ -142,7 +143,7 @@ function SubtaskForm({
     } else if (mode === 'create') {
       setFormData({
         title: 'New Sub-task',
-        assignee: '',
+        assignee: isOrgUser ? '' : 'Self',
         dueDate: parentTask?.dueDate || '',
         priority: 'Low Priority',
         status: 'To Do',
@@ -151,7 +152,7 @@ function SubtaskForm({
         attachments: []
       });
     }
-  }, [editData, mode, parentTask]);
+  }, [editData, mode, parentTask, isOrgUser]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -338,11 +339,31 @@ function SubtaskForm({
       console.log('✅ Title validation passed');
     }
 
-    // Assignee validation - removed (not required)
-    console.log('✅ Assignee validation passed (not required)');
+    // Assignee validation
+    if (!formData.assignee || formData.assignee.trim() === '') {
+      console.log('❌ Assignee validation failed: required field');
+      newErrors.assignee = 'Assignee is required';
+    } else {
+      console.log('✅ Assignee validation passed');
+    }
 
-    // Due date validation - removed (not required)
-    console.log('✅ Due date validation passed (not required)');
+    // Due date validation
+    if (formData.dueDate) {
+      const today = new Date().toISOString().split('T')[0];
+      const parentDueDate = parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : null;
+      
+      if (formData.dueDate < today) {
+        console.log('❌ Due date validation failed: cannot be in the past');
+        newErrors.dueDate = 'Due date cannot be in the past';
+      } else if (parentDueDate && formData.dueDate > parentDueDate) {
+        console.log('❌ Due date validation failed: cannot be after parent task due date');
+        newErrors.dueDate = `Due date cannot be after parent task due date (${parentDueDate})`;
+      } else {
+        console.log('✅ Due date validation passed');
+      }
+    } else {
+      console.log('✅ Due date validation passed (not required)');
+    }
 
     console.log('📋 Final validation errors:', newErrors);
     return newErrors;
@@ -362,7 +383,7 @@ function SubtaskForm({
   const handleCancel = () => {
     setFormData({
       title: 'New Sub-task',
-      assignee: '',
+      assignee: isOrgUser ? '' : 'Self',
       dueDate: parentTask?.dueDate || '',
       priority: 'Low Priority',
       status: 'To Do',
@@ -383,6 +404,16 @@ function SubtaskForm({
       };
     }
   }, [isOpen]);
+
+  // Assignment options (same logic as RegularTaskForm)
+  const assignmentOptions = isOrgUser
+    ? [
+        { value: "self", name: "Self", email: "self@current.user" },
+        // { value: "john_doe", name: "John Doe", email: "john.doe@company.com" },
+        // { value: "jane_smith", name: "Jane Smith", email: "jane.smith@company.com" },
+        // Add more team members from API
+      ]
+    : [{ value: "self", name: "Self", email: "self@current.user" }];
 
   if (!isOpen) return null;
 
@@ -442,19 +473,13 @@ function SubtaskForm({
                 <div className="form-group">
                   <label className="form-label">
                     <User size={16} />
-                    Assignee
+                    Assignee <span className="text-red-500">*</span>
                   </label>
                   <SearchableSelect
-                    options={[
-                      { value: '', name: 'Self', email: 'self@current.user' },
-                      { value: 'john-smith', name: 'John Smith', email: 'john@company.com' },
-                      { value: 'sarah-wilson', name: 'Sarah Wilson', email: 'sarah@company.com' },
-                      { value: 'mike-johnson', name: 'Mike Johnson', email: 'mike@company.com' },
-                      { value: 'emily-davis', name: 'Emily Davis', email: 'emily@company.com' }
-                    ]}
+                    options={assignmentOptions}
                     value={formData.assignee}
                     onChange={(value) => handleChange('assignee', value)}
-                    placeholder="Select assignee (optional)..."
+                    placeholder="Select assignee..."
                     searchPlaceholder="Search team members..."
                     className={errors.assignee ? 'error-select' : ''}
                   />
@@ -494,6 +519,7 @@ function SubtaskForm({
                     type="date"
                     value={formData.dueDate}
                     min={new Date().toISOString().split('T')[0]}
+                    max={parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : undefined}
                     onChange={(e) => handleChange('dueDate', e.target.value)}
                     className={`form-input ${errors.dueDate ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
@@ -501,6 +527,11 @@ function SubtaskForm({
                     <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
                       <AlertCircle size={16} />
                       <span>{errors.dueDate}</span>
+                    </div>
+                  )}
+                  {!errors.dueDate && parentTask?.dueDate && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Parent task due: {new Date(parentTask.dueDate).toISOString().split('T')[0]}
                     </div>
                   )}
                 </div>

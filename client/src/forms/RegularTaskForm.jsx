@@ -508,6 +508,7 @@ const RegularTaskForm = ({
               </p>
             )}
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-900  mb-0">
               Priority <span className="text-red-500">*</span>

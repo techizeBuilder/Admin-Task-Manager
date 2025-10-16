@@ -122,7 +122,12 @@ export default function MilestoneManager() {
             title: t.title,
             completed: t.completed,
           })) || [],
-          collaborators: m.collaborators?.map(c => c.firstName.charAt(0)) || [],
+          collaborators: m.collaborators?.map(c => {
+            if (!c || typeof c.firstName !== "string" || !c.firstName.trim()) {
+              return "?"; // or "" if you want empty
+            }
+            return c.firstName.charAt(0).toUpperCase();
+          }) || [],
           dueDate: m.dueDate || new Date().toISOString(),
           labels: m.tags || [],
           attachments: m.attachments || [],
@@ -164,11 +169,11 @@ export default function MilestoneManager() {
 
     try {
       const response = await taskService.deleteTask(id);
-      
+
       if (response.success) {
         // Remove milestone from local state
         setMilestones((prev) => prev.filter((m) => m.id !== id));
-        
+
         // Show success message (you can replace with a toast notification)
         alert("Milestone deleted successfully");
       } else {
@@ -183,7 +188,7 @@ export default function MilestoneManager() {
   // Edit milestone functions
   const handleEdit = (milestone) => {
     const dueDate = milestone.dueDate ? new Date(milestone.dueDate).toISOString().split('T')[0] : '';
-    
+
     setEditForm({
       id: milestone.id,
       taskName: milestone.taskName || '',
@@ -257,23 +262,23 @@ export default function MilestoneManager() {
 
       if (response.success) {
         // Update the milestone in the local state
-        setMilestones(prev => 
-          prev.map(milestone => 
-            milestone.id === editForm.id 
+        setMilestones(prev =>
+          prev.map(milestone =>
+            milestone.id === editForm.id
               ? {
-                  ...milestone,
-                  taskName: editForm.taskName,
-                  description: editForm.description,
-                  status: editForm.status,
-                  priority: editForm.priority,
-                  dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : milestone.dueDate,
-                  assignedTo: editForm.assignedToId ? 
-                    teamMembers.find(m => m.id === editForm.assignedToId)?.fullName || editForm.assignedTo 
-                    : 'Self',
-                  assignedToId: editForm.assignedToId,
-                  visibility: editForm.visibility,
-                  labels: editForm.labels,
-                }
+                ...milestone,
+                taskName: editForm.taskName,
+                description: editForm.description,
+                status: editForm.status,
+                priority: editForm.priority,
+                dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : milestone.dueDate,
+                assignedTo: editForm.assignedToId ?
+                  teamMembers.find(m => m.id === editForm.assignedToId)?.fullName || editForm.assignedTo
+                  : 'Self',
+                assignedToId: editForm.assignedToId,
+                visibility: editForm.visibility,
+                labels: editForm.labels,
+              }
               : milestone
           )
         );
@@ -523,11 +528,22 @@ export default function MilestoneManager() {
 
                 {/* Collaborators */}
                 <div className="px-4 py-2 flex items-center space-x-1 overflow-x-auto">
-                  {milestone.collaborators.map((c, i) => (
-                    <div key={i} className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                      {c.charAt(0).toUpperCase()}
-                    </div>
-                  ))}
+                  {Array.isArray(milestone.collaborators) && milestone.collaborators.map((collab, i) => {
+                    // collab: { id, name, email, role, ... }
+                    const initials = collab.name
+                      ? collab.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                      : (collab.email ? collab.email[0].toUpperCase() : 'Y');
+                    const roleLabel = Array.isArray(collab.role) ? collab.role.join(', ') : collab.role;
+                    return (
+                      <div
+                        key={collab.id || i}
+                        className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+                        title={`${collab.name}${roleLabel ? ' (' + roleLabel + ')' : ''}`}
+                      >
+                        {initials}
+                      </div>
+                    );
+                  })}
                   <button className="h-6 w-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 flex-shrink-0">
                     <Plus className="h-3 w-3" />
                   </button>
@@ -550,7 +566,7 @@ export default function MilestoneManager() {
 
                 {/* Footer */}
                 <div className="px-4 py-2 border-t border-gray-200 flex justify-between items-center">
-                  <button 
+                  <button
                     onClick={() => handleEdit(milestone)}
                     className="text-xs text-gray-600 hover:text-gray-900 flex items-center space-x-1"
                   >
@@ -611,7 +627,7 @@ export default function MilestoneManager() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button 
+                        <button
                           onClick={() => handleEdit(milestone)}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         >
