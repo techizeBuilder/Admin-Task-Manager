@@ -23,6 +23,7 @@ const ApprovalTaskForm = ({
   collaboratorOptions = [], // API data
   isLoadingApprovers = false,
   isLoadingCollaborators = false,
+  drawer=false,
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
   const [approverOrder, setApproverOrder] = useState([]);
@@ -374,7 +375,7 @@ const ApprovalTaskForm = ({
         )}
       </div>
 
-      <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+   <div className={`grid ${!drawer ? 'grid-cols-4' : 'grid-cols-2'} gap-4`}>
         {/* Approval Due Date */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">

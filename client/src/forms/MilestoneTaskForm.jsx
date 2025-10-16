@@ -15,6 +15,7 @@ const MilestoneTaskForm = ({
   existingTasks = [], // Tasks available for linking
   collaboratorOptions = [], // Collaborators from parent component
   isLoadingCollaborators = false, // Loading state from parent
+  drawer=false
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
   
@@ -315,7 +316,7 @@ const MilestoneTaskForm = ({
         </div>
       )}
 
-      <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+      <div className={`grid ${!drawer ? 'grid-cols-4' : 'grid-cols-2'} gap-4`}>
         {/* Due Date */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
