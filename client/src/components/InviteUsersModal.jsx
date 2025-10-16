@@ -362,12 +362,12 @@ export function AddUserModal({ isOpen, onClose, onUserAdded }) {
             htmlFor={`name_${user.id}`}
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Full Name <span className="text-red-500">*</span>
+            Name <span className="text-red-500">*</span>
           </Label>
           <Input
             id={`name_${user.id}`}
             type="text"
-            placeholder="Enter full name"
+            placeholder="Enter name"
             value={user.name}
             onChange={(e) => handleUserChange(user.id, "name", e.target.value)}
             className={errors[`user_${user.id}_name`] ? "border-red-300" : ""}
