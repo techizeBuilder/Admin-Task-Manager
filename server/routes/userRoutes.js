@@ -163,5 +163,43 @@ router.put(
   roleAuth(["org_admin"]),
   userController.updateUser
 );
+/**
+ * @swagger
+ * /api/organization/users/send-invite:
+ *   post:
+ *     summary: Send an invitation email to a user (resend invite)
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Invitation sent successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.post(
+  "/organization/users/send-invite",
+  authenticateToken,
+  roleAuth(["org_admin"]),
+  userController.sendInvite
+);
 
 export default router;

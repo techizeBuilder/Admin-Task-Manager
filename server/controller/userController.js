@@ -286,3 +286,126 @@ export const updateUserStatus = async (req, res) => {
       .json({ message: "Server error", error: err.message });
   }
 };
+
+/**
+ * Send invitation to user
+ * Generates a password reset token and sends invite email
+ */
+export const sendInvite = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!req.user) {
+      return res.status(401).json({
+        status: 401,
+        message: "Unauthorized - user not authenticated",
+      });
+    }
+    if (!userId) {
+      return res.status(400).json({
+        status: 400,
+        message: "userId is required",
+      });
+    }
+
+    const user = await User.findById(userId).select(
+      "email firstName lastName organization_id status role invitedBy"
+    );
+    if (!user) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found",
+      });
+    }
+
+    if (
+      user.organization_id.toString() !== req.user.organizationId.toString()
+    ) {
+      return res.status(403).json({
+        status: 403,
+        message: "Cannot invite user from different organization",
+      });
+    }
+
+  // Generate invitation token (1 minute expiry)
+  // Note: store in inviteToken/inviteTokenExpiry so validation works
+  const token = storage.generatePasswordResetToken();
+  const expires = new Date(Date.now() + 1 * 60 * 1000); // 1 minute
+
+    // Mark as invited if not active
+    const nextStatus = user.status === "active" ? "active" : "invited";
+
+    // Resolve inviter info
+    const inviterUserId = req.user.userId || req.user.id || req.user._id;
+    let inviterName = req.user.email || "Admin";
+    let inviterIdToSave = inviterUserId;
+    if (inviterUserId) {
+      const inviter = await User.findById(inviterUserId).select(
+        "firstName lastName email"
+      );
+      if (inviter) {
+        inviterName =
+          `${inviter.firstName || ""} ${inviter.lastName || ""}`.trim() ||
+          inviter.email ||
+          inviterName;
+      }
+    }
+
+    // Resolve organization name from organization_id (fallback to id if model not available)
+    let organizationName = String(user.organization_id);
+    try {
+      const { Organization } = await import("../modals/organizationModal.js");
+      if (Organization) {
+        const org = await Organization.findById(user.organization_id).select(
+          "name"
+        );
+        if (org?.name) organizationName = org.name;
+      }
+    } catch {
+      // Fallback already set to organization_id string
+    }
+
+    // Roles
+    const roles = Array.isArray(user.role)
+      ? user.role
+      : user.role
+      ? [user.role]
+      : [];
+
+    // Recipient display name
+    const displayName =
+      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+      user.email ||
+      "User";
+
+    // Persist invite token/expiry/status and invitedBy
+    await User.findByIdAndUpdate(userId, {
+      inviteToken: token,
+      inviteTokenExpiry: expires,
+      status: nextStatus,
+      invitedBy: inviterIdToSave || user.invitedBy || null,
+      invitedAt: new Date(),
+    });
+
+    // Send invite email with extended parameters
+    await emailService.sendInvitationEmail(
+      user.email,
+      token,                 // inviteToken
+      organizationName,      // organizationName
+      roles,                 // roles
+      inviterName,           // invitedByName
+      displayName            // name
+    );
+
+    return res.status(200).json({
+      status: 200,
+      message: "Invitation sent successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: 500,
+      message: "Failed to send invitation",
+      error: err.message,
+    });
+  }
+};
