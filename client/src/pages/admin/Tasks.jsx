@@ -272,6 +272,7 @@ export default function Tasks() {
                     setShowCreateTaskDrawer(false);
                   }}
                   initialTaskType={selectedTaskType}
+                    drawer={false}
                 />
               </div>
             </div>

@@ -1865,6 +1865,7 @@ export default function AllTasks({ onCreateTask, onNavigateToTask }) {
                 }}
                 initialTaskType={selectedTaskType}
                 preFilledDate={selectedDateForTask}
+                drawer={true}
               />
             </div>
           </div>

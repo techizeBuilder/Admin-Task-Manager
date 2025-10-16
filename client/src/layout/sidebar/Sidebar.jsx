@@ -9,7 +9,8 @@ const Sidebar = ({
   onLogout,
   className = '',
   defaultCollapsed = false,
-  showToggle = true
+  showToggle = true,
+  setSidebarOpen
 }) => {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
@@ -41,6 +42,7 @@ const Sidebar = ({
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
+    setSidebarOpen(isCollapsed);
   };
 
   const toggleMobileSidebar = () => {

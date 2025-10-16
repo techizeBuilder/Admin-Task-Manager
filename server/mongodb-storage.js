@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import mongoose from 'mongoose';
-import { emailService } from './services/emailService.js';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import mongoose from "mongoose";
+import { emailService } from "./services/emailService.js";
 import {
   Project,
   TaskStatus,
@@ -15,23 +15,28 @@ import {
   Form,
   ProcessFlow,
   FormResponse,
-  ProcessInstance
-} from './models.js';
-import { Organization } from './modals/organizationModal.js';
-import { PendingUser } from './modals/pendingUserModal.js';
-import { User } from './modals/userModal.js';
-import { ActivityHelper } from './activity-helper.js';
+  ProcessInstance,
+} from "./models.js";
+import { Organization } from "./modals/organizationModal.js";
+import { PendingUser } from "./modals/pendingUserModal.js";
+import { User } from "./modals/userModal.js";
+import { ActivityHelper } from "./activity-helper.js";
 export class MongoStorage {
-
   // Token generation methods
   generateToken(user) {
     const JWT_SECRET = process.env.JWT_SECRET || "your-jwt-secret-key";
-    return jwt.sign({
-      id: user.id || user._id,
-      email: user.email,
-      organizationId: user.organization ? user.organization.toString() : undefined,
-      role: user.role
-    }, JWT_SECRET, { expiresIn: "7d" });
+    return jwt.sign(
+      {
+        id: user.id || user._id,
+        email: user.email,
+        organizationId: user.organization
+          ? user.organization.toString()
+          : undefined,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
   }
 
   async hashPassword(password) {
@@ -43,11 +48,11 @@ export class MongoStorage {
   }
 
   generatePasswordResetToken() {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 
   generateEmailVerificationToken() {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
   }
 
   // Organization operations
@@ -63,7 +68,7 @@ export class MongoStorage {
   // async getOrganizationBySlug(slug) {
   //   return await Organization.findOne({ slug });
   // }
-async getOrganizationByName(name) {
+  async getOrganizationByName(name) {
     return await Organization.findOne({ name });
   }
   async updateOrganization(id, orgData) {
@@ -72,7 +77,7 @@ async getOrganizationByName(name) {
 
   async getOrganizationUsers(orgId) {
     return await User.find({ organization: orgId })
-      .select('-passwordHash')
+      .select("-passwordHash")
       .sort({ firstName: 1, lastName: 1 });
   }
   // User operations
@@ -87,38 +92,45 @@ async getOrganizationByName(name) {
   async getUserByEmail(email) {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (user) {
-      console.log('getUserByEmail found user:', {
+      console.log("getUserByEmail found user:", {
         id: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         hasFirstName: !!user.firstName,
-        hasLastName: !!user.lastName
+        hasLastName: !!user.lastName,
       });
     }
     return user;
   }
 
   async createUser(userData) {
-    console.log('Creating user with data:', userData);
+    console.log("Creating user with data:", userData);
     // For invited users, set default values for required fields
-    if (userData.status === 'invited' && !userData.passwordHash) {
-      userData.firstName = userData.firstName || '';
-      userData.lastName = userData.lastName || '';
-      userData.passwordHash = userData.passwordHash || 'temp_invite_placeholder';
+    if (userData.status === "invited" && !userData.passwordHash) {
+      userData.firstName = userData.firstName || "";
+      userData.lastName = userData.lastName || "";
+      userData.passwordHash =
+        userData.passwordHash || "temp_invite_placeholder";
       userData.isActive = false;
       userData.emailVerified = false;
       userData.inviteToken = this.generateEmailVerificationToken();
-      userData.inviteTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      userData.inviteTokenExpiry = new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ); // 7 days
       userData.invitedAt = new Date();
     }
 
     // Hash password if provided for non-invited users
-    if (userData.password && !userData.passwordHash && userData.status !== 'invited') {
+    if (
+      userData.password &&
+      !userData.passwordHash &&
+      userData.status !== "invited"
+    ) {
       userData.passwordHash = await this.hashPassword(userData.password);
       delete userData.password;
     }
-    console.log('user created....', userData)
+    console.log("user created....", userData);
     const user = new User(userData);
     const savedUser = await user.save();
 
@@ -129,11 +141,13 @@ async getOrganizationByName(name) {
         userId: savedUser._id,
         organizationId: userData.organization,
         relatedId: savedUser._id,
-        relatedType: 'user',
+        relatedType: "user",
         data: {
-          userName: `${userData.firstName} ${userData.lastName}`.trim() || userData.email,
-          role: userData.role
-        }
+          userName:
+            `${userData.firstName} ${userData.lastName}`.trim() ||
+            userData.email,
+          role: userData.role,
+        },
       });
     }
 
@@ -152,12 +166,12 @@ async getOrganizationByName(name) {
           userId: id,
           organizationId: userData.organization || oldUser.organization,
           relatedId: id,
-          relatedType: 'user',
+          relatedType: "user",
           data: {
             userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
             oldValue: oldUser.role,
-            newValue: userData.role
-          }
+            newValue: userData.role,
+          },
         });
       }
     }
@@ -173,10 +187,10 @@ async getOrganizationByName(name) {
         userId: id,
         organizationId: user.organization,
         relatedId: id,
-        relatedType: 'user',
+        relatedType: "user",
         data: {
-          userName: `${user.firstName} ${user.lastName}`.trim() || user.email
-        }
+          userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        },
       });
     }
     return await User.findByIdAndDelete(id);
@@ -201,10 +215,10 @@ async getOrganizationByName(name) {
       userId: projectData.owner,
       organizationId: projectData.organization,
       relatedId: savedProject._id,
-      relatedType: 'project',
+      relatedType: "project",
       data: {
-        projectName: projectData.name
-      }
+        projectName: projectData.name,
+      },
     });
 
     return savedProject;
@@ -212,7 +226,9 @@ async getOrganizationByName(name) {
 
   async updateProject(id, projectData) {
     const oldProject = await Project.findById(id);
-    const project = await Project.findByIdAndUpdate(id, projectData, { new: true });
+    const project = await Project.findByIdAndUpdate(id, projectData, {
+      new: true,
+    });
 
     if (oldProject) {
       // Track project update
@@ -221,28 +237,31 @@ async getOrganizationByName(name) {
         userId: projectData.owner || oldProject.owner,
         organizationId: project.organization,
         relatedId: project._id,
-        relatedType: 'project',
+        relatedType: "project",
         data: {
           projectName: project.name,
           changes: ActivityHelper.createComparisonData(
-            oldProject.toObject(), 
-            projectData, 
-            ['name', 'description', 'status']
-          )
-        }
+            oldProject.toObject(),
+            projectData,
+            ["name", "description", "status"]
+          ),
+        },
       });
 
       // Track archiving specifically
-      if (oldProject.status !== projectData.status && projectData.status === 'archived') {
+      if (
+        oldProject.status !== projectData.status &&
+        projectData.status === "archived"
+      ) {
         await this.trackActivity({
           activityType: ActivityHelper.ACTIVITY_TYPES.PROJECT_ARCHIVED,
           userId: projectData.owner || oldProject.owner,
           organizationId: project.organization,
           relatedId: project._id,
-          relatedType: 'project',
+          relatedType: "project",
           data: {
-            projectName: project.name
-          }
+            projectName: project.name,
+          },
         });
       }
     }
@@ -258,10 +277,10 @@ async getOrganizationByName(name) {
         userId: project.owner,
         organizationId: project.organization,
         relatedId: id,
-        relatedType: 'project',
+        relatedType: "project",
         data: {
-          projectName: project.name
-        }
+          projectName: project.name,
+        },
       });
     }
     return await Project.findByIdAndDelete(id);
@@ -271,19 +290,19 @@ async getOrganizationByName(name) {
   async getTasks(filters = {}) {
     let query = {};
 
-    if (filters.status && filters.status !== 'all') {
+    if (filters.status && filters.status !== "all") {
       query.status = filters.status;
     }
 
-    if (filters.priority && filters.priority !== 'all') {
+    if (filters.priority && filters.priority !== "all") {
       query.priority = filters.priority;
     }
 
-    if (filters.assignee && filters.assignee !== 'all') {
+    if (filters.assignee && filters.assignee !== "all") {
       query.assigneeName = filters.assignee;
     }
 
-    if (filters.project && filters.project !== 'all') {
+    if (filters.project && filters.project !== "all") {
       query.projectName = filters.project;
     }
 
@@ -304,14 +323,14 @@ async getOrganizationByName(name) {
       userId: taskData.createdBy,
       organizationId: taskData.organization,
       relatedId: savedTask._id,
-      relatedType: 'task',
+      relatedType: "task",
       data: {
         taskTitle: taskData.title,
         priority: taskData.priority,
         status: taskData.status,
         dueDate: taskData.dueDate,
-        assignedTo: taskData.assignedTo
-      }
+        assignedTo: taskData.assignedTo,
+      },
     });
 
     // Create Google Calendar event if user has connected Google Calendar
@@ -330,44 +349,46 @@ async getOrganizationByName(name) {
         {
           googleCalendarTokens: tokens,
           googleCalendarConnected: true,
-          googleCalendarEmail: tokens.email || null
+          googleCalendarEmail: tokens.email || null,
         },
         { new: true }
       );
 
-      console.log('Google Calendar tokens stored successfully for user:', userId);
+      console.log(
+        "Google Calendar tokens stored successfully for user:",
+        userId
+      );
       return updatedUser;
     } catch (error) {
-      console.error('Error storing Google Calendar tokens:', error);
+      console.error("Error storing Google Calendar tokens:", error);
       throw error;
     }
   }
 
   async getGoogleCalendarTokens(userId) {
     try {
-      const user = await User.findById(userId).select('googleCalendarTokens googleCalendarConnected');
+      const user = await User.findById(userId).select(
+        "googleCalendarTokens googleCalendarConnected"
+      );
       return user?.googleCalendarTokens || null;
     } catch (error) {
-      console.error('Error retrieving Google Calendar tokens:', error);
+      console.error("Error retrieving Google Calendar tokens:", error);
       return null;
     }
   }
 
   async removeGoogleCalendarTokens(userId) {
     try {
-      await User.findByIdAndUpdate(
-        userId,
-        {
-          $unset: { 
-            googleCalendarTokens: 1,
-            googleCalendarEmail: 1
-          },
-          googleCalendarConnected: false
-        }
-      );
-      console.log('Google Calendar tokens removed for user:', userId);
+      await User.findByIdAndUpdate(userId, {
+        $unset: {
+          googleCalendarTokens: 1,
+          googleCalendarEmail: 1,
+        },
+        googleCalendarConnected: false,
+      });
+      console.log("Google Calendar tokens removed for user:", userId);
     } catch (error) {
-      console.error('Error removing Google Calendar tokens:', error);
+      console.error("Error removing Google Calendar tokens:", error);
       throw error;
     }
   }
@@ -379,16 +400,21 @@ async getOrganizationByName(name) {
       }
 
       // Get assignee's Google Calendar tokens
-      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
-      
+      const assigneeTokens = await this.getGoogleCalendarTokens(
+        task.assignedTo
+      );
+
       if (!assigneeTokens || !assigneeTokens.access_token) {
-        console.log('No Google Calendar tokens found for user:', task.assignedTo);
+        console.log(
+          "No Google Calendar tokens found for user:",
+          task.assignedTo
+        );
         return null;
       }
 
       // Import Google Calendar API
-      const { google } = await import('googleapis');
-      
+      const { google } = await import("googleapis");
+
       // Set up OAuth2 client
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -398,48 +424,51 @@ async getOrganizationByName(name) {
 
       oauth2Client.setCredentials(assigneeTokens);
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
       // Create event object
       const eventStartTime = new Date(task.dueDate);
-      const eventEndTime = new Date(eventStartTime.getTime() + (60 * 60 * 1000)); // 1 hour duration
+      const eventEndTime = new Date(eventStartTime.getTime() + 60 * 60 * 1000); // 1 hour duration
 
       const event = {
         summary: `Task: ${task.title}`,
-        description: `${task.description || ''}\n\nTask ID: ${task._id}\nPriority: ${task.priority || 'Normal'}\nStatus: ${task.status || 'Pending'}`,
+        description: `${task.description || ""}\n\nTask ID: ${
+          task._id
+        }\nPriority: ${task.priority || "Normal"}\nStatus: ${
+          task.status || "Pending"
+        }`,
         start: {
           dateTime: eventStartTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: "UTC",
         },
         end: {
           dateTime: eventEndTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: "UTC",
         },
         colorId: this.getCalendarColorForPriority(task.priority),
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'email', minutes: 24 * 60 }, // 1 day before
-            { method: 'popup', minutes: 30 }, // 30 minutes before
+            { method: "email", minutes: 24 * 60 }, // 1 day before
+            { method: "popup", minutes: 30 }, // 30 minutes before
           ],
         },
       };
 
       const response = await calendar.events.insert({
-        calendarId: 'primary',
+        calendarId: "primary",
         resource: event,
       });
 
       // Store the Google Calendar event ID in the task
       await Task.findByIdAndUpdate(task._id, {
-        googleCalendarEventId: response.data.id
+        googleCalendarEventId: response.data.id,
       });
 
-      console.log('Google Calendar event created:', response.data.id);
+      console.log("Google Calendar event created:", response.data.id);
       return response.data;
-
     } catch (error) {
-      console.error('Error creating Google Calendar event:', error);
+      console.error("Error creating Google Calendar event:", error);
       // Don't throw error to prevent task creation from failing
       return null;
     }
@@ -447,12 +476,12 @@ async getOrganizationByName(name) {
 
   getCalendarColorForPriority(priority) {
     const colorMap = {
-      'urgent': '11', // Red
-      'high': '6',    // Orange
-      'medium': '5',  // Yellow
-      'low': '10',    // Green
+      urgent: "11", // Red
+      high: "6", // Orange
+      medium: "5", // Yellow
+      low: "10", // Green
     };
-    return colorMap[priority?.toLowerCase()] || '1'; // Default blue
+    return colorMap[priority?.toLowerCase()] || "1"; // Default blue
   }
 
   async updateGoogleCalendarEventForTask(task) {
@@ -462,15 +491,17 @@ async getOrganizationByName(name) {
       }
 
       // Get assignee's Google Calendar tokens
-      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
-      
+      const assigneeTokens = await this.getGoogleCalendarTokens(
+        task.assignedTo
+      );
+
       if (!assigneeTokens || !assigneeTokens.access_token) {
         return null;
       }
 
       // Import Google Calendar API
-      const { google } = await import('googleapis');
-      
+      const { google } = await import("googleapis");
+
       // Set up OAuth2 client
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -480,37 +511,40 @@ async getOrganizationByName(name) {
 
       oauth2Client.setCredentials(assigneeTokens);
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
       // Update event object
       const eventStartTime = new Date(task.dueDate);
-      const eventEndTime = new Date(eventStartTime.getTime() + (60 * 60 * 1000));
+      const eventEndTime = new Date(eventStartTime.getTime() + 60 * 60 * 1000);
 
       const event = {
         summary: `Task: ${task.title}`,
-        description: `${task.description || ''}\n\nTask ID: ${task._id}\nPriority: ${task.priority || 'Normal'}\nStatus: ${task.status || 'Pending'}`,
+        description: `${task.description || ""}\n\nTask ID: ${
+          task._id
+        }\nPriority: ${task.priority || "Normal"}\nStatus: ${
+          task.status || "Pending"
+        }`,
         start: {
           dateTime: eventStartTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: "UTC",
         },
         end: {
           dateTime: eventEndTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: "UTC",
         },
         colorId: this.getCalendarColorForPriority(task.priority),
       };
 
       const response = await calendar.events.update({
-        calendarId: 'primary',
+        calendarId: "primary",
         eventId: task.googleCalendarEventId,
         resource: event,
       });
 
-      console.log('Google Calendar event updated:', response.data.id);
+      console.log("Google Calendar event updated:", response.data.id);
       return response.data;
-
     } catch (error) {
-      console.error('Error updating Google Calendar event:', error);
+      console.error("Error updating Google Calendar event:", error);
       return null;
     }
   }
@@ -522,15 +556,17 @@ async getOrganizationByName(name) {
       }
 
       // Get assignee's Google Calendar tokens
-      const assigneeTokens = await this.getGoogleCalendarTokens(task.assignedTo);
-      
+      const assigneeTokens = await this.getGoogleCalendarTokens(
+        task.assignedTo
+      );
+
       if (!assigneeTokens || !assigneeTokens.access_token) {
         return null;
       }
 
       // Import Google Calendar API
-      const { google } = await import('googleapis');
-      
+      const { google } = await import("googleapis");
+
       // Set up OAuth2 client
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
@@ -540,18 +576,17 @@ async getOrganizationByName(name) {
 
       oauth2Client.setCredentials(assigneeTokens);
 
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
       await calendar.events.delete({
-        calendarId: 'primary',
+        calendarId: "primary",
         eventId: task.googleCalendarEventId,
       });
 
-      console.log('Google Calendar event deleted:', task.googleCalendarEventId);
+      console.log("Google Calendar event deleted:", task.googleCalendarEventId);
       return true;
-
     } catch (error) {
-      console.error('Error deleting Google Calendar event:', error);
+      console.error("Error deleting Google Calendar event:", error);
       return false;
     }
   }
@@ -567,15 +602,15 @@ async getOrganizationByName(name) {
         userId: userId,
         organizationId: task.organization,
         relatedId: task._id,
-        relatedType: 'task',
+        relatedType: "task",
         data: {
           taskTitle: task.title,
           changes: ActivityHelper.createComparisonData(
-            oldTask.toObject(), 
-            taskData, 
-            ['title', 'description', 'priority', 'status', 'dueDate']
-          )
-        }
+            oldTask.toObject(),
+            taskData,
+            ["title", "description", "priority", "status", "dueDate"]
+          ),
+        },
       });
 
       // Track specific changes
@@ -585,25 +620,25 @@ async getOrganizationByName(name) {
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
             oldValue: oldTask.status,
-            newValue: taskData.status
-          }
+            newValue: taskData.status,
+          },
         });
 
         // Track completion specifically
-        if (taskData.status === 'Completed') {
+        if (taskData.status === "Completed") {
           await this.trackActivity({
             activityType: ActivityHelper.ACTIVITY_TYPES.TASK_COMPLETED,
             userId: userId,
             organizationId: task.organization,
             relatedId: task._id,
-            relatedType: 'task',
+            relatedType: "task",
             data: {
-              taskTitle: task.title
-            }
+              taskTitle: task.title,
+            },
           });
         }
       }
@@ -614,12 +649,12 @@ async getOrganizationByName(name) {
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
             oldValue: oldTask.priority,
-            newValue: taskData.priority
-          }
+            newValue: taskData.priority,
+          },
         });
       }
 
@@ -629,23 +664,25 @@ async getOrganizationByName(name) {
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
             oldValue: oldTask.dueDate,
-            newValue: taskData.dueDate
-          }
+            newValue: taskData.dueDate,
+          },
         });
       }
 
       // Update Google Calendar event if task details changed
-      if (task.assignedTo && task.dueDate && (
-        oldTask.title !== task.title ||
-        oldTask.description !== task.description ||
-        oldTask.priority !== task.priority ||
-        oldTask.dueDate !== task.dueDate ||
-        oldTask.status !== task.status
-      )) {
+      if (
+        task.assignedTo &&
+        task.dueDate &&
+        (oldTask.title !== task.title ||
+          oldTask.description !== task.description ||
+          oldTask.priority !== task.priority ||
+          oldTask.dueDate !== task.dueDate ||
+          oldTask.status !== task.status)
+      ) {
         await this.updateGoogleCalendarEventForTask(task);
       }
     }
@@ -661,10 +698,10 @@ async getOrganizationByName(name) {
         userId: userId,
         organizationId: task.organization,
         relatedId: id,
-        relatedType: 'task',
+        relatedType: "task",
         data: {
-          taskTitle: task.title
-        }
+          taskTitle: task.title,
+        },
       });
 
       // Delete Google Calendar event if it exists
@@ -687,7 +724,7 @@ async getOrganizationByName(name) {
 
   // Activity operations
   async createActivity(activityData) {
-    const Activity = mongoose.model('Activity');
+    const Activity = mongoose.model("Activity");
     const activity = new Activity(activityData);
     return await activity.save();
   }
@@ -701,7 +738,7 @@ async getOrganizationByName(name) {
     organizationId,
     relatedId,
     relatedType,
-    data = {}
+    data = {},
   }) {
     try {
       const activityData = ActivityHelper.createActivityData({
@@ -710,57 +747,58 @@ async getOrganizationByName(name) {
         organizationId,
         relatedId,
         relatedType,
-        data
+        data,
       });
-      
+
       return await this.createActivity(activityData);
     } catch (error) {
-      console.error('Error tracking activity:', error);
+      console.error("Error tracking activity:", error);
       // Don't throw error to prevent breaking main operations
       return null;
     }
   }
 
   async getRecentActivities(limit = 10) {
-    const Activity = mongoose.model('Activity');
+    const Activity = mongoose.model("Activity");
     return await Activity.find()
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate('user', 'name email avatar')
+      .populate("user", "name email avatar")
       .lean();
   }
 
   async getActivitiesForTask(taskId, limit = 20) {
-    const Activity = mongoose.model('Activity');
+    const Activity = mongoose.model("Activity");
     return await Activity.find({
       relatedId: taskId,
-      relatedType: 'task'
+      relatedType: "task",
     })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .populate('user', 'name email avatar')
-    .lean();
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("user", "name email avatar")
+      .lean();
   }
 
   async getActivitiesForOrganization(organizationId, limit = 50) {
-    const Activity = mongoose.model('Activity');
+    const Activity = mongoose.model("Activity");
     return await Activity.find({
-      organization: organizationId
+      organization: organizationId,
     })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .populate('user', 'name email avatar')
-    .lean();
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("user", "name email avatar")
+      .lean();
   }
 
   // Dashboard stats
   async getDashboardStats() {
-    const [totalTasks, completedTasks, totalUsers, totalProjects] = await Promise.all([
-      Task.countDocuments(),
-      Task.countDocuments({ status: 'Completed' }),
-      User.countDocuments(),
-      Project.countDocuments()
-    ]);
+    const [totalTasks, completedTasks, totalUsers, totalProjects] =
+      await Promise.all([
+        Task.countDocuments(),
+        Task.countDocuments({ status: "Completed" }),
+        User.countDocuments(),
+        Project.countDocuments(),
+      ]);
 
     const pendingTasks = totalTasks - completedTasks;
 
@@ -769,7 +807,7 @@ async getOrganizationByName(name) {
       completedTasks,
       pendingTasks,
       totalUsers,
-      totalProjects
+      totalProjects,
     };
   }
 
@@ -777,7 +815,7 @@ async getOrganizationByName(name) {
   async initializeSampleData() {
     try {
       // Clear existing data for regeneration
-      console.log('Cleared existing data for regeneration');
+      console.log("Cleared existing data for regeneration");
       await Promise.all([
         Organization.deleteMany({}),
         User.deleteMany({}),
@@ -787,117 +825,117 @@ async getOrganizationByName(name) {
         TaskComment.deleteMany({}),
         TaskAssignment.deleteMany({}),
         TaskAuditLog.deleteMany({}),
-        Notification.deleteMany({})
+        Notification.deleteMany({}),
       ]);
 
-      console.log('Initializing comprehensive sample data...');
+      console.log("Initializing comprehensive sample data...");
 
       // Create sample organizations
       const organizations = await Organization.insertMany([
         {
-          name: 'TechCorp Solutions',
-          slug: 'techcorp-solutions',
-          description: 'Leading technology solutions provider',
+          name: "TechCorp Solutions",
+          slug: "techcorp-solutions",
+          description: "Leading technology solutions provider",
           isActive: true,
-          createdAt: new Date('2024-01-15'),
+          createdAt: new Date("2024-01-15"),
         },
         {
-          name: 'Digital Innovations',
-          slug: 'digital-innovations',
-          description: 'Cutting-edge digital transformation company',
+          name: "Digital Innovations",
+          slug: "digital-innovations",
+          description: "Cutting-edge digital transformation company",
           isActive: true,
-          createdAt: new Date('2024-02-10'),
+          createdAt: new Date("2024-02-10"),
         },
         {
-          name: 'StartupX',
-          slug: 'startupx',
-          description: 'Fast-growing startup in fintech space',
+          name: "StartupX",
+          slug: "startupx",
+          description: "Fast-growing startup in fintech space",
           isActive: true,
-          createdAt: new Date('2024-03-05'),
-        }
+          createdAt: new Date("2024-03-05"),
+        },
       ]);
 
       // Create super admin user
-      const superAdminPasswordHash = await this.hashPassword('superadmin123');
+      const superAdminPasswordHash = await this.hashPassword("superadmin123");
       const superAdmin = await User.create({
-        firstName: 'Super',
-        lastName: 'Admin',
-        email: 'superadmin@tasksetu.com',
+        firstName: "Super",
+        lastName: "Admin",
+        email: "superadmin@tasksetu.com",
         passwordHash: superAdminPasswordHash,
-        role: 'super_admin',
+        role: "super_admin",
         isActive: true,
         emailVerified: true,
-        createdAt: new Date('2024-01-01'),
+        createdAt: new Date("2024-01-01"),
       });
 
       // Create sample users for each organization
       const sampleUsers = [];
 
       // TechCorp Solutions users
-      const techCorpPasswordHash = await this.hashPassword('password123');
+      const techCorpPasswordHash = await this.hashPassword("password123");
       sampleUsers.push(
         await User.create({
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@techcorp.com',
+          firstName: "John",
+          lastName: "Doe",
+          email: "john.doe@techcorp.com",
           passwordHash: techCorpPasswordHash,
-          role: 'admin',
+          role: "admin",
           organization: organizations[0]._id,
           isActive: true,
           emailVerified: true,
-          createdAt: new Date('2024-01-16'),
+          createdAt: new Date("2024-01-16"),
         }),
         await User.create({
-          firstName: 'Sarah',
-          lastName: 'Wilson',
-          email: 'sarah.wilson@techcorp.com',
+          firstName: "Sarah",
+          lastName: "Wilson",
+          email: "sarah.wilson@techcorp.com",
           passwordHash: techCorpPasswordHash,
-          role: 'member',
+          role: "member",
           organization: organizations[0]._id,
           isActive: true,
           emailVerified: true,
-          createdAt: new Date('2024-01-20'),
+          createdAt: new Date("2024-01-20"),
         })
       );
 
       // Digital Innovations users
       sampleUsers.push(
         await User.create({
-          firstName: 'Mike',
-          lastName: 'Johnson',
-          email: 'mike.johnson@digitalinnov.com',
+          firstName: "Mike",
+          lastName: "Johnson",
+          email: "mike.johnson@digitalinnov.com",
           passwordHash: techCorpPasswordHash,
-          role: 'admin',
+          role: "admin",
           organization: organizations[1]._id,
           isActive: true,
           emailVerified: true,
-          createdAt: new Date('2024-02-12'),
+          createdAt: new Date("2024-02-12"),
         }),
         await User.create({
-          firstName: 'Emily',
-          lastName: 'Davis',
-          email: 'emily.davis@digitalinnov.com',
+          firstName: "Emily",
+          lastName: "Davis",
+          email: "emily.davis@digitalinnov.com",
           passwordHash: techCorpPasswordHash,
-          role: 'member',
+          role: "member",
           organization: organizations[1]._id,
           isActive: true,
           emailVerified: true,
-          createdAt: new Date('2024-02-15'),
+          createdAt: new Date("2024-02-15"),
         })
       );
 
       // StartupX users
       sampleUsers.push(
         await User.create({
-          firstName: 'Alex',
-          lastName: 'Chen',
-          email: 'alex.chen@startupx.com',
+          firstName: "Alex",
+          lastName: "Chen",
+          email: "alex.chen@startupx.com",
           passwordHash: techCorpPasswordHash,
-          role: 'admin',
+          role: "admin",
           organization: organizations[2]._id,
           isActive: true,
           emailVerified: true,
-          createdAt: new Date('2024-03-07'),
+          createdAt: new Date("2024-03-07"),
         })
       );
 
@@ -907,175 +945,179 @@ async getOrganizationByName(name) {
 
       // TechCorp invited users
       await User.create({
-        email: 'lisa.martinez@techcorp.com',
-        roles: ['member'],
-        status: 'invited',
+        email: "lisa.martinez@techcorp.com",
+        roles: ["member"],
+        status: "invited",
         organization: organizations[0]._id,
         inviteToken: inviteToken1,
         inviteTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         invitedBy: sampleUsers[0]._id,
-        invitedAt: new Date('2024-06-15'),
+        invitedAt: new Date("2024-06-15"),
         isActive: false,
         emailVerified: false,
-        createdAt: new Date('2024-06-15'),
+        createdAt: new Date("2024-06-15"),
       });
 
       await User.create({
-        email: 'david.kim@techcorp.com',
-        roles: ['member'],
-        status: 'invited',
+        email: "david.kim@techcorp.com",
+        roles: ["member"],
+        status: "invited",
         organization: organizations[0]._id,
         inviteToken: inviteToken2,
         inviteTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         invitedBy: sampleUsers[0]._id,
-        invitedAt: new Date('2024-06-18'),
+        invitedAt: new Date("2024-06-18"),
         isActive: false,
         emailVerified: false,
-        createdAt: new Date('2024-06-18'),
+        createdAt: new Date("2024-06-18"),
       });
 
       // Create sample projects
       const projects = await Project.insertMany([
         {
-          name: 'Website Redesign',
-          description: 'Complete overhaul of the company website',
-          status: 'active',
+          name: "Website Redesign",
+          description: "Complete overhaul of the company website",
+          status: "active",
           organization: organizations[0]._id,
           owner: sampleUsers[0]._id,
-          createdAt: new Date('2024-02-01'),
+          createdAt: new Date("2024-02-01"),
         },
         {
-          name: 'Mobile App Development',
-          description: 'Native iOS and Android app development',
-          status: 'active',
+          name: "Mobile App Development",
+          description: "Native iOS and Android app development",
+          status: "active",
           organization: organizations[1]._id,
           owner: sampleUsers[2]._id,
-          createdAt: new Date('2024-02-15'),
+          createdAt: new Date("2024-02-15"),
         },
         {
-          name: 'API Integration',
-          description: 'Integration with third-party services',
-          status: 'completed',
+          name: "API Integration",
+          description: "Integration with third-party services",
+          status: "completed",
           organization: organizations[0]._id,
           owner: sampleUsers[0]._id,
-          createdAt: new Date('2024-01-20'),
+          createdAt: new Date("2024-01-20"),
         },
         {
-          name: 'Financial Dashboard',
-          description: 'Real-time financial analytics dashboard',
-          status: 'active',
+          name: "Financial Dashboard",
+          description: "Real-time financial analytics dashboard",
+          status: "active",
           organization: organizations[2]._id,
           owner: sampleUsers[4]._id,
-          createdAt: new Date('2024-03-10'),
-        }
+          createdAt: new Date("2024-03-10"),
+        },
       ]);
 
       // Create sample tasks
       await Task.insertMany([
         {
-          title: 'Homepage Redesign',
-          description: 'Design new homepage with modern UI',
-          status: 'in-progress',
-          priority: 'high',
+          title: "Homepage Redesign",
+          description: "Design new homepage with modern UI",
+          status: "in-progress",
+          priority: "high",
           organization: organizations[0]._id,
           project: projects[0]._id,
           assignedTo: sampleUsers[1]._id,
           createdBy: sampleUsers[0]._id,
-          dueDate: new Date('2024-07-15'),
-          createdAt: new Date('2024-06-01'),
+          dueDate: new Date("2024-07-15"),
+          createdAt: new Date("2024-06-01"),
         },
         {
-          title: 'API Documentation',
-          description: 'Write comprehensive API documentation',
-          status: 'todo',
-          priority: 'medium',
+          title: "API Documentation",
+          description: "Write comprehensive API documentation",
+          status: "todo",
+          priority: "medium",
           organization: organizations[0]._id,
           project: projects[2]._id,
           assignedTo: sampleUsers[1]._id,
           createdBy: sampleUsers[0]._id,
-          dueDate: new Date('2024-07-20'),
-          createdAt: new Date('2024-06-05'),
+          dueDate: new Date("2024-07-20"),
+          createdAt: new Date("2024-06-05"),
         },
         {
-          title: 'Mobile UI Components',
-          description: 'Create reusable UI components for mobile app',
-          status: 'completed',
-          priority: 'high',
+          title: "Mobile UI Components",
+          description: "Create reusable UI components for mobile app",
+          status: "completed",
+          priority: "high",
           organization: organizations[1]._id,
           project: projects[1]._id,
           assignedTo: sampleUsers[3]._id,
           createdBy: sampleUsers[2]._id,
-          dueDate: new Date('2024-06-30'),
-          createdAt: new Date('2024-05-15'),
+          dueDate: new Date("2024-06-30"),
+          createdAt: new Date("2024-05-15"),
         },
         {
-          title: 'Database Schema Design',
-          description: 'Design database schema for financial data',
-          status: 'in-progress',
-          priority: 'urgent',
+          title: "Database Schema Design",
+          description: "Design database schema for financial data",
+          status: "in-progress",
+          priority: "urgent",
           organization: organizations[2]._id,
           project: projects[3]._id,
           assignedTo: sampleUsers[4]._id,
           createdBy: sampleUsers[4]._id,
-          dueDate: new Date('2024-07-10'),
-          createdAt: new Date('2024-06-10'),
+          dueDate: new Date("2024-07-10"),
+          createdAt: new Date("2024-06-10"),
         },
         {
-          title: 'User Authentication',
-          description: 'Implement secure user authentication system',
-          status: 'todo',
-          priority: 'high',
+          title: "User Authentication",
+          description: "Implement secure user authentication system",
+          status: "todo",
+          priority: "high",
           organization: organizations[1]._id,
           project: projects[1]._id,
           assignedTo: sampleUsers[2]._id,
           createdBy: sampleUsers[2]._id,
-          dueDate: new Date('2024-08-01'),
-          createdAt: new Date('2024-06-12'),
+          dueDate: new Date("2024-08-01"),
+          createdAt: new Date("2024-06-12"),
         },
         {
-          title: 'Performance Optimization',
-          description: 'Optimize application performance and loading times',
-          status: 'in-progress',
-          priority: 'medium',
+          title: "Performance Optimization",
+          description: "Optimize application performance and loading times",
+          status: "in-progress",
+          priority: "medium",
           organization: organizations[0]._id,
           project: projects[0]._id,
           assignedTo: sampleUsers[0]._id,
           createdBy: sampleUsers[0]._id,
-          dueDate: new Date('2024-07-25'),
-          createdAt: new Date('2024-06-08'),
+          dueDate: new Date("2024-07-25"),
+          createdAt: new Date("2024-06-08"),
         },
         {
-          title: 'Data Visualization',
-          description: 'Create interactive charts and graphs for dashboard',
-          status: 'todo',
-          priority: 'medium',
+          title: "Data Visualization",
+          description: "Create interactive charts and graphs for dashboard",
+          status: "todo",
+          priority: "medium",
           organization: organizations[2]._id,
           project: projects[3]._id,
           assignedTo: sampleUsers[4]._id,
           createdBy: sampleUsers[4]._id,
-          dueDate: new Date('2024-08-15'),
-          createdAt: new Date('2024-06-14'),
+          dueDate: new Date("2024-08-15"),
+          createdAt: new Date("2024-06-14"),
         },
         {
-          title: 'Security Audit',
-          description: 'Comprehensive security audit and vulnerability assessment',
-          status: 'completed',
-          priority: 'urgent',
+          title: "Security Audit",
+          description:
+            "Comprehensive security audit and vulnerability assessment",
+          status: "completed",
+          priority: "urgent",
           organization: organizations[1]._id,
           project: projects[1]._id,
           assignedTo: sampleUsers[2]._id,
           createdBy: sampleUsers[2]._id,
-          dueDate: new Date('2024-06-20'),
-          createdAt: new Date('2024-05-20'),
-        }
+          dueDate: new Date("2024-06-20"),
+          createdAt: new Date("2024-05-20"),
+        },
       ]);
 
-      console.log('Comprehensive sample data initialized successfully');
-      console.log(`Created ${organizations.length} organizations, ${sampleUsers.length + 3} users (including 2 invited), ${projects.length} projects, and 8 tasks`);
-      console.log('Super admin login: superadmin@tasksetu.com / superadmin123');
-
+      console.log("Comprehensive sample data initialized successfully");
+      console.log(
+        `Created ${organizations.length} organizations, ${
+          sampleUsers.length + 3
+        } users (including 2 invited), ${projects.length} projects, and 8 tasks`
+      );
+      console.log("Super admin login: superadmin@tasksetu.com / superadmin123");
     } catch (error) {
-      console.error('Sample data initialization error:', error);
+      console.error("Sample data initialization error:", error);
       throw error;
     }
   }
@@ -1083,28 +1125,30 @@ async getOrganizationByName(name) {
   // Form operations
   async getForms(organizationId) {
     return await Form.find({ organization: organizationId })
-      .populate('createdBy', 'firstName lastName email')
+      .populate("createdBy", "firstName lastName email")
       .sort({ createdAt: -1 });
   }
 
   async getForm(id) {
     return await Form.findById(id)
-      .populate('createdBy', 'firstName lastName email')
-      .populate('organization', 'name slug');
+      .populate("createdBy", "firstName lastName email")
+      .populate("organization", "name slug");
   }
 
   async getFormByAccessLink(accessLink) {
-    return await Form.findOne({ accessLink, isPublished: true })
-      .populate('organization', 'name slug');
+    return await Form.findOne({ accessLink, isPublished: true }).populate(
+      "organization",
+      "name slug"
+    );
   }
 
   async createForm(formData) {
     // Generate unique access link
-    const accessLink = `form-${crypto.randomBytes(8).toString('hex')}`;
+    const accessLink = `form-${crypto.randomBytes(8).toString("hex")}`;
 
     const form = new Form({
       ...formData,
-      accessLink
+      accessLink,
     });
     return await form.save();
   }
@@ -1136,16 +1180,16 @@ async getOrganizationByName(name) {
   // Process Flow operations
   async getProcessFlows(organizationId) {
     return await ProcessFlow.find({ organization: organizationId })
-      .populate('createdBy', 'firstName lastName email')
-      .populate('form', 'title')
+      .populate("createdBy", "firstName lastName email")
+      .populate("form", "title")
       .sort({ createdAt: -1 });
   }
 
   async getProcessFlow(id) {
     return await ProcessFlow.findById(id)
-      .populate('createdBy', 'firstName lastName email')
-      .populate('form', 'title fields')
-      .populate('steps.assignedTo', 'firstName lastName email');
+      .populate("createdBy", "firstName lastName email")
+      .populate("form", "title fields")
+      .populate("steps.assignedTo", "firstName lastName email");
   }
 
   async createProcessFlow(flowData) {
@@ -1174,25 +1218,27 @@ async getOrganizationByName(name) {
     }
 
     if (filters.organizationId) {
-      const forms = await Form.find({ organization: filters.organizationId }).select('_id');
-      const formIds = forms.map(f => f._id);
+      const forms = await Form.find({
+        organization: filters.organizationId,
+      }).select("_id");
+      const formIds = forms.map((f) => f._id);
       query.form = { $in: formIds };
     }
 
     return await FormResponse.find(query)
-      .populate('form', 'title')
-      .populate('submittedBy', 'firstName lastName email')
-      .populate('processFlow', 'title')
+      .populate("form", "title")
+      .populate("submittedBy", "firstName lastName email")
+      .populate("processFlow", "title")
       .sort({ createdAt: -1 });
   }
 
   async getFormResponse(id) {
     return await FormResponse.findById(id)
-      .populate('form', 'title fields')
-      .populate('submittedBy', 'firstName lastName email')
-      .populate('processFlow', 'title steps')
-      .populate('stepHistory.assignedTo', 'firstName lastName email')
-      .populate('stepHistory.completedBy', 'firstName lastName email');
+      .populate("form", "title fields")
+      .populate("submittedBy", "firstName lastName email")
+      .populate("processFlow", "title steps")
+      .populate("stepHistory.assignedTo", "firstName lastName email")
+      .populate("stepHistory.completedBy", "firstName lastName email");
   }
 
   async createFormResponse(responseData) {
@@ -1204,7 +1250,7 @@ async getOrganizationByName(name) {
       await this.createProcessInstance({
         processFlow: responseData.processFlow,
         formResponse: savedResponse._id,
-        currentSteps: ['start']
+        currentSteps: ["start"],
       });
     }
 
@@ -1212,7 +1258,9 @@ async getOrganizationByName(name) {
   }
 
   async updateFormResponse(id, responseData) {
-    return await FormResponse.findByIdAndUpdate(id, responseData, { new: true });
+    return await FormResponse.findByIdAndUpdate(id, responseData, {
+      new: true,
+    });
   }
 
   async updateResponseStep(responseId, stepData) {
@@ -1226,17 +1274,17 @@ async getOrganizationByName(name) {
       assignedTo: stepData.assignedTo,
       completedBy: stepData.completedBy,
       comments: stepData.comments,
-      completedAt: stepData.status === 'completed' ? new Date() : undefined
+      completedAt: stepData.status === "completed" ? new Date() : undefined,
     });
 
     response.currentStep = stepData.nextStep || null;
 
-    if (stepData.status === 'completed' && !stepData.nextStep) {
-      response.status = 'completed';
-    } else if (stepData.status === 'rejected') {
-      response.status = 'rejected';
+    if (stepData.status === "completed" && !stepData.nextStep) {
+      response.status = "completed";
+    } else if (stepData.status === "rejected") {
+      response.status = "rejected";
     } else {
-      response.status = 'in_progress';
+      response.status = "in_progress";
     }
 
     return await response.save();
@@ -1245,8 +1293,8 @@ async getOrganizationByName(name) {
   // Process Instance operations
   async getProcessInstance(responseId) {
     return await ProcessInstance.findOne({ formResponse: responseId })
-      .populate('processFlow')
-      .populate('formResponse');
+      .populate("processFlow")
+      .populate("formResponse");
   }
 
   async createProcessInstance(instanceData) {
@@ -1255,14 +1303,16 @@ async getOrganizationByName(name) {
   }
 
   async updateProcessInstance(id, instanceData) {
-    return await ProcessInstance.findByIdAndUpdate(id, instanceData, { new: true });
+    return await ProcessInstance.findByIdAndUpdate(id, instanceData, {
+      new: true,
+    });
   }
 
   // Analytics for forms and processes
   async getFormAnalytics(formId, organizationId) {
-    const matchStage = formId ?
-      { form: formId } :
-      { form: { $in: await this.getFormIdsByOrganization(organizationId) } };
+    const matchStage = formId
+      ? { form: formId }
+      : { form: { $in: await this.getFormIdsByOrganization(organizationId) } };
 
     const analytics = await FormResponse.aggregate([
       { $match: matchStage },
@@ -1271,29 +1321,33 @@ async getOrganizationByName(name) {
           _id: null,
           totalSubmissions: { $sum: 1 },
           completedSubmissions: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
           },
           inProgressSubmissions: {
-            $sum: { $cond: [{ $eq: ['$status', 'in_progress'] }, 1, 0] }
+            $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] },
           },
           rejectedSubmissions: {
-            $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
-    return analytics[0] || {
-      totalSubmissions: 0,
-      completedSubmissions: 0,
-      inProgressSubmissions: 0,
-      rejectedSubmissions: 0
-    };
+    return (
+      analytics[0] || {
+        totalSubmissions: 0,
+        completedSubmissions: 0,
+        inProgressSubmissions: 0,
+        rejectedSubmissions: 0,
+      }
+    );
   }
 
   async getFormIdsByOrganization(organizationId) {
-    const forms = await Form.find({ organization: organizationId }).select('_id');
-    return forms.map(f => f._id);
+    const forms = await Form.find({ organization: organizationId }).select(
+      "_id"
+    );
+    return forms.map((f) => f._id);
   }
 
   // Role Management Operations
@@ -1302,55 +1356,67 @@ async getOrganizationByName(name) {
       // Return predefined roles with metadata
       const predefinedRoles = [
         {
-          _id: 'admin',
-          name: 'Administrator',
-          description: 'Full system access with all permissions',
+          _id: "admin",
+          name: "Administrator",
+          description: "Full system access with all permissions",
           permissions: [
-            'users.view', 'users.create', 'users.edit', 'users.delete',
-            'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete',
-            'projects.view', 'projects.create', 'projects.edit', 'projects.delete',
-            'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
-            'organizations.view', 'organizations.edit',
-            'reports.view', 'reports.create'
+            "users.view",
+            "users.create",
+            "users.edit",
+            "users.delete",
+            "tasks.view",
+            "tasks.create",
+            "tasks.edit",
+            "tasks.delete",
+            "projects.view",
+            "projects.create",
+            "projects.edit",
+            "projects.delete",
+            "roles.view",
+            "roles.create",
+            "roles.edit",
+            "roles.delete",
+            "organizations.view",
+            "organizations.edit",
+            "reports.view",
+            "reports.create",
           ],
           organizationId,
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
-          _id: 'member',
-          name: 'Member',
-          description: 'Standard user with basic permissions',
+          _id: "member",
+          name: "Member",
+          description: "Standard user with basic permissions",
           permissions: [
-            'tasks.view', 'tasks.create', 'tasks.edit',
-            'projects.view',
-            'users.view'
+            "tasks.view",
+            "tasks.create",
+            "tasks.edit",
+            "projects.view",
+            "users.view",
           ],
           organizationId,
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         {
-          _id: 'viewer',
-          name: 'Viewer',
-          description: 'Read-only access to tasks and projects',
-          permissions: [
-            'tasks.view',
-            'projects.view',
-            'users.view'
-          ],
+          _id: "viewer",
+          name: "Viewer",
+          description: "Read-only access to tasks and projects",
+          permissions: ["tasks.view", "projects.view", "users.view"],
           organizationId,
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       ];
 
       return predefinedRoles;
     } catch (error) {
-      console.error('Get roles error:', error);
+      console.error("Get roles error:", error);
       throw error;
     }
   }
@@ -1359,53 +1425,65 @@ async getOrganizationByName(name) {
     try {
       // Handle predefined system roles
       const predefinedRoles = {
-        'admin': {
-          _id: 'admin',
-          name: 'Administrator',
-          description: 'Full system access with all permissions',
+        admin: {
+          _id: "admin",
+          name: "Administrator",
+          description: "Full system access with all permissions",
           permissions: [
-            'users.view', 'users.create', 'users.edit', 'users.delete',
-            'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete',
-            'projects.view', 'projects.create', 'projects.edit', 'projects.delete',
-            'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
-            'organizations.view', 'organizations.edit',
-            'reports.view', 'reports.create'
+            "users.view",
+            "users.create",
+            "users.edit",
+            "users.delete",
+            "tasks.view",
+            "tasks.create",
+            "tasks.edit",
+            "tasks.delete",
+            "projects.view",
+            "projects.create",
+            "projects.edit",
+            "projects.delete",
+            "roles.view",
+            "roles.create",
+            "roles.edit",
+            "roles.delete",
+            "organizations.view",
+            "organizations.edit",
+            "reports.view",
+            "reports.create",
           ],
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        'member': {
-          _id: 'member',
-          name: 'Member',
-          description: 'Standard user with basic permissions',
+        member: {
+          _id: "member",
+          name: "Member",
+          description: "Standard user with basic permissions",
           permissions: [
-            'tasks.view', 'tasks.create', 'tasks.edit',
-            'projects.view',
-            'users.view'
+            "tasks.view",
+            "tasks.create",
+            "tasks.edit",
+            "projects.view",
+            "users.view",
           ],
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        'viewer': {
-          _id: 'viewer',
-          name: 'Viewer',
-          description: 'Read-only access to tasks and projects',
-          permissions: [
-            'tasks.view',
-            'projects.view',
-            'users.view'
-          ],
+        viewer: {
+          _id: "viewer",
+          name: "Viewer",
+          description: "Read-only access to tasks and projects",
+          permissions: ["tasks.view", "projects.view", "users.view"],
           isSystem: true,
           createdAt: new Date(),
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       };
 
       return predefinedRoles[roleId] || null;
     } catch (error) {
-      console.error('Get role error:', error);
+      console.error("Get role error:", error);
       throw error;
     }
   }
@@ -1413,13 +1491,13 @@ async getOrganizationByName(name) {
   async getRoleByName(name, organizationId) {
     try {
       // Check predefined roles
-      const predefinedRoles = ['admin', 'member', 'viewer'];
+      const predefinedRoles = ["admin", "member", "viewer"];
       if (predefinedRoles.includes(name.toLowerCase())) {
         return await this.getRole(name.toLowerCase());
       }
       return null;
     } catch (error) {
-      console.error('Get role by name error:', error);
+      console.error("Get role by name error:", error);
       throw error;
     }
   }
@@ -1428,9 +1506,11 @@ async getOrganizationByName(name) {
     try {
       // For now, return a success response since we're using predefined roles
       // In a full implementation, this would create custom roles in the database
-      throw new Error('Creating custom roles is not yet implemented. Please use predefined roles: admin, member, viewer');
+      throw new Error(
+        "Creating custom roles is not yet implemented. Please use predefined roles: admin, member, viewer"
+      );
     } catch (error) {
-      console.error('Create role error:', error);
+      console.error("Create role error:", error);
       throw error;
     }
   }
@@ -1439,9 +1519,11 @@ async getOrganizationByName(name) {
     try {
       // For now, return a success response since we're using predefined roles
       // In a full implementation, this would update custom roles in the database
-      throw new Error('Updating system roles is not allowed. Only custom roles can be modified.');
+      throw new Error(
+        "Updating system roles is not allowed. Only custom roles can be modified."
+      );
     } catch (error) {
-      console.error('Update role error:', error);
+      console.error("Update role error:", error);
       throw error;
     }
   }
@@ -1450,9 +1532,11 @@ async getOrganizationByName(name) {
     try {
       // For now, return a success response since we're using predefined roles
       // In a full implementation, this would delete custom roles from the database
-      throw new Error('Deleting system roles is not allowed. Only custom roles can be deleted.');
+      throw new Error(
+        "Deleting system roles is not allowed. Only custom roles can be deleted."
+      );
     } catch (error) {
-      console.error('Delete role error:', error);
+      console.error("Delete role error:", error);
       throw error;
     }
   }
@@ -1460,12 +1544,12 @@ async getOrganizationByName(name) {
   async getUsersByRole(roleId) {
     try {
       const users = await User.find({
-        role: roleId
-      }).select('_id firstName lastName email role createdAt');
+        role: roleId,
+      }).select("_id firstName lastName email role createdAt");
 
       return users;
     } catch (error) {
-      console.error('Get users by role error:', error);
+      console.error("Get users by role error:", error);
       throw error;
     }
   }
@@ -1473,7 +1557,14 @@ async getOrganizationByName(name) {
   // Report Generation Operations
   async generateReportData(filters) {
     try {
-      const { organizationId, dateRange, userId, projectId, status, department } = filters;
+      const {
+        organizationId,
+        dateRange,
+        userId,
+        projectId,
+        status,
+        department,
+      } = filters;
 
       // Build task query
       let taskQuery = { organization: organizationId };
@@ -1481,7 +1572,7 @@ async getOrganizationByName(name) {
       if (dateRange.startDate && dateRange.endDate) {
         taskQuery.createdAt = {
           $gte: dateRange.startDate,
-          $lte: dateRange.endDate
+          $lte: dateRange.endDate,
         };
       }
 
@@ -1491,14 +1582,14 @@ async getOrganizationByName(name) {
 
       // Get tasks with populated data
       const tasks = await Task.find(taskQuery)
-        .populate('assignedTo', 'firstName lastName email department')
-        .populate('project', 'name')
-        .populate('createdBy', 'firstName lastName')
+        .populate("assignedTo", "firstName lastName email department")
+        .populate("project", "name")
+        .populate("createdBy", "firstName lastName")
         .sort({ createdAt: -1 });
 
       // Filter by department if specified
       const filteredTasks = department
-        ? tasks.filter(task => task.assignedTo?.department === department)
+        ? tasks.filter((task) => task.assignedTo?.department === department)
         : tasks;
 
       // Generate summary statistics
@@ -1506,13 +1597,19 @@ async getOrganizationByName(name) {
         totalUsers: await User.countDocuments({ organization: organizationId }),
         totalTasks: filteredTasks.length,
         avgCompletion: this.calculateAverageCompletion(filteredTasks),
-        overdueTasks: filteredTasks.filter(task =>
-          task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
-        ).length
+        overdueTasks: filteredTasks.filter(
+          (task) =>
+            task.dueDate &&
+            new Date(task.dueDate) < new Date() &&
+            task.status !== "completed"
+        ).length,
       };
 
       // Generate user performance data
-      const userPerformance = await this.generateUserPerformanceData(filteredTasks, organizationId);
+      const userPerformance = await this.generateUserPerformanceData(
+        filteredTasks,
+        organizationId
+      );
 
       // Generate user task data for charts
       const userTaskData = await this.generateUserTaskChartData(filteredTasks);
@@ -1524,7 +1621,7 @@ async getOrganizationByName(name) {
       const trendData = await this.generateTrendData(organizationId, dateRange);
 
       // Format task details
-      const taskDetails = filteredTasks.map(task => ({
+      const taskDetails = filteredTasks.map((task) => ({
         _id: task._id,
         title: task.title,
         assignedTo: task.assignedTo,
@@ -1533,7 +1630,7 @@ async getOrganizationByName(name) {
         priority: task.priority,
         dueDate: task.dueDate,
         progress: task.progress || 0,
-        createdAt: task.createdAt
+        createdAt: task.createdAt,
       }));
 
       return {
@@ -1542,10 +1639,10 @@ async getOrganizationByName(name) {
         userTaskData,
         statusDistribution,
         trendData,
-        taskDetails
+        taskDetails,
       };
     } catch (error) {
-      console.error('Generate report data error:', error);
+      console.error("Generate report data error:", error);
       throw error;
     }
   }
@@ -1554,7 +1651,7 @@ async getOrganizationByName(name) {
     if (tasks.length === 0) return 0;
 
     const totalProgress = tasks.reduce((sum, task) => {
-      if (task.status === 'completed') return sum + 100;
+      if (task.status === "completed") return sum + 100;
       return sum + (task.progress || 0);
     }, 0);
 
@@ -1564,23 +1661,34 @@ async getOrganizationByName(name) {
   async generateUserPerformanceData(tasks, organizationId) {
     try {
       // Get all users in the organization
-      const users = await User.find({ organization: organizationId })
-        .select('_id firstName lastName email department');
+      const users = await User.find({ organization: organizationId }).select(
+        "_id firstName lastName email department"
+      );
 
-      const userStats = users.map(user => {
-        const userTasks = tasks.filter(task =>
-          task.assignedTo && task.assignedTo._id.toString() === user._id.toString()
+      const userStats = users.map((user) => {
+        const userTasks = tasks.filter(
+          (task) =>
+            task.assignedTo &&
+            task.assignedTo._id.toString() === user._id.toString()
         );
 
-        const completedTasks = userTasks.filter(task => task.status === 'completed').length;
-        const inProgressTasks = userTasks.filter(task => task.status === 'in-progress').length;
-        const overdueTasks = userTasks.filter(task =>
-          task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'completed'
+        const completedTasks = userTasks.filter(
+          (task) => task.status === "completed"
+        ).length;
+        const inProgressTasks = userTasks.filter(
+          (task) => task.status === "in-progress"
+        ).length;
+        const overdueTasks = userTasks.filter(
+          (task) =>
+            task.dueDate &&
+            new Date(task.dueDate) < new Date() &&
+            task.status !== "completed"
         ).length;
 
-        const progressPercentage = userTasks.length > 0
-          ? Math.round((completedTasks / userTasks.length) * 100)
-          : 0;
+        const progressPercentage =
+          userTasks.length > 0
+            ? Math.round((completedTasks / userTasks.length) * 100)
+            : 0;
 
         return {
           userId: user._id,
@@ -1592,13 +1700,13 @@ async getOrganizationByName(name) {
           inProgressTasks,
           overdueTasks,
           progressPercentage,
-          hoursLogged: 0 // Placeholder for time tracking feature
+          hoursLogged: 0, // Placeholder for time tracking feature
         };
       });
 
       return userStats.sort((a, b) => b.totalTasks - a.totalTasks);
     } catch (error) {
-      console.error('Generate user performance data error:', error);
+      console.error("Generate user performance data error:", error);
       throw error;
     }
   }
@@ -1607,7 +1715,7 @@ async getOrganizationByName(name) {
     try {
       const userTaskMap = new Map();
 
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         if (task.assignedTo) {
           const userId = task.assignedTo._id.toString();
           const userName = `${task.assignedTo.firstName} ${task.assignedTo.lastName}`;
@@ -1616,14 +1724,14 @@ async getOrganizationByName(name) {
             userTaskMap.set(userId, {
               userName,
               totalTasks: 0,
-              completedTasks: 0
+              completedTasks: 0,
             });
           }
 
           const userData = userTaskMap.get(userId);
           userData.totalTasks++;
 
-          if (task.status === 'completed') {
+          if (task.status === "completed") {
             userData.completedTasks++;
           }
         }
@@ -1633,7 +1741,7 @@ async getOrganizationByName(name) {
         .sort((a, b) => b.totalTasks - a.totalTasks)
         .slice(0, 10); // Top 10 users
     } catch (error) {
-      console.error('Generate user task chart data error:', error);
+      console.error("Generate user task chart data error:", error);
       throw error;
     }
   }
@@ -1641,14 +1749,14 @@ async getOrganizationByName(name) {
   generateStatusDistribution(tasks) {
     const statusMap = new Map();
 
-    tasks.forEach(task => {
-      const status = task.status || 'unknown';
+    tasks.forEach((task) => {
+      const status = task.status || "unknown";
       statusMap.set(status, (statusMap.get(status) || 0) + 1);
     });
 
     return Array.from(statusMap.entries()).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' '),
-      value
+      name: name.charAt(0).toUpperCase() + name.slice(1).replace("-", " "),
+      value,
     }));
   }
 
@@ -1656,16 +1764,47 @@ async getOrganizationByName(name) {
     try {
       // Simplified trend data to avoid complex queries
       const mockTrendData = [
-        { date: dateRange.startDate.toISOString().split('T')[0], completed: 5, created: 8, overdue: 2 },
-        { date: new Date(dateRange.startDate.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], completed: 3, created: 6, overdue: 1 },
-        { date: new Date(dateRange.startDate.getTime() + 48 * 60 * 60 * 1000).toISOString().split('T')[0], completed: 7, created: 9, overdue: 3 },
-        { date: new Date(dateRange.startDate.getTime() + 72 * 60 * 60 * 1000).toISOString().split('T')[0], completed: 4, created: 5, overdue: 2 },
-        { date: dateRange.endDate.toISOString().split('T')[0], completed: 6, created: 7, overdue: 1 }
+        {
+          date: dateRange.startDate.toISOString().split("T")[0],
+          completed: 5,
+          created: 8,
+          overdue: 2,
+        },
+        {
+          date: new Date(dateRange.startDate.getTime() + 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          completed: 3,
+          created: 6,
+          overdue: 1,
+        },
+        {
+          date: new Date(dateRange.startDate.getTime() + 48 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          completed: 7,
+          created: 9,
+          overdue: 3,
+        },
+        {
+          date: new Date(dateRange.startDate.getTime() + 72 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          completed: 4,
+          created: 5,
+          overdue: 2,
+        },
+        {
+          date: dateRange.endDate.toISOString().split("T")[0],
+          completed: 6,
+          created: 7,
+          overdue: 1,
+        },
       ];
 
       return mockTrendData;
     } catch (error) {
-      console.error('Generate trend data error:', error);
+      console.error("Generate trend data error:", error);
       return [];
     }
   }
@@ -1673,37 +1812,37 @@ async getOrganizationByName(name) {
   async generateCSVReport(reportData) {
     try {
       const headers = [
-        'User Name',
-        'Email',
-        'Department',
-        'Total Tasks',
-        'Completed Tasks',
-        'In Progress Tasks',
-        'Overdue Tasks',
-        'Progress Percentage',
-        'Hours Logged'
+        "User Name",
+        "Email",
+        "Department",
+        "Total Tasks",
+        "Completed Tasks",
+        "In Progress Tasks",
+        "Overdue Tasks",
+        "Progress Percentage",
+        "Hours Logged",
       ];
 
-      const rows = reportData.userPerformance.map(user => [
+      const rows = reportData.userPerformance.map((user) => [
         user.userName,
         user.userEmail,
-        user.department || 'N/A',
+        user.department || "N/A",
         user.totalTasks,
         user.completedTasks,
         user.inProgressTasks,
         user.overdueTasks,
-        user.progressPercentage + '%',
-        user.hoursLogged + 'h'
+        user.progressPercentage + "%",
+        user.hoursLogged + "h",
       ]);
 
       const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
+        headers.join(","),
+        ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+      ].join("\n");
 
       return csvContent;
     } catch (error) {
-      console.error('Generate CSV report error:', error);
+      console.error("Generate CSV report error:", error);
       throw error;
     }
   }
@@ -1711,8 +1850,7 @@ async getOrganizationByName(name) {
   // Super Admin Methods
   async getAllCompanies() {
     console.log("Fetching all companies from database...");
-    const companies = await Organization.find({})
-      .sort({ createdAt: -1 });
+    const companies = await Organization.find({}).sort({ createdAt: -1 });
 
     console.log("Raw companies found:", companies.length);
 
@@ -1720,28 +1858,16 @@ async getOrganizationByName(name) {
     const companiesWithStats = await Promise.all(
       companies.map(async (company) => {
         const userCount = await User.countDocuments({
-          $or: [
-            { organizationId: company._id },
-            { organization: company._id }
-          ]
+          $or: [{ organizationId: company._id }, { organization: company._id }],
         });
         const projectCount = await Project.countDocuments({
-          $or: [
-            { organizationId: company._id },
-            { organization: company._id }
-          ]
+          $or: [{ organizationId: company._id }, { organization: company._id }],
         });
         const taskCount = await Task.countDocuments({
-          $or: [
-            { organizationId: company._id },
-            { organization: company._id }
-          ]
+          $or: [{ organizationId: company._id }, { organization: company._id }],
         });
         const formCount = await Form.countDocuments({
-          $or: [
-            { organizationId: company._id },
-            { organization: company._id }
-          ]
+          $or: [{ organizationId: company._id }, { organization: company._id }],
         });
 
         const companyData = {
@@ -1754,11 +1880,13 @@ async getOrganizationByName(name) {
             users: userCount,
             projects: projectCount,
             tasks: taskCount,
-            forms: formCount
-          }
+            forms: formCount,
+          },
         };
 
-        console.log(`Company ${company.name}: ${userCount} users, ${projectCount} projects`);
+        console.log(
+          `Company ${company.name}: ${userCount} users, ${projectCount} projects`
+        );
         return companyData;
       })
     );
@@ -1774,7 +1902,9 @@ async getOrganizationByName(name) {
 
     // Get company statistics
     const userCount = await User.countDocuments({ organizationId: companyId });
-    const projectCount = await Project.countDocuments({ organizationId: companyId });
+    const projectCount = await Project.countDocuments({
+      organizationId: companyId,
+    });
     const taskCount = await Task.countDocuments({ organizationId: companyId });
     const formCount = await Form.countDocuments({ organization: companyId });
 
@@ -1784,8 +1914,8 @@ async getOrganizationByName(name) {
         users: userCount,
         projects: projectCount,
         tasks: taskCount,
-        forms: formCount
-      }
+        forms: formCount,
+      },
     };
   }
 
@@ -1794,18 +1924,18 @@ async getOrganizationByName(name) {
 
     // Get all users with organization info
     const users = await User.find({})
-      .populate('organizationId', 'name slug')
-      .populate('organization', 'name slug')
+      .populate("organizationId", "name slug")
+      .populate("organization", "name slug")
       .sort({ createdAt: -1 });
 
     console.log("Raw users found:", users.length);
 
     // Transform users to include organization name consistently
-    const transformedUsers = users.map(user => {
+    const transformedUsers = users.map((user) => {
       const userObj = user.toObject();
 
       // Get organization name from either field
-      let organizationName = 'Individual User';
+      let organizationName = "Individual User";
       if (userObj.organizationId?.name) {
         organizationName = userObj.organizationId.name;
       } else if (userObj.organization?.name) {
@@ -1816,7 +1946,7 @@ async getOrganizationByName(name) {
         ...userObj,
         organizationName,
         // Ensure consistent status field
-        status: userObj.status || (userObj.isActive ? 'active' : 'inactive')
+        status: userObj.status || (userObj.isActive ? "active" : "inactive"),
       };
     });
 
@@ -1835,13 +1965,13 @@ async getOrganizationByName(name) {
     const recentUsers = await User.find({})
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('organizationId', 'name');
+      .populate("organizationId", "name");
 
     const recentTasks = await Task.find({})
       .sort({ createdAt: -1 })
       .limit(10)
-      .populate('organizationId', 'name')
-      .populate('assignedTo', 'firstName lastName');
+      .populate("organizationId", "name")
+      .populate("assignedTo", "firstName lastName");
 
     // Company growth over time
     const companyGrowth = await Organization.aggregate([
@@ -1849,12 +1979,12 @@ async getOrganizationByName(name) {
         $group: {
           _id: {
             year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" }
+            month: { $month: "$createdAt" },
           },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { "_id.year": 1, "_id.month": 1 } }
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
     ]);
 
     return {
@@ -1863,13 +1993,13 @@ async getOrganizationByName(name) {
         totalUsers,
         totalProjects,
         totalTasks,
-        totalForms
+        totalForms,
       },
       recentActivity: {
         users: recentUsers,
-        tasks: recentTasks
+        tasks: recentTasks,
       },
-      growth: companyGrowth
+      growth: companyGrowth,
     };
   }
 
@@ -1885,8 +2015,8 @@ async getOrganizationByName(name) {
     return await User.findByIdAndUpdate(
       userId,
       {
-        role: 'admin',
-        organizationId: companyId
+        role: "admin",
+        organizationId: companyId,
       },
       { new: true }
     );
@@ -1894,9 +2024,9 @@ async getOrganizationByName(name) {
 
   async getSystemLogs(limit = 100) {
     return await TaskAuditLog.find({})
-      .populate('userId', 'firstName lastName email')
-      .populate('taskId', 'title')
-      .populate('organizationId', 'name')
+      .populate("userId", "firstName lastName email")
+      .populate("taskId", "title")
+      .populate("organizationId", "name")
       .sort({ createdAt: -1 })
       .limit(limit);
   }
@@ -1904,9 +2034,9 @@ async getOrganizationByName(name) {
   async createSuperAdmin(userData) {
     const superAdminData = {
       ...userData,
-      role: 'super_admin',
+      role: "super_admin",
       isActive: true,
-      emailVerified: true
+      emailVerified: true,
     };
 
     if (userData.password) {
@@ -1941,7 +2071,7 @@ async getOrganizationByName(name) {
   async getUserByResetToken(token) {
     return await User.findOne({
       passwordResetToken: token,
-      passwordResetExpires: { $gt: new Date() }
+      passwordResetExpires: { $gt: new Date() },
     });
   }
 
@@ -1970,7 +2100,7 @@ async getOrganizationByName(name) {
     // ✅ Correct field for organization check
     const existingUser = await User.findOne({
       email: email.toLowerCase(),
-      organization_id: organizationId
+      organization_id: organizationId,
     });
 
     if (existingUser) {
@@ -1979,7 +2109,7 @@ async getOrganizationByName(name) {
 
     // ✅ Generate token
     const inviteToken = crypto.randomBytes(32).toString("hex");
-    const inviteTokenExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+    const inviteTokenExpiry = new Date(Date.now() + 60 * 1000); // 1 minute
 
     // ✅ Split name into firstName & lastName
     const [firstName = "", ...lastParts] = (name || "").trim().split(" ");
@@ -2008,7 +2138,6 @@ async getOrganizationByName(name) {
     });
 
     const savedUser = await invitedUser.save();
-    console.log(">> New invited:", savedUser.email);
 
     // ✅ Send email if allowed
     if (sendEmail) {
@@ -2025,14 +2154,13 @@ async getOrganizationByName(name) {
     return savedUser;
   }
 
-
   // async inviteUserToOrganization(inviteData) {
   //   const { email, organizationId, roles, invitedBy, invitedByName, organizationName } = inviteData;
 
   //   // Check if user already exists in this organization (active or invited)
-  //   const existingUser = await User.findOne({ 
+  //   const existingUser = await User.findOne({
   //     email: email.toLowerCase(),
-  //     organization: organizationId 
+  //     organization: organizationId
   //   });
 
   //   if (existingUser) {
@@ -2072,49 +2200,59 @@ async getOrganizationByName(name) {
     return await User.findOne({
       inviteToken: token,
       inviteTokenExpiry: { $gt: new Date() },
-      status: 'invited'
+      status: "invited",
     });
   }
 
   async completeUserInvitation(token, userData) {
     try {
-      const { firstName, lastName = '', password } = userData;
+      const { firstName, lastName = "", password } = userData;
 
       const user = await this.getUserByInviteToken(token);
       if (!user) {
-        return { success: false, message: 'Invalid or expired invitation token' };
+        return {
+          success: false,
+          message: "Invalid or expired invitation token",
+        };
       }
 
       // Hash password
       const passwordHash = await this.hashPassword(password);
 
       // Update user to active status and invalidate token
-      const updatedUser = await User.findByIdAndUpdate(user._id, {
-        firstName,
-        lastName,
-        passwordHash,
-        status: 'active',
-        isActive: true,
-        emailVerified: true,
-        inviteToken: null,
-        inviteTokenExpiry: null,
-        completedAt: new Date()
-      }, { new: true });
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+          firstName,
+          lastName,
+          passwordHash,
+          status: "active",
+          isActive: true,
+          emailVerified: true,
+          inviteToken: null,
+          inviteTokenExpiry: null,
+          completedAt: new Date(),
+        },
+        { new: true }
+      );
 
       if (!updatedUser) {
-        return { success: false, message: 'Failed to complete user registration' };
+        return {
+          success: false,
+          message: "Failed to complete user registration",
+        };
       }
 
       return {
         success: true,
         user: updatedUser,
-        message: 'Account created successfully'
+        message: "Account created successfully",
       };
     } catch (error) {
-      console.error('Complete user invitation error:', error);
+      console.error("Complete user invitation error:", error);
       return {
         success: false,
-        message: error.message || 'Failed to complete invitation'
+        message: error.message || "Failed to complete invitation",
       };
     }
   }
@@ -2123,12 +2261,12 @@ async getOrganizationByName(name) {
   async getOrganizationLicenseInfo(organizationId) {
     const organization = await Organization.findById(organizationId);
     if (!organization) {
-      throw new Error('Organization not found');
+      throw new Error("Organization not found");
     }
 
     const activeUsers = await User.countDocuments({
       organization: organizationId,
-      isActive: true
+      isActive: true,
     });
 
     const totalLicenses = organization.maxUsers || 10; // Default 10 users
@@ -2137,17 +2275,29 @@ async getOrganizationByName(name) {
 
     return {
       totalLicenses,
-      licenseType: organization.subscriptionType || 'Monthly',
+      licenseType: organization.subscriptionType || "Monthly",
       usedLicenses,
-      availableSlots
+      availableSlots,
     };
   }
 
-
-
   // Send user invitation email
-  async sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName, name) {
-    return await emailService.sendInvitationEmail(email, inviteToken, organizationName, roles, invitedByName, name);
+  async sendInvitationEmail(
+    email,
+    inviteToken,
+    organizationName,
+    roles,
+    invitedByName,
+    name
+  ) {
+    return await emailService.sendInvitationEmail(
+      email,
+      inviteToken,
+      organizationName,
+      roles,
+      invitedByName,
+      name
+    );
   }
 
   // Get all pending users
@@ -2159,26 +2309,38 @@ async getOrganizationByName(name) {
   async getUserByInviteToken(token) {
     return await User.findOne({
       inviteToken: token,
-      status: 'invited', // Must be invited status
+      status: "invited", // Must be invited status
       inviteTokenExpiry: { $gt: new Date() }, // Token not expired
-      passwordHash: { $exists: false } // No password set yet
+      passwordHash: { $exists: false }, // No password set yet
     });
+  }
+
+  // Find invited user by token regardless of expiry (for resend flows)
+  async getUserByExactInviteToken(token) {
+    return await User.findOne({ inviteToken: token, status: "invited" });
+  }
+
+  // Find invited user by email (case-insensitive), regardless of expiry
+  async getInvitedUserByEmail(email) {
+    return await User.findOne({ email: email.toLowerCase(), status: "invited" });
   }
 
   // Get user by email verification token
   async getUserByVerificationToken(token) {
     return await User.findOne({
       emailVerificationToken: token,
-      status: 'pending', // Must be pending verification
-      emailVerificationExpires: { $gt: new Date() } // Token not expired
+      status: "pending", // Must be pending verification
+      emailVerificationExpires: { $gt: new Date() }, // Token not expired
     });
   }
 
   // Get organization users with detailed info
   async getOrganizationUsersDetailed(organizationId) {
     return await User.find({ organization: organizationId })
-      .select('firstName lastName email role roles status isActive emailVerified inviteToken inviteTokenExpiry lastLoginAt createdAt invitedBy invitedAt department designation location assignedTasks completedTasks')
-      .populate('invitedBy', 'firstName lastName email')
+      .select(
+        "firstName lastName email role roles status isActive emailVerified inviteToken inviteTokenExpiry lastLoginAt createdAt invitedBy invitedAt department designation location assignedTasks completedTasks"
+      )
+      .populate("invitedBy", "firstName lastName email")
       .sort({ createdAt: -1 });
   }
 
@@ -2189,33 +2351,43 @@ async getOrganizationByName(name) {
   // }
 
   async getTaskById(id) {
-    console.log('DEBUG - getTaskById called with id:', id);
+    console.log("DEBUG - getTaskById called with id:", id);
     const task = await Task.findById(id)
-      .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName email')
-      .populate('project', 'name')
-      .populate('organization', 'name');
+      .populate("assignedTo", "firstName lastName email")
+      .populate("createdBy", "firstName lastName email")
+      .populate("project", "name")
+      .populate("organization", "name");
 
-    console.log('DEBUG - Found task:', task ? 'Yes' : 'No');
+    console.log("DEBUG - Found task:", task ? "Yes" : "No");
 
     if (task) {
-      console.log('DEBUG - Looking for subtasks with parentTaskId:', id);
+      console.log("DEBUG - Looking for subtasks with parentTaskId:", id);
       // Get subtasks for this task
       const subtasks = await Task.find({
         parentTaskId: id,
-        isDeleted: { $ne: true }
+        isDeleted: { $ne: true },
       })
-        .populate('assignedTo', 'firstName lastName email')
-        .populate('createdBy', 'firstName lastName email')
+        .populate("assignedTo", "firstName lastName email")
+        .populate("createdBy", "firstName lastName email")
         .sort({ createdAt: 1 });
 
-      console.log('DEBUG - Found subtasks count:', subtasks.length);
-      console.log('DEBUG - Subtasks details:', subtasks.map(s => ({ id: s._id, title: s.title, parentTaskId: s.parentTaskId })));
+      console.log("DEBUG - Found subtasks count:", subtasks.length);
+      console.log(
+        "DEBUG - Subtasks details:",
+        subtasks.map((s) => ({
+          id: s._id,
+          title: s.title,
+          parentTaskId: s.parentTaskId,
+        }))
+      );
 
       // Convert to plain object and add subtasks
       const taskObj = task.toObject();
       taskObj.subtasks = subtasks;
-      console.log('DEBUG - Final taskObj has subtasks:', taskObj.subtasks ? taskObj.subtasks.length : 'undefined');
+      console.log(
+        "DEBUG - Final taskObj has subtasks:",
+        taskObj.subtasks ? taskObj.subtasks.length : "undefined"
+      );
       return taskObj;
     }
 
@@ -2227,9 +2399,9 @@ async getOrganizationByName(name) {
     const skip = (page - 1) * limit;
 
     const tasks = await Task.find(filter)
-      .populate('assignedTo', 'firstName lastName email status')
-      .populate('createdBy', 'firstName lastName email')
-      .populate('project', 'name')
+      .populate("assignedTo", "firstName lastName email status")
+      .populate("createdBy", "firstName lastName email")
+      .populate("project", "name")
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -2240,10 +2412,10 @@ async getOrganizationByName(name) {
       for (let task of tasks) {
         const subtasks = await Task.find({
           parentTaskId: task._id,
-          isDeleted: { $ne: true }
+          isDeleted: { $ne: true },
         })
-          .populate('assignedTo', 'firstName lastName email')
-          .populate('createdBy', 'firstName lastName email')
+          .populate("assignedTo", "firstName lastName email")
+          .populate("createdBy", "firstName lastName email")
           .sort({ createdAt: 1 });
 
         // Convert to plain object and add subtasks
@@ -2276,31 +2448,32 @@ async getOrganizationByName(name) {
     const approval = {
       approverId: approvalData.approverId,
       status: approvalData.status,
-      comment: approvalData.comment || '',
-      createdAt: new Date()
+      comment: approvalData.comment || "",
+      createdAt: new Date(),
     };
 
     task.approvalRecords.push(approval);
     await task.save();
 
     // Track approval activity
-    const activityType = approvalData.status === 'approved' 
-      ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
-      : approvalData.status === 'rejected'
-      ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
-      : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
+    const activityType =
+      approvalData.status === "approved"
+        ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
+        : approvalData.status === "rejected"
+        ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
+        : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
 
     await this.trackActivity({
       activityType,
       userId: approvalData.approverId,
       organizationId: task.organization,
       relatedId: task._id,
-      relatedType: 'task',
+      relatedType: "task",
       data: {
         taskTitle: task.title,
         approvalStatus: approvalData.status,
-        comment: approvalData.comment
-      }
+        comment: approvalData.comment,
+      },
     });
 
     return approval;
@@ -2313,15 +2486,15 @@ async getOrganizationByName(name) {
 
   async getTaskApprovalByTaskAndUser(taskId, userId) {
     const task = await Task.findById(taskId);
-    return task?.approvalRecords?.find(approval =>
-      approval.approverId.toString() === userId.toString()
+    return task?.approvalRecords?.find(
+      (approval) => approval.approverId.toString() === userId.toString()
     );
   }
 
   async updateTaskApproval(approvalId, updateData) {
     // Since we're storing approvals in the task document for simplicity,
     // we need to handle this differently - this method should update by approval ID
-    const task = await Task.findOne({ 'approvalRecords._id': approvalId });
+    const task = await Task.findOne({ "approvalRecords._id": approvalId });
     if (task) {
       const approval = task.approvalRecords.id(approvalId);
       if (approval) {
@@ -2331,24 +2504,25 @@ async getOrganizationByName(name) {
 
         // Track approval update activity
         if (oldStatus !== updateData.status) {
-          const activityType = updateData.status === 'approved' 
-            ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
-            : updateData.status === 'rejected'
-            ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
-            : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
+          const activityType =
+            updateData.status === "approved"
+              ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_APPROVED
+              : updateData.status === "rejected"
+              ? ActivityHelper.ACTIVITY_TYPES.APPROVAL_REJECTED
+              : ActivityHelper.ACTIVITY_TYPES.APPROVAL_REQUESTED;
 
           await this.trackActivity({
             activityType,
             userId: approval.approverId,
             organizationId: task.organization,
             relatedId: task._id,
-            relatedType: 'task',
+            relatedType: "task",
             data: {
               taskTitle: task.title,
               approvalStatus: updateData.status,
               oldStatus,
-              comment: updateData.comment
-            }
+              comment: updateData.comment,
+            },
           });
         }
 
@@ -2363,25 +2537,25 @@ async getOrganizationByName(name) {
     // Subtasks are stored as regular tasks with parentTaskId
     const subtask = new Task({
       ...subtaskData,
-      isSubtask: true
+      isSubtask: true,
     });
     const savedSubtask = await subtask.save();
 
     // Get parent task for activity tracking
     const parentTask = await Task.findById(subtaskData.parentTaskId);
-    
+
     if (parentTask) {
       await this.trackActivity({
         activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_CREATED,
         userId: subtaskData.createdBy,
         organizationId: subtaskData.organization,
         relatedId: parentTask._id,
-        relatedType: 'task',
+        relatedType: "task",
         data: {
           taskTitle: parentTask.title,
           subtaskTitle: subtaskData.title,
-          subtaskId: savedSubtask._id
-        }
+          subtaskId: savedSubtask._id,
+        },
       });
     }
 
@@ -2390,11 +2564,13 @@ async getOrganizationByName(name) {
 
   async updateSubtask(id, subtaskData, userId) {
     const oldSubtask = await Task.findById(id);
-    const subtask = await Task.findByIdAndUpdate(id, subtaskData, { new: true });
-    
+    const subtask = await Task.findByIdAndUpdate(id, subtaskData, {
+      new: true,
+    });
+
     if (oldSubtask && oldSubtask.parentTaskId) {
       const parentTask = await Task.findById(oldSubtask.parentTaskId);
-      
+
       if (parentTask) {
         // Track general subtask update
         await this.trackActivity({
@@ -2402,27 +2578,30 @@ async getOrganizationByName(name) {
           userId: userId,
           organizationId: subtask.organization,
           relatedId: parentTask._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: parentTask.title,
             subtaskTitle: subtask.title,
-            subtaskId: subtask._id
-          }
+            subtaskId: subtask._id,
+          },
         });
 
         // Track subtask completion
-        if (oldSubtask.status !== subtaskData.status && subtaskData.status === 'Completed') {
+        if (
+          oldSubtask.status !== subtaskData.status &&
+          subtaskData.status === "Completed"
+        ) {
           await this.trackActivity({
             activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_COMPLETED,
             userId: userId,
             organizationId: subtask.organization,
             relatedId: parentTask._id,
-            relatedType: 'task',
+            relatedType: "task",
             data: {
               taskTitle: parentTask.title,
               subtaskTitle: subtask.title,
-              subtaskId: subtask._id
-            }
+              subtaskId: subtask._id,
+            },
           });
         }
 
@@ -2433,14 +2612,14 @@ async getOrganizationByName(name) {
             userId: userId,
             organizationId: subtask.organization,
             relatedId: parentTask._id,
-            relatedType: 'task',
+            relatedType: "task",
             data: {
               taskTitle: parentTask.title,
               subtaskTitle: subtask.title,
               oldValue: oldSubtask.status,
               newValue: subtaskData.status,
-              subtaskId: subtask._id
-            }
+              subtaskId: subtask._id,
+            },
           });
         }
       }
@@ -2451,22 +2630,22 @@ async getOrganizationByName(name) {
 
   async deleteSubtask(id, userId) {
     const subtask = await Task.findById(id);
-    
+
     if (subtask && subtask.parentTaskId) {
       const parentTask = await Task.findById(subtask.parentTaskId);
-      
+
       if (parentTask) {
         await this.trackActivity({
           activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_DELETED,
           userId: userId,
           organizationId: subtask.organization,
           relatedId: parentTask._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: parentTask.title,
             subtaskTitle: subtask.title,
-            subtaskId: subtask._id
-          }
+            subtaskId: subtask._id,
+          },
         });
       }
     }
@@ -2481,19 +2660,19 @@ async getOrganizationByName(name) {
 
     // Get task for activity tracking
     const task = await Task.findById(commentData.taskId);
-    
+
     if (task) {
       await this.trackActivity({
         activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_ADDED,
         userId: commentData.authorId,
         organizationId: task.organization,
         relatedId: task._id,
-        relatedType: 'task',
+        relatedType: "task",
         data: {
           taskTitle: task.title,
           commentId: savedComment._id,
-          commentPreview: commentData.content.substring(0, 100)
-        }
+          commentPreview: commentData.content.substring(0, 100),
+        },
       });
     }
 
@@ -2501,22 +2680,24 @@ async getOrganizationByName(name) {
   }
 
   async updateTaskComment(id, commentData, userId) {
-    const comment = await TaskComment.findByIdAndUpdate(id, commentData, { new: true });
-    
+    const comment = await TaskComment.findByIdAndUpdate(id, commentData, {
+      new: true,
+    });
+
     if (comment) {
       const task = await Task.findById(comment.taskId);
-      
+
       if (task) {
         await this.trackActivity({
           activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_UPDATED,
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
-            commentId: comment._id
-          }
+            commentId: comment._id,
+          },
         });
       }
     }
@@ -2526,21 +2707,21 @@ async getOrganizationByName(name) {
 
   async deleteTaskComment(id, userId) {
     const comment = await TaskComment.findById(id);
-    
+
     if (comment) {
       const task = await Task.findById(comment.taskId);
-      
+
       if (task) {
         await this.trackActivity({
           activityType: ActivityHelper.ACTIVITY_TYPES.COMMENT_DELETED,
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
-            commentId: comment._id
-          }
+            commentId: comment._id,
+          },
         });
       }
     }
@@ -2552,25 +2733,28 @@ async getOrganizationByName(name) {
   async assignTask(taskId, assignedTo, userId) {
     const task = await Task.findById(taskId);
     const oldAssignedTo = task.assignedTo;
-    
+
     task.assignedTo = assignedTo;
     await task.save();
 
     // Get assigned user info
     const assignedUser = await User.findById(assignedTo);
-    const assignedUserName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}`.trim() || assignedUser.email : 'Unknown User';
+    const assignedUserName = assignedUser
+      ? `${assignedUser.firstName} ${assignedUser.lastName}`.trim() ||
+        assignedUser.email
+      : "Unknown User";
 
     await this.trackActivity({
       activityType: ActivityHelper.ACTIVITY_TYPES.TASK_ASSIGNED,
       userId: userId,
       organizationId: task.organization,
       relatedId: task._id,
-      relatedType: 'task',
+      relatedType: "task",
       data: {
         taskTitle: task.title,
         assignedTo: assignedUserName,
-        assignedToId: assignedTo
-      }
+        assignedToId: assignedTo,
+      },
     });
 
     return task;
@@ -2579,14 +2763,17 @@ async getOrganizationByName(name) {
   async unassignTask(taskId, userId) {
     const task = await Task.findById(taskId);
     const oldAssignedTo = task.assignedTo;
-    
+
     // Get old assigned user info
-    let oldAssignedUserName = 'Unknown User';
+    let oldAssignedUserName = "Unknown User";
     if (oldAssignedTo) {
       const oldAssignedUser = await User.findById(oldAssignedTo);
-      oldAssignedUserName = oldAssignedUser ? `${oldAssignedUser.firstName} ${oldAssignedUser.lastName}`.trim() || oldAssignedUser.email : 'Unknown User';
+      oldAssignedUserName = oldAssignedUser
+        ? `${oldAssignedUser.firstName} ${oldAssignedUser.lastName}`.trim() ||
+          oldAssignedUser.email
+        : "Unknown User";
     }
-    
+
     task.assignedTo = null;
     await task.save();
 
@@ -2595,11 +2782,11 @@ async getOrganizationByName(name) {
       userId: userId,
       organizationId: task.organization,
       relatedId: task._id,
-      relatedType: 'task',
+      relatedType: "task",
       data: {
         taskTitle: task.title,
-        assignedTo: oldAssignedUserName
-      }
+        assignedTo: oldAssignedUserName,
+      },
     });
 
     return task;
@@ -2608,12 +2795,12 @@ async getOrganizationByName(name) {
   // File attachment operations with activity tracking
   async attachFileToTask(taskId, fileData, userId) {
     const task = await Task.findById(taskId);
-    
+
     if (task) {
       if (!task.attachments) {
         task.attachments = [];
       }
-      
+
       task.attachments.push(fileData);
       await task.save();
 
@@ -2622,12 +2809,12 @@ async getOrganizationByName(name) {
         userId: userId,
         organizationId: task.organization,
         relatedId: task._id,
-        relatedType: 'task',
+        relatedType: "task",
         data: {
           taskTitle: task.title,
           fileName: fileData.originalName || fileData.name,
-          fileSize: fileData.size
-        }
+          fileSize: fileData.size,
+        },
       });
     }
 
@@ -2636,10 +2823,12 @@ async getOrganizationByName(name) {
 
   async removeFileFromTask(taskId, fileId, userId) {
     const task = await Task.findById(taskId);
-    
+
     if (task && task.attachments) {
-      const fileIndex = task.attachments.findIndex(file => file._id.toString() === fileId);
-      
+      const fileIndex = task.attachments.findIndex(
+        (file) => file._id.toString() === fileId
+      );
+
       if (fileIndex > -1) {
         const removedFile = task.attachments[fileIndex];
         task.attachments.splice(fileIndex, 1);
@@ -2650,11 +2839,11 @@ async getOrganizationByName(name) {
           userId: userId,
           organizationId: task.organization,
           relatedId: task._id,
-          relatedType: 'task',
+          relatedType: "task",
           data: {
             taskTitle: task.title,
-            fileName: removedFile.originalName || removedFile.name
-          }
+            fileName: removedFile.originalName || removedFile.name,
+          },
         });
       }
     }
@@ -2667,8 +2856,8 @@ async getOrganizationByName(name) {
     return await Project.find({
       $or: [
         { organization: organizationId },
-        { organizationId: organizationId }
-      ]
+        { organizationId: organizationId },
+      ],
     }).sort({ createdAt: -1 });
   }
 

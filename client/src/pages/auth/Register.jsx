@@ -208,6 +208,7 @@ export default function Register() {
             variant: "default",
             className: "bg-green-50 border-green-200 text-green-800",
           });
+            setLocation("/login");
           return;
         }
 

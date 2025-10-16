@@ -198,7 +198,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="number"
             min="1"
-            className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-20 px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="1"
             data-testid="input-repeat-every"
           />
@@ -212,9 +212,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </p>
         )}
       </div>
-    </div>
-
-      {/* Pattern-specific controls */}
+           {/* Pattern-specific controls */}
       {watchedPattern?.value === "weekly" && (
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">
@@ -245,6 +243,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           )}
         </div>
       )}
+    </div>
+
+ 
 
       {watchedPattern?.value === "monthly" && (
         <div className="space-y-4">
@@ -472,7 +473,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
       )}
 
       {/* Start Date & Time */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">
             Start Date <span className="text-red-500">*</span>
@@ -487,7 +488,7 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
             })}
             type="date"
             min={getTodayDate()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             data-testid="input-start-date"
           />
           {errors.recurrence?.startDate && (
@@ -504,14 +505,12 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           <input
             {...register("recurrence.startTime")}
             type="time"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             defaultValue="09:00"
             data-testid="input-start-time"
           />
         </div>
-      </div>
-
-      {/* End Condition */}
+           {/* End Condition */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">
           End Condition <span className="text-red-500">*</span>
@@ -593,6 +592,9 @@ const RecurrencePanel = ({ control, register, watch, setValue, errors }) => {
           </div>
         )}
       </div>
+      </div>
+
+   
 
       {/* Summary */}
       {summary && (
@@ -632,6 +634,7 @@ export const RecurringTaskForm = ({
   defaultValues = {},
   collaboratorOptions = [],
   isLoadingCollaborators = false,
+  drawer=false,
 }) => {
   const {
     register,
@@ -771,7 +774,7 @@ export const RecurringTaskForm = ({
               },
             })}
             type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="Enter task name..."
             data-testid="input-task-name"
           />
@@ -804,7 +807,7 @@ export const RecurringTaskForm = ({
           )}
         />
       </div>
-          <div className="grid grid-cols-3 gap-6">
+          <div className={`grid ${drawer ? 'grid-cols-2' : 'grid-cols-4'} gap-6`}>
       {/* Assigned To - Single assignee only for recurring tasks */}
       <div>
         <label className="block text-sm font-medium text-gray-900 mb-0">
@@ -888,6 +891,38 @@ export const RecurringTaskForm = ({
           task
         </p>
       </div>
+       {/* Tags */}
+      <div>
+        <label className="block text-sm font-medium text-gray-900 mb-0">
+          Labels / Tags
+        </label>
+        <Controller
+          name="tags"
+          control={control}
+          render={({ field }) => (
+            <CreatableSelect
+              {...field}
+              isMulti
+              options={[
+                { value: "urgent", label: "Urgent" },
+                { value: "review", label: "Review" },
+                { value: "meeting", label: "Meeting" },
+                { value: "development", label: "Development" },
+              ]}
+              className="react-select-container"
+              classNamePrefix="react-select"
+              placeholder="Enter tags"
+              noOptionsMessage={() => "Type to create new tag"}
+              formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
+              createOptionPosition="first"
+              data-testid="select-tags"
+            />
+          )}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Type tag name and press Enter or comma to create new tags
+        </p>
+      </div>
 </div>
 
 
@@ -921,38 +956,7 @@ export const RecurringTaskForm = ({
           </div>
         </div>
       )}
- {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0">
-          Labels / Tags
-        </label>
-        <Controller
-          name="tags"
-          control={control}
-          render={({ field }) => (
-            <CreatableSelect
-              {...field}
-              isMulti
-              options={[
-                { value: "urgent", label: "Urgent" },
-                { value: "review", label: "Review" },
-                { value: "meeting", label: "Meeting" },
-                { value: "development", label: "Development" },
-              ]}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Type and press Enter or comma to add tags..."
-              noOptionsMessage={() => "Type to create new tag"}
-              formatCreateLabel={(inputValue) => `Create "${inputValue}"`}
-              createOptionPosition="first"
-              data-testid="select-tags"
-            />
-          )}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Type tag name and press Enter or comma to create new tags
-        </p>
-      </div>
+
      
 
     

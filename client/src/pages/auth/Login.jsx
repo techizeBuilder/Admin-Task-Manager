@@ -343,20 +343,19 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),
       });
-
       const result = await response.json();
 
       if (response.ok) {
+        // Persist for ResetPassword to reuse
+        localStorage.setItem("lastResetEmail", resetEmail);
+
         setResetSent(true);
         toast({
           title: "Reset link sent",
-          description:
-            "Please check your email for password reset instructions",
+          description: "Please check your email for password reset instructions",
         });
       } else {
-        setErrors({
-          resetEmail: result.message || "Failed to send reset email",
-        });
+        setErrors({ resetEmail: result.message || "Failed to send reset email" });
       }
     } catch (error) {
       setErrors({ resetEmail: "Network error. Please try again." });
@@ -476,7 +475,7 @@ export default function Login() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-xl">
           {/* Success Message */}
-          {successMessage && (
+          {/* {successMessage && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center">
                 <CheckCircle2 className="h-4 w-4 text-green-600 mr-2" />
@@ -485,7 +484,7 @@ export default function Login() {
                 </span>
               </div>
             </div>
-          )}
+          )} */}
 
           <div className="text-center mb-4">
   <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center mx-auto mb-2">

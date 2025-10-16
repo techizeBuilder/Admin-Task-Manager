@@ -2,28 +2,24 @@ import nodemailer from "nodemailer";
 
 class EmailService {
   constructor() {
-          console.log('>process.env.SMTP_USERNAME',process.env.SMTP_USERNAME);
-      console.log('>process.env.SMTP_PASSWORD',process.env.SMTP_PASSWORD);
+    console.log(">process.env.SMTP_USERNAME", process.env.SMTP_USERNAME);
+    console.log(">process.env.SMTP_PASSWORD", process.env.SMTP_PASSWORD);
     if (
       // process.env.MAILTRAP_HOST &&
       // process.env.MAILTRAP_PORT &&
       process.env.SMTP_USERNAME &&
       process.env.SMTP_PASSWORD
     ) {
-
-       
-
-
       this.transporter = nodemailer.createTransport({
-      service: "gmail",
-      port: 587,
-      host: "smtp.gmail.com",
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USERNAME,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
+        service: "gmail",
+        port: 587,
+        host: "smtp.gmail.com",
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USERNAME,
+          pass: process.env.SMTP_PASSWORD,
+        },
+      });
       this.isConfigured = true;
       console.log("Mailtrap email service configured successfully");
     } else {
@@ -32,40 +28,44 @@ class EmailService {
     }
 
     // Base URL - configurable via environment variable
-    const isLocal = 
-  typeof window !== "undefined"
-    ? window.location.hostname === "localhost"
-    : process.env.NODE_ENV === "development";
+    const isLocal =
+      typeof window !== "undefined"
+        ? window.location.hostname === "localhost"
+        : process.env.NODE_ENV === "development";
 
-this.baseUrl = isLocal
-  ? process.env.LOCAL_BASE_URL
-  : process.env.PRODUCTION_BASE_URL;
+    this.baseUrl = isLocal
+      ? process.env.LOCAL_BASE_URL
+      : process.env.PRODUCTION_BASE_URL;
   }
 
   async sendVerificationEmail(
     email,
     verificationCode,
     firstName,
-    organizationName = null,
+    organizationName = null
   ) {
     if (!this.isConfigured) {
       console.error(
-        "Email service not configured - Mailtrap credentials missing",
+        "Email service not configured - Mailtrap credentials missing"
       );
       return false;
     }
 
     try {
       // Determine if this is organization registration
-      const isOrganization = organizationName !== null && organizationName !== undefined;
-      
+      const isOrganization =
+        organizationName !== null && organizationName !== undefined;
+      const url = isOrganization
+        ? `${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}&email=${email}&org=${encodeURIComponent(organizationName)}`
+        : `${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}&email=${email}`;
       const mailOptions = {
         to: email,
         from: "noreply@tasksetu.com",
-        subject: isOrganization 
-          ? "✅ Verify Your Organization's Account on Tasksetu" 
+        subject: isOrganization
+          ? "✅ Verify Your Organization's Account on Tasksetu"
           : "✅ Complete Your Tasksetu Registration",
-        html: isOrganization ? `
+        html: isOrganization
+          ? `
           <!DOCTYPE html>
           <html>
           <head>
@@ -94,7 +94,7 @@ this.baseUrl = isLocal
                 <div style="text-align: center; margin: 30px 0;color:white">
                   <a
                     style="color:#ffffff !important; text-decoration:none !important;"
-                    href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}"
+                    href="${url}"
                     class="button"
                   >
                     Verify & Set Password
@@ -103,7 +103,7 @@ this.baseUrl = isLocal
                 
                 <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #10B981;">
                   <p style="margin: 0; color: #166534; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
-                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
+                  <p style="margin: 5px 0 0 0; color: #166534; font-size: 14px; word-break: break-all;">${url}</p>
                 </div>
                 
                 <p>Once verified, you can invite your team, configure access levels, and start collaborating.</p>
@@ -118,7 +118,8 @@ this.baseUrl = isLocal
             </div>
           </body>
           </html>
-        ` : `
+        `
+          : `
           <!DOCTYPE html>
           <html>
           <head>
@@ -147,7 +148,7 @@ this.baseUrl = isLocal
                 <div style="text-align: center; margin: 30px 0;color:#fff">
                   <a
                     style="color:#ffffff !important; text-decoration:none !important;"
-                    href="${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}"
+                    href="${url}"
                     class="button"
                   >
                     👉 Verify Email & Set My Password
@@ -156,7 +157,7 @@ this.baseUrl = isLocal
                 
                 <div style="background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3B82F6;">
                   <p style="margin: 0; color: #4a5568; font-size: 14px;"><strong>Can't click the button?</strong> Copy and paste this URL into your browser:</p>
-                  <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; word-break: break-all;">${this.baseUrl}/verify?token=${verificationCode}&name=${firstName}</p>
+                  <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px; word-break: break-all;">${url}</p>
                 </div>
                 
                 <p>This link is <strong style="color: #e53e3e;">valid for 24 hours</strong>.</p>
@@ -178,9 +179,9 @@ this.baseUrl = isLocal
 Thanks for signing up with Tasksetu!
 
 To activate your account and set your password, please click the link below:
-👉 Verify Email & Set My Password: ${this.baseUrl}/verify?token=${verificationCode}
+👉 Verify Email & Set My Password: ${url}
 
-(or copy and paste this URL into your browser: ${this.baseUrl}/verify?token=${verificationCode})
+(or copy and paste this URL into your browser: ${url})
 
 This link is valid for 24 hours.
 
@@ -205,7 +206,7 @@ www.Tasksetu.com`,
     console.log("Email template using firstName:", firstName);
     if (!this.isConfigured) {
       console.error(
-        "Email service not configured - Mailtrap credentials missing",
+        "Email service not configured - Mailtrap credentials missing"
       );
       return false;
     }
@@ -286,17 +287,38 @@ www.Tasksetu.com`,
     organizationName,
     roles,
     invitedByName,
-    name = ''
+    name = ""
   ) {
     if (!this.isConfigured) {
       console.error(
-        "Email service not configured - Mailtrap credentials missing",
+        "Email service not configured - Mailtrap credentials missing"
       );
       return false;
     }
 
     try {
       const inviteUrl = `${this.baseUrl}/accept-invite?token=${inviteToken}`;
+
+      // Compute a friendly roles display string
+      const rolesDisplay = (() => {
+        const list = Array.isArray(roles) ? roles : (roles ? [roles] : []);
+        const roleMap = {
+          org_admin: "Organization Admin",
+          admin: "Company Admin",
+          employee: "Employee",
+          manager: "Manager",
+          individual: "Individual",
+          member: "Member",
+        };
+        const pretty = list
+          .map((r) =>
+            roleMap[r] || String(r).replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          )
+          .filter(Boolean);
+        return pretty.length ? pretty.join(", ") : "Member";
+      })();
+
+      const recipientName = name || (typeof email === "string" ? email.split("@")[0] : "there");
 
       const mailOptions = {
         to: email,
@@ -325,38 +347,10 @@ www.Tasksetu.com`,
               </div>
               <div class="content">
                 <h2>You're invited to join ${organizationName}!</h2>
-                <p>Hi ${name || 'there'},</p>
+                <p>Hi ${recipientName},</p>
                 <p><strong>${invitedByName}</strong> has invited you to join their team on TaskSetu.</p>
                 
-              <p>
-  You'll be joining as:
-  <strong>
-  ${Array.isArray(roles)
-    ? roles
-        .map(r => {
-          const roleMap = {
-            org_admin: "Organization Admin",
-            admin: "Company Admin",
-            employee: "Employee",
-            manager: "Manager",
-            individual: "Individual",
-          };
-          return roleMap[r] || r.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-        })
-        .join(", ")
-    : (() => {
-        const roleMap = {
-          org_admin: "Organization Admin",
-          admin: "Company Admin",
-          employee: "Employee",
-          manager: "Manager",
-          individual: "Individual",
-        };
-        return roleMap[roles] || roles.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-      })()}
-</strong>
-
-</p>
+              <p>You'll be joining as: <strong>${rolesDisplay}</strong></p>
                 <p>Click the button below to accept the invitation and create your account:</p>
                 <a href="${inviteUrl}" class="button" style="color:#ffffff !important; text-decoration:none !important;">Accept Invitation</a>
                 
@@ -376,11 +370,11 @@ www.Tasksetu.com`,
           </body>
           </html>
         `,
-        text: `You're invited to join ${organizationName}!\n\n${invitedByName} has invited you to join their team on TaskSetu.\n\nYou'll be joining as: ${Array.isArray(roles) ? roles.join(", ") : roles}\n\nClick this link to accept the invitation: ${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nWelcome to TaskSetu!\nThe TaskSetu Team`,
+        text: `You're invited to join ${organizationName}!\n\nHi ${recipientName},\n\n${invitedByName} has invited you to join their team on TaskSetu.\n\nYou'll be joining as: ${rolesDisplay}\n\nClick this link to accept the invitation: ${inviteUrl}\n\nThis invitation will expire in 7 days.\n\nWelcome to TaskSetu!\nThe TaskSetu Team`,
       };
 
       await this.transporter.sendMail(mailOptions);
-    
+
       return true;
     } catch (error) {
       console.error("Email sending error:", error);
@@ -393,6 +387,4 @@ www.Tasksetu.com`,
   }
 }
 
-
 export const emailService = new EmailService();
-

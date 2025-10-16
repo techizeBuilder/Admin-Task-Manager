@@ -11250,3 +11250,19 @@ kbd {
   padding-bottom: 5px;
   /* space between content and scrollbar */
 }
+/* in your global CSS or Tailwind globals */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
+.react-select-container .react-select__control{
+  border-radius: 8px;
+  min-height: 2px;
+}
+label{
+  margin-bottom: 10px !important;
+}

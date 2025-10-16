@@ -219,7 +219,7 @@ export default function CalendarDatePicker({ onClose, onDateSelect, taskType }) 
   
             {/* Actions */}
             <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 btn btn-secondary">
+              <button onClick={onClose} className="flex-1 btn btn-secondary :hover text-purple-500">
                 Cancel
               </button>
               <button

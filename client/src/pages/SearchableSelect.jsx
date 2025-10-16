@@ -11,72 +11,53 @@ const SearchableSelect = ({
   isDisabled = false,
   isClearable = false,
   menuPlacement = "auto",
+  size = "default", // <-- new prop
   ...props
 }) => {
-  // Find the selected option to display its label instead of placeholder
   const getSelectedOption = () => {
     if (!value) return null;
-
     if (isMulti) {
-      // For multi-select, return array of selected options
       return options?.filter(option => value.includes(option.value)) || [];
     } else {
-      // For single select, find the matching option
       return options?.find(option => option.value === value) || null;
     }
   };
 
   const selectedOption = getSelectedOption();
-
-  // Determine what to display as placeholder/value
   const displayValue = selectedOption ? selectedOption : null;
   const displayPlaceholder = selectedOption ? null : placeholder;
 
   const customStyles = {
     control: (provided, state) => ({
       ...provided,
-      minHeight: "42px",
+      minHeight: size === "small" ? "30px" : "40px", // adjust based on size
+      fontSize: size === "small" ? "0.875rem" : "1rem",
       borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
       boxShadow: state.isFocused ? "0 0 0 1px #3b82f6" : "none",
       "&:hover": {
         borderColor: state.isFocused ? "#3b82f6" : "#9ca3af",
       },
     }),
-    menu: (provided) => ({
-      ...provided,
-      zIndex: 9999,
-    }),
-    menuPortal: (provided) => ({
-      ...provided,
-      zIndex: 9999,
-    }),
+    menu: (provided) => ({ ...provided, zIndex: 9999 }),
+    menuPortal: (provided) => ({ ...provided, zIndex: 9999 }),
     option: (provided, state) => ({
       ...provided,
       backgroundColor: state.isSelected
         ? "#3b82f6"
         : state.isFocused
-          ? "#eff6ff"
-          : "white",
+        ? "#eff6ff"
+        : "white",
       color: state.isSelected ? "white" : "#374151",
       "&:hover": {
         backgroundColor: state.isSelected ? "#3b82f6" : "#eff6ff",
       },
     }),
-    multiValue: (provided) => ({
-      ...provided,
-      backgroundColor: "#eff6ff",
-    }),
-    multiValueLabel: (provided) => ({
-      ...provided,
-      color: "#1f2937",
-    }),
+    multiValue: (provided) => ({ ...provided, backgroundColor: "#eff6ff" }),
+    multiValueLabel: (provided) => ({ ...provided, color: "#1f2937" }),
     multiValueRemove: (provided) => ({
       ...provided,
       color: "#6b7280",
-      "&:hover": {
-        backgroundColor: "#fee2e2",
-        color: "#dc2626",
-      },
+      "&:hover": { backgroundColor: "#fee2e2", color: "#dc2626" },
     }),
   };
 

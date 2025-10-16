@@ -18,6 +18,7 @@ import {
   Download,
   AlertTriangle,
   Search,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,6 +83,7 @@ export default function Users() {
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [isViewActivityModalOpen, setIsViewActivityModalOpen] = useState(false);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false); // Invite dialog state
 
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -191,6 +193,41 @@ export default function Users() {
     },
   });
 
+  // Add invite mutation
+  const sendInviteMutation = useMutation({
+    mutationFn: async (userId) => {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/organization/users/send-invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        let errorMsg = "Failed to send invitation";
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch {}
+        const error = new Error(errorMsg);
+        error.status = res.status;
+        throw error;
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      showSuccessToast(data.message || "Invitation sent successfully");
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setIsInviteDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (error) => {
+      showErrorToast(error.message || "An unexpected error occurred");
+    },
+  });
+
   // Add this query hook after your existing users query
   const { data: orgStats, isLoading: isOrgStatsLoading } = useQuery({
     queryKey: ["orgStats", orgId],
@@ -212,8 +249,6 @@ export default function Users() {
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
   });
-
-  
 
   // Helper for null/empty fields
   const safe = (val) =>
@@ -373,8 +408,6 @@ export default function Users() {
     });
   };
 
- 
-
   const getRoleIcon = (role) => {
     switch (role) {
       case "Company Admin":
@@ -392,7 +425,6 @@ export default function Users() {
   const pendingUsers = orgStats?.user_stats?.pending || 0;
 
   const usersData = data?.users || [];
-
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -591,7 +623,7 @@ export default function Users() {
                         {/* Name + Email */}
                         <div>
                           <div className="font-medium">
-                           {user.firstName + " " + user.lastName}
+                            {user.firstName + " " + user.lastName}
                           </div>
                           <div className="text-sm text-gray-500">
                             {safe(user.email) || "-"}
@@ -680,6 +712,23 @@ export default function Users() {
                             >
                               <RefreshCw className="h-4 w-4 mr-2 text-green-600" />{" "}
                               Reactivate
+                            </DropdownMenuItem>
+                          )}
+                          {(user.status?.toLowerCase() === "invited" ||
+                            user.status?.toLowerCase() === "pending") && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser({
+                                  ...user,
+                                  name: `${user.firstName || ""} ${
+                                    user.lastName || ""
+                                  }`.trim(),
+                                });
+                                setIsInviteDialogOpen(true);
+                              }}
+                            >
+                              <Send className="h-4 w-4 mr-2 text-green-600" />{" "}
+                              Invite User
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -859,6 +908,101 @@ export default function Users() {
               </AlertDialogAction>
             </div>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Send Invite Confirmation Dialog */}
+      <AlertDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        
+      >
+        <AlertDialogContent className="bg-white max-w-fit  ">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-green-500" />
+              Send Invitation
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedUser && (
+             <>
+  <h2 className="text-lg font-semibold text-gray-900">
+    You are about to send an invitation to:
+  </h2>
+
+  <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 text-gray-800">
+      {/* Name */}
+      <div className="flex flex-col">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Name
+        </span>
+        <span className="mt-1 text-sm font-semibold text-gray-900">
+          {selectedUser.name ||
+            `${selectedUser.firstName || ""} ${selectedUser.lastName || ""}`.trim() ||
+            "-"}
+        </span>
+      </div>
+
+      {/* Email */}
+      <div className="flex flex-col">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Email
+        </span>
+        <span className="mt-1 text-sm font-semibold text-gray-900">
+          {selectedUser.email || "-"}
+        </span>
+      </div>
+
+      {/* Role */}
+      <div className="flex flex-col">
+        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Role
+        </span>
+        <span className="mt-1 w-fit text-sm font-semibold text-gray-900">
+      
+            {renderRoles(selectedUser.role)}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4 text-blue-500"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16 12H8m8 0l-4 4m4-4l-4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    The user will receive an email with instructions to join.
+  </div>
+</>
+
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-between">
+            <AlertDialogCancel disabled={sendInviteMutation.isLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                selectedUser && sendInviteMutation.mutate(selectedUser._id)
+              }
+              disabled={sendInviteMutation.isLoading}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {sendInviteMutation.isLoading ? "Sending..." : "Send Invite"}
+            </AlertDialogAction>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

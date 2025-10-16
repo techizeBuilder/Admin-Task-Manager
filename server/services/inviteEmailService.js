@@ -25,7 +25,21 @@ class InviteEmailService {
     }
 
     const inviteUrl = `https://25b3cec7-b6b2-48b7-a8f4-7ee8a9c12574-00-36vzyej2u9kbm.kirk.replit.dev/accept-invite?token=${inviteToken}`;
-    const rolesList = Array.isArray(roles) ? roles.join(', ') : roles;
+    const rolesList = (() => {
+      const list = Array.isArray(roles) ? roles : (roles ? [roles] : []);
+      const roleMap = {
+        org_admin: 'Organization Admin',
+        admin: 'Company Admin',
+        employee: 'Employee',
+        manager: 'Manager',
+        individual: 'Individual',
+        member: 'Member',
+      };
+      const pretty = list
+        .map(r => (roleMap[r] || String(r).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())))
+        .filter(Boolean);
+      return pretty.length ? pretty.join(', ') : 'Member';
+    })();
     
     const mailOptions = {
       to: email,
@@ -73,6 +87,7 @@ class InviteEmailService {
               <p>Hello!</p>
               
               <p><strong>${invitedByName}</strong> has invited you to join <strong>${organizationName}</strong>'s workspace on TaskSetu.</p>
+              <p style="margin: 8px 0 0; color: #475569;">You'll be joining as: <span class="highlight">${rolesList}</span></p>
               
               <div class="btn-container">
                 <a href="${inviteUrl}" class="btn">Accept Invitation</a>
@@ -103,13 +118,13 @@ class InviteEmailService {
       text: `
 You've been invited to join ${organizationName} on TaskSetu
 
-${invitedByName} has invited you to join ${organizationName} as a ${role}.
+${invitedByName} has invited you to join ${organizationName} as: ${rolesList}.
 
 To accept your invitation and set up your account, please visit:
 ${inviteUrl}
 
 Organization: ${organizationName}
-Your Role: ${role}
+Your Role(s): ${rolesList}
 Invited by: ${invitedByName}
 
 This invitation will expire in 7 days.

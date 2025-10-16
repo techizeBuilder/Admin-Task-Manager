@@ -23,6 +23,7 @@ const ApprovalTaskForm = ({
   collaboratorOptions = [], // API data
   isLoadingApprovers = false,
   isLoadingCollaborators = false,
+  drawer=false,
 }) => {
   const [taskNameLength, setTaskNameLength] = useState(0);
   const [approverOrder, setApproverOrder] = useState([]);
@@ -157,7 +158,7 @@ const ApprovalTaskForm = ({
               },
             })}
             type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="Enter task name..."
             data-testid="input-task-name"
           />
@@ -228,9 +229,7 @@ const ApprovalTaskForm = ({
                   : "Search and select approvers..."
               }
               noOptionsMessage={() =>
-                isLoadingApprovers
-                  ? "Loading..."
-                  : "No approvers available"
+                isLoadingApprovers ? "Loading..." : "No approvers available"
               }
               data-testid="select-approvers"
             />
@@ -343,10 +342,10 @@ const ApprovalTaskForm = ({
           <input
             {...register("autoApproval")}
             type="checkbox"
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 align-middle"
             data-testid="checkbox-auto-approval"
           />
-          <label className="text-sm font-medium text-gray-900">
+          <label className="text-sm mt-2.5 font-medium text-gray-900 select-none align-middle">
             Enable Auto-Approval
           </label>
         </div>
@@ -376,7 +375,7 @@ const ApprovalTaskForm = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+   <div className={`grid ${!drawer ? 'grid-cols-4' : 'grid-cols-2'} gap-4`}>
         {/* Approval Due Date */}
         <div>
           <label className="block text-sm font-medium text-gray-900 mb-0">
@@ -387,12 +386,14 @@ const ApprovalTaskForm = ({
               required: "Approval due date is required",
               validate: (value) => {
                 const today = getTodayDate();
-                return value >= today || "Approval due date must be today or later";
+                return (
+                  value >= today || "Approval due date must be today or later"
+                );
               },
             })}
             type="date"
             min={getTodayDate()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             data-testid="input-due-date"
           />
           {errors.dueDate && (
@@ -456,51 +457,50 @@ const ApprovalTaskForm = ({
             </p>
           )}
         </div>
-      </div>
-
-      {/* Collaborators */}
-      <div>
-        <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
-          <Users className="w-4 h-4 mr-1" />
-          Collaborators
-          {isLoadingCollaborators && (
-            <Loader2 className="w-4 h-4 animate-spin ml-2" />
-          )}
-        </label>
-        <Controller
-          name="collaborators"
-          control={control}
-          render={({ field }) => (
-            <Select
-              {...field}
-              isMulti
-              options={collaboratorOptions.filter(
-                (opt) =>
-                  opt.value !== "self" &&
-                  !watchedApprovers?.some(
-                    (approver) => approver.value === opt.value,
-                  ),
-              )}
-              isLoading={isLoadingCollaborators}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder={
-                isLoadingCollaborators
-                  ? "Loading collaborators..."
-                  : "Select collaborators for notifications..."
-              }
-              noOptionsMessage={() =>
-                isLoadingCollaborators
-                  ? "Loading..."
-                  : "No collaborators available"
-              }
-              data-testid="select-collaborators"
-            />
-          )}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          Collaborators will be notified but are not approvers
-        </p>
+        {/* Collaborators */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-0 flex items-center">
+            <Users className="w-4 h-4 mr-1" />
+            Collaborators
+            {isLoadingCollaborators && (
+              <Loader2 className="w-4 h-4 animate-spin ml-2" />
+            )}
+          </label>
+          <Controller
+            name="collaborators"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                isMulti
+                options={collaboratorOptions.filter(
+                  (opt) =>
+                    opt.value !== "self" &&
+                    !watchedApprovers?.some(
+                      (approver) => approver.value === opt.value
+                    )
+                )}
+                isLoading={isLoadingCollaborators}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                placeholder={
+                  isLoadingCollaborators
+                    ? "Loading collaborators..."
+                    : "Select collaborators"
+                }
+                noOptionsMessage={() =>
+                  isLoadingCollaborators
+                    ? "Loading..."
+                    : "No collaborators available"
+                }
+                data-testid="select-collaborators"
+              />
+            )}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Collaborators will be notified but are not approvers
+          </p>
+        </div>
       </div>
 
       {/* Visibility */}
@@ -533,7 +533,7 @@ const ApprovalTaskForm = ({
       </div>
 
       {/* Restrictions Information */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      {/* <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex items-start space-x-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
           <div>
@@ -549,7 +549,7 @@ const ApprovalTaskForm = ({
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
@@ -567,7 +567,7 @@ const ApprovalTaskForm = ({
           className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           data-testid="button-save"
         >
-          {(isLoadingApprovers || isLoadingCollaborators) ? (
+          {isLoadingApprovers || isLoadingCollaborators ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
             <CheckCircle className="w-4 h-4 mr-2" />

@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useActiveRole } from "../../components/RoleSwitcher";
 import axios from "axios";
-import { FileText, RotateCcw, Target, CheckCircle, Settings, FlaskConical, Rocket, Link } from "lucide-react";
+import {
+  FileText,
+  RotateCcw,
+  Target,
+  CheckCircle,
+  Settings,
+  FlaskConical,
+  Rocket,
+  Link,
+} from "lucide-react";
 import RegularTaskForm from "../../forms/RegularTaskForm";
 import { RecurringTaskForm } from "../../forms/RecurringTaskForm";
 import MilestoneTaskForm from "../../forms/MilestoneTaskForm";
@@ -10,7 +19,12 @@ import { useRole } from "../../features/shared/hooks/useRole";
 import { useAssignmentOptions } from "../../features/shared/hooks/useAssignmentOptions";
 import { useAuth } from "../../features/shared/hooks/useAuth";
 import { hasAccess } from "../../utils/auth";
-import { ApprovalTaskIcon, MilestoneTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../../components/common/TaskIcons";
+import {
+  ApprovalTaskIcon,
+  MilestoneTaskIcon,
+  RecurringTaskIcon,
+  RegularTaskIcon,
+} from "../../components/common/TaskIcons";
 import { useLocation } from "wouter";
 import { useShowToast } from "../../utils/ToastMessage";
 
@@ -19,6 +33,7 @@ export default function CreateTask({
   onSubmit,
   initialTaskType = "regular",
   preFilledDate = null,
+  drawer,
 }) {
   const {
     canCreateMilestones,
@@ -35,7 +50,7 @@ export default function CreateTask({
     restrictions,
   } = useAssignmentOptions();
   const { user } = useAuth();
-  const {showSuccessToast, showErrorToast} = useShowToast();
+  const { showSuccessToast, showErrorToast } = useShowToast();
   const [selectedTaskType, setSelectedTaskType] = useState(initialTaskType);
   const [location, setLocation] = useLocation();
   const { activeRole } = useActiveRole();
@@ -65,13 +80,17 @@ export default function CreateTask({
       });
 
       if (response.data.success) {
-        const formattedCollaborators = response.data.data.map(collaborator => ({
-          value: collaborator.id,
-          label: `${collaborator.name} (${collaborator.designation || collaborator.role.join(", ")})`,
-          email: collaborator.email,
-          role: collaborator.role,
-          department: collaborator.department
-        }));
+        const formattedCollaborators = response.data.data.map(
+          (collaborator) => ({
+            value: collaborator.id,
+            label: `${collaborator.name} (${
+              collaborator.designation || collaborator.role.join(", ")
+            })`,
+            email: collaborator.email,
+            role: collaborator.role,
+            department: collaborator.department,
+          })
+        );
         setCollaboratorsList(formattedCollaborators);
       }
     } catch (error) {
@@ -94,16 +113,18 @@ export default function CreateTask({
       });
 
       if (response.data.success) {
-        const formattedApprovers = response.data.data.map(approver => ({
+        const formattedApprovers = response.data.data.map((approver) => ({
           value: approver.id,
-          label: approver.isSelf 
-            ? `${approver.name} (You)` 
-            : `${approver.name} (${approver.designation || approver.role.join(", ")})`,
+          label: approver.isSelf
+            ? `${approver.name} (You)`
+            : `${approver.name} (${
+                approver.designation || approver.role.join(", ")
+              })`,
           email: approver.email,
           role: approver.role,
           department: approver.department,
           isPrimaryAdmin: approver.isPrimaryAdmin,
-          isSelf: approver.isSelf
+          isSelf: approver.isSelf,
         }));
         setApproversList(formattedApprovers);
       }
@@ -208,7 +229,9 @@ export default function CreateTask({
       // Fix tags: array of strings
       let tags = data.tags;
       if (Array.isArray(tags)) {
-        tags = tags.map(t => (typeof t === "object" ? t.value || t.label || "" : t)).filter(Boolean);
+        tags = tags
+          .map((t) => (typeof t === "object" ? t.value || t.label || "" : t))
+          .filter(Boolean);
       }
 
       // Map taskName to title for backend compatibility
@@ -236,39 +259,53 @@ export default function CreateTask({
       if (data.dueDate) submitData.append("dueDate", data.dueDate);
       if (data.startDate) submitData.append("startDate", data.startDate);
       if (assignedTo) submitData.append("assignedTo", assignedTo);
-      if (tags && tags.length > 0) submitData.append("tags", JSON.stringify(tags));
-      if (data.collaborators && data.collaborators.length > 0) submitData.append("collaboratorIds", JSON.stringify(data.collaborators.map(c => c.id || c.value || c)));
+      if (tags && tags.length > 0)
+        submitData.append("tags", JSON.stringify(tags));
+      if (data.collaborators && data.collaborators.length > 0)
+        submitData.append(
+          "collaboratorIds",
+          JSON.stringify(data.collaborators.map((c) => c.id || c.value || c))
+        );
       if (data.attachments && data.attachments.length > 0) {
         data.attachments.forEach((attachment) => {
-          if (attachment.file) submitData.append("attachments", attachment.file);
+          if (attachment.file)
+            submitData.append("attachments", attachment.file);
         });
       }
 
       // Add milestone-specific fields when taskType is milestone
       if (selectedTaskType === "milestone") {
         // Add milestone type
-        if (data.milestoneType) submitData.append("milestoneType", data.milestoneType);
-        
+        if (data.milestoneType)
+          submitData.append("milestoneType", data.milestoneType);
+
         // Add linked tasks for milestone
         if (data.linkedTasks && data.linkedTasks.length > 0) {
-          const linkedTaskIds = data.linkedTasks.map(task => task.value || task.id || task);
+          const linkedTaskIds = data.linkedTasks.map(
+            (task) => task.value || task.id || task
+          );
           submitData.append("linkedTaskIds", JSON.stringify(linkedTaskIds));
         }
-        
+
         // Add milestone data object
         const milestoneData = {
           type: data.milestoneType || "standalone",
-          linkedTaskIds: data.linkedTasks ? data.linkedTasks.map(task => task.value || task.id || task) : [],
+          linkedTaskIds: data.linkedTasks
+            ? data.linkedTasks.map((task) => task.value || task.id || task)
+            : [],
           deliverables: data.deliverables || [],
           completionCriteria: data.completionCriteria || [],
-          stakeholders: data.stakeholders || []
+          stakeholders: data.stakeholders || [],
         };
         submitData.append("milestoneData", JSON.stringify(milestoneData));
       }
 
       // Add any extra fields for recurring/approval if needed
       if (selectedTaskType === "recurring" && data.recurrencePattern) {
-        submitData.append("recurrencePattern", JSON.stringify(data.recurrencePattern));
+        submitData.append(
+          "recurrencePattern",
+          JSON.stringify(data.recurrencePattern)
+        );
       }
       if (selectedTaskType === "approval" && data.approval) {
         submitData.append("approval", JSON.stringify(data.approval));
@@ -298,7 +335,7 @@ export default function CreateTask({
 
       // Show success message
       showSuccessToast("Task created successfully!");
-      
+
       // Redirect to the tasks page
       setLocation("/tasks");
     } catch (error) {
@@ -309,29 +346,31 @@ export default function CreateTask({
   };
 
   return (
-    <div className="flex flex-col h-full p-5 bg-gray-50 z-50" >
+    <div className="flex flex-col h-full p-5 bg-gray-50 z-50">
       {/* Task Type Selection Section */}
       <div className="bg-white rounded-md p-5 mb-2 shadow-sm border border-gray-200">
         <div className="mb-5">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Task Type
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">Task Type</h3>
           <p className="text-gray-600 text-sm">
             Choose the type of task you want to create
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-stretch">
+        <div
+          className={`grid  ${
+            !drawer ? "lg:grid-cols-4 " : "lg:grid-cols-2 "
+          }  md:grid-cols-2  gap-2 items-stretch`}
+        >
           {taskTypes.map((taskType) => {
             const isSelected = selectedTaskType === taskType.id;
             const colorClass =
               taskType.color === "blue"
                 ? "blue"
                 : taskType.color === "red"
-                  ? "red"
-                  : taskType.color === "green"
-                    ? "green"
-                    : "blue";
+                ? "red"
+                : taskType.color === "green"
+                ? "green"
+                : "blue";
 
             const getColorClasses = () => {
               if (!taskType.available) {
@@ -415,8 +454,9 @@ export default function CreateTask({
                   {/* Bottom: Description & restriction */}
                   <div className="mt-2 overflow-hidden">
                     <p
-                      className={`text-xs truncate ${taskType.available ? "text-gray-600" : "text-gray-400"
-                        }`}
+                      className={`text-xs truncate ${
+                        taskType.available ? "text-gray-600" : "text-gray-400"
+                      }`}
                       title={taskType.description}
                     >
                       {taskType.description}
@@ -451,16 +491,12 @@ export default function CreateTask({
             );
           })}
         </div>
-
-
       </div>
 
       {/* Task Details Section */}
       <div className="bg-white rounded-md p-5 flex-1 shadow-sm border border-gray-200">
         <div className="mb-5">
-          <h3 className="text-lg font-semibold text-gray-900 ">
-            Task Details
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900 ">Task Details</h3>
           <p className="text-gray-600 text-sm">
             Fill in the basic information for your task
           </p>
@@ -476,6 +512,7 @@ export default function CreateTask({
             assignmentOptions={assignmentOptions}
             userRole={role}
             canAssignToOthers={canAssignToOthers}
+            drawer={drawer}
           />
         )}
 
@@ -489,6 +526,7 @@ export default function CreateTask({
             canAssignToOthers={canAssignToOthers}
             collaboratorOptions={collaboratorsList}
             isLoadingCollaborators={isLoadingCollaborators}
+            drawer={drawer}
           />
         )}
 
@@ -503,6 +541,7 @@ export default function CreateTask({
             user={user}
             collaboratorOptions={collaboratorsList}
             isLoadingCollaborators={isLoadingCollaborators}
+            drawer={drawer}
             existingTasks={[
               {
                 id: "task-1",
@@ -546,6 +585,7 @@ export default function CreateTask({
             collaboratorOptions={collaboratorsList}
             isLoadingApprovers={isLoadingApprovers}
             isLoadingCollaborators={isLoadingCollaborators}
+            drawer={drawer}
           />
         )}
 
@@ -693,7 +733,7 @@ function LegacyCreateTask({
         if (milestoneData.linkedTaskIds) {
           submitData.append(
             "linkedTaskIds",
-            JSON.stringify(milestoneData.linkedTaskIds),
+            JSON.stringify(milestoneData.linkedTaskIds)
           );
         }
       }
@@ -702,7 +742,7 @@ function LegacyCreateTask({
       if (collaborators.length > 0) {
         submitData.append(
           "collaboratorIds",
-          JSON.stringify(collaborators.map((c) => c.id)),
+          JSON.stringify(collaborators.map((c) => c.id))
         );
       }
 
@@ -732,7 +772,7 @@ function LegacyCreateTask({
       // Always save the advanced task type - this identifies if it's simple, complex, etc.
       submitData.append(
         "taskTypeAdvanced",
-        moreOptionsData.taskTypeAdvanced || "simple",
+        moreOptionsData.taskTypeAdvanced || "simple"
       );
 
       // Add the main task type to clearly identify the task category
@@ -771,7 +811,7 @@ function LegacyCreateTask({
       console.error("Error creating task:", error);
       alert(
         "Failed to create task: " +
-        (error.response?.data?.message || error.message),
+          (error.response?.data?.message || error.message)
       );
     }
   };
@@ -794,20 +834,22 @@ function LegacyCreateTask({
             Choose the type of task you want to create
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <button
             onClick={() => setTaskType("modular")}
-            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "modular"
-              ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
-              : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
-              }`}
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-300 group ${
+              taskType === "modular"
+                ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md transform scale-102"
+                : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:transform hover:scale-101"
+            }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "modular"
-                  ? "bg-blue-500 text-white"
-                  : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
-                  }`}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  taskType === "modular"
+                    ? "bg-blue-500 text-white"
+                    : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
+                }`}
               >
                 <FileText size={20} className="text-blue-600" />
               </div>
@@ -867,17 +909,19 @@ function LegacyCreateTask({
           </button> */}
           <button
             onClick={() => setTaskType("milestone")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "milestone"
-              ? "border-purple-500 bg-gradient-to-br from-purple-50 to-violet-50 shadow-md transform scale-102"
-              : "border-gray-200 hover:border-purple-300 hover:shadow-sm hover:transform hover:scale-101"
-              }`}
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
+              taskType === "milestone"
+                ? "border-purple-500 bg-gradient-to-br from-purple-50 to-violet-50 shadow-md transform scale-102"
+                : "border-gray-200 hover:border-purple-300 hover:shadow-sm hover:transform hover:scale-101"
+            }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "milestone"
-                  ? "bg-purple-500 text-white"
-                  : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
-                  }`}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  taskType === "milestone"
+                    ? "bg-purple-500 text-white"
+                    : "bg-purple-100 text-purple-600 group-hover:bg-purple-200"
+                }`}
               >
                 <Target size={16} className="text-red-600" />
               </div>
@@ -894,16 +938,18 @@ function LegacyCreateTask({
 
           <button
             onClick={() => setTaskType("approval")}
-            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${taskType === "approval"
-              ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
-              : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
-              }`}
+            className={`p-3 border-2 rounded-xl text-left transition-all duration-300 group ${
+              taskType === "approval"
+                ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md transform scale-102"
+                : "border-gray-200 hover:border-emerald-300 hover:shadow-sm hover:transform hover:scale-101"
+            }`}
           >
             <div className="flex items-center space-x-3">
               <div
-                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${taskType === "approval"
-                  ? "bg-emerald-500 text-white"
-                  : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                  taskType === "approval"
+                    ? "bg-emerald-500 text-white"
+                    : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
                 }`}
               >
                 <CheckCircle size={16} className="text-amber-600" />
@@ -1183,10 +1229,27 @@ function LegacyCreateTask({
                         />
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-${["green", "blue", "purple", "orange"][i]
-                              }-600`}
+                            className={`text-${
+                              ["green", "blue", "purple", "orange"][i]
+                            }-600`}
                           >
-                            {[<CheckCircle size={16} className="text-green-600" />, <Settings size={16} className="text-blue-600" />, <FlaskConical size={16} className="text-purple-600" />, <Rocket size={16} className="text-red-600" />][i]}
+                            {
+                              [
+                                <CheckCircle
+                                  size={16}
+                                  className="text-green-600"
+                                />,
+                                <Settings
+                                  size={16}
+                                  className="text-blue-600"
+                                />,
+                                <FlaskConical
+                                  size={16}
+                                  className="text-purple-600"
+                                />,
+                                <Rocket size={16} className="text-red-600" />,
+                              ][i]
+                            }
                           </span>
                           <span className="text-sm text-gray-700">{task}</span>
                         </div>
@@ -1542,15 +1605,15 @@ function MoreOptionsModal({ data, onChange, onClose, onSave }) {
   ];
 
   const filteredProcesses = referenceProcesses.filter((process) =>
-    process.name.toLowerCase().includes(searchTerms.process.toLowerCase()),
+    process.name.toLowerCase().includes(searchTerms.process.toLowerCase())
   );
 
   const filteredForms = customForms.filter((form) =>
-    form.name.toLowerCase().includes(searchTerms.form.toLowerCase()),
+    form.name.toLowerCase().includes(searchTerms.form.toLowerCase())
   );
 
   const filteredTasks = existingTasks.filter((task) =>
-    task.name.toLowerCase().includes(searchTerms.dependencies.toLowerCase()),
+    task.name.toLowerCase().includes(searchTerms.dependencies.toLowerCase())
   );
 
   const handleDependencyToggle = (taskId) => {

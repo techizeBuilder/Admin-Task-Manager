@@ -613,7 +613,65 @@ export default function AllTasks({
       style: { backgroundColor: status.color },
     };
   };
+  // Debug function for recurring task troubleshooting
+  const debugRecurringTask = (task, context = '') => {
+    if (task.isRecurring) {
+      console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
+        taskId: task.id || task._id,
+        title: task.title,
+        isRecurring: task.isRecurring,
+        taskType: task.taskType,
+        originalDueDate: task.dueDate,
+        nextDueDate: task.nextDueDate,
+        recurrencePattern: task.recurrencePattern,
+        status: task.status,
+        completedDate: task.completedDate,
+        hasRecurrencePattern: !!task.recurrencePattern,
+        patternDetails: task.recurrencePattern ? {
+          frequency: task.recurrencePattern.frequency,
+          interval: task.recurrencePattern.interval,
+          anchorField: task.recurrencePattern.anchorField
+        } : null
+      });
+    }
+  };
+    // Calculate enhanced due date for recurring tasks (client-side display logic)
+  const calculateEnhancedDueDate = (task) => {
+    // For non-recurring tasks, return original due date
+    if (!task.isRecurring || !task.recurrencePattern) {
+      return task.dueDate;
+    }
 
+    // For recurring tasks, show the most relevant due date:
+    // 1. If task is completed, show original due date (historical)
+    // 2. If task has nextDueDate, show that (upcoming occurrence)
+    // 3. Otherwise, show current due date
+    
+    if (task.status === 'DONE' || task.status === 'completed') {
+      // For completed recurring tasks, show original due date for reference
+      return task.dueDate;
+    }
+    
+    if (task.nextDueDate) {
+      // Show next due date for active recurring tasks
+      return task.nextDueDate;
+    }
+    
+    return task.dueDate;
+  };
+  // Get display due date with recurring task logic
+  const getDisplayDueDate = (task) => {
+    debugRecurringTask(task, 'getDisplayDueDate');
+    
+    const enhancedDueDate = calculateEnhancedDueDate(task);
+    
+   
+    if (!enhancedDueDate) {
+      return null;
+    }
+    
+    return new Date(enhancedDueDate);
+  };
   // Permission check function
   const canEditTaskStatus = (task) => {
     return (
@@ -2287,74 +2345,11 @@ export default function AllTasks({
 
   // 🔄 Enhanced Recurring Task Helper Functions for Frontend Display
   
-  // Debug function for recurring task troubleshooting
-  const debugRecurringTask = (task, context = '') => {
-    if (task.isRecurring) {
-      console.log(`🔄 DEBUG - Recurring Task [${context}]:`, {
-        taskId: task.id || task._id,
-        title: task.title,
-        isRecurring: task.isRecurring,
-        taskType: task.taskType,
-        originalDueDate: task.dueDate,
-        nextDueDate: task.nextDueDate,
-        recurrencePattern: task.recurrencePattern,
-        status: task.status,
-        completedDate: task.completedDate,
-        hasRecurrencePattern: !!task.recurrencePattern,
-        patternDetails: task.recurrencePattern ? {
-          frequency: task.recurrencePattern.frequency,
-          interval: task.recurrencePattern.interval,
-          anchorField: task.recurrencePattern.anchorField
-        } : null
-      });
-    }
-  };
+  
 
-  // Calculate enhanced due date for recurring tasks (client-side display logic)
-  const calculateEnhancedDueDate = (task) => {
-    // For non-recurring tasks, return original due date
-    if (!task.isRecurring || !task.recurrencePattern) {
-      return task.dueDate;
-    }
 
-    // For recurring tasks, show the most relevant due date:
-    // 1. If task is completed, show original due date (historical)
-    // 2. If task has nextDueDate, show that (upcoming occurrence)
-    // 3. Otherwise, show current due date
-    
-    if (task.status === 'DONE' || task.status === 'completed') {
-      // For completed recurring tasks, show original due date for reference
-      return task.dueDate;
-    }
-    
-    if (task.nextDueDate) {
-      // Show next due date for active recurring tasks
-      return task.nextDueDate;
-    }
-    
-    return task.dueDate;
-  };
 
-  // Get display due date with recurring task logic
-  const getDisplayDueDate = (task) => {
-    debugRecurringTask(task, 'getDisplayDueDate');
-    
-    const enhancedDueDate = calculateEnhancedDueDate(task);
-    
-    console.log('🔍 DEBUG - getDisplayDueDate result:', {
-      taskId: task.id || task._id,
-      title: task.title,
-      isRecurring: task.isRecurring,
-      enhancedDueDate,
-      finalDate: enhancedDueDate ? new Date(enhancedDueDate) : null
-    });
-    
-    if (!enhancedDueDate) {
-      return null;
-    }
-    
-    return new Date(enhancedDueDate);
-  };
+
 
   // Check if recurring task has upcoming occurrence
   const hasUpcomingRecurrence = (task) => {
@@ -2777,8 +2772,8 @@ export default function AllTasks({
         <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn ${
-              showSnooze ? "btn-primary" : "btn-secondary"
+            className={`btn  ${
+              showSnooze ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
             } whitespace-nowrap`}
           >
             <svg
@@ -2798,7 +2793,7 @@ export default function AllTasks({
           </button>
           <button
             className={`btn ${
-              showCalendarView ? "btn-primary" : "btn-secondary"
+              showCalendarView ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
             } whitespace-nowrap`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
@@ -2838,7 +2833,7 @@ export default function AllTasks({
               Create Task
             </button>
             <button
-              className="btn btn-secondary ml-2 whitespace-nowrap"
+              className="btn btn-secondary hover:text-purple-700 ml-2 whitespace-nowrap"
               onClick={() => setShowSmartParser(!showSmartParser)}
               title="Smart Task Parser - Create tasks from natural language"
             >
@@ -2939,11 +2934,11 @@ export default function AllTasks({
       </div>
 
       {/* Search, Bulk Actions & Filters - All in One Card */}
-      <div className="flex flex-nowrap bg-white rounded-md shadow-sm border border-gray-200 p-2 mb-4 gap-2">
+      <div className="flex flex-nowrap bg-white mb-4 gap-2">
         {/* Search Bar */}
 
         {/* Filters */}
-        <div className="scroll-container flex flex-nowrap overflow-x-auto gap-2">
+        <div className="scroll-container flex flex-nowrap items-center overflow-x-auto gap-2 scrollbar-hide">
           <div className="relative w-50 max-w-md min-w-[170px]">
             <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
@@ -2963,7 +2958,7 @@ export default function AllTasks({
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 text-md border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-3 h-30 p-1 text-md border border-gray-300 rounded-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <SearchableSelect
@@ -2978,6 +2973,7 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Status"
             className="min-w-[180px]"
+             size="small"
           />
 
           <SearchableSelect
@@ -2992,6 +2988,7 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Priority"
             className="min-w-[180px]"
+            size="small"
           />
 
           <SearchableSelect
@@ -3006,6 +3003,7 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Task Type"
             className="min-w-[210px]"
+             size="small"
           />
 
           <SearchableSelect
@@ -3037,11 +3035,13 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Due Date"
             className="min-w-[200px]"
+             size="small"
           />
 
           <SearchableSelect
             placeholder="All Categories"
             className="min-w-[170px]"
+             size="small"
           />
         </div>
 
@@ -3227,10 +3227,10 @@ export default function AllTasks({
         </div>
       ) : (
         <div className="card p-0">
-          <div className="w-full overflow-x-auto scroll-container">
+          <div className="w-full overflow-x-auto scroll-container scrollbar-hide">
             <Table
               wrapperClassName="max-w-[80rem]"
-              className="w-full scroll-container"
+              className="w-full scroll-container scrollbar-hide"
             >
               <TableHeader>
                 <TableRow>
@@ -3908,7 +3908,7 @@ export default function AllTasks({
           <div
             className="absolute right-0 top-0 h-full bg-white flex flex-col shadow-xl"
             style={{
-              width: "min(90vw, 900px)",
+              width: "min(90vw, 600px)",
               maxHeight: "100vh",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -3953,6 +3953,7 @@ export default function AllTasks({
                 onSubmit={handleTaskCreated}
                 onClose={() => setShowCreateTaskDrawer(false)}
                 preFilledDate={selectedDateForTask}
+                drawer={true}
               />
             </div>
           </div>
