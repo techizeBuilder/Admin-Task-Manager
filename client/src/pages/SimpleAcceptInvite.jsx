@@ -40,6 +40,13 @@ export function SimpleAcceptInvite() {
   // Password requirement checks
   const passwordRequirements = getPasswordRequirements(formData.password);
 
+  // Derived validity: enable submit only when rules pass and passwords match
+  const { valid: isPasswordValid } = validatePassword(formData.password);
+  const isConfirmMatch =
+    formData.confirmPassword.length > 0 &&
+    formData.password === formData.confirmPassword;
+  const isFormValid = isPasswordValid && isConfirmMatch;
+
   // Validate invitation token
   const {
     data: inviteData,
@@ -84,8 +91,7 @@ export function SimpleAcceptInvite() {
       });
     } finally {
       setIsResending(false);
-        setLocation("/login");
-      
+      setLocation("/login");
     }
   };
 
@@ -110,18 +116,48 @@ export function SimpleAcceptInvite() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       toast({
         title: "Welcome to TaskSetu!",
         description: "Your account has been created successfully.",
       });
 
-      if (data.token) {
+      // If backend returns token/user, store and go to app
+      if (data?.token) {
         localStorage.setItem("token", data.token);
-        setLocation("/login");
-      } else {
-        setLocation("/login");
+        if (data?.user) localStorage.setItem("user", JSON.stringify(data.user));
+        setLocation("/dashboard");
+        return;
       }
+
+      // Fallback: try to login with invite email + chosen password
+      try {
+        const loginRes = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: inviteData?.email,
+            password: variables?.password,
+          }),
+        });
+        const loginData = await loginRes.json().catch(() => ({}));
+        if (loginRes.ok && loginData?.token) {
+          localStorage.setItem("token", loginData.token);
+          if (loginData?.user)
+            localStorage.setItem("user", JSON.stringify(loginData.user));
+          toast({
+            title: "Signed in",
+            description: "You are now logged in.",
+          });
+          setLocation("/dashboard");
+          return;
+        }
+      } catch {
+        // ignore and fall through
+      }
+
+      // Could not auto sign-in; fallback to login
+      setLocation("/login");
     },
     onError: (error) => {
       toast({
@@ -424,7 +460,7 @@ export function SimpleAcceptInvite() {
               <Button
                 type="submit"
                 className="w-full text-white bg-blue-600 hover:bg-blue-700"
-                disabled={completeInviteMutation.isPending}
+                disabled={completeInviteMutation.isPending || !isFormValid}
               >
                 {completeInviteMutation.isPending
                   ? "Creating Account..."
