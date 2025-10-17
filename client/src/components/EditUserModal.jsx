@@ -23,7 +23,7 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
   const [formData, setFormData] = useState({
     firstname: "",
     lastname: "",
-    role: [], // changed: always use array
+    role: [],
     licenseId: "",
     department: "",
     designation: "",
@@ -31,6 +31,9 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Detect primary admin
+  const isPrimaryAdmin = user?.isPrimaryAdmin;
 
   const roleOptions = [
     { value: "employee", label: "Employee" },
@@ -43,8 +46,8 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
       setFormData({
         firstname: user.firstName || "",
         lastname: user.lastName || "",
-        role: Array.isArray(user.role) ? user.role : [user.role].filter(Boolean), // normalize to array
-        licenseId: user.license || "",
+        role: Array.isArray(user.role) ? user.role : [user.role].filter(Boolean),
+        licenseId: user.license || "Plan",
         department: user.department || "",
         designation: user.designation || "",
         location: user.location || "",
@@ -226,7 +229,14 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                   value={Array.isArray(formData.role) ? formData.role : [formData.role].filter(Boolean)}
                   onChange={handleRolesChange}
                   placeholder="Select role(s)"
-                />
+              disabled={isPrimaryAdmin} // 👈 pass this prop to control interactivity
+  className={isPrimaryAdmin ? "opacity-60 cursor-not-allowed" : ""}    />
+
+                {isPrimaryAdmin && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Primary admin role cannot be changed
+                  </p>
+                )}
 
                 {errors.role && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
@@ -243,9 +253,8 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                 </Label>
                 <Select
                   value={formData.licenseId}
-                  onValueChange={(value) =>
-                    handleInputChange("licenseId", value)
-                  }
+                  onValueChange={(value) => handleInputChange("licenseId", value)}
+                  disabled={isPrimaryAdmin}
                 >
                   <SelectTrigger
                     className={
@@ -257,14 +266,19 @@ export function EditUserModal({ isOpen, onClose, user, onUserUpdated }) {
                     <SelectValue placeholder="Select license" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Explore (Free)">
-                      Explore (Free)
-                    </SelectItem>
+                    <SelectItem value="Explore (Free)">Explore (Free)</SelectItem>
                     <SelectItem value="Plan">Plan</SelectItem>
                     <SelectItem value="Execute">Execute</SelectItem>
                     <SelectItem value="Optimize">Optimize</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {isPrimaryAdmin && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Primary admin license cannot be changed
+                  </p>
+                )}
+
                 {errors.licenseId && (
                   <p className="mt-2 text-sm text-red-600 flex items-center">
                     <AlertCircle className="h-4 w-4 mr-1" />

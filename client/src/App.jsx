@@ -1099,6 +1099,38 @@ function ProtectedRoute({ component: Component, allowedRoles = [], ...props }) {
   return props.children || null;
 }
 
+// Public-only route wrapper: if authenticated, redirect to appropriate dashboard
+function PublicOnlyRoute({ component: Component, ...props }) {
+  const { data: user, isLoading } = useUserRole();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const cachedUser = user || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null);
+    if (!token) return; // not logged in
+
+    if (!isLoading && token && cachedUser) {
+      const roles = Array.isArray(cachedUser.role)
+        ? cachedUser.role
+        : cachedUser.role
+        ? [cachedUser.role]
+        : [];
+      if (roles.includes("super_admin") || roles.includes("superadmin")) {
+        setLocation("/super-admin");
+      } else {
+        setLocation("/dashboard");
+      }
+    }
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) return null;
+
+  if (Component) {
+    return <Component {...props} />;
+  }
+  return props.children || null;
+}
+
 function App() {
   const [location] = useLocation();
   const isSuperAdminRoute = location.startsWith("/super-admin");
@@ -1125,8 +1157,12 @@ function App() {
               {/* Public Authentication Routes - No Layout */}
               <Route path="/register" component={Register} />
 
-              <Route path="/login" component={Login} />
-              <Route path="/super-admin/login" component={SuperAdminLogin} />
+              <Route path="/login">
+                <PublicOnlyRoute component={Login} />
+              </Route>
+              <Route path="/super-admin/login">
+                <PublicOnlyRoute component={SuperAdminLogin} />
+              </Route>
 
               <Route path="/verify" component={VerifyEmail} />
               <Route

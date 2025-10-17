@@ -99,6 +99,13 @@ export default function ResetPassword() {
       text: r.text,
     }));
 
+  // Derived form validity: enable submit only when rules pass and passwords match
+  const { isValid: isPasswordValid } = evaluatePassword(formData.password);
+  const isConfirmMatch =
+    formData.confirmPassword.length > 0 &&
+    formData.password === formData.confirmPassword;
+  const isFormValid = isPasswordValid && isConfirmMatch;
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -144,6 +151,46 @@ export default function ResetPassword() {
       const result = await response.json();
 
       if (response.ok) {
+        // NEW: try auto sign-in
+        try {
+          // Case 1: backend returns token/user on reset
+          if (result?.token && result?.user) {
+            localStorage.setItem("token", result.token);
+            localStorage.setItem("user", JSON.stringify(result.user));
+            toast({
+              title: "Password reset successful",
+              description: "You are now signed in.",
+            });
+            setLocation("/dashboard");
+            return;
+          }
+
+          // Case 2: attempt login using stored email and new password
+          const loginEmail = resendEmail;
+          const emailOk = loginEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmail);
+          if (emailOk) {
+            const loginRes = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: loginEmail, password: formData.password }),
+            });
+            const loginData = await loginRes.json().catch(() => ({}));
+            if (loginRes.ok && loginData?.token) {
+              localStorage.setItem("token", loginData.token);
+              if (loginData.user) localStorage.setItem("user", JSON.stringify(loginData.user));
+              toast({
+                title: "Password reset successful",
+                description: "You are now signed in.",
+              });
+              setLocation("/dashboard");
+              return;
+            }
+          }
+        } catch {
+          // ignore and fallback to manual sign-in UI
+        }
+
+        // Fallback: show existing success UI with Sign In button
         setResetComplete(true);
         toast({
           title: "Password reset successful",
@@ -431,7 +478,7 @@ export default function ResetPassword() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isFormValid}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? "Updating password..." : "Update Password"}

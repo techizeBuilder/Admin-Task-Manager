@@ -28,12 +28,18 @@ export default function VerifyEmail() {
   const [isLoading, setIsLoading] = useState(false);
   const [verificationToken, setVerificationToken] = useState("");
   const [errors, setErrors] = useState({});
-  const [email,setemail]=useState('')
-  const [org,setorg]=useState('')
+  const [email, setemail] = useState("");
+  const [org, setorg] = useState("");
   const [userName, setUserName] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(null); // null = loading, true = valid, false = invalid
   const passwordRequirements = getPasswordRequirements(password);
   const [isResending, setIsResending] = useState(false); // added
+
+  // Derived validity: enable submit only when rules pass and passwords match
+  const { valid: isPasswordValid } = validatePassword(password);
+  const isConfirmMatch =
+    confirmPassword.length > 0 && password === confirmPassword;
+  const isFormValid = isPasswordValid && isConfirmMatch;
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -49,15 +55,15 @@ export default function VerifyEmail() {
 
     setVerificationToken(token);
     if (name) setUserName(name);
-    if(email)setemail(email);
-    if(org)setorg(org);
+    if (email) setemail(email);
+    if (org) setorg(org);
     // 🔹 Check token validity with backend
     const checkToken = async () => {
       try {
         const res = await fetch("/api/auth/verify-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token:token }),
+          body: JSON.stringify({ token: token }),
         });
         const data = await res.json();
         if (data.token) {
@@ -118,16 +124,50 @@ export default function VerifyEmail() {
       const result = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", result.token);
-        localStorage.setItem("user", JSON.stringify(result.user));
+        // 1) Prefer token/user from verify response
+        if (result?.token) {
+          localStorage.setItem("token", result.token);
+          if (result?.user)
+            localStorage.setItem("user", JSON.stringify(result.user));
+          toast({
+            title: "Email verified",
+            description: "You are now signed in.",
+          });
+          setLocation("/dashboard");
+          return;
+        }
 
+        // 2) Fallback: try login using email + chosen password
+        if (email) {
+          try {
+            const loginRes = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+            const loginData = await loginRes.json().catch(() => ({}));
+            if (loginRes.ok && loginData?.token) {
+              localStorage.setItem("token", loginData.token);
+              if (loginData.user)
+                localStorage.setItem("user", JSON.stringify(loginData.user));
+              toast({
+                title: "Email verified",
+                description: "You are now signed in.",
+              });
+              setLocation("/dashboard");
+              return;
+            }
+          } catch {
+            // ignore and fall through to manual sign-in
+          }
+        }
+
+        // 3) Could not auto sign-in: fall back
         toast({
-          title: "Email Verified Successfully!",
-          description: "Your account is now active. Welcome to TaskSetu!",
-          variant: "default",
+          title: "Email verified",
+          description: "Please sign in to continue.",
         });
-
-        setLocation("/");
+        setLocation("/login");
       } else {
         setErrors({ submit: result.message || "Verification failed" });
         toast({
@@ -259,8 +299,9 @@ export default function VerifyEmail() {
             Verify Your Email
           </CardTitle>
           <CardDescription className="text-slate-600">
-            Welcome{userName ? `, ${userName}` : ""}! Let’s finish setting up
-            your account.
+            Welcome
+            {userName ? `, ${userName}` : ""}! Let’s finish setting up your
+            account.
           </CardDescription>
         </CardHeader>
 
@@ -360,7 +401,7 @@ export default function VerifyEmail() {
 
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isFormValid}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? (

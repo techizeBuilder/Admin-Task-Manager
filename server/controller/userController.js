@@ -72,13 +72,13 @@ export const getOrgStats = async (req, res) => {
     // Fetch all users for the organization
     const allUsers = await User.find({
       organization_id: orgId,
-      isPrimaryAdmin: { $ne: true },
+     
     })
       .select("status")
       .lean();
 
     const user_stats = {
-      total: allUsers.length,
+      total: allUsers.length - allUsers.filter((u) => u.status === "invited").length,
       active: allUsers.filter((u) => u.status === "active").length,
       pending: allUsers.filter((u) => u.status === "invited").length,
       inactive: allUsers.filter((u) => u.status === "inactive").length,
@@ -106,7 +106,7 @@ export const getUsersByOrg = async (req, res) => {
     // Common base query (always exclude primary admin)
     const baseQuery = {
       organization_id: orgId,
-      isPrimaryAdmin: { $ne: true }, // ✅ exclude primary admin
+     
     };
     console.log("Base Query:", baseQuery);
     // If searching, extend with OR conditions
@@ -129,7 +129,7 @@ export const getUsersByOrg = async (req, res) => {
     // Fetch paginated users
     const users = await User.find(searchQuery)
       .select(
-        "firstName lastName role department designation location assignedTasks completedTasks status lastLoginAt   email createdAt"
+        "firstName lastName role department designation location assignedTasks completedTasks status lastLoginAt isPrimaryAdmin email createdAt"
       )
       .skip(skip)
       .limit(limit)

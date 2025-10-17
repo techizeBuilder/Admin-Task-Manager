@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import LockoutModal from "@/components/LockoutModal";
 
 export default function Login() {
@@ -47,6 +48,34 @@ export default function Login() {
     backgroundImage: "",
     overlayOpacity: 0.5,
   });
+
+  // If already authenticated, redirect away from login
+  const { data: verifiedUser } = useQuery({
+    queryKey: ["/api/auth/verify"],
+    // Don't aggressively refetch here; just read if available
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled: !!localStorage.getItem("token"),
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const cachedUser = verifiedUser || (localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null);
+    if (token && cachedUser) {
+      // Determine destination based on role
+      const roles = Array.isArray(cachedUser.role)
+        ? cachedUser.role
+        : cachedUser.role
+        ? [cachedUser.role]
+        : [];
+
+      if (roles.includes("super_admin") || roles.includes("superadmin")) {
+        navigate("/super-admin");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  }, [verifiedUser, navigate]);
 
   // Fetch login settings on component mount
   useEffect(() => {
