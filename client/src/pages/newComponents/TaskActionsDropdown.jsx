@@ -23,7 +23,12 @@ export default function TaskActionsDropdown({
   const { openSubtaskDrawer } = useSubtask();
   const { openViewModal } = useView();
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  // triggerRef: the button inside the table cell
+  const triggerRef = useRef(null);
+  // menuRef: the floating menu rendered in a portal
+  const menuRef = useRef(null);
+  // computed menu position in viewport
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [, navigate] = useLocation();
 
   // Modal states
@@ -31,19 +36,59 @@ export default function TaskActionsDropdown({
   const [showMarkRiskModal, setShowMarkRiskModal] = useState(false);
   const [showMarkDoneModal, setShowMarkDoneModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Compute and set menu position relative to the trigger button
+  const updateMenuPosition = () => {
+    const btn = triggerRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const gap = 6; // space between button and menu
+    const menuWidth = 224; // w-56 = 14rem = 224px
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = rect.right - menuWidth; // right aligned to button
+    // Clamp to viewport with small padding
+    left = Math.max(8, Math.min(left, viewportWidth - menuWidth - 8));
+    let top = rect.bottom + gap;
+    // If not enough space below, flip above
+    const estimatedMenuHeight = 260; // conservative estimate
+    if (top + estimatedMenuHeight > viewportHeight - 8) {
+      top = Math.max(8, rect.top - gap - estimatedMenuHeight);
+    }
+    setMenuPos({ top, left });
+  };
+
+  // Close on outside click (both trigger and portal menu considered)
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const t = triggerRef.current;
+      const m = menuRef.current;
+      if (
+        isOpen &&
+        t && m &&
+        !t.contains(event.target) &&
+        !m.contains(event.target)
+      ) {
         setIsOpen(false);
       }
     };
 
+    const handleResizeOrScroll = () => {
+      if (isOpen) updateMenuPosition();
+    };
+
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside, true);
+      window.addEventListener("resize", handleResizeOrScroll);
+      window.addEventListener("scroll", handleResizeOrScroll, true);
+      // initial position
+      updateMenuPosition();
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside, true);
+      window.removeEventListener("resize", handleResizeOrScroll);
+      window.removeEventListener("scroll", handleResizeOrScroll, true);
     };
   }, [isOpen]);
 
@@ -53,25 +98,36 @@ export default function TaskActionsDropdown({
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-10">
       <button
         className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors p-2 rounded-md hover:bg-gray-100"
         onClick={(e) => {
           e.stopPropagation();
-          setIsOpen(!isOpen);
+          setIsOpen((prev) => {
+            const next = !prev;
+            if (!prev && next) {
+              // opening
+              setTimeout(updateMenuPosition, 0);
+            }
+            return next;
+          });
         }}
         title="More actions"
+        ref={triggerRef}
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
         </svg>
       </button>
 
-      {isOpen && (
-        <div
-          className="absolute right-0 top-full mt-1 z-50 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 transform origin-top-right"
-          style={{ zIndex: 9999 }}
-        >
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="fixed z-[9999] w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2"
+            style={{ top: menuPos.top, left: menuPos.left }}
+            role="menu"
+          >
           <button
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
             onClick={(e) => {
@@ -179,8 +235,9 @@ export default function TaskActionsDropdown({
             <Trash2 size={16} className="text-red-600" />
             <span className="font-medium">Delete</span>
           </button>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Modals rendered at document root level */}
       {(showSnoozeModal || showMarkRiskModal || showMarkDoneModal || showDeleteModal) &&
