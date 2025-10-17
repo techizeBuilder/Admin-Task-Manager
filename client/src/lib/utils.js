@@ -85,29 +85,17 @@ export function formatRelativeTime(date) {
 } 
 
 export function getInitials(firstName, lastName, email) {
-    // Priority 0: Use first  name initials
-  if (firstName && !lastName && !email) {
-    return `${firstName.charAt(0)}`.toUpperCase();
-  }
-  
   // Priority 1: Use first and last name initials
   if (firstName && lastName) {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   }
-  
-  // Priority 2: Use first name + email prefix if only first name exists
-  if (firstName && email) {
-    const emailPrefix = email.split('@')[0];
-    return `${firstName.charAt(0)}${emailPrefix.charAt(0)}`.toUpperCase();
+
+  // Priority 2: Use only first name
+  if (firstName) {
+    return `${firstName.charAt(0)}`.toUpperCase();
   }
-  
-  // Priority 3: Use first two characters of email prefix as fallback
-  if (email) {
-    const emailPrefix = email.split('@')[0];
-    return emailPrefix.substring(0, 2).toUpperCase();
-  }
-  
-  // Final fallback
+
+  // Default fallback
   return 'U';
 }
 

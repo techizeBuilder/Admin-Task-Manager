@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 // Authentication utilities for the frontend
 export const setAuthToken = (token, user) => {
   localStorage.setItem('token', token);
@@ -26,10 +26,19 @@ export const isAuthenticated = () => {
   return !!(token && user);
 };
 // activeRole and roles
-export const useUserRole = () => { 
+export const useUserRole = () => {
   const token = localStorage.getItem("token");
-  const decoded = jwtDecode(token);
-  const orgId = decoded?.organizationId;
+
+  // Safely decode token only if present and valid
+  let orgId = undefined;
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      orgId = decoded?.organizationId;
+    } catch (e) {
+      console.warn("Invalid or undecodable token detected in useUserRole.");
+    }
+  }
   const query = useQuery({
     queryKey: ["/api/auth/verify"],
     enabled: !!token, // Only run query if token exists
@@ -64,7 +73,16 @@ export const useUserRole = () => {
 
   const user = query.data;
 
-  const isAdmin = user?.activeRole === "org_admin" || user?.role[0] === "individual" || user?.role[0] === "org_admin";
+  // Normalize roles for checks (support string or array)
+  const rolesArr = Array.isArray(user?.role)
+    ? user?.role
+    : user?.role
+    ? [user.role]
+    : [];
+  const isAdmin =
+    user?.activeRole === "org_admin" ||
+    rolesArr.includes("individual") ||
+    rolesArr.includes("org_admin");
 
   return { ...query, user, isAdmin, orgId };
 };
