@@ -1,6 +1,6 @@
 // src/components/icons/CustomIcons.jsx
 import React from "react";
-import { File, Clock, ClipboardCheck, Target } from "lucide-react";
+import { File, Clock, ClipboardCheck, Target, Zap } from "lucide-react";
 
 /**
  * Common props:
@@ -19,7 +19,13 @@ const defaultProps = {
   strokeWidth: 1.5,
 };
 
-export const RegularTaskIcon = ({ size, color, strokeWidth, className, ...rest }) => (
+export const RegularTaskIcon = ({
+  size,
+  color,
+  strokeWidth,
+  className,
+  ...rest
+}) => (
   <File
     size={size ?? defaultProps.size}
     color={color ?? defaultProps.color}
@@ -29,7 +35,13 @@ export const RegularTaskIcon = ({ size, color, strokeWidth, className, ...rest }
   />
 );
 
-export const RecurringTaskIcon = ({ size, color, strokeWidth, className, ...rest }) => (
+export const RecurringTaskIcon = ({
+  size,
+  color,
+  strokeWidth,
+  className,
+  ...rest
+}) => (
   <Clock
     size={size ?? defaultProps.size}
     color={color ?? defaultProps.color}
@@ -39,7 +51,13 @@ export const RecurringTaskIcon = ({ size, color, strokeWidth, className, ...rest
   />
 );
 
-export const MilestoneTaskIcon = ({ size, color, strokeWidth, className, ...rest }) => (
+export const MilestoneTaskIcon = ({
+  size,
+  color,
+  strokeWidth,
+  className,
+  ...rest
+}) => (
   <ClipboardCheck
     size={size ?? defaultProps.size}
     color={color ?? defaultProps.color}
@@ -49,7 +67,13 @@ export const MilestoneTaskIcon = ({ size, color, strokeWidth, className, ...rest
   />
 );
 
-export const ApprovalTaskIcon = ({ size, color, strokeWidth, className, ...rest }) => (
+export const ApprovalTaskIcon = ({
+  size,
+  color,
+  strokeWidth,
+  className,
+  ...rest
+}) => (
   <Target
     size={size ?? defaultProps.size}
     color={color ?? defaultProps.color}
@@ -58,7 +82,22 @@ export const ApprovalTaskIcon = ({ size, color, strokeWidth, className, ...rest 
     {...rest}
   />
 );
-
+// new QuickTask icon
+export const QuickTaskIcon = ({
+  size,
+  color,
+  strokeWidth,
+  className,
+  ...rest
+}) => (
+  <Zap
+    size={size ?? defaultProps.size}
+    color={color ?? defaultProps.color}
+    strokeWidth={strokeWidth ?? defaultProps.strokeWidth}
+    className={className}
+    {...rest}
+  />
+);
 /**
  * Convenience map if you want to look up icons dynamically:
  * e.g. const Icon = ICON_MAP['file']; <Icon size={20} color="purple" />
@@ -68,6 +107,7 @@ export const ICON_MAP = {
   clock: RecurringTaskIcon,
   approval: MilestoneTaskIcon,
   milestone: ApprovalTaskIcon,
+  quick: QuickTaskIcon,
 };
 
 export default {
@@ -75,5 +115,6 @@ export default {
   RecurringTaskIcon,
   MilestoneTaskIcon,
   ApprovalTaskIcon,
+  QuickTaskIcon,
   ICON_MAP,
 };

@@ -25,6 +25,8 @@ import CreateTask from "../pages/newComponents/CreateTask";
 import ReactECharts from "../components/ReactECharts";
 import { useActiveRole } from "../components/RoleSwitcher";
 import { quickTasksAPI } from "../services/quickTasksAPI";
+import { QuickTaskIcon, RecurringTaskIcon, RegularTaskIcon } from "../components/common/TaskIcons";
+import CommonLoader from "../components/common/CommonLoader";
 
 /**
  * Individual User Dashboard - Personal workspace for individual users
@@ -36,6 +38,8 @@ const IndividualDashboard = ({
   pinnedTasks = [],
   userStats = {},
 }) => {
+    // Get active role from context
+  const { activeRole, setActiveRole } = useActiveRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [quickTaskInput, setQuickTaskInput] = useState("");
@@ -56,16 +60,16 @@ const IndividualDashboard = ({
     queryKey: ["/api/auth/verify"],
     retry: false,
   });
-
+console.log("Current user data:", user);  
   // Fetch dashboard stats from API
   const { data: dashboardStats, error: dashboardError, isLoading: dashboardLoading } = useQuery({
-    queryKey: ["/api/dashboard-stats"],
+    queryKey: ["/api/dashboard/task-counts"],
     queryFn: async () => {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("Authorization token not found.");
       }
-      const res = await fetch("/api/dashboard-stats", {
+      const res = await fetch(`/api/dashboard/task-counts?user_id=${user.id}&user_type=${currentRole}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -108,8 +112,7 @@ const IndividualDashboard = ({
   // Navigation hook
   const [, navigate] = useLocation();
   
-  // Get active role from context
-  const { activeRole, setActiveRole } = useActiveRole();
+
   
   // Initialize active role when user data is loaded
   React.useEffect(() => {
@@ -456,16 +459,7 @@ const IndividualDashboard = ({
       </div>
     );
   }
-  // Show loading state
-  if (myTasksLoading) {
-    return (
-      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-        <div className="text-center py-10">
-          <span className="text-lg text-gray-500">Loading tasks...</span>
-        </div>
-      </div>
-    );
-  }
+
 
   // Delete task API logic
   const handleDeleteTask = async (taskId) => {
@@ -583,7 +577,50 @@ const IndividualDashboard = ({
       },
     ];
   }
+ const cards = [
 
+    {
+      id: "card-regular-task",
+      label: "Regular Task",
+      value: dashboardStats.regularTasksCount,
+      icon: <RegularTaskIcon className="text-purple-600" size={20} />,
+      iconBg: "bg-purple-100",
+    },
+    {
+      id: "card-recurring-task",
+      label: "Recurring Task",
+      value: dashboardStats.recurringTasksCount ?? 0,
+      icon: <RecurringTaskIcon className="text-yellow-600" size={20} />,
+      iconBg: "bg-yellow-100",
+    },
+    {
+      id: "card-quick-task",
+      label: "Quick Task",
+      value: dashboardStats.quickTasksCount,
+      icon: <QuickTaskIcon className="text-orange-600" size={20} />,
+      iconBg: "bg-orange-100",
+    },    {
+      id: "card-completed-today",
+      label: "Completed Today",
+      value: dashboardStats.completedTodayCount,
+      icon: <CheckSquare className="text-green-600" size={20} />,
+      iconBg: "bg-green-100",
+    },
+    {
+      id: "card-completed-before-due",
+      label: "Before Due Date",
+      value: dashboardStats.beforeDueDateCount,
+      icon: <Clock className="text-blue-600" size={20} />,
+      iconBg: "bg-blue-100",
+    },
+    {
+      id: "card-past-due",
+      label: "Past Due",
+      value: dashboardStats.pastDueDateCount,
+      icon: <AlertTriangle className="text-red-600" size={20} />,
+      iconBg: "bg-red-100",
+    },
+  ];
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -637,7 +674,7 @@ const IndividualDashboard = ({
       </div> */}
 
       {/* Overdue Alert */}
-      {overdueCount > 0 && (
+      {/* {overdueCount > 0 && (
         <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <div className="flex items-center gap-2">
             <AlertTriangle className="text-red-600" size={18} />
@@ -656,7 +693,7 @@ const IndividualDashboard = ({
             View Overdue
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Task Health Cards */}
       {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -708,121 +745,25 @@ const IndividualDashboard = ({
       </div> */}
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-
-        <div className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-completed-today">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-2 rounded-md">
-              <CheckSquare className="text-green-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Completed Today</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.completedTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {cards.map(({ id, label, value, icon, iconBg }) => (
         <div
+          key={id}
           className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-completed-before-due" >
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2 rounded-md">
-              <Clock className="text-blue-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Before Due Date</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.totalTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-milestones"
+          data-testid={id}
         >
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-md">
-              <Target className="text-purple-600" size={20} />
+            <div className={`${iconBg} p-2 rounded-md flex-shrink-0`}>
+              {icon}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Milestones</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.inProgressTasks}
-              </p>
+              <p className="text-sm text-gray-600 truncate">{label}</p>
+              <p className="text-xl font-bold text-gray-900">{value}</p>
             </div>
           </div>
         </div>
-
-        <div
-          className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-collaborator-tasks"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-100 p-2 rounded-md">
-              <Users className="text-orange-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Collaborator</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.upcomingDeadlines}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-past-due"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-md">
-              <AlertTriangle className="text-red-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Past Due</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.overdueTasks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="bg-white p-4 rounded-md shadow-sm border"
-          data-testid="card-approvals"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-yellow-100 p-2 rounded-md">
-              <Bell className="text-yellow-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Approvals</p>
-              <p className="text-xl font-bold text-gray-900">
-                {currentStats.tasksByPriority?.urgent || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Recurring Adherence */}
-        {/* <div className="bg-white p-4 rounded-md shadow-sm border" data-testid="card-recurring-adherence">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 p-2 rounded-md">
-              <Clock className="text-indigo-600" size={20} />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm text-gray-600">Recurring Adherence (7d)</p>
-              <p className="text-xl font-bold text-gray-900">{recurringAdherencePct}%</p>
-              <p className="text-xs text-gray-500">Missed: {recurringMissed} • On-time: {recurringOnTime}</p>
-            </div>
-          </div>
-        </div> */}
-      </div>
+      ))}
+    </div>
 
       {/* Overdue Report (sorted by days overdue) */}
       {overdueCount > 0 ? (

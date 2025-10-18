@@ -7,7 +7,7 @@ import * as swaggerUi from "swagger-ui-express";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { registerRoutes } from "./routes.js";
 import { registerUserInvitationRoutes } from "./routes/userInvitation.js";
-import taskfeedRoutes from "./routes/taskfeedRoutes.js";
+
 import quickTaskRoutes from "./routes/quickTaskRoutes.js";
 import milestoneTaskRoutes from "./routes/milestoneTaskRoutes.js";
 
@@ -118,9 +118,7 @@ const connectToMongoDB = async () => {
       registerUserInvitationRoutes(app);
       console.log("User invitation routes registered");
 
-      // Register taskfeed routes
-      app.use("/api", taskfeedRoutes);
-      console.log("Taskfeed routes registered");
+
 
       // Register Quick Task routes
       app.use("/api/quick-tasks", quickTaskRoutes);

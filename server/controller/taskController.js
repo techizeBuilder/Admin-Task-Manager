@@ -2473,7 +2473,8 @@ export const updateTaskStatus = async (req, res) => {
           message: 'Access denied'
         });
       }
-    } else if (!task.organization && !user.organizationId) {
+    }
+     else if (!task.organization && !user.organizationId) {
       // For individual users without organization, check if they created the task or are assigned to it
       const userId = user.id?.toString() || user.id;
       const taskCreatedBy = task.createdBy?.toString() || task.createdBy;

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "../../layout/sidebar";
 import Header from "./Header";
 import QuickAddBar from "../tasks/QuickAddBar";
+import CommonLoader from "../common/CommonLoader";
 
 export function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -37,8 +38,7 @@ export function AdminLayout({ children }) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <CommonLoader variant="spinner" size="lg" color="text-indigo-600"  />
         </div>
       </div>
     );
