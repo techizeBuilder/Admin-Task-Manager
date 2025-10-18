@@ -382,16 +382,25 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
     const params = new URLSearchParams(search);
     const tab = params.get("tab");
     if (tab) {
-      // allow only known tabs - dynamic based on task type
-      const validTabs = new Set(task?.parentTaskId ?
-        ["core-info", "comments", "activity", "files", "linked"] :
-        ["core-info", "subtasks", "comments", "activity", "files", "linked"]
+      // Allow only known tabs - dynamic based on task type
+      // Determine if subtasks tab should be available
+      const taskType = task?.taskType?.toLowerCase() || '';
+      const mainTaskType = task?.mainTaskType?.toLowerCase() || '';
+      const isMilestone = taskType.includes('milestone') || mainTaskType === 'milestone' || task?.type === 'milestone';
+      const isApproval = taskType.includes('approval') || mainTaskType === 'approval' || task?.isApprovalTask;
+      const isSubtask = task?.parentTaskId;
+      
+      // Build valid tabs list - exclude subtasks for subtasks, milestones, and approval tasks
+      const baseTabs = ["core-info", "comments", "activity", "files", "linked"];
+      const validTabs = new Set(
+        (isSubtask || isMilestone || isApproval) ? baseTabs : [...baseTabs, "subtasks"]
       );
+      
       if (validTabs.has(tab)) {
         setActiveTab(tab);
       }
     }
-  }, [location, task?.parentTaskId]);
+  }, [location, task?.parentTaskId, task?.taskType, task?.mainTaskType, task?.type, task?.isApprovalTask]);
 
   // Get current user from authentication context or localStorage
   const [currentUser, setCurrentUser] = useState(null);
@@ -887,16 +896,40 @@ export default function TaskDetail({ taskId: propTaskId, onClose }) {
   //   ],
   // });
 
+  // Helper function to check if task type allows subtasks
+  const shouldShowSubtasksTab = () => {
+    // Don't show subtasks tab if this is a subtask itself
+    if (task?.parentTaskId) return false;
+    
+    // Don't show subtasks tab for milestone and approval tasks
+    const taskType = task?.taskType?.toLowerCase() || '';
+    const mainTaskType = task?.mainTaskType?.toLowerCase() || '';
+    
+    // Check if it's a milestone or approval task
+    const isMilestone = taskType.includes('milestone') || mainTaskType === 'milestone' || task?.type === 'milestone';
+    const isApproval = taskType.includes('approval') || mainTaskType === 'approval' || task?.isApprovalTask;
+    
+    console.log('DEBUG - shouldShowSubtasksTab:', {
+      taskType,
+      mainTaskType,
+      isMilestone,
+      isApproval,
+      shouldShow: !isMilestone && !isApproval
+    });
+    
+    return !isMilestone && !isApproval;
+  };
+
   const tabs = [
     { id: "core-info", label: "Core Info", icon: ClipboardList, hasIcon: true },
-    // Only show subtasks tab if this is not a subtask itself (no parentTaskId)
-    ...(task?.parentTaskId ? [] : [{
+    // Only show subtasks tab for regular and recurring tasks (not for subtasks, milestones, or approval tasks)
+    ...(shouldShowSubtasksTab() ? [{
       id: "subtasks",
       label: "Subtasks",
       icon: CheckSquare,
       count: task?.subtasks?.length || 0,
       hasIcon: true
-    }]),
+    }] : []),
     { id: "comments", label: "Comments", icon: MessageCircle, count: commentsCount, hasIcon: true },
     { id: "activity", label: "Activity Feed", icon: Activity, hasIcon: true },
     { id: "files", label: "Files & Links", icon: Paperclip, hasIcon: true },

@@ -10,7 +10,7 @@ export const useSubtask = () => {
   return context;
 };
 
-export const SubtaskProvider = ({ children }) => {
+export const SubtaskProvider = ({ children, onUpdateSubtask }) => {
   const [isSubtaskDrawerOpen, setIsSubtaskDrawerOpen] = useState(false);
   const [parentTask, setParentTask] = useState(null);
   const [editData, setEditData] = useState(null);
@@ -54,6 +54,7 @@ export const SubtaskProvider = ({ children }) => {
         openSubtaskDrawer,
         closeSubtaskDrawer,
         handleSubtaskSubmit,
+        onUpdateSubtask,
       }}
     >
       {children}

@@ -18,7 +18,6 @@ const ApprovalTaskForm = ({
   user,
   onSubmit,
   isOrgUser,
-  assignmentOptions = [],
   approverOptions = [], // API data
   collaboratorOptions = [], // API data
   isLoadingApprovers = false,
@@ -94,6 +93,23 @@ const ApprovalTaskForm = ({
     { value: "all_must_approve", label: "All Must Approve" },
     { value: "sequential", label: "Sequential" },
   ];
+
+  // Assignment options (for org users) - Build from collaboratorOptions
+  const assignmentOptions = isOrgUser
+    ? [
+        { value: "self", label: "Self" },
+      ...collaboratorOptions,
+      ]
+    : [{ value: "self", label: "Self" }];
+
+  // Debug logging
+  console.log('ApprovalTaskForm - Assignment Debug:', {
+    isOrgUser,
+    collaboratorOptionsCount: collaboratorOptions.length,
+    collaboratorOptions,
+    assignmentOptions,
+    isLoadingCollaborators
+  });
 
   // Move approver up in order
   const moveApproverUp = (index) => {

@@ -52,12 +52,14 @@ import {
   AtSign,
 } from "lucide-react";
 import { useSubtask } from "../../contexts/SubtaskContext";
+import { useShowToast } from "../../utils/ToastMessage";
 
 export default function AllTasks({
   onCreateTask,
   onNavigateToTask,
   initialDueDateFilter,
 }) {
+   const { showSuccessToast, showErrorToast } = useShowToast();
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -236,26 +238,14 @@ export default function AllTasks({
             taskId = task._id || task.id;
           }
 
-          const statusMap = {
-            open: "OPEN",
-            todo: "OPEN",
-            "in-progress": "INPROGRESS",
-            inprogress: "INPROGRESS",
-            done: "DONE",
-            completed: "DONE",
-            onhold: "ONHOLD",
-            "on-hold": "ONHOLD",
-            cancelled: "CANCELLED",
-            canceled: "CANCELLED"
-          };
-          const apiStatus = taskData.status?.toLowerCase() || "open";
-          const feStatus = statusMap[apiStatus] || "OPEN";
+          // ✅ NO MAPPING - Backend now returns exact uppercase status values
+          // Database se direct OPEN, INPROGRESS, ONHOLD, DONE, CANCELLED values aati hain
+          const feStatus = taskData.status || "OPEN";
 
           // Debug logging
           if (process.env.NODE_ENV === 'development') {
             console.log('API Task Status Mapping:', {
               originalStatus: taskData.status,
-              apiStatus,
               mappedStatus: feStatus,
               taskTitle: taskData.title
             });
@@ -287,14 +277,14 @@ export default function AllTasks({
 
             // Map subtasks if they exist
             subtasks: task.subtasks?.map(subtask => {
-              const subtaskApiStatus = subtask.status?.toLowerCase() || "open";
-              const subtaskFeStatus = statusMap[subtaskApiStatus] || "OPEN";
+              // ✅ NO MAPPING - Use exact status value from backend
+              const subtaskStatus = subtask.status || "OPEN";
 
               return {
                 ...subtask,
                 id: subtask._id,
                 _id: subtask._id,
-                status: subtaskFeStatus, // Apply status mapping to subtasks
+                status: subtaskStatus, // Use exact uppercase status from backend
                 assignee: subtask.assignedTo
                   ? `${subtask.assignedTo.firstName} ${subtask.assignedTo.lastName}`
                   : "Unassigned",
@@ -442,12 +432,35 @@ export default function AllTasks({
       }));
     };
 
+    // Listen for subtask update events from SubtaskForm
+    const handleSubtaskUpdate = (event) => {
+      const { parentTaskId, subtaskId, formData } = event.detail;
+      console.log('AllTasks: Received subtaskUpdate event:', { parentTaskId, subtaskId, formData });
+      
+      // Call the update handler which does API call + refetch
+      handleUpdateSubtask(parentTaskId, subtaskId, formData);
+    };
+
+    // Listen for subtask creation events from SubtaskForm
+    const handleSubtaskCreated = (event) => {
+      const { parentTaskId, subtaskId } = event.detail;
+      console.log('AllTasks: Received subtaskCreated event:', { parentTaskId, subtaskId });
+      
+      // Refetch tasks to update table immediately with new subtask
+      console.log('🔄 Refetching tasks after subtask creation...');
+      refetchTasks();
+    };
+
     window.addEventListener('taskStatusUpdated', handleTaskStatusUpdated);
     window.addEventListener('taskColorUpdated', handleTaskColorUpdated);
+    window.addEventListener('subtaskUpdate', handleSubtaskUpdate);
+    window.addEventListener('subtaskCreated', handleSubtaskCreated);
 
     return () => {
       window.removeEventListener('taskStatusUpdated', handleTaskStatusUpdated);
       window.removeEventListener('taskColorUpdated', handleTaskColorUpdated);
+      window.removeEventListener('subtaskUpdate', handleSubtaskUpdate);
+      window.removeEventListener('subtaskCreated', handleSubtaskCreated);
     };
   }, []);
 
@@ -568,7 +581,7 @@ export default function AllTasks({
   const getTaskType = (task) => {
     if (task.isApprovalTask) return "Approval Task";
     if (task.isRecurring || task.recurringFromTaskId) return "Recurring Task";
-    if (task.type === "milestone") return "Milestone";
+    if (task.mainTaskType === "milestone") return "Milestone";
     return "Simple Task";
   };
 
@@ -627,30 +640,30 @@ export default function AllTasks({
   //   // 1. If task is completed, show original due date (historical)
   //   // 2. If task has nextDueDate, show that (upcoming occurrence)
   //   // 3. Otherwise, show current due date
-    
+
   //   if (task.status === 'DONE' || task.status === 'completed') {
   //     // For completed recurring tasks, show original due date for reference
   //     return task.dueDate;
   //   }
-    
+
   //   if (task.nextDueDate) {
   //     // Show next due date for active recurring tasks
   //     return task.nextDueDate;
   //   }
-    
+
   //   return task.dueDate;
   // };
   // // Get display due date with recurring task logic
   // const getDisplayDueDate = (task) => {
   //   debugRecurringTask(task, 'getDisplayDueDate');
-    
+
   //   const enhancedDueDate = calculateEnhancedDueDate(task);
-    
-   
+
+
   //   if (!enhancedDueDate) {
   //     return null;
   //   }
-    
+
   //   return new Date(enhancedDueDate);
   // };
 
@@ -670,7 +683,7 @@ export default function AllTasks({
 
     const incompleteSubtasks = task.subtasks.filter(
       (subtask) =>
-        subtask.status !== "completed" && subtask.status !== "cancelled",
+        subtask.status !== "DONE" && subtask.status !== "CANCELLED",
     );
 
     return incompleteSubtasks.length === 0;
@@ -913,8 +926,8 @@ export default function AllTasks({
         notes: reason || undefined, // Add notes if reason is provided
       };
 
-      // Add completedDate if status is being set to completed/done
-      if (backendStatus === "completed" || newStatusCode === "DONE") {
+      // ✅ Add completedDate if status is being set to DONE
+      if (newStatusCode === "DONE") {
         payload.completedDate = new Date().toISOString();
       }
 
@@ -963,7 +976,7 @@ export default function AllTasks({
                 statusColor: newStatusColor,
                 colorCode: newStatusColor, // Also update colorCode field
                 updatedAt: new Date().toISOString(),
-                ...(backendStatus === "completed" && { completedDate: new Date().toISOString() })
+                ...(newStatusCode === "DONE" && { completedDate: new Date().toISOString() })
               };
 
               console.log('🎨 Updated task with color:', {
@@ -1060,13 +1073,13 @@ export default function AllTasks({
       const task = apiTasks.find((t) => t.id === taskId || t._id === taskId);
 
       if (!task) {
-        showToast("Task not found", "error");
+        showErrorToast("Task not found");
         return;
       }
 
       // Check permissions
       if (!canDeleteTask(task)) {
-        showToast("You do not have permission to delete this task", "error");
+        showErrorToast("You do not have permission to delete this task");
         return;
       }
 
@@ -1095,7 +1108,7 @@ export default function AllTasks({
           setApiTasks(prev => prev.filter(t => t.id !== taskId && t._id !== taskId));
 
           // Show success toast
-          showToast(`Task "${task.title}" deleted successfully`, "success");
+          showSuccessToast(`Task "${task.title}" deleted successfully`, "success");
 
           // Refetch tasks to ensure sync
           await refetchTasks();
@@ -1108,9 +1121,10 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('❌ Error deleting task:', error);
-      showToast(error.message || "Error deleting task", "error");
+      showErrorToast(error.message || "Error deleting task");
     }
   };  // Execute task deletion
+
   const executeTaskDeletion = async (taskId, options) => {
     try {
       const task = apiTasks.find((t) => t.id === taskId);
@@ -1131,7 +1145,7 @@ export default function AllTasks({
         setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
 
         // Show success toast
-        showToast(`Task "${task?.title}" deleted successfully`, "success");
+        showSuccessToast(`Task "${task?.title}" deleted successfully`);
 
         // Refetch to ensure sync
         await refetchTasks();
@@ -1140,7 +1154,7 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('Error deleting task:', error);
-      showToast(error.response?.data?.message || error.message || "Error deleting task", "error");
+      showErrorToast(error.response?.data?.message || error.message || "Error deleting task");
       setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
     }
   };
@@ -1159,7 +1173,7 @@ export default function AllTasks({
     });
 
     if (errors.length > 0) {
-      showToast(`Cannot delete some tasks: ${errors.join(", ")}`, "error");
+      showErrorToast(`Cannot delete some tasks: ${errors.join(", ")}`);
       return;
     }
 
@@ -1215,11 +1229,11 @@ export default function AllTasks({
 
       // Show appropriate toast
       if (errorCount === 0) {
-        showToast(`${successCount} tasks deleted successfully`, "success");
+        showSuccessToast(`${successCount} tasks deleted successfully`);
       } else if (successCount === 0) {
-        showToast(`Failed to delete all ${errorCount} tasks`, "error");
+        showErrorToast(`Failed to delete all ${errorCount} tasks`);
       } else {
-        showToast(`${successCount} tasks deleted, ${errorCount} failed`, "warning");
+        showWarningToast(`${successCount} tasks deleted, ${errorCount} failed`);
       }
 
       // Refetch to ensure sync
@@ -1227,7 +1241,7 @@ export default function AllTasks({
 
     } catch (error) {
       console.error('Error in bulk delete:', error);
-      showToast("Error occurred during bulk delete operation", "error");
+      showErrorToast("Error occurred during bulk delete operation");
       setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
     }
   };
@@ -1255,7 +1269,7 @@ export default function AllTasks({
 
       if (newStatusCode === "DONE" && !canMarkAsCompleted(task)) {
         const incompleteCount = task.subtasks.filter(
-          (s) => s.status !== "completed" && s.status !== "cancelled",
+          (s) => s.status !== "DONE" && s.status !== "CANCELLED",
         ).length;
         errors.push(
           `"${task.title}" has ${incompleteCount} incomplete sub-tasks`,
@@ -1339,7 +1353,7 @@ export default function AllTasks({
               ? { ...task, title: editingTitle.trim() }
               : task
           ));
-          showToast("Task title updated successfully", "success");
+          showSuccessToast("Task title updated successfully");
 
           // Refetch to ensure sync
           await refetchTasks();
@@ -1348,7 +1362,7 @@ export default function AllTasks({
         }
       } catch (error) {
         console.error('Error updating task title:', error);
-        showToast(error.response?.data?.message || "Failed to update task title", "error");
+        showErrorToast(error.response?.data?.message || "Failed to update task title");
       }
     }
     setEditingTaskId(null);
@@ -1372,24 +1386,110 @@ export default function AllTasks({
 
   // Subtask title editing handlers
   const handleSubtaskTitleClick = (subtask, parentTaskId) => {
-    setEditingSubtaskId(subtask.id);
+    setEditingSubtaskId(subtask._id || subtask.id);
     setEditingSubtaskTitle(subtask.title);
   };
 
-  const handleSubtaskTitleSave = (subtaskId, parentTaskId) => {
-    if (
-      editingSubtaskTitle.trim() &&
-      editingSubtaskTitle !==
-      tasks
-        .find((t) => t.id === parentTaskId)
-        ?.subtasks?.find((s) => s.id === subtaskId)?.title
-    ) {
-      updateSubtask(parentTaskId, subtaskId, {
-        title: editingSubtaskTitle.trim(),
-      });
+  const handleSubtaskTitleSave = async (subtaskId, parentTaskId) => {
+    console.log('💾 handleSubtaskTitleSave called:', { subtaskId, parentTaskId, newTitle: editingSubtaskTitle });
+
+    // Find the parent task
+    const parentTask = apiTasks.find((t) => (t._id || t.id) === parentTaskId);
+    if (!parentTask) {
+      console.error('❌ Parent task not found:', parentTaskId);
+      return;
     }
-    setEditingSubtaskId(null);
-    setEditingSubtaskTitle("");
+
+    // Find the current subtask
+    const currentSubtask = parentTask.subtasks?.find((s) => (s._id || s.id) === subtaskId);
+    if (!currentSubtask) {
+      console.error('❌ Subtask not found:', subtaskId);
+      return;
+    }
+
+    // Check if title has changed
+    if (
+      !editingSubtaskTitle.trim() ||
+      editingSubtaskTitle.trim() === currentSubtask.title
+    ) {
+      console.log('ℹ️ Title unchanged or empty, skipping update');
+      setEditingSubtaskId(null);
+      setEditingSubtaskTitle("");
+      return;
+    }
+
+    try {
+      console.log('📡 Updating subtask title via API...');
+      
+      // Get auth token
+      const authToken = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
+      const finalToken = authToken || token;
+
+      if (!finalToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Prepare update payload with all current subtask data + new title
+      const updatePayload = {
+        title: editingSubtaskTitle.trim(),
+        description: currentSubtask.description || '',
+        status: currentSubtask.status || 'OPEN',
+        priority: currentSubtask.priority?.toLowerCase().replace(' priority', '').replace(' ', '-') || 'low',
+        dueDate: currentSubtask.dueDate || null,
+        visibility: currentSubtask.visibility?.toLowerCase() || 'internal',
+      };
+
+      console.log('📤 Update payload:', updatePayload);
+
+      const response = await fetch(`/api/tasks/${parentTaskId}/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${finalToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Subtask title updated successfully:', result);
+
+      if (result.success) {
+        // Update local state
+        setApiTasks(prev => prev.map(task => {
+          if ((task._id || task.id) === parentTaskId) {
+            return {
+              ...task,
+              subtasks: task.subtasks?.map(subtask =>
+                ((subtask._id || subtask.id) === subtaskId)
+                  ? { ...subtask, title: editingSubtaskTitle.trim() }
+                  : subtask
+              ) || []
+            };
+          }
+          return task;
+        }));
+
+        showSuccessToast('Subtask title updated successfully');
+        await refetchTasks(); // Refresh to ensure sync
+      } else {
+        throw new Error(result.message || 'Failed to update subtask title');
+      }
+    } catch (error) {
+      console.error('❌ Error updating subtask title:', error);
+      showErrorToast(error.message || 'Failed to update subtask title');
+    } finally {
+      setEditingSubtaskId(null);
+      setEditingSubtaskTitle("");
+    }
   };
 
   const handleSubtaskTitleCancel = () => {
@@ -1447,7 +1547,7 @@ export default function AllTasks({
 
         setShowEditModal(false);
         setEditingTask(null);
-        showToast("Task updated successfully", "success");
+        showSuccessToast("Task updated successfully");
 
         // Refetch to ensure sync
         await refetchTasks();
@@ -1456,7 +1556,7 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('Error updating task:', error);
-      showToast(error.response?.data?.message || "Failed to update task", "error");
+      showErrorToast(error.response?.data?.message || "Failed to update task");
     }
   };
 
@@ -1498,22 +1598,22 @@ export default function AllTasks({
       // Auto-expand parent task to show new subtask
       toggleTaskExpansion(parentTaskId);
 
-      showToast("Subtask created successfully", "success");
+      showSuccessToast("Subtask created successfully");
     } catch (error) {
-      showToast(error.message, "error");
+      showErrorToast(error.message || "Failed to create subtask");
     }
   };
 
   // Update subtask
-  const handleUpdateSubtask = (parentTaskId, updatedSubtask) => {
-    try {
-      updateSubtask(parentTaskId, updatedSubtask.id, updatedSubtask);
-      setSelectedSubtask(null);
-      showToast("Subtask updated successfully", "success");
-    } catch (error) {
-      showToast(error.message, "error");
-    }
-  };
+  // const handleUpdateSubtask = (parentTaskId, updatedSubtask) => {
+  //   try {
+  //     updateSubtask(parentTaskId, updatedSubtask.id, updatedSubtask);
+  //     setSelectedSubtask(null);
+  //     showToast("Subtask updated successfully", "success");
+  //   } catch (error) {
+  //     showToast(error.message, "error");
+  //   }
+  // };
 
   // Handle subtask deletion with confirmation
   const handleDeleteSubtask = (parentTaskId, subtaskId) => {
@@ -1527,7 +1627,7 @@ export default function AllTasks({
 
     if (!subtask) {
       console.error('❌ Subtask not found:', { parentTaskId, subtaskId, parentTask: parentTask?.title });
-      showToast("Subtask not found", "error");
+      showErrorToast("Subtask not found");
       return;
     }
 
@@ -1549,7 +1649,7 @@ export default function AllTasks({
       const subtask = parentTask?.subtasks?.find((s) => s.id === subtaskId);
 
       if (!parentTask || !subtask) {
-        showToast("Subtask or parent task not found", "error");
+        showErrorToast("Subtask or parent task not found");
         setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
         return;
       }
@@ -1594,7 +1694,7 @@ export default function AllTasks({
           ));
 
           setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
-          showToast("Subtask deleted successfully", "success");
+          showSuccessToast("Subtask deleted successfully");
 
           // Refetch to ensure sync
           await refetchTasks();
@@ -1607,7 +1707,7 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('❌ Error deleting subtask:', error);
-      showToast(error.message || "Failed to delete subtask", "error");
+      showErrorToast(error.message || "Failed to delete subtask");
       setConfirmModal({ isOpen: false, type: '', title: '', message: '', onConfirm: null, data: null });
     }
   };
@@ -1647,6 +1747,99 @@ export default function AllTasks({
     );
     if (task) {
       openSubtaskDrawer(task, subtask, 'edit');
+    }
+  };
+
+  // Handle subtask update with API call + refetch (called from SubtaskForm)
+  const handleUpdateSubtask = async (parentTaskId, subtaskId, formData) => {
+    try {
+      console.log('🔄 handleUpdateSubtask called:', { parentTaskId, subtaskId, formData });
+
+      // Get auth token
+      const authToken = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
+      const finalToken = authToken || token;
+
+      if (!finalToken) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Map status values
+      let mappedStatus;
+      switch (formData.status) {
+        case 'Open':
+          mappedStatus = 'OPEN';
+          break;
+        case 'In Progress':
+          mappedStatus = 'INPROGRESS';
+          break;
+        case 'On Hold':
+        case 'Review':
+          mappedStatus = 'ONHOLD';
+          break;
+        case 'Completed':
+        case 'Done':
+          mappedStatus = 'DONE';
+          break;
+        default:
+          mappedStatus = 'OPEN';
+      }
+
+      // Helper function for date conversion
+      const inputDateToLocalIso = (inputDate) => {
+        if (!inputDate) return null;
+        const [y, m, d] = inputDate.split('-').map(Number);
+        const localMidnight = new Date(y, m - 1, d);
+        return localMidnight.toISOString();
+      };
+
+      // Prepare update payload
+      const updatePayload = {
+        title: formData.title,
+        description: formData.description || '',
+        status: mappedStatus,
+        priority: formData.priority?.toLowerCase().replace(' priority', '').replace(' ', '-'),
+        dueDate: inputDateToLocalIso(formData.dueDate),
+        visibility: formData.visibility?.toLowerCase(),
+        tags: formData.tags || [], // Tags editable independently
+      };
+
+      console.log('📤 Update payload:', updatePayload);
+
+      const response = await fetch(`/api/tasks/${parentTaskId}/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${finalToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Subtask updated successfully:', result);
+
+      if (result.success) {
+        showSuccessToast('Subtask updated successfully');
+        
+        // Refetch tasks to update table immediately
+        console.log('🔄 Refetching tasks for immediate table update...');
+        await refetchTasks();
+        console.log('✅ Table updated with latest data');
+      } else {
+        throw new Error(result.message || 'Failed to update subtask');
+      }
+    } catch (error) {
+      console.error('❌ Error updating subtask:', error);
+      showErrorToast(error.message || 'Failed to update subtask');
+      throw error;
     }
   };
 
@@ -1736,7 +1929,7 @@ export default function AllTasks({
       if (response.data.success) {
         setShowApprovalTaskModal(false);
         setSelectedDateForTask(null);
-        showToast("Approval task created successfully", "success");
+        showSuccessToast("Approval task created successfully");
 
         // Refetch tasks to update the list
         await refetchTasks();
@@ -1745,7 +1938,7 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('Error creating approval task:', error);
-      showToast(error.response?.data?.message || "Failed to create approval task", "error");
+      showErrorToast(error.response?.data?.message || "Failed to create approval task");
     }
   };
 
@@ -1781,7 +1974,7 @@ export default function AllTasks({
       if (response.data.success) {
         setShowMilestoneModal(false);
         setSelectedDateForTask(null);
-        showToast("Milestone created successfully", "success");
+        showSuccessToast("Milestone created successfully");
 
         // Refetch tasks to update the list
         await refetchTasks();
@@ -1790,7 +1983,7 @@ export default function AllTasks({
       }
     } catch (error) {
       console.error('Error creating milestone:', error);
-      showToast(error.response?.data?.message || "Failed to create milestone", "error");
+      showErrorToast(error.response?.data?.message || "Failed to create milestone");
     }
   };
 
@@ -1799,7 +1992,7 @@ export default function AllTasks({
     try {
       const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
       if (!task) {
-        showToast("Task not found", "error");
+        showErrorToast("Task not found");
         return;
       }
 
@@ -1814,31 +2007,31 @@ export default function AllTasks({
       // Check if task is currently snoozed
       const isCurrentlySnoozing = task.isSnooze || snoozedTasks.has(taskId);
 
-      if (isCurrentlySnoozing) {
-        // Unsnooze task
-        const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/unsnooze`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      // if (isCurrentlySnoozing) {
+      //   // Unsnooze task
+      //   const response = await axios.patch(
+      //     `http://localhost:5000/api/tasks/${apiTaskId}/unsnooze`,
+      //     {},
+      //     {
+      //       headers: {
+      //         Authorization: `Bearer ${token}`,
+      //       },
+      //     }
+      //   );
 
-        if (response.data.success) {
-          // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? { ...t, isSnooze: false, snoozeUntil: null, snoozeReason: null }
-              : t
-          ));
+      //   if (response.data.success) {
+      //     // Update local state
+      //     setApiTasks(prev => prev.map(t =>
+      //       (t.id === taskId || t._id === taskId)
+      //         ? { ...t, isSnooze: false, snoozeUntil: null, snoozeReason: null }
+      //         : t
+      //     ));
 
-          toggleSnoozeTask(taskId); // Update Zustand store
-          showToast("Task unsnoozed successfully", "success");
-          await refetchTasks(); // Refresh from server
-        }
-      } else {
+      //     toggleSnoozeTask(taskId); // Update Zustand store
+      //     showSuccessToast("Task unsnoozed successfully");
+      //     await refetchTasks(); // Refresh from server
+      //   }
+      // } else {
         // Snooze task - if no snoozeData provided, use default (1 hour from now)
         const defaultSnoozeUntil = new Date();
         defaultSnoozeUntil.setHours(defaultSnoozeUntil.getHours() + 1);
@@ -1875,15 +2068,14 @@ export default function AllTasks({
           ));
 
           toggleSnoozeTask(taskId); // Update Zustand store
-          showToast("Task snoozed successfully", "success");
+          showSuccessToast("Task snoozed successfully");
           await refetchTasks(); // Refresh from server
         }
-      }
+      // }
     } catch (error) {
       console.error('Error handling task snooze:', error);
-      showToast(
-        error.response?.data?.message || "Failed to update snooze status",
-        "error"
+      showErrorToast(
+        error.response?.data?.message || "Failed to update snooze status"
       );
     }
   };
@@ -1893,7 +2085,7 @@ export default function AllTasks({
     try {
       const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
       if (!task) {
-        showToast("Task not found", "error");
+        showErrorToast("Task not found");
         return;
       }
 
@@ -1908,36 +2100,36 @@ export default function AllTasks({
       // Check if task is currently marked as risk
       const isCurrentlyRisky = task.isRisk || riskyTasks.has(taskId);
 
-      if (isCurrentlyRisky) {
-        // Unmark as risk
-        const response = await axios.patch(
-          `http://localhost:5000/api/tasks/${apiTaskId}/unmark-risk`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      // if (isCurrentlyRisky) {
+      //   // Unmark as risk
+      //   const response = await axios.patch(
+      //     `http://localhost:5000/api/tasks/${apiTaskId}/unmark-risk`,
+      //     {},
+      //     {
+      //       headers: {
+      //         Authorization: `Bearer ${token}`,
+      //       },
+      //     }
+      //   );
 
-        if (response.data.success) {
-          // Update local state
-          setApiTasks(prev => prev.map(t =>
-            (t.id === taskId || t._id === taskId)
-              ? {
-                ...t,
-                isRisk: false,
-                riskLevel: null,
-                riskReason: null
-              }
-              : t
-          ));
+      //   if (response.data.success) {
+      //     // Update local state
+      //     setApiTasks(prev => prev.map(t =>
+      //       (t.id === taskId || t._id === taskId)
+      //         ? {
+      //           ...t,
+      //           isRisk: false,
+      //           riskLevel: null,
+      //           riskReason: null
+      //         }
+      //         : t
+      //     ));
 
-          toggleRiskyTask(taskId); // Update Zustand store
-          showToast("Task risk status removed", "success");
-          await refetchTasks(); // Refresh from server
-        }
-      } else {
+      //     toggleRiskyTask(taskId); // Update Zustand store
+      //     showToast("Task risk status removed", "success");
+      //     await refetchTasks(); // Refresh from server
+      //   }
+      // } else {
         // Mark as risk
         const riskLevel = riskData?.riskLevel || 'medium';
         const riskReason = riskData?.riskReason || 'Task requires attention';
@@ -1971,15 +2163,14 @@ export default function AllTasks({
           ));
 
           toggleRiskyTask(taskId); // Update Zustand store
-          showToast("Task marked as risky", "warning");
+          showSuccessToast("Task marked as risky");
           await refetchTasks(); // Refresh from server
         }
-      }
+      // }
     } catch (error) {
       console.error('Error handling task risk status:', error);
-      showToast(
-        error.response?.data?.message || "Failed to update risk status",
-        "error"
+      showErrorToast(
+        error.response?.data?.message || "Failed to update risk status"
       );
     }
   };
@@ -1989,7 +2180,7 @@ export default function AllTasks({
     try {
       const task = apiTasks.find(t => t.id === taskId || t._id === taskId);
       if (!task) {
-        showToast("Task not found", "error");
+        showErrorToast("Task not found");
         return;
       }
 
@@ -2022,14 +2213,13 @@ export default function AllTasks({
 
         // Update Zustand store  
         updateTaskStatus(taskId, 'DONE');
-        showToast("Task marked as completed successfully", "success");
+        showSuccessToast("Task marked as completed successfully");
         await refetchTasks(); // Refresh from server
       }
     } catch (error) {
       console.error('Error marking task as done:', error);
-      showToast(
-        error.response?.data?.message || "Failed to mark task as completed",
-        "error"
+      showErrorToast(
+        error.response?.data?.message || "Failed to mark task as completed"
       );
     }
   };
@@ -2175,24 +2365,30 @@ export default function AllTasks({
     return statusColorMap[statusCode] || '#6B7280'; // Default gray
   };
 
+  // Function to get task color code based on task type
   const getTaskColorCode = (task) => {
     console.log("Getting color code for task::::::::::::::::::", task);
 
-    // Priority: statusColor from API > status-based color > taskType color > default
-    if (task.statusColor) {
-      console.log("Using statusColor from API:", task.statusColor);
-      return task.statusColor;
+    // Priority: taskType color > status-based color > default
+
+    // First check if task has a taskType and get its color
+    if (task.taskType) {
+      const taskTypeInfo = getTaskTypeInfo(task.taskType);
+      if (taskTypeInfo && taskTypeInfo.color) {
+        console.log("Using taskType color:", taskTypeInfo.color, "for taskType:", task.taskType);
+        return taskTypeInfo.color;
+      }
     }
 
+    // Fallback to status-based color
     if (task.status) {
       const statusColor = getStatusColor(task.status);
       console.log("Using status-based color:", statusColor, "for status:", task.status);
       return statusColor;
     }
 
-    // Fallback to task type color
-    const taskInfo = getTaskTypeInfo(task.taskType);
-    const fallbackColor = task.colorCode || taskInfo.defaultColor || "#6B7280";
+    // Final fallback
+    const fallbackColor = task.colorCode || "#6B7280";
     console.log("Using fallback color:", fallbackColor);
     return fallbackColor;
   };
@@ -2217,22 +2413,22 @@ export default function AllTasks({
     try {
       setShowCreateTaskDrawer(false);
       setSelectedDateForTask(null);
-      showToast("Task created successfully", "success");
+      showSuccessToast("Task created successfully");
       await refetchTasks();
     } catch (error) {
       console.error('Error after task creation:', error);
-      showToast("Task created but failed to refresh list", "warning");
+      showErrorToast("Task created but failed to refresh list");
     }
   };
 
   const handleTaskUpdate = async (updatedTask) => {
     try {
       setSelectedTask(updatedTask);
-      showToast("Task updated successfully", "success");
+      showSuccessToast("Task updated successfully");
       await refetchTasks();
     } catch (error) {
       console.error('Error after task update:', error);
-      showToast("Task updated but failed to refresh", "warning");
+      showErrorToast("Task updated but failed to refresh");
     }
   };
 
@@ -2240,11 +2436,11 @@ export default function AllTasks({
     try {
       setShowEditTaskModal(false);
       setEditingTask(null);
-      showToast("Task updated successfully", "success");
+      showSuccessToast("Task updated successfully");
       await refetchTasks();
     } catch (error) {
       console.error('Error after task update:', error);
-      showToast("Task updated but failed to refresh", "warning");
+      showErrorToast("Task updated but failed to refresh");
     }
   };
 
@@ -2253,11 +2449,11 @@ export default function AllTasks({
     try {
       console.log('Updating milestone:', milestoneId, updateData);
       await updateMilestone(milestoneId, updateData);
-      showToast("Milestone updated successfully", "success");
+      showSuccessToast("Milestone updated successfully");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
       console.error('Error updating milestone:', error);
-      showToast("Failed to update milestone: " + (error.response?.data?.message || error.message), "error");
+      showErrorToast("Failed to update milestone: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2265,11 +2461,11 @@ export default function AllTasks({
     try {
       console.log('Deleting milestone:', milestoneId);
       await deleteMilestone(milestoneId);
-      showToast("Milestone deleted successfully", "success");
+      showSuccessToast("Milestone deleted successfully");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
       console.error('Error deleting milestone:', error);
-      showToast("Failed to delete milestone: " + (error.response?.data?.message || error.message), "error");
+      showErrorToast("Failed to delete milestone: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2277,11 +2473,11 @@ export default function AllTasks({
     try {
       console.log('Marking milestone as achieved:', milestoneId);
       await markMilestoneAsAchieved(milestoneId);
-      showToast("Milestone marked as achieved!", "success");
+      showSuccessToast("Milestone marked as achieved!");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
       console.error('Error marking milestone as achieved:', error);
-      showToast("Failed to mark milestone as achieved: " + (error.response?.data?.message || error.message), "error");
+      showErrorToast("Failed to mark milestone as achieved: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2289,11 +2485,11 @@ export default function AllTasks({
     try {
       console.log('Linking task to milestone:', milestoneId, taskData);
       await linkTaskToMilestone(milestoneId, taskData);
-      showToast("Task linked to milestone successfully", "success");
+      showSuccessToast("Task linked to milestone successfully");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
       console.error('Error linking task to milestone:', error);
-      showToast("Failed to link task to milestone: " + (error.response?.data?.message || error.message), "error");
+      showErrorToast("Failed to link task to milestone: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2301,11 +2497,11 @@ export default function AllTasks({
     try {
       console.log('Unlinking task from milestone:', milestoneId, taskId);
       await unlinkTaskFromMilestone(milestoneId, taskId);
-      showToast("Task unlinked from milestone successfully", "success");
+      showSuccessToast("Task unlinked from milestone successfully");
       await refetchTasks(); // Refresh the task list
     } catch (error) {
       console.error('Error unlinking task from milestone:', error);
-      showToast("Failed to unlink task from milestone: " + (error.response?.data?.message || error.message), "error");
+      showErrorToast("Failed to unlink task from milestone: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -2323,9 +2519,8 @@ export default function AllTasks({
         <div className="mt-3 lg:mt-0 flex flex-col sm:flex-row gap-2 flex-wrap">
           <button
             onClick={() => setShowSnooze(!showSnooze)}
-            className={`btn  ${
-              showSnooze ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
-            } whitespace-nowrap`}
+            className={`btn  ${showSnooze ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
+              } whitespace-nowrap`}
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -2343,9 +2538,8 @@ export default function AllTasks({
             {showSnooze ? "Hide" : "Show"} Snoozed Tasks
           </button>
           <button
-            className={`btn ${
-              showCalendarView ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
-            } whitespace-nowrap`}
+            className={`btn ${showCalendarView ? "btn-primary hover:text-white-700 " : "btn-secondary hover:text-purple-700"
+              } whitespace-nowrap`}
             onClick={() => setShowCalendarView(!showCalendarView)}
           >
             <svg
@@ -2524,7 +2718,7 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Status"
             className="min-w-[180px]"
-             size="small"
+            size="small"
           />
 
           <SearchableSelect
@@ -2554,7 +2748,7 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Task Type"
             className="min-w-[210px]"
-             size="small"
+            size="small"
           />
 
           <SearchableSelect
@@ -2586,13 +2780,13 @@ export default function AllTasks({
             ]}
             placeholder="Filter by Due Date"
             className="min-w-[200px]"
-             size="small"
+            size="small"
           />
 
           <SearchableSelect
             placeholder="All Categories"
             className="min-w-[170px]"
-             size="small"
+            size="small"
           />
         </div>
 
@@ -3104,7 +3298,7 @@ export default function AllTasks({
                           ></div>
                         </TableCell>
                         <TableCell className="px-6 py-4 text-nowrap">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-2 hi ih">
                             {/* <button
                             onClick={() => handleOpenThread(task)}
                             className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
@@ -3114,7 +3308,13 @@ export default function AllTasks({
                           </button> */}
                             <TaskActionsDropdown
                               task={task}
-                              onSnooze={() => handleSnoozeTask(task.id)}
+                              onSnooze={(snoozeData) => {
+                                console.log('🎯 AllTasks - Snooze callback received:', {
+                                  taskId: task.id,
+                                  snoozeData
+                                });
+                                handleSnoozeTask(task.id, snoozeData);
+                              }}
                               onMarkAsRisk={() => handleMarkAsRisk(task.id)}
                               onMarkAsDone={() => {
                                 // DONE is a final status, so require confirmation
@@ -3234,7 +3434,22 @@ export default function AllTasks({
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="px-6 py-3"></TableCell>
+                            <TableCell className="px-6 py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {subtask.tags && subtask.tags.length > 0 ? (
+                                  subtask.tags.map((tag, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-gray-400">-</span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center">
                                 <span className="text-sm text-gray-700">
@@ -3253,7 +3468,7 @@ export default function AllTasks({
                             </TableCell>
                             <TableCell className="px-6 py-3">
                               <div className="flex items-center justify-center">
-                                <button
+                                {/* <button
                                   className="text-gray-400 cursor-pointer hover:text-red-600 transition-colors p-1"
                                   onClick={() =>
                                     handleDeleteSubtask(task._id || task.id, subtask._id || subtask.id)
@@ -3273,7 +3488,18 @@ export default function AllTasks({
                                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                     />
                                   </svg>
-                                </button>
+                                </button> */}
+                                <SubtaskActionsDropdown
+                                  parentTaskId={task._id || task.id}
+                                  subtask={subtask}
+                                  onEdit={(parentId, subtaskId) => {
+                                    // Open the subtask drawer for full editing
+                                    handleEditSubtask(subtask);
+                                  }}
+                                  onDelete={(parentId, subtaskId) =>
+                                    handleDeleteSubtask(parentId, subtaskId)
+                                  }
+                                />
                               </div>
                             </TableCell>
                           </TableRow>

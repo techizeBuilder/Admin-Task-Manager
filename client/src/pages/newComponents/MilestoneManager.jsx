@@ -104,14 +104,59 @@ export default function MilestoneManager() {
         const filters = { page: 1, limit: 20 };
 
         const res = await taskService.getTasksByType("milestone", filters);
-        const managerMilestones = res?.data?.roles?.manager || [];
+        console.log('🔍 Milestone API Response:', res?.data);
 
-        const formattedMilestones = managerMilestones.map((m) => ({
+        // ✅ Get current user role from localStorage or auth context
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const userRoles = Array.isArray(currentUser.role) ? currentUser.role : [currentUser.role];
+        
+        console.log('🔍 Current User Roles:', userRoles);
+
+        let allMilestones = [];
+
+        // 🔹 Org Admin: Show ALL milestones (org_admin + manager + employee)
+        // Document Module 2.4.2: "Company Admins have visibility of all tasks within their organization"
+        if (userRoles.includes('org_admin') || userRoles.includes('company_admin')) {
+          console.log('✅ ORG ADMIN: Fetching all milestones from all roles');
+          
+          const orgAdminMilestones = res?.data?.roles?.org_admin || [];
+          const managerMilestones = res?.data?.roles?.manager || [];
+          const employeeMilestones = res?.data?.roles?.employee || [];
+          
+          allMilestones = [...orgAdminMilestones, ...managerMilestones, ...employeeMilestones];
+          
+          console.log('✅ Total milestones for Org Admin:', {
+            orgAdmin: orgAdminMilestones.length,
+            manager: managerMilestones.length,
+            employee: employeeMilestones.length,
+            total: allMilestones.length
+          });
+        } 
+        // 🔹 Manager: Show only manager milestones
+        // Document Module 2.4.3: "Managers can create milestones only for users reporting to them"
+        else if (userRoles.includes('manager')) {
+          console.log('✅ MANAGER: Fetching only manager milestones');
+          allMilestones = res?.data?.roles?.manager || [];
+          console.log('✅ Total milestones for Manager:', allMilestones.length);
+        }
+        // 🔹 Employee: Show only employee milestones (if any)
+        else if (userRoles.includes('employee')) {
+          console.log('✅ EMPLOYEE: Fetching only employee milestones');
+          allMilestones = res?.data?.roles?.employee || [];
+          console.log('✅ Total milestones for Employee:', allMilestones.length);
+        }
+        // 🔹 Default: Show only own milestones
+        else {
+          console.log('✅ INDIVIDUAL: Fetching only individual milestones');
+          allMilestones = res?.data?.roles?.individual || [];
+        }
+
+        const formattedMilestones = allMilestones.map((m) => ({
           id: m._id,
           taskName: m.title,
           description: m.description,
-          assignedTo: `${m.assignedTo.firstName} ${m.assignedTo.lastName}`,
-          assignedToId: m.assignedTo._id,
+          assignedTo: `${m.assignedTo?.firstName || ''} ${m.assignedTo?.lastName || ''}`.trim() || 'Unassigned',
+          assignedToId: m.assignedTo?._id,
           status: m.status || "not_started",
           priority: m.priority || "medium",
           visibility: m.visibility || "public",

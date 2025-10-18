@@ -4,6 +4,7 @@ import { Eye, Plus, Pause, AlertTriangle, CheckCircle, Trash2 } from "lucide-rea
 import { useSubtask } from "../../contexts/SubtaskContext";
 import { useView } from "../../contexts/ViewContext";
 import { useLocation } from "wouter";
+import { useActiveRole } from "../../components/RoleSwitcher";
 import {
   DeleteTaskModal,
   ReassignTaskModal,
@@ -22,6 +23,7 @@ export default function TaskActionsDropdown({
 }) {
   const { openSubtaskDrawer } = useSubtask();
   const { openViewModal } = useView();
+  const { activeRole } = useActiveRole(); // ✅ Get user role from context
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [, navigate] = useLocation();
@@ -50,6 +52,14 @@ export default function TaskActionsDropdown({
   const handleAction = (action) => {
     setIsOpen(false);
     action();
+  };
+
+  const canShowSubtaskOptions = (task, userRole) => {
+    if (userRole === 'individual') return false;
+    if (['approval', 'quick'].includes(task.taskType)) return false;
+    if (task.taskType === 'milestone' && ['employee', 'individual'].includes(userRole)) return false;
+    if (task.taskType === 'recurring' && task.isRecurringPattern) return false;
+    return true;
   };
 
   return (
@@ -83,36 +93,42 @@ export default function TaskActionsDropdown({
             <span className="font-medium">View</span>
           </button>
 
-          <button
-            className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              console.log('🚀 TaskActionsDropdown: Creating subtask for task:', {
-                id: task.id,
-                _id: task._id,
-                title: task.title,
-                fullTask: task
-              });
-              openSubtaskDrawer(task); // Pass the full task object, not just the ID
-            }}
-          >
-            <Plus size={16} className="text-gray-600" />
-            <span className="font-medium">Create Sub-task</span>
-          </button>
+          {canShowSubtaskOptions(task, activeRole) && (
+            <>
+              {/* ✅ Create Subtask */}
+              <button
+                className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  console.log('🚀 TaskActionsDropdown: Creating subtask for task:', {
+                    id: task.id,
+                    _id: task._id,
+                    title: task.title,
+                    fullTask: task
+                  });
+                  openSubtaskDrawer(task);
+                }}
+              >
+                <Plus size={16} className="text-gray-600" />
+                <span className="font-medium">Create Sub-task</span>
+              </button>
 
-          {/* View Sub-task option navigates to Task Detail with Subtasks tab pre-selected */}
-          <button
-            className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              navigate(`/tasks/${task.id}?tab=subtasks`);
-            }}
-          >
-            <Eye size={16} className="text-gray-600" />
-            <span className="font-medium">View Sub-task</span>
-          </button>
+              {/* ✅ View Subtask */}
+              <button
+                className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                  navigate(`/tasks/${task.id}?tab=subtasks`);
+                }}
+              >
+                <Eye size={16} className="text-gray-600" />
+                <span className="font-medium">View Sub-task</span>
+              </button>
+            </>
+          )}
+
 
           <button
             className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
@@ -137,19 +153,6 @@ export default function TaskActionsDropdown({
             <AlertTriangle size={16} className="text-gray-600" />
             <span className="font-medium">Mark as Risk</span>
           </button>
-
-          {/* <button
-          {/* <button
-            className="w-full text-left cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsOpen(false);
-              setShowMarkDoneModal(true);
-            }}
-          >
-            <CheckCircle size={16} className="text-gray-600" />
-            <span className="font-medium">Mark as Done</span>
-
 
           {/* Quick Mark Done - No confirmation needed */}
           <button
@@ -190,7 +193,8 @@ export default function TaskActionsDropdown({
               isOpen={showSnoozeModal}
               onClose={() => setShowSnoozeModal(false)}
               onConfirm={(snoozeData) => {
-                onSnooze && onSnooze(snoozeData);
+                console.log('🎯 TaskActionsDropdown - Snooze confirmed:', snoozeData);
+                onSnooze && onSnooze(snoozeData); // Pass the snoozeData (contains snoozeUntil and reason)
                 setShowSnoozeModal(false);
               }}
               task={task}

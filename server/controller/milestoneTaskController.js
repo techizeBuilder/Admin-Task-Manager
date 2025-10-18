@@ -469,6 +469,13 @@ const linkTaskToMilestone = async (req, res) => {
     const userRole = req.user.role;
     const { taskId, completionPercentage = 0 } = req.body;
 
+    console.log('🔗 Link Task to Milestone attempt:', {
+      milestoneId: id,
+      taskId,
+      userId,
+      userRole
+    });
+
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(taskId)) {
       return res.status(400).json({
         success: false,
@@ -484,11 +491,31 @@ const linkTaskToMilestone = async (req, res) => {
       });
     }
 
-    // Check access permissions
+    // 🏔️ MILESTONE LINK TASK VALIDATION (Doc Ref: 4.3.2)
+    // "Only managers and organizational admins can establish milestone dependencies or subtasks."
+    // Employee and Individual users CANNOT link tasks to milestones
+    const userRoles = Array.isArray(userRole) ? userRole : [userRole];
+    const isTasksetuAdmin = userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin');
+    const isOrgAdmin = userRoles.includes('org_admin') || userRoles.includes('company-admin') || userRoles.includes('admin');
+    const isManager = userRoles.includes('manager');
+    const isEmployee = userRoles.includes('employee') || userRoles.includes('user') || userRoles.includes('normal-user');
+    const isIndividual = userRoles.includes('individual');
+
+    if (!isManager && !isOrgAdmin && !isTasksetuAdmin) {
+      console.error('❌ Permission denied: Only Manager/Org Admin can link tasks to milestones');
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only Manager or Org Admin can link tasks to milestones. Employees can view linked tasks but cannot modify them.'
+      });
+    }
+
+    console.log('✅ Link task permission granted for Manager/Admin');
+
+    // Check access permissions (for viewing milestone)
     if (!canAccessMilestone(milestone, userId, userRole)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: 'Access denied: You do not have access to this milestone'
       });
     }
 
@@ -500,6 +527,42 @@ const linkTaskToMilestone = async (req, res) => {
         message: 'Task not found'
       });
     }
+
+    // 🏔️ TASK TYPE VALIDATION FOR LINKING (Doc Ref: Section 2)
+    // Quick and Approval tasks CANNOT be linked to milestones
+    if (task.taskType === 'quick' || task.isQuickTask === true) {
+      console.error('❌ Cannot link Quick task to milestone');
+      return res.status(400).json({
+        success: false,
+        message: 'Quick tasks cannot be linked to milestones. Quick tasks are single-step actions.'
+      });
+    }
+
+    if (task.taskType === 'approval' || task.isApprovalTask === true) {
+      console.error('❌ Cannot link Approval task to milestone');
+      return res.status(400).json({
+        success: false,
+        message: 'Approval tasks cannot be linked to milestones. Approval tasks are atomic by design.'
+      });
+    }
+
+    // 🏔️ RECURRING PATTERN VALIDATION (Doc Ref: Section 2)
+    // Recurring pattern itself cannot be linked, only instances can be linked
+    if (task.isRecurring === true && task.taskType === 'recurring' && !task.recurringInstanceOf) {
+      console.error('❌ Cannot link recurring pattern to milestone');
+      return res.status(400).json({
+        success: false,
+        message: 'Recurring pattern cannot be linked to milestones. Only specific recurring instances can be linked.'
+      });
+    }
+
+    console.log('✅ Task type validation passed for linking:', {
+      taskType: task.taskType,
+      isQuick: task.isQuickTask,
+      isApproval: task.isApprovalTask,
+      isRecurring: task.isRecurring,
+      isRecurringInstance: !!task.recurringInstanceOf
+    });
 
     // Link the task
     await milestone.linkTask({
@@ -536,12 +599,19 @@ const linkTaskToMilestone = async (req, res) => {
 
 // @desc    Unlink task from milestone
 // @route   DELETE /api/milestone-tasks/:id/unlink-task/:taskId
-// @access  Private
+// @access  Private (Manager+ only)
 const unlinkTaskFromMilestone = async (req, res) => {
   try {
     const { id, taskId } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
+
+    console.log('🔓 Unlink Task from Milestone attempt:', {
+      milestoneId: id,
+      taskId,
+      userId,
+      userRole
+    });
 
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(taskId)) {
       return res.status(400).json({
@@ -558,11 +628,29 @@ const unlinkTaskFromMilestone = async (req, res) => {
       });
     }
 
-    // Check access permissions
+    // 🏔️ MILESTONE UNLINK TASK VALIDATION (Doc Ref: 4.3.2)
+    // "Only managers and organizational admins can establish milestone dependencies or subtasks."
+    // Employee and Individual users CANNOT unlink tasks from milestones
+    const userRoles = Array.isArray(userRole) ? userRole : [userRole];
+    const isTasksetuAdmin = userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin');
+    const isOrgAdmin = userRoles.includes('org_admin') || userRoles.includes('company-admin') || userRoles.includes('admin');
+    const isManager = userRoles.includes('manager');
+
+    if (!isManager && !isOrgAdmin && !isTasksetuAdmin) {
+      console.error('❌ Permission denied: Only Manager/Org Admin can unlink tasks from milestones');
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only Manager or Org Admin can unlink tasks from milestones. Employees can view linked tasks but cannot modify them.'
+      });
+    }
+
+    console.log('✅ Unlink task permission granted for Manager/Admin');
+
+    // Check access permissions (for viewing milestone)
     if (!canAccessMilestone(milestone, userId, userRole)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied'
+        message: 'Access denied: You do not have access to this milestone'
       });
     }
 

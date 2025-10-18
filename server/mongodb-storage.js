@@ -629,7 +629,7 @@ export class MongoStorage {
         });
 
         // Track completion specifically
-        if (taskData.status === "Completed") {
+        if (taskData.status === "DONE") {
           await this.trackActivity({
             activityType: ActivityHelper.ACTIVITY_TYPES.TASK_COMPLETED,
             userId: userId,
@@ -795,7 +795,7 @@ export class MongoStorage {
     const [totalTasks, completedTasks, totalUsers, totalProjects] =
       await Promise.all([
         Task.countDocuments(),
-        Task.countDocuments({ status: "Completed" }),
+        Task.countDocuments({ status: "DONE" }),
         User.countDocuments(),
         Project.countDocuments(),
       ]);
@@ -993,7 +993,7 @@ export class MongoStorage {
         {
           name: "API Integration",
           description: "Integration with third-party services",
-          status: "completed",
+          status: "DONE",
           organization: organizations[0]._id,
           owner: sampleUsers[0]._id,
           createdAt: new Date("2024-01-20"),
@@ -1013,7 +1013,7 @@ export class MongoStorage {
         {
           title: "Homepage Redesign",
           description: "Design new homepage with modern UI",
-          status: "in-progress",
+          status: "INPROGRESS",
           priority: "high",
           organization: organizations[0]._id,
           project: projects[0]._id,
@@ -1025,7 +1025,7 @@ export class MongoStorage {
         {
           title: "API Documentation",
           description: "Write comprehensive API documentation",
-          status: "todo",
+          status: "OPEN",
           priority: "medium",
           organization: organizations[0]._id,
           project: projects[2]._id,
@@ -1037,7 +1037,7 @@ export class MongoStorage {
         {
           title: "Mobile UI Components",
           description: "Create reusable UI components for mobile app",
-          status: "completed",
+          status: "DONE",
           priority: "high",
           organization: organizations[1]._id,
           project: projects[1]._id,
@@ -1049,7 +1049,7 @@ export class MongoStorage {
         {
           title: "Database Schema Design",
           description: "Design database schema for financial data",
-          status: "in-progress",
+          status: "INPROGRESS",
           priority: "urgent",
           organization: organizations[2]._id,
           project: projects[3]._id,
@@ -1061,7 +1061,7 @@ export class MongoStorage {
         {
           title: "User Authentication",
           description: "Implement secure user authentication system",
-          status: "todo",
+          status: "OPEN",
           priority: "high",
           organization: organizations[1]._id,
           project: projects[1]._id,
@@ -1073,7 +1073,7 @@ export class MongoStorage {
         {
           title: "Performance Optimization",
           description: "Optimize application performance and loading times",
-          status: "in-progress",
+          status: "INPROGRESS",
           priority: "medium",
           organization: organizations[0]._id,
           project: projects[0]._id,
@@ -1085,7 +1085,7 @@ export class MongoStorage {
         {
           title: "Data Visualization",
           description: "Create interactive charts and graphs for dashboard",
-          status: "todo",
+          status: "OPEN",
           priority: "medium",
           organization: organizations[2]._id,
           project: projects[3]._id,
@@ -1098,7 +1098,7 @@ export class MongoStorage {
           title: "Security Audit",
           description:
             "Comprehensive security audit and vulnerability assessment",
-          status: "completed",
+          status: "DONE",
           priority: "urgent",
           organization: organizations[1]._id,
           project: projects[1]._id,
@@ -1601,7 +1601,7 @@ export class MongoStorage {
           (task) =>
             task.dueDate &&
             new Date(task.dueDate) < new Date() &&
-            task.status !== "completed"
+            task.status !== "DONE"
         ).length,
       };
 
@@ -1651,7 +1651,7 @@ export class MongoStorage {
     if (tasks.length === 0) return 0;
 
     const totalProgress = tasks.reduce((sum, task) => {
-      if (task.status === "completed") return sum + 100;
+      if (task.status === "DONE") return sum + 100;
       return sum + (task.progress || 0);
     }, 0);
 
@@ -1673,16 +1673,16 @@ export class MongoStorage {
         );
 
         const completedTasks = userTasks.filter(
-          (task) => task.status === "completed"
+          (task) => task.status === "DONE"
         ).length;
         const inProgressTasks = userTasks.filter(
-          (task) => task.status === "in-progress"
+          (task) => task.status === "INPROGRESS"
         ).length;
         const overdueTasks = userTasks.filter(
           (task) =>
             task.dueDate &&
             new Date(task.dueDate) < new Date() &&
-            task.status !== "completed"
+            task.status !== "DONE"
         ).length;
 
         const progressPercentage =
@@ -1731,7 +1731,7 @@ export class MongoStorage {
           const userData = userTaskMap.get(userId);
           userData.totalTasks++;
 
-          if (task.status === "completed") {
+          if (task.status === "DONE") {
             userData.completedTasks++;
           }
         }
@@ -2582,7 +2582,7 @@ export class MongoStorage {
         // Track subtask completion
         if (
           oldSubtask.status !== subtaskData.status &&
-          subtaskData.status === "Completed"
+          subtaskData.status === "DONE"
         ) {
           await this.trackActivity({
             activityType: ActivityHelper.ACTIVITY_TYPES.SUBTASK_COMPLETED,

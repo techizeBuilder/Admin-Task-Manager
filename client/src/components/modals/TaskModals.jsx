@@ -221,22 +221,43 @@ export function ReassignTaskModal({ isOpen, onClose, onConfirm, task }) {
 
 // Snooze Modal
 export function SnoozeTaskModal({ isOpen, onClose, onConfirm, task }) {
-  const [snoozeDate, setSnoozeDate] = useState('');
-  const [snoozeTime, setSnoozeTime] = useState('03:30');
+  const [dateTimeValue, setDateTimeValue] = useState('');
   const [note, setNote] = useState('');
 
+  if (!isOpen) return null;
+
+  // 🕒 Get minimum date-time = current date or task due date (whichever is later)
+  const now = new Date();
+  const dueDate = task?.dueDate ? new Date(task.dueDate) : null;
+  const minDateTime = dueDate && dueDate > now ? dueDate : now;
+
+  // Convert to yyyy-MM-ddThh:mm format for input `min` attr
+  const formattedMin = minDateTime.toISOString().slice(0, 16);
+
   const handleConfirm = () => {
-    if (snoozeDate) {
-      onConfirm({ date: snoozeDate, time: snoozeTime, note });
+    if (dateTimeValue) {
+      // ✅ Convert datetime-local value to ISO string
+      const snoozeUntil = new Date(dateTimeValue).toISOString();
+      
+      console.log('🕒 SnoozeTaskModal - Confirming snooze:', {
+        dateTimeValue,
+        snoozeUntil,
+        note,
+        parsedDate: new Date(dateTimeValue)
+      });
+      
+      onConfirm({ 
+        snoozeUntil: snoozeUntil, // API expects snoozeUntil field in ISO format
+        reason: note || 'Task snoozed' // API expects reason field
+      });
       onClose();
     }
   };
 
-  if (!isOpen) return null;
-
   return (
     <div className="modal-overlay">
       <div className="modal-container">
+        {/* Header */}
         <div className="modal-header snooze-header">
           <div className="modal-title-section">
             <Clock size={24} />
@@ -246,25 +267,33 @@ export function SnoozeTaskModal({ isOpen, onClose, onConfirm, task }) {
             <X size={20} />
           </button>
         </div>
-        
+
+        {/* Body */}
         <div className="p-[2rem]">
           <div className="snooze-form">
             <div className="form-group">
               <label className="form-label">Snooze until:</label>
               <input
                 type="datetime-local"
-                value={`${snoozeDate}T${snoozeTime}`}
+                min={formattedMin} // ✅ Minimum allowed date-time
+                value={dateTimeValue}
                 onChange={(e) => {
-                  const [date, time] = e.target.value.split('T');
-                  setSnoozeDate(date);
-                  setSnoozeTime(time);
+                  console.log('📅 DateTime input changed:', {
+                    rawValue: e.target.value,
+                    parsedDate: new Date(e.target.value),
+                    isoString: new Date(e.target.value).toISOString()
+                  });
+                  setDateTimeValue(e.target.value);
                 }}
                 className="form-input"
                 required
               />
+              <small className="text-gray-500 text-xs">
+                Minimum date/time: {new Date(formattedMin).toLocaleString()}
+              </small>
             </div>
-            
-            <div className="form-group">
+
+            <div className="form-group mt-3">
               <label className="form-label">Optional note:</label>
               <textarea
                 value={note}
@@ -276,13 +305,14 @@ export function SnoozeTaskModal({ isOpen, onClose, onConfirm, task }) {
             </div>
           </div>
         </div>
-        
+
+        {/* Actions */}
         <div className="modal-actions flex justify-between">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button 
-            className={`btn-primary ${!snoozeDate ? 'disabled' : ''}`}
+          <button
+            className={`btn-primary ${!dateTimeValue ? 'disabled' : ''}`}
             onClick={handleConfirm}
-            disabled={!snoozeDate}
+            disabled={!dateTimeValue}
           >
             Snooze Task
           </button>

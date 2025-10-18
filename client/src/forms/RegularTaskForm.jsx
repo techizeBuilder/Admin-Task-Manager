@@ -213,6 +213,8 @@ const RegularTaskForm = ({
   onCancel,
   isOrgUser = false,
   defaultValues = {},
+  collaboratorOptions = [],
+  isLoadingCollaborators = false,
   drawer=false
 }) => {
   const {
@@ -336,15 +338,21 @@ const RegularTaskForm = ({
   ];
 
   // Assignment options (for org users)
-  // const assignmentOptions = !isIndividual
   const assignmentOptions = isOrgUser
     ? [
-      { value: "self", label: "Self" },
-      // { value: "john_doe", label: "John Doe" },
-      // { value: "jane_smith", label: "Jane Smith" },
-      // Add more team members from API
-    ]
+        { value: "self", label: "Self" },
+      ...collaboratorOptions,
+      ]
     : [{ value: "self", label: "Self" }];
+
+  // Debug logging
+  console.log('RegularTaskForm - Assignment Debug:', {
+    isOrgUser,
+    collaboratorOptionsCount: collaboratorOptions.length,
+    collaboratorOptions,
+    assignmentOptions,
+    isLoadingCollaborators
+  });
 
   // File upload handler
   const handleFileUpload = (event) => {

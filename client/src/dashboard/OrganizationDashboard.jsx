@@ -412,9 +412,10 @@ const OrganizationDashboard = () => {
             </div>
           </div>
         </div>
+      </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Team Performance */}
         <div
           className="bg-white p-4 rounded-lg shadow-sm border lg:col-span-1"
@@ -544,71 +545,72 @@ const OrganizationDashboard = () => {
             </h2>
           </div>
           <div className="p-6">
-            {/* <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div
-                  className="h-3 rounded-l-full bg-emerald-500"
-                  style={{ width: `${quickPct}%` }}
-                />
-              </div> */}
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-gray-700">Full Tasks</span>
-                <span className="font-medium text-gray-900">
-                  {moduleUsage.full}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="h-3 rounded-l-full bg-blue-500"
-                  style={{ width: `${fullPct}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Quick vs Full usage ratio: {quickPct}% / {fullPct}%
-              </p>
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="text-gray-700">Quick Tasks</span>
+              <span className="font-medium text-gray-900">
+                {moduleUsage.quick}
+              </span>
             </div>
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+              <div
+                className="h-3 rounded-l-full bg-emerald-500"
+                style={{ width: `${quickPct}%` }}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="text-gray-700">Full Tasks</span>
+              <span className="font-medium text-gray-900">
+                {moduleUsage.full}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div
+                className="h-3 rounded-l-full bg-blue-500"
+                style={{ width: `${fullPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Quick vs Full usage ratio: {quickPct}% / {fullPct}%
+            </p>
           </div>
+        </div>
 
-          {/* System Health */}
-          <div
-            className="bg-white rounded-lg shadow-sm border"
-            data-testid="card-system-health"
-          >
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="text-orange-600" size={18} />
-                System Health
-              </h2>
-            </div>
-            <div className="p-6 space-y-3">
-              {systemHealth.map((e) => (
-                <div key={e.id} className="flex items-start gap-3">
-                  <div
-                    className={`w-2.5 h-2.5 mt-1 rounded-full ${
-                      e.severity === "error"
-                        ? "bg-red-600"
-                        : e.severity === "warning"
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
-                    }`}
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-900">{e.message}</div>
-                    <div className="text-xs text-gray-500">{e.time}</div>
-                  </div>
+        {/* System Health */}
+        <div
+          className="bg-white rounded-lg shadow-sm border"
+          data-testid="card-system-health"
+        >
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <AlertTriangle className="text-orange-600" size={18} />
+              System Health
+            </h2>
+          </div>
+          <div className="p-6 space-y-3">
+            {systemHealth.map((e) => (
+              <div key={e.id} className="flex items-start gap-3">
+                <div
+                  className={`w-2.5 h-2.5 mt-1 rounded-full ${
+                    e.severity === "error"
+                      ? "bg-red-600"
+                      : e.severity === "warning"
+                      ? "bg-yellow-500"
+                      : "bg-green-500"
+                  }`}
+                />
+                <div className="flex-1">
+                  <div className="text-sm text-gray-900">{e.message}</div>
+                  <div className="text-xs text-gray-500">{e.time}</div>
                 </div>
-              ))}
-              {systemHealth.length === 0 && (
-                <div className="text-sm text-gray-500">No issues detected.</div>
-              )}
-            </div>
+              </div>
+            ))}
+            {systemHealth.length === 0 && (
+              <div className="text-sm text-gray-500">No issues detected.</div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Existing Main Content Grid (Team Performance + Recent Activity) */}
-      {/* ...existing code... */}
-      {/* Keep your current Team Performance, Recent Activity, Upcoming Deadlines, and Charts sections below unchanged */}
     </div>
   );
 };

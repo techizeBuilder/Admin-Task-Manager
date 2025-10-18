@@ -4,48 +4,22 @@ import { User } from "../modals/userModal.js";
 import Task from "../modals/taskModal.js";
 
 // 🎨 Centralized Status Color Mapping for TaskSetu
-// Based on Tasksetu Requirement Specification (Module 4.7 – Task Status Management)
+// ✅ Based on Document Specification - Using EXACT uppercase status values
+// Database me sirf ye 5 core statuses store honge: OPEN, INPROGRESS, ONHOLD, DONE, CANCELLED
 const STATUS_COLOR_MAP = {
-  // Core Task Statuses
-  'open': '#3B82F6',           // Blue - Task created, work not started
-  'in-progress': '#F59E0B',    // Yellow/Orange - Actively working
-  'in_progress': '#F59E0B',    // Alternative format
-  'INPROGRESS': '#F59E0B',     // Database format
-  'on-hold': '#6B7280',        // Gray - Temporarily paused
-  'ONHOLD': '#6B7280',         // Database format
-  'completed': '#10B981',      // Green - Successfully finished
-  'done': '#10B981',           // Alternative format
-  'cancelled': '#EF4444',      // Red - Intentionally terminated
-  'rejected': '#DC2626',       // Dark Red - Rejected/declined
+  // ✅ Core Task Statuses (Document Specified - Uppercase Only)
+  'OPEN': '#9CA3AF',           // Gray - Task created, work not started (Document: #9CA3AF)
+  'INPROGRESS': '#3B82F6',     // Blue - Actively working (Document: #3B82F6)
+  'ONHOLD': '#F59E0B',         // Orange - Temporarily paused (Document: #F59E0B)
+  'DONE': '#10B981',           // Green - Successfully finished (Document: #10B981)
+  'CANCELLED': '#EF4444',      // Red - Intentionally terminated (Document: #EF4444)
+  'OVERDUE': '#DC2626',        // Dark Red - Derived/Calculated status (Document: #DC2626)
 
-  // Review & Approval Statuses
-  'review': '#8B5CF6',         // Purple - Under review
-  'pending': '#F97316',        // Orange - Waiting for action
-  'approved': '#059669',       // Dark Green - Approved
-  'partially_approved': '#8B5CF6', // Purple - Some approvals received
-  'pending_approval': '#F59E0B',    // Orange - Waiting for approval
-  'auto_approved': '#6366F1',       // Indigo - System auto-approved
-
-  // Additional Common Statuses
-  'todo': '#9CA3AF',           // Light Gray - To do
-  'new': '#3B82F6',            // Blue - Newly created
-  'active': '#F59E0B',         // Orange - Currently active
-  'blocked': '#F59E0B',        // Orange - Blocked by dependency
-  'overdue': '#DC2626',        // Red - Past due date
-  'paused': '#6B7280',         // Gray - Paused
-  'closed': '#10B981',         // Green - Closed/finished
-
-  // Priority Status Colors (if needed)
-  'low': '#22C55E',            // Green - Low priority
-  'medium': '#F59E0B',         // Orange - Medium priority
-  'high': '#F97316',           // Dark Orange - High priority
-  'critical': '#EF4444',       // Red - Critical priority
-
-  // Task Type Colors (if needed)
+  // Task Type Colors (for task type badges)
   'regular': '#3B82F6',        // Blue
-  'recurring': '#8B5CF6',      // Violet
-  'milestone': '#F97316',      // Orange
-  'approval': '#059669'        // Emerald
+  'recurring': '#10B981',      // Green
+  'milestone': '#8B5CF6',      // Violet
+  'approval': '#F59E0B'        // Orange
 };
 
 // Helper: recalc assigned/completed counters for a user (counts non-deleted tasks; includes subtasks)
@@ -59,7 +33,7 @@ async function recalcUserTaskCounters(userId) {
     });
     const completedCount = await Task.countDocuments({
       assignedTo: uid,
-      status: "completed",
+      status: "DONE",
       isDeleted: { $ne: true }
     });
     await User.findByIdAndUpdate(uid, {
@@ -76,10 +50,26 @@ export const createTask = async (req, res) => {
     const user = req.user;
     const taskData = req.body;
 
+    // 🏷️ Multi-tier tag parsing (handles array, JSON string, or single string)
+    let parsedTags = [];
+    if (taskData.tags) {
+      if (Array.isArray(taskData.tags)) {
+        parsedTags = taskData.tags;
+      } else if (typeof taskData.tags === 'string') {
+        try {
+          const parsed = JSON.parse(taskData.tags);
+          parsedTags = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          // Not valid JSON, treat as single tag string
+          parsedTags = [taskData.tags];
+        }
+      }
+    }
+
     // Parse JSON fields
     const parsedTaskData = {
       ...taskData,
-      tags: taskData.tags ? JSON.parse(taskData.tags) : [],
+      tags: parsedTags,
       collaboratorIds: taskData.collaboratorIds ? JSON.parse(taskData.collaboratorIds) : [],
       dependsOnTaskIds: taskData.dependsOnTaskIds
         ? (typeof taskData.dependsOnTaskIds === "string"
@@ -124,6 +114,49 @@ export const createTask = async (req, res) => {
 
     console.log('DEBUG - final createdByRole:', createdByRole);
 
+    // 🏔️ MILESTONE TASK CREATION VALIDATION (Doc Ref: 4.3.1)
+    // "Only managers and organizational admins can establish milestone dependencies or subtasks."
+    if (parsedTaskData.taskType === 'milestone') {
+      const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+      const isTasksetuAdmin = userRoles.includes('tasksetu-admin') || userRoles.includes('super-admin');
+      const isOrgAdmin = userRoles.includes('org_admin') || userRoles.includes('company-admin') || userRoles.includes('admin');
+      const isManager = userRoles.includes('manager');
+      const isEmployee = userRoles.includes('employee') || userRoles.includes('user') || userRoles.includes('normal-user');
+      const isIndividual = userRoles.includes('individual');
+
+      console.log('🏔️ Milestone task creation attempt:', {
+        userRoles,
+        isManager,
+        isOrgAdmin,
+        isTasksetuAdmin,
+        isEmployee,
+        isIndividual
+      });
+
+      // Only Manager, Org Admin, or Tasksetu Admin can create milestone tasks
+      if (!isManager && !isOrgAdmin && !isTasksetuAdmin) {
+        console.error('❌ Permission denied: Only Manager/Org Admin can create milestone tasks');
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Only Manager or Org Admin can create milestone tasks. Milestone tasks represent major project phases and can only be managed by project leads.'
+        });
+      }
+
+      // Individual users cannot create milestone tasks (no organization context)
+      if (isIndividual || (!user.organizationId && !isTasksetuAdmin)) {
+        console.error('❌ Permission denied: Individual users cannot create milestone tasks');
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: Milestone tasks require an organization context. Individual users cannot create milestone tasks.'
+        });
+      }
+
+      console.log('✅ Milestone task creation permission granted');
+      
+      // 🏔️ Milestone tasks DO NOT support tags - clear them
+      parsedTaskData.tags = [];
+      console.log('🏔️ Cleared tags for milestone task (milestone tasks do not support tags)');
+    }
 
     // Base Task (with improved recurring logic)
     let baseTask = {
@@ -132,7 +165,7 @@ export const createTask = async (req, res) => {
       createdBy: user.id,
       createdByRole: createdByRole,
       assignedTo: parsedTaskData.assignedTo || user.id,
-      status: parsedTaskData.status || "open",
+      status: parsedTaskData.status || "OPEN",
       priority: parsedTaskData.priority || "medium",
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
@@ -319,40 +352,195 @@ export const createSubtask = async (req, res) => {
     const { parentTaskId } = req.params;
     const taskData = req.body;
 
-    // Validate parent task exists
+    console.log('🚀 createSubtask API called:', {
+      parentTaskId,
+      userId: user.id,
+      userRole: user.role,
+      taskDataTitle: taskData.title
+    });
+
+    // 🔹 Validate parent task exists
     const parentTask = await storage.getTaskById(parentTaskId);
     if (!parentTask) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false, message: 'Parent task not found' });
+    }
+
+    // 🔹 Role extraction
+    const roles = Array.isArray(user.role) ? user.role : [user.role];
+    const isTasksetuAdmin = roles.includes('tasksetu-admin') || roles.includes('super-admin');
+    const isOrgAdmin = roles.includes('org_admin') || roles.includes('company-admin') || roles.includes('admin');
+    const isManager = roles.includes('manager');
+    const isEmployee = roles.includes('employee') || roles.includes('user') || roles.includes('normal-user');
+    const isIndividual = roles.includes('individual');
+
+    // =====================================================================
+    // 📘 Document Ref: 4.2.6, 6.3 — Status-based restrictions
+    // =====================================================================
+    const allowedStatuses = ['OPEN', 'INPROGRESS', 'REOPENED'];
+    const status = (parentTask.status || '').toUpperCase();
+
+    if (!allowedStatuses.includes(status)) {
+      // Managers/Admins may override for ONHOLD
+      const isOnHoldAllowed = status === 'ONHOLD' && (isManager || isOrgAdmin || isTasksetuAdmin);
+      if (!isOnHoldAllowed) {
+        console.error('❌ Parent task in invalid status for subtask creation:', status);
+        return res.status(400).json({
+          success: false,
+          message: `Subtask cannot be created when parent task is ${status}. Only OPEN or INPROGRESS tasks support subtasks.`
+        });
+      }
+    }
+
+    // =====================================================================
+    // 📘 Document Ref: 4.2.2 — Individual user restriction
+    // =====================================================================
+    if (isIndividual) {
+      return res.status(403).json({
         success: false,
-        message: 'Parent task not found'
+        message: 'Individual users cannot create subtasks. Personal workspace tasks are standalone only.'
       });
     }
 
-    // Check if user has permission to create subtask for this parent task
-    if (parentTask.organization && user.organizationId) {
-      const taskOrgId = getTaskOrganizationId(parentTask.organization);
-      const userOrgId = user.organizationId?.toString() || user.organizationId;
+    // =====================================================================
+    // 📘 Document Ref: 4.2.2 — Task Type Restrictions
+    // =====================================================================
+    if (parentTask.taskType === 'approval' || parentTask.isApprovalTask === true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subtasks are not allowed for Approval tasks.'
+      });
+    }
 
-      if (taskOrgId !== userOrgId) {
+    if (parentTask.taskType === 'quick' || parentTask.isQuickTask === true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subtasks are not allowed for Quick tasks.'
+      });
+    }
+
+    // 🔹 No nested subtasks allowed
+    if (parentTask.isSubtask === true || parentTask.parentTaskId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create subtask under another subtask. Only 1-level hierarchy allowed.'
+      });
+    }
+
+    // =====================================================================
+    // 📘 Document Ref: 4.3.2 — Milestone Role Restriction
+    // =====================================================================
+    if (parentTask.taskType === 'milestone' || parentTask.isMilestone === true) {
+      if (!isManager && !isOrgAdmin && !isTasksetuAdmin) {
         return res.status(403).json({
           success: false,
-          message: 'Access denied'
-        });
-      }
-    } else if (!parentTask.organization && !user.organizationId) {
-      // For individual users without organization, check if they created the parent task
-      if (parentTask.createdBy && user.id && parentTask.createdBy.toString() !== user.id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied'
+          message: 'Only Manager or Org Admin can create subtasks under milestone tasks.'
         });
       }
     }
 
-    // Parse JSON fields
+    // =====================================================================
+    // 📘 Document Ref: 4.2.6 — Recurring pattern restriction
+    // =====================================================================
+    if (parentTask.taskType === 'recurring' && parentTask.isRecurringPattern) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create subtask under recurring pattern task. Only recurring instances can have subtasks.'
+      });
+    }
+
+    // =====================================================================
+    // 🔹 Parent Status Validation (Completed / Cancelled)
+    // =====================================================================
+    if (['DONE', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot create subtask for ${status} task. Completed or cancelled tasks are locked.`
+      });
+    }
+
+    // =====================================================================
+    // 📘 Organization-level validation (unchanged)
+    // =====================================================================
+    let taskOrgId = parentTask.organization?._id?.toString() || parentTask.organization?.toString() || null;
+    let userOrgId = user.organizationId?.toString() || user.organization?.toString() || null;
+
+    if (taskOrgId && !userOrgId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot create subtask in organization task as individual user.'
+      });
+    }
+
+    if (!taskOrgId && userOrgId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot create subtask in individual task from organization account.'
+      });
+    }
+
+    if (taskOrgId && userOrgId && taskOrgId !== userOrgId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot create subtask for task outside your organization.'
+      });
+    }
+
+    // =====================================================================
+    // 📘 Role-based permission checks (kept original logic)
+    // =====================================================================
+    let hasPermission = false;
+    const isMilestoneTask = parentTask.taskType === 'milestone' || parentTask.isMilestone === true;
+
+    if (isTasksetuAdmin || isOrgAdmin) {
+      hasPermission = true;
+    } else if (isManager) {
+      const isOwnTask = parentTask.createdBy?.toString() === user.id?.toString();
+      const isAssignedToSelf = parentTask.assignedTo?.toString() === user.id?.toString();
+      const isTeamTask = true; // TODO: implement proper team check
+      hasPermission = isOwnTask || isAssignedToSelf || isTeamTask;
+    } else if (isEmployee) {
+      if (isMilestoneTask) hasPermission = false;
+      else {
+        const isOwnTask = parentTask.createdBy?.toString() === user.id?.toString();
+        const isAssignedToSelf = parentTask.assignedTo?.toString() === user.id?.toString();
+        hasPermission = isOwnTask || isAssignedToSelf;
+      }
+    }
+
+    if (!hasPermission) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You do not have permission to create subtasks for this task.'
+      });
+    }
+
+    // =====================================================================
+    // 🔹 Parse task data (unchanged)
+    // =====================================================================
+    // 🔹 Parse task data with multi-tier tag parsing
+    // =====================================================================
+    let parsedTags = [];
+    
+    // 🏔️ Milestone tasks and their subtasks DO NOT support tags
+    const isMilestoneParent = parentTask.taskType === 'milestone' || parentTask.isMilestone === true;
+    
+    if (!isMilestoneParent && taskData.tags) {
+      if (Array.isArray(taskData.tags)) {
+        parsedTags = taskData.tags;
+      } else if (typeof taskData.tags === 'string') {
+        try {
+          const parsed = JSON.parse(taskData.tags);
+          parsedTags = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          // Not valid JSON, treat as single tag string
+          parsedTags = [taskData.tags];
+        }
+      }
+    }
+
     const parsedTaskData = {
       ...taskData,
-      tags: taskData.tags ? JSON.parse(taskData.tags) : [],
+      tags: parsedTags,
       collaboratorIds: taskData.collaboratorIds ? JSON.parse(taskData.collaboratorIds) : [],
       dependsOnTaskIds: taskData.dependsOnTaskIds
         ? (typeof taskData.dependsOnTaskIds === "string"
@@ -361,10 +549,27 @@ export const createSubtask = async (req, res) => {
         : []
     };
 
-    // Handle attachments
+    // ✅ TAGS INHERITANCE (only for non-milestone tasks)
+    if (!isMilestoneParent && (!parsedTaskData.tags || parsedTaskData.tags.length === 0)) {
+      parsedTaskData.tags = parentTask.tags || [];
+    }
+
+    // ✅ DUE DATE VALIDATION
+    if (parsedTaskData.dueDate && parentTask.dueDate) {
+      const subDue = new Date(parsedTaskData.dueDate);
+      const parDue = new Date(parentTask.dueDate);
+      if (subDue > parDue) {
+        return res.status(400).json({
+          success: false,
+          message: `Subtask due date (${subDue.toLocaleDateString()}) cannot exceed parent task due date (${parDue.toLocaleDateString()})`
+        });
+      }
+    }
+
+    // 🔹 Handle attachments (unchanged)
     let attachments = [];
-    if (req.files && req.files.length > 0) {
-      attachments = req.files.map((file) => ({
+    if (req.files?.length > 0) {
+      attachments = req.files.map(file => ({
         id: Date.now() + Math.random(),
         name: file.originalname,
         filename: file.filename,
@@ -374,68 +579,57 @@ export const createSubtask = async (req, res) => {
       }));
     }
 
-    // Determine the createdByRole
+    // 🔹 Determine createdByRole (unchanged)
     let createdByRole = parsedTaskData.createdByRole;
     if (!createdByRole) {
-      if (Array.isArray(user.role)) {
-        const rolePriority = ["super_admin", "org_admin", "manager", "employee", "individual"];
-        createdByRole = user.role.find(role => rolePriority.includes(role)) || "employee";
-      } else {
-        createdByRole = user.role || "employee";
-      }
+      const rolePriority = ["super_admin", "org_admin", "manager", "employee", "individual"];
+      createdByRole = Array.isArray(user.role)
+        ? user.role.find(r => rolePriority.includes(r)) || "employee"
+        : user.role || "employee";
     }
 
-    // Create subtask with parent task reference
+    // ✅ Construct subtask data
+    // 🎨 IMPORTANT: Subtasks inherit parent's taskType for correct color coding
+    // isSubtask flag identifies it as a subtask, but taskType determines the color
     const subtaskData = {
       title: parsedTaskData.title,
       description: parsedTaskData.description || "",
       createdBy: user.id,
-      createdByRole: createdByRole,
+      createdByRole,
       assignedTo: parsedTaskData.assignedTo || user.id,
-      status: parsedTaskData.status || "open",
-      priority: parsedTaskData.priority || "medium",
+      status: parsedTaskData.status || "OPEN",
+      priority: parsedTaskData.priority || parentTask.priority || "medium",
       dueDate: parsedTaskData.dueDate ? new Date(parsedTaskData.dueDate) : null,
       startDate: parsedTaskData.startDate ? new Date(parsedTaskData.startDate) : null,
-      taskType: "subtask",
-      mainTaskType: "subtask",
-      taskTypeAdvanced: "simple",
-      parentTaskId: parentTaskId, // Reference to parent task
+      taskType: parentTask.taskType, // ✅ INHERIT parent's taskType (regular/milestone/recurring/approval)
+      mainTaskType: parentTask.taskType, // Keep for backward compatibility
+      parentTaskId,
       tags: parsedTaskData.tags,
-      category: parsedTaskData.category,
-      visibility: parsedTaskData.visibility || "private",
-      collaborators: parsedTaskData.collaboratorIds,
-      dependencies: parsedTaskData.dependsOnTaskIds && parsedTaskData.dependsOnTaskIds.length > 0
-        ? parsedTaskData.dependsOnTaskIds : [],
-      attachments: attachments,
-      customFields: {},
-      referenceProcess: parsedTaskData.referenceProcess || null,
-      customForm: parsedTaskData.customForm || null,
-      isSubtask: true,
+      category: parsedTaskData.category || parentTask.category,
+      visibility: parsedTaskData.visibility || parentTask.visibility || "private",
+      collaborators: parsedTaskData.collaboratorIds?.length > 0
+        ? parsedTaskData.collaboratorIds
+        : (parentTask.collaborators || []),
+      dependencies: parsedTaskData.dependsOnTaskIds || [],
+      attachments,
+      isSubtask: true, // ✅ This flag identifies it as a subtask
       isArchived: false,
       isDeleted: false,
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    // Inherit organization from parent task
-    if (parentTask.organization) {
-      subtaskData.organization = parentTask.organization;
-    }
+    if (parentTask.organization) subtaskData.organization = parentTask.organization;
+    if (parentTask.companyId) subtaskData.companyId = parentTask.companyId;
 
-    // Save subtask
     const createdSubtask = await storage.createTask(subtaskData);
-
-    // Recalculate counters for subtask assignee
     await recalcUserTaskCounters(createdSubtask?.assignedTo);
 
     res.status(201).json({
       success: true,
       message: "Subtask created successfully",
       subtask: createdSubtask,
-      parentTask: {
-        _id: parentTask._id,
-        title: parentTask.title
-      }
+      parentTask: { _id: parentTask._id, title: parentTask.title }
     });
   } catch (error) {
     console.error("Error creating subtask:", error);
@@ -1326,7 +1520,9 @@ export const addTaskComment = async (req, res) => {
       error: error.message
     });
   }
-};// Helper function to check comment permissions
+};
+
+// Helper function to check comment permissions
 function checkCommentPermission(user, task) {
   console.log('DEBUG - checkCommentPermission:', {
     userRole: user.role,
@@ -2411,8 +2607,9 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
 
-    // Validate status against allowed values (as per document)
-    const allowedStatuses = ['OPEN', 'INPROGRESS', 'ONHOLD', 'DONE', 'CANCELLED', 'open', 'in-progress', 'on-hold', 'completed', 'cancelled'];
+    // ✅ Validate status against EXACT core system values (as per document)
+    // Only accept uppercase status values: OPEN, INPROGRESS, ONHOLD, DONE, CANCELLED
+    const allowedStatuses = ['OPEN', 'INPROGRESS', 'ONHOLD', 'DONE', 'CANCELLED'];
     if (!allowedStatuses.includes(status)) {
       console.log('❌ Status validation failed - invalid status:', status);
       return res.status(400).json({
@@ -2421,22 +2618,10 @@ export const updateTaskStatus = async (req, res) => {
       });
     }
 
-    // Normalize status to core system values (as per document)
-    const statusMapping = {
-      'OPEN': 'open',
-      'INPROGRESS': 'in-progress',
-      'ONHOLD': 'on-hold',
-      'DONE': 'completed',
-      'CANCELLED': 'cancelled',
-      'open': 'open',
-      'in-progress': 'in-progress',
-      'on-hold': 'on-hold',
-      'completed': 'completed',
-      'cancelled': 'cancelled'
-    };
-
-    const normalizedStatus = statusMapping[status] || status;
-    console.log('🔍 Status normalization:', { originalStatus: status, normalizedStatus });
+    // ✅ NO MAPPING/NORMALIZATION - Use exact uppercase status value from request
+    // Database me exact uppercase value store hogi jo frontend se aayi hai
+    const normalizedStatus = status;
+    console.log('🔍 Using exact status value:', { status, normalizedStatus });
 
     console.log('🔍 Fetching task from database...');
     const task = await storage.getTaskById(id);
@@ -2530,22 +2715,13 @@ export const updateTaskStatus = async (req, res) => {
       return null;
     }
 
-    // Helper: get core status for validation
+    // ✅ Helper: Validate status is in uppercase format
+    // Since we now only use uppercase values (OPEN, INPROGRESS, ONHOLD, DONE, CANCELLED)
+    // this function simply returns the value as-is for validation purposes
     function toCoreStatus(val) {
       if (!val) return '';
-      const map = {
-        'OPEN': 'OPEN',
-        'INPROGRESS': 'INPROGRESS',
-        'ONHOLD': 'ONHOLD',
-        'DONE': 'DONE',
-        'CANCELLED': 'CANCELLED',
-        'open': 'OPEN',
-        'in-progress': 'INPROGRESS',
-        'on-hold': 'ONHOLD',
-        'completed': 'DONE',
-        'cancelled': 'CANCELLED',
-      };
-      return map[val] || val;
+      // All status values are already in uppercase format
+      return val;
     }
 
     // 1. If this is a subtask, update subtask and then auto-sync parent
@@ -2555,7 +2731,7 @@ export const updateTaskStatus = async (req, res) => {
         status: normalizedStatus,
         updatedAt: new Date()
       };
-      if (normalizedStatus === 'completed') {
+      if (normalizedStatus === 'DONE') {
         updateData.completedDate = new Date();
         updateData.completedBy = user.id;
       }
@@ -2630,8 +2806,8 @@ export const updateTaskStatus = async (req, res) => {
       status: normalizedStatus,
       updatedAt: new Date()
     };
-    // Add completion data for completed status
-    if (normalizedStatus === 'completed') {
+    // Add completion data for DONE status
+    if (normalizedStatus === 'DONE') {
       updateData.completedDate = new Date();
       updateData.completedBy = user.id;
       // 🔄 Handle Recurring Task Auto-generation on Completion
@@ -3045,8 +3221,8 @@ export const deleteTask = async (req, res) => {
       case 'regular':
         console.log('🔍 Validating Regular Task delete conditions...', task.status);
 
-        // Condition 1: Task Status must be OPEN/NOT_STARTED
-        if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+        // Condition 1: Task Status must be OPEN
+        if (task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Cannot delete a started or dependent task.';
           console.log('❌ Regular Task: Status check failed -', task.status);
@@ -3103,7 +3279,7 @@ export const deleteTask = async (req, res) => {
           console.log('🔍 Validating Recurring Instance delete conditions...');
 
           // Instance conditions
-          if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+          if (task.status && task.status !== 'OPEN') {
             deleteAllowed = false;
             errorMessage = 'Cannot delete active recurring instance; mark as cancelled instead.';
             console.log('❌ Recurring Instance: Status check failed -', task.status);
@@ -3154,8 +3330,8 @@ export const deleteTask = async (req, res) => {
       case 'milestone':
         console.log('🔍 Validating Milestone Task delete conditions...');
 
-        // Condition 1: Milestone Status = Draft / Not Started
-        if (task.status && !['draft', 'open', 'todo'].includes(task.status.toLowerCase())) {
+        // Condition 1: Milestone Status = OPEN
+        if (task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Milestone already active or completed — cannot delete.';
           console.log('❌ Milestone: Status check failed -', task.status);
@@ -3190,8 +3366,8 @@ export const deleteTask = async (req, res) => {
       case 'approval':
         console.log('🔍 Validating Approval Task delete conditions...');
 
-        // Condition 1: Approval Task = Not yet started
-        if (task.status && !['draft', 'open', 'todo'].includes(task.status.toLowerCase())) {
+        // Condition 1: Approval Task = OPEN
+        if (task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Approval task cannot be deleted once submitted for approval.';
           console.log('❌ Approval: Status check failed -', task.status);
@@ -3243,7 +3419,7 @@ export const deleteTask = async (req, res) => {
         }
 
         // Condition 2: Sub-task Status = OPEN
-        if (deleteAllowed && task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+        if (deleteAllowed && task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Cannot delete sub-task after work has started or if parent completed.';
           console.log('❌ Sub-task: Status check failed -', task.status);
@@ -3274,8 +3450,8 @@ export const deleteTask = async (req, res) => {
         // Condition 2: Created by self (already checked above)
         console.log('✅ Quick Task: Creator check passed');
 
-        // Condition 3: Status = Open
-        if (deleteAllowed && task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+        // Condition 3: Status = OPEN
+        if (deleteAllowed && task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Quick task already converted or completed; cannot delete.';
           console.log('❌ Quick Task: Status check failed -', task.status);
@@ -3290,7 +3466,7 @@ export const deleteTask = async (req, res) => {
           taskStatus: task.status
         });
         // For unknown task types, apply basic conditions
-        if (task.status && !['open', 'todo', 'draft'].includes(task.status.toLowerCase())) {
+        if (task.status && task.status !== 'OPEN') {
           deleteAllowed = false;
           errorMessage = 'Cannot delete a started or dependent task.';
           console.log('❌ Default Task: Status check failed -', task.status);
@@ -3504,19 +3680,9 @@ export const getTasksByType = async (req, res) => {
       category
     } = req.query;
 
-    console.log('🔍 GET TASKS BY TYPE API CALLED:', {
-      type,
-      status,
-      priority,
-      page,
-      limit,
-      search,
-      timestamp: new Date().toISOString()
-    });
+    console.log('🔍 GET TASKS BY TYPE API CALLED:', { type, status, priority, page, limit, search });
 
-    console.log('🎨 Using centralized status color mapping with', Object.keys(STATUS_COLOR_MAP).length, 'status mappings');
-
-    // Validate taskType parameter
+    // Validate task type
     const validTaskTypes = ["regular", "recurring", "milestone", "approval"];
     if (!validTaskTypes.includes(type)) {
       return res.status(400).json({
@@ -3526,54 +3692,53 @@ export const getTasksByType = async (req, res) => {
       });
     }
 
-
     const filter = {
       taskType: type,
       isDeleted: { $ne: true }
     };
 
-    // Role-based filtering
+    // -----------------------
+    // ROLE-BASED FILTERING
+    // -----------------------
     if (userRoles.includes('org_admin')) {
-      // Org admin: show tasks for their organization
-      if (user.organizationId) {
-        filter.organization = user.organizationId;
-      }
-    } else if (userRoles.includes('manager') || userRoles.includes('employee')) {
-      // Manager/Employee: show tasks assigned to or created by them
+      // Org Admin: full org visibility, all tasks
+      filter.organization = user.organizationId;
+      // Optional: Approval tasks read-only logic can be applied in frontend if needed
+    } else if (userRoles.includes('manager')) {
+      // Manager: own tasks + tasks of their team
+      const { User } = await import("../modals/userModal.js");
+      const teamMembers = await User.find({ managerId: user.id, status: 'active' }).select('_id');
+      const teamMemberIds = teamMembers.map(u => u._id);
+
+      filter.$or = [
+        { assignedTo: user.id },
+        { createdBy: user.id },
+        { assignedTo: { $in: teamMemberIds } },
+        { createdBy: { $in: teamMemberIds } }
+      ];
+    } else if (userRoles.includes('employee')) {
+      // Employee: only own tasks
       filter.$or = [
         { assignedTo: user.id },
         { createdBy: user.id }
       ];
     } else {
-      // Default: show only tasks created by the user
+      // Individual / fallback
       filter.createdBy = user.id;
     }
 
-    // Debug log for filter and user info
-    console.log('🔍 getTasksByType - User:', {
-      userId: user.id,
-      userRoles,
-      organizationId: user.organizationId
-    });
-    console.log('🔍 getTasksByType - Final Filter:', filter);
-
-    // Apply additional filters
+    // -----------------------
+    // ADDITIONAL FILTERS
+    // -----------------------
     if (status) filter.status = status;
     if (assignee) filter.assignedTo = assignee;
     if (priority) filter.priority = priority;
     if (category) filter.category = { $regex: category, $options: 'i' };
 
     // Date range filter
-    if (startDate && endDate) {
-      filter.dueDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    } else if (startDate) {
-      filter.dueDate = { $gte: new Date(startDate) };
-    } else if (endDate) {
-      filter.dueDate = { $lte: new Date(endDate) };
-    }
+    if (startDate && endDate) filter.dueDate = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    else if (startDate) filter.dueDate = { $gte: new Date(startDate) };
+    else if (endDate) filter.dueDate = { $lte: new Date(endDate) };
 
     // Search filter
     if (search) {
@@ -3584,7 +3749,7 @@ export const getTasksByType = async (req, res) => {
       ];
     }
 
-    // Add type-specific filters
+    // Type-specific filter
     switch (type) {
       case 'recurring':
         filter.isRecurring = true;
@@ -3597,15 +3762,18 @@ export const getTasksByType = async (req, res) => {
         break;
     }
 
-
-    // Get tasks
+    // -----------------------
+    // FETCH TASKS
+    // -----------------------
     const tasks = await storage.getTasksByFilter(filter, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 }
     });
 
-    // Prepare to populate collaborators as user objects
+    // -----------------------
+    // POPULATE COLLABORATORS
+    // -----------------------
     const allCollaboratorIds = new Set();
     if (tasks && tasks.length > 0) {
       for (let task of tasks) {
@@ -3623,6 +3791,7 @@ export const getTasksByType = async (req, res) => {
       const users = await User.find({ _id: { $in: Array.from(allCollaboratorIds) }, status: "active" })
         .select('_id firstName lastName email role department designation avatar')
         .lean();
+
       users.forEach(u => {
         collaboratorsMap[u._id.toString()] = {
           id: u._id,
@@ -3636,19 +3805,17 @@ export const getTasksByType = async (req, res) => {
       });
     }
 
-    // Group tasks by createdByRole
+    // -----------------------
+    // GROUP TASKS BY CREATED ROLE
+    // -----------------------
     const roleList = ["super_admin", "org_admin", "manager", "individual", "employee"];
     const groupedTasks = {};
-    roleList.forEach((role) => {
-      groupedTasks[role] = [];
-    });
+    roleList.forEach(role => groupedTasks[role] = []);
 
     if (tasks && tasks.length > 0) {
       for (let task of tasks) {
-        // Add status color to each task using centralized mapping
-        task.statusColor = STATUS_COLOR_MAP[task.status] || '#6B7280'; // Default gray if status not found
+        task.statusColor = STATUS_COLOR_MAP[task.status] || '#6B7280';
 
-        // Replace collaborators array of IDs with array of user objects
         if (Array.isArray(task.collaborators)) {
           task.collaborators = task.collaborators
             .map(id => collaboratorsMap[id?.toString()])
@@ -3657,19 +3824,10 @@ export const getTasksByType = async (req, res) => {
           task.collaborators = [];
         }
 
-        console.log('🔍 Processing task:', {
-          taskId: task._id,
-          title: task.title,
-          status: task.status,
-          statusColor: task.statusColor,
-          createdByRole: task.createdByRole
-        });
-
         if (groupedTasks[task.createdByRole]) {
           groupedTasks[task.createdByRole].push(task);
         }
 
-        // Add approval details if needed
         if (task.isApprovalTask) {
           try {
             const approvals = await storage.getTaskApprovals(task._id);
@@ -3681,28 +3839,14 @@ export const getTasksByType = async (req, res) => {
       }
     }
 
-    // Pagination
+    // -----------------------
+    // PAGINATION
+    // -----------------------
     const totalTasks = tasks ? tasks.length : 0;
     const totalPages = Math.ceil(totalTasks / parseInt(limit));
     const hasNext = parseInt(page) < totalPages;
     const hasPrev = parseInt(page) > 1;
 
-    // Log summary for debugging
-    console.log('✅ Final task summary for type:', type, {
-      totalTasksFound: totalTasks,
-      tasksByRole: Object.keys(groupedTasks).reduce((acc, role) => {
-        acc[role] = groupedTasks[role].length;
-        return acc;
-      }, {}),
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages,
-        hasNext,
-        hasPrev
-      }
-    });
-
-    // Response (grouped by roles)
     res.json({
       success: true,
       data: {
@@ -3713,11 +3857,12 @@ export const getTasksByType = async (req, res) => {
           totalTasks,
           hasNextPage: hasNext,
           hasPrevPage: hasPrev,
-          limit: parseInt(limit),
+          limit: parseInt(limit)
         },
-        statusColorMap: STATUS_COLOR_MAP // Include centralized color mapping in response for frontend reference
-      },
+        statusColorMap: STATUS_COLOR_MAP
+      }
     });
+
   } catch (error) {
     console.error('Error fetching tasks by type:', error);
     res.status(500).json({
@@ -4015,6 +4160,15 @@ export const snoozeTask = async (req, res) => {
       });
     }
 
+    // Validate snooze time is in the future
+    const snoozeDate = new Date(snoozeUntil);
+    if (snoozeDate <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid snooze time. Snooze date must be in the future."
+      });
+    }
+
     const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
@@ -4025,38 +4179,92 @@ export const snoozeTask = async (req, res) => {
 
     console.log('🔍 TASK FOUND:', {
       taskId: task._id,
+      taskType: task.taskType,
+      isApprovalTask: task.isApprovalTask,
+      status: task.status,
       assignedTo: task.assignedTo,
       assignedToType: typeof task.assignedTo,
       collaboratorIds: task.collaboratorIds
     });
 
-    // Check permissions (assignee, collaborator, or org admin)
-    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
-      task.collaboratorIds?.includes(user.id.toString()) ||
-      user.role === "org_admin" ||
-      Array.isArray(user.role) && user.role.includes("org_admin");
+    // ❌ VALIDATION 1: Approval tasks CANNOT be snoozed (Document Rule)
+    if (task.isApprovalTask || task.taskType === 'approval') {
+      return res.status(400).json({
+        success: false,
+        message: "Approval tasks cannot be snoozed to maintain workflow continuity."
+      });
+    }
+
+    // ❌ VALIDATION 2: Only active tasks can be snoozed (OPEN, INPROGRESS, OVERDUE)
+    const allowedStatuses = ['OPEN', 'INPROGRESS', 'OVERDUE'];
+    if (!allowedStatuses.includes(task.status)) {
+      const statusMessages = {
+        'DONE': 'Cannot snooze completed task.',
+        'CANCELLED': 'Cannot snooze cancelled task.',
+        'ONHOLD': 'Task is already on hold. Cannot snooze.'
+      };
+      return res.status(400).json({
+        success: false,
+        message: statusMessages[task.status] || `Cannot snooze task with status: ${task.status}. Snooze available only for active (open/in-progress/overdue) tasks.`
+      });
+    }
+
+    // ⚠️ VALIDATION 3: Milestone tasks - Only Manager/Company Admin can snooze
+    if (task.taskType === 'milestone' || task.type === 'milestone') {
+      const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+      const canSnoozeMilestone = userRoles.some(role =>
+        ['manager', 'org_admin', 'super_admin'].includes(role)
+      );
+
+      if (!canSnoozeMilestone) {
+        return res.status(403).json({
+          success: false,
+          message: "Only Managers and Admins can snooze milestone tasks."
+        });
+      }
+    }
+
+    // ✅ VALIDATION 4: Check user permissions (assignee, collaborator, manager, or admin)
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+    const isAdmin = userRoles.some(role => ['org_admin', 'super_admin', 'manager'].includes(role));
+    const isAssignee = task.assignedTo?.toString() === user.id.toString();
+    const isCollaborator = task.collaboratorIds?.some(id => id.toString() === user.id.toString());
+
+    const hasPermission = isAssignee || isCollaborator || isAdmin;
 
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
-        message: "You don't have permission to snooze this task"
+        message: "You are not authorized to snooze this task. Only assignee, collaborators, or admins can snooze tasks."
       });
     }
 
-    // Update task with snooze data
+    // ✅ Store original due date before updating (for restore on unsnooze)
+    const originalDueDate = task.dueDate;
+
+    // ✅ Update task with snooze data AND update dueDate to snoozeUntil date
     const updatedTask = await storage.updateTask(taskId, {
       isSnooze: true,
-      snoozeUntil: new Date(snoozeUntil),
+      snoozeUntil: snoozeDate,
       snoozeReason: reason || null,
       snoozedBy: user.id,
       snoozedAt: new Date(),
+      originalDueDate: originalDueDate, // Store original due date for restoration
+      dueDate: snoozeDate, // ✅ UPDATE: Set dueDate to snoozeUntil date
       updatedBy: user.id,
       updatedAt: new Date()
     });
 
+    console.log('✅ Task snoozed successfully:', {
+      taskId: updatedTask._id,
+      originalDueDate: originalDueDate,
+      newDueDate: snoozeDate,
+      snoozeUntil: snoozeDate
+    });
+
     res.json({
       success: true,
-      message: "Task snoozed successfully",
+      message: "Task snoozed successfully. Due date updated and reminders will resume after snooze period.",
       data: updatedTask
     });
 
@@ -4076,7 +4284,7 @@ export const unsnoozeTask = async (req, res) => {
     const { taskId } = req.params;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -4084,33 +4292,54 @@ export const unsnoozeTask = async (req, res) => {
       });
     }
 
-    // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
-      task.collaboratorIds?.includes(user.id.toString()) ||
-      user.role === "org_admin" ||
-      Array.isArray(user.role) && user.role.includes("org_admin");
+    // ✅ Check if task is actually snoozed
+    if (!task.isSnooze) {
+      return res.status(400).json({
+        success: false,
+        message: "Task is not currently snoozed."
+      });
+    }
+
+    // ✅ Check user permissions (assignee, collaborator, manager, or admin)
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+    const isAdmin = userRoles.some(role => ['org_admin', 'super_admin', 'manager'].includes(role));
+    const isAssignee = task.assignedTo?.toString() === user.id.toString();
+    const isCollaborator = task.collaboratorIds?.some(id => id.toString() === user.id.toString());
+
+    const hasPermission = isAssignee || isCollaborator || isAdmin;
 
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
-        message: "You don't have permission to unsnooze this task"
+        message: "You are not authorized to unsnooze this task."
       });
     }
 
-    // Remove snooze data
+    // ✅ Restore original due date if it exists, otherwise keep current dueDate
+    const restoredDueDate = task.originalDueDate || task.dueDate;
+
+    // ✅ Remove snooze data and restore original due date
     const updatedTask = await storage.updateTask(taskId, {
       isSnooze: false,
       snoozeUntil: null,
       snoozeReason: null,
       snoozedBy: null,
       snoozedAt: null,
+      originalDueDate: null, // Clear stored original due date
+      dueDate: restoredDueDate, // ✅ RESTORE: Set dueDate back to original
       updatedBy: user.id,
       updatedAt: new Date()
     });
 
+    console.log('✅ Task unsnoozed successfully:', {
+      taskId: updatedTask._id,
+      restoredDueDate: restoredDueDate,
+      previousSnoozeDate: task.snoozeUntil
+    });
+
     res.json({
       success: true,
-      message: "Task unsnooze successfully",
+      message: "Task unsnoozed successfully. Original due date restored and reminders will resume immediately.",
       data: updatedTask
     });
 
@@ -4139,33 +4368,87 @@ export const markTaskAsRisk = async (req, res) => {
       });
     }
 
-    // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
-      task.collaboratorIds?.includes(user.id.toString()) ||
-      user.role === "org_admin" ||
-      Array.isArray(user.role) && user.role.includes("org_admin");
+    console.log('🔍 MARK AS RISK - TASK FOUND:', {
+      taskId: task._id,
+      taskType: task.taskType,
+      isApprovalTask: task.isApprovalTask,
+      status: task.status,
+      assignedTo: task.assignedTo
+    });
+
+    // ❌ VALIDATION 1: Cannot mark completed or cancelled tasks as risk
+    const invalidStatuses = ['DONE', 'CANCELLED'];
+    if (invalidStatuses.includes(task.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot mark ${task.status === 'DONE' ? 'completed' : 'cancelled'} task as risk. Risk flag not available after task completion.`
+      });
+    }
+
+    // ⚠️ VALIDATION 2: Approval tasks - Limited (only before submission)
+    if (task.isApprovalTask || task.taskType === 'approval') {
+      // If approval task is already submitted/in review, cannot mark as risk
+      if (task.approvalStatus && ['submitted', 'approved', 'rejected'].includes(task.approvalStatus.toLowerCase())) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot mark approval task as risk after submission. Risk marking only available before submission."
+        });
+      }
+    }
+
+    // ✅ VALIDATION 3: Only active tasks (OPEN, INPROGRESS, ONHOLD, OVERDUE) can be marked as risk
+    const allowedStatuses = ['OPEN', 'INPROGRESS', 'ONHOLD', 'OVERDUE'];
+    if (!allowedStatuses.includes(task.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot mark task as risk with status: ${task.status}. Risk flag available only for active tasks (Open/In Progress/On Hold/Overdue).`
+      });
+    }
+
+    // ✅ VALIDATION 4: Check user permissions (assignee, collaborator, manager, or admin)
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+    const isAdmin = userRoles.some(role => ['org_admin', 'super_admin', 'manager'].includes(role));
+    const isAssignee = task.assignedTo?.toString() === user.id.toString();
+    const isCollaborator = task.collaboratorIds?.some(id => id.toString() === user.id.toString());
+
+    const hasPermission = isAssignee || isCollaborator || isAdmin;
 
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
-        message: "You don't have permission to mark this task as risk"
+        message: "You are not authorized to mark this task as risk."
       });
     }
 
-    // Update task with risk data
+    // ✅ VALIDATION 5: Validate risk level
+    const validRiskLevels = ['low', 'medium', 'high'];
+    const finalRiskLevel = riskLevel && validRiskLevels.includes(riskLevel.toLowerCase())
+      ? riskLevel.toLowerCase()
+      : 'medium';
+
+    // ✅ Update task with risk data
     const updatedTask = await storage.updateTask(taskId, {
       isRisk: true,
-      riskLevel: riskLevel || 'medium', // low, medium, high
-      riskReason: riskReason || null,
+      riskLevel: finalRiskLevel,
+      riskReason: riskReason || 'Task requires attention',
       riskMarkedBy: user.id,
       riskMarkedAt: new Date(),
       updatedBy: user.id,
       updatedAt: new Date()
     });
 
+    // ✅ If it's a subtask, also mark parent task as having risk
+    if (task.parentTaskId) {
+      await storage.updateTask(task.parentTaskId, {
+        hasRisk: true,
+        updatedBy: user.id,
+        updatedAt: new Date()
+      });
+    }
+
     res.json({
       success: true,
-      message: "Task marked as risk successfully",
+      message: `Task marked as ${finalRiskLevel} risk successfully. This will be flagged for managerial escalation.`,
       data: updatedTask
     });
 
@@ -4185,7 +4468,7 @@ export const unmarkTaskAsRisk = async (req, res) => {
     const { taskId } = req.params;
     const user = req.user;
 
-    const task = await storage.getTask(taskId);
+    const task = await storage.getTaskById(taskId);
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -4193,20 +4476,30 @@ export const unmarkTaskAsRisk = async (req, res) => {
       });
     }
 
-    // Check permissions
-    const hasPermission = task.assignedTo?.toString() === user.id.toString() ||
-      task.collaboratorIds?.includes(user.id.toString()) ||
-      user.role === "org_admin" ||
-      Array.isArray(user.role) && user.role.includes("org_admin");
+    // ✅ Check if task is actually marked as risk
+    if (!task.isRisk) {
+      return res.status(400).json({
+        success: false,
+        message: "Task is not currently marked as risk."
+      });
+    }
+
+    // ✅ Check user permissions (assignee, collaborator, manager, or admin)
+    const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+    const isAdmin = userRoles.some(role => ['org_admin', 'super_admin', 'manager'].includes(role));
+    const isAssignee = task.assignedTo?.toString() === user.id.toString();
+    const isCollaborator = task.collaboratorIds?.some(id => id.toString() === user.id.toString());
+
+    const hasPermission = isAssignee || isCollaborator || isAdmin;
 
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
-        message: "You don't have permission to unmark this task as risk"
+        message: "You are not authorized to unmark this task as risk."
       });
     }
 
-    // Remove risk data
+    // ✅ Remove risk data
     const updatedTask = await storage.updateTask(taskId, {
       isRisk: false,
       riskLevel: null,
@@ -4217,9 +4510,27 @@ export const unmarkTaskAsRisk = async (req, res) => {
       updatedAt: new Date()
     });
 
+    // ✅ If it's a subtask, check if parent still has other risky subtasks
+    if (task.parentTaskId) {
+      const parentTask = await storage.getTaskById(task.parentTaskId);
+      if (parentTask && parentTask.subtasks) {
+        const hasOtherRiskySubtasks = parentTask.subtasks.some(
+          st => st._id.toString() !== taskId && st.isRisk
+        );
+
+        if (!hasOtherRiskySubtasks) {
+          await storage.updateTask(task.parentTaskId, {
+            hasRisk: false,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          });
+        }
+      }
+    }
+
     res.json({
       success: true,
-      message: "Task unmarked as risk successfully",
+      message: "Task risk status removed successfully.",
       data: updatedTask
     });
 

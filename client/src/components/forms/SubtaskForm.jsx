@@ -4,9 +4,10 @@ import { SearchableSelect } from '../ui/SearchableSelect';
 import '../ui/SearchableSelectStyles.css';
 import RichTextEditor from '../common/RichTextEditor';
 import SimpleFileUploader from '../common/SimpleFileUploader';
+import { useShowToast } from '../../utils/ToastMessage';
 
 // API function to create subtask
-const createSubtask = async (parentTaskId, formData, token) => {
+const createSubtask = async (parentTaskId, formData, token, showSuccessToast, showErrorToast) => {
   console.log('🚀 createSubtask function called');
   console.log('📝 parentTaskId:', parentTaskId);
   console.log('📝 formData:', formData);
@@ -23,8 +24,11 @@ const createSubtask = async (parentTaskId, formData, token) => {
   formDataObj.append('description', formData.description);
   console.log('✅ Added description:', formData.description);
 
-  const isoDate = new Date(formData.dueDate).toISOString();
+  // const isoDate = new Date(formData.dueDate).toISOString();
+  // formDataObj.append('dueDate', isoDate);
+  const isoDate = inputDateToLocalIso(formData.dueDate);
   formDataObj.append('dueDate', isoDate);
+
   console.log('✅ Added dueDate:', formData.dueDate, '-> ISO:', isoDate);
 
   const mappedPriority = formData.priority.toLowerCase().replace(' priority', '').replace(' ', '-');
@@ -34,27 +38,40 @@ const createSubtask = async (parentTaskId, formData, token) => {
   // Map status values to match API expectations (Backend enum: ["todo", "in-progress", "review", "completed"])
   let mappedStatus;
   switch (formData.status) {
-    case 'To Do':
-      mappedStatus = 'todo'; // ✅ Valid enum value
+    case 'Open':
+      mappedStatus = 'OPEN';
       break;
     case 'In Progress':
-      mappedStatus = 'in-progress'; // ✅ Valid enum value
+      mappedStatus = 'INPROGRESS';
       break;
-    case 'In Review':
+    case 'On Hold':
     case 'Review':
-      mappedStatus = 'review'; // ✅ Valid enum value
+      mappedStatus = 'ONHOLD';
       break;
     case 'Completed':
     case 'Done':
-      mappedStatus = 'completed'; // ✅ Valid enum value
+      mappedStatus = 'DONE';
       break;
     default:
-      mappedStatus = 'todo'; // ✅ Safe default - valid enum value
+      mappedStatus = 'OPEN';
   }
   formDataObj.append('status', mappedStatus);
-  console.log('✅ Added status:', formData.status, '-> mapped:', mappedStatus); const mappedVisibility = formData.visibility.toLowerCase();
+  console.log('✅ Added status:', formData.status, '-> mapped:', mappedStatus);
+
+  const mappedVisibility = formData.visibility.toLowerCase();
   formDataObj.append('visibility', mappedVisibility);
   console.log('✅ Added visibility:', formData.visibility, '-> mapped:', mappedVisibility);
+
+  // Add tags if any
+  if (formData.tags && formData.tags.length > 0) {
+    console.log('🏷️ Adding tags:', formData.tags);
+    formData.tags.forEach((tag) => {
+      formDataObj.append('tags', tag);
+    });
+    console.log('✅ Added tags:', formData.tags.length, 'tags');
+  } else {
+    console.log('🏷️ No tags to add');
+  }
 
   // Add attachments if any
   if (formData.attachments && formData.attachments.length > 0) {
@@ -93,11 +110,13 @@ const createSubtask = async (parentTaskId, formData, token) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ API Error Response:', errorText);
+      showErrorToast(`Error creating subtask: ${errorText.message}`);
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
+  }
 
     const data = await response.json();
     console.log('✅ API Success Response:', data);
+    showSuccessToast('Subtask created successfully!');
     return data;
   } catch (error) {
     console.error('❌ Error creating subtask:', error);
@@ -106,25 +125,49 @@ const createSubtask = async (parentTaskId, formData, token) => {
   }
 };
 
+// Local YYYY-MM-DD for <input type="date">
+const formatDateToInput = (date) => {
+  if (!date) return '';
+  const d = (date instanceof Date) ? date : new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// Convert input 'YYYY-MM-DD' → ISO string at local midnight
+const inputDateToLocalIso = (inputDate) => {
+  if (!inputDate) return null;
+  const [y, m, d] = inputDate.split('-').map(Number);
+  const localMidnight = new Date(y, m - 1, d);
+  return localMidnight.toISOString();
+};
+
 function SubtaskForm({
   isOpen,
   onClose,
   onSubmit,
+  onUpdateSubmit, // New prop for handling updates
   parentTask,
   editData = null,
   mode = 'create', // 'create' or 'edit'
   isOrgUser = false
 }) {
+  // ✅ Call useShowToast at component level (not inside utility functions)
+  const { showSuccessToast, showErrorToast } = useShowToast();
+  
   const [formData, setFormData] = useState({
     title: 'New Sub-task',
     assignee: isOrgUser ? '' : 'Self',
-    dueDate: parentTask?.dueDate || '',
+    dueDate: parentTask?.dueDate ? formatDateToInput(parentTask.dueDate) : '',
     priority: 'Low Priority',
-    status: 'To Do',
+    status: 'Open',
     visibility: parentTask?.visibility || 'Internal',
     description: '',
-    attachments: []
+    attachments: [],
+    tags: [] // Tags inherited from parent or edited independently
   });
+  const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   // Populate form when editing or reset with parent data
@@ -135,21 +178,23 @@ function SubtaskForm({
         assignee: editData.assignee || '',
         dueDate: editData.dueDate || '',
         priority: editData.priority || 'Low Priority',
-        status: editData.status || 'To Do',
+        status: editData.status || 'Open',
         visibility: editData.visibility || 'Internal',
         description: editData.description || '',
-        attachments: editData.attachments || []
+        attachments: editData.attachments || [],
+        tags: editData.tags || [] // Edit mode - use subtask's own tags
       });
     } else if (mode === 'create') {
       setFormData({
         title: 'New Sub-task',
         assignee: isOrgUser ? '' : 'Self',
-        dueDate: parentTask?.dueDate || '',
+        dueDate: parentTask?.dueDate ? formatDateToInput(parentTask.dueDate) : '',
         priority: 'Low Priority',
-        status: 'To Do',
+        status: 'Open',
         visibility: parentTask?.visibility || 'Internal',
         description: '',
-        attachments: []
+        attachments: [],
+        tags: parentTask?.tags || [] // Create mode - inherit parent tags
       });
     }
   }, [editData, mode, parentTask, isOrgUser]);
@@ -285,12 +330,18 @@ function SubtaskForm({
         }
 
         console.log('📡 Calling createSubtask API...');
-        const result = await createSubtask(parentTaskId, formData, finalToken);
+        const result = await createSubtask(parentTaskId, formData, finalToken, showSuccessToast, showErrorToast);
         console.log('✅ API call completed, result:', result);
 
         if (result.success) {
           console.log('🎉 Subtask created successfully!');
           alert('Subtask created successfully!');
+
+          // Dispatch custom event for AllTasks to refetch and update table immediately
+          console.log('📡 Dispatching subtaskCreated event...');
+          window.dispatchEvent(new CustomEvent('subtaskCreated', {
+            detail: { parentTaskId, subtaskId: result.subtask?.id || result.subtask?._id }
+          }));
 
           // Call onSubmit only if it's provided and is a function
           if (onSubmit && typeof onSubmit === 'function') {
@@ -315,12 +366,39 @@ function SubtaskForm({
         console.log('🏁 Setting loading to false');
         setIsLoading(false);
       }
-    } else {
-      console.log('✏️ Edit mode - using original onSubmit');
-      // For edit mode, use the original onSubmit
-      if (onSubmit && typeof onSubmit === 'function') {
-        onSubmit(formData);
+    } else if (mode === 'edit') {
+      console.log('✏️ Edit mode - dispatching update event');
+      
+      // Extract parent task ID
+      let parentTaskId;
+      if (typeof parentTask === 'string') {
+        parentTaskId = parentTask;
+      } else if (parentTask?._doc?._id) {
+        parentTaskId = parentTask._doc._id;
+      } else if (parentTask?._doc?.id) {
+        parentTaskId = parentTask._doc.id;
+      } else if (parentTask?._id) {
+        parentTaskId = parentTask._id;
+      } else if (parentTask?.id) {
+        parentTaskId = parentTask.id;
       }
+
+      // Extract subtask ID
+      const subtaskId = editData?._id || editData?.id;
+
+      if (!parentTaskId || !subtaskId) {
+        console.error('❌ Missing required IDs:', { parentTaskId, subtaskId });
+        alert('Missing required task IDs');
+        return;
+      }
+
+      // Dispatch custom event for AllTasks to listen to
+      // This ensures refetchTasks() is called for immediate table update
+      console.log('📡 Dispatching subtaskUpdate event...');
+      window.dispatchEvent(new CustomEvent('subtaskUpdate', {
+        detail: { parentTaskId, subtaskId, formData }
+      }));
+
       handleCancel();
     }
   };
@@ -348,22 +426,51 @@ function SubtaskForm({
     }
 
     // Due date validation
-    if (formData.dueDate) {
-      const today = new Date().toISOString().split('T')[0];
-      const parentDueDate = parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : null;
-      
-      if (formData.dueDate < today) {
-        console.log('❌ Due date validation failed: cannot be in the past');
-        newErrors.dueDate = 'Due date cannot be in the past';
-      } else if (parentDueDate && formData.dueDate > parentDueDate) {
-        console.log('❌ Due date validation failed: cannot be after parent task due date');
-        newErrors.dueDate = `Due date cannot be after parent task due date (${parentDueDate})`;
-      } else {
-        console.log('✅ Due date validation passed');
-      }
+    // if (formData.dueDate) {
+    //   const today = new Date().toISOString().split('T')[0];
+    //   const parentDueDate = parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : null;
+
+    //   if (formData.dueDate < today) {
+    //     console.log('❌ Due date validation failed: cannot be in the past');
+    //     newErrors.dueDate = 'Due date cannot be in the past';
+    //   } else if (parentDueDate && formData.dueDate > parentDueDate) {
+    //     console.log('❌ Due date validation failed: cannot be after parent task due date');
+    //     newErrors.dueDate = `Due date cannot be after parent task due date (${parentDueDate})`;
+    //   } else {
+    //     console.log('✅ Due date validation passed');
+    //   }
+    // } else {
+    //   console.log('✅ Due date validation passed (not required)');
+    // }
+
+    // ✅ Due date validation (local timezone safe)
+if (formData.dueDate) {
+  const [y, m, d] = formData.dueDate.split('-').map(Number);
+  const selected = new Date(y, m - 1, d); // local midnight of selected date
+  const todayLocal = new Date();
+  todayLocal.setHours(0, 0, 0, 0);
+
+  if (selected < todayLocal) {
+    console.log('❌ Due date validation failed: cannot be in the past');
+    newErrors.dueDate = 'Due date cannot be in the past';
+  } else if (parentTask?.dueDate) {
+    const parentDate = new Date(parentTask.dueDate);
+    parentDate.setHours(0, 0, 0, 0);
+
+    if (selected > parentDate) {
+      console.log('❌ Due date validation failed: cannot be after parent task due date');
+      newErrors.dueDate = `Due date cannot be after parent task due date (${formatDateToInput(parentTask.dueDate)})`;
     } else {
-      console.log('✅ Due date validation passed (not required)');
+      console.log('✅ Due date validation passed');
     }
+  } else {
+    console.log('✅ Due date validation passed');
+  }
+} else {
+  console.log('✅ Due date validation passed (not required)');
+}
+
+
 
     console.log('📋 Final validation errors:', newErrors);
     return newErrors;
@@ -384,9 +491,9 @@ function SubtaskForm({
     setFormData({
       title: 'New Sub-task',
       assignee: isOrgUser ? '' : 'Self',
-      dueDate: parentTask?.dueDate || '',
+      dueDate: parentTask?.dueDate ? formatDateToInput(parentTask.dueDate) : '',
       priority: 'Low Priority',
-      status: 'To Do',
+      status: 'Open',
       visibility: parentTask?.visibility || 'Internal',
       description: '',
       attachments: []
@@ -408,11 +515,11 @@ function SubtaskForm({
   // Assignment options (same logic as RegularTaskForm)
   const assignmentOptions = isOrgUser
     ? [
-        { value: "self", name: "Self", email: "self@current.user" },
-        // { value: "john_doe", name: "John Doe", email: "john.doe@company.com" },
-        // { value: "jane_smith", name: "Jane Smith", email: "jane.smith@company.com" },
-        // Add more team members from API
-      ]
+      { value: "self", name: "Self", email: "self@current.user" },
+      // { value: "john_doe", name: "John Doe", email: "john.doe@company.com" },
+      // { value: "jane_smith", name: "Jane Smith", email: "jane.smith@company.com" },
+      // Add more team members from API
+    ]
     : [{ value: "self", name: "Self", email: "self@current.user" }];
 
   if (!isOpen) return null;
@@ -518,8 +625,10 @@ function SubtaskForm({
                   <input
                     type="date"
                     value={formData.dueDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    max={parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : undefined}
+                    min={formatDateToInput(new Date())}
+                    max={parentTask?.dueDate ? formatDateToInput(new Date(parentTask.dueDate)) : undefined}
+                    // min={new Date().toISOString().split('T')[0]}
+                    // max={parentTask?.dueDate ? new Date(parentTask.dueDate).toISOString().split('T')[0] : undefined}
                     onChange={(e) => handleChange('dueDate', e.target.value)}
                     className={`form-input ${errors.dueDate ? 'border-red-500 focus:border-red-500' : ''}`}
                   />
@@ -542,10 +651,10 @@ function SubtaskForm({
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="form-select"
                   >
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="In Review">In Review</option>
-                    <option value="Completed">Completed</option>
+                    <option value="OPEN">Open</option>
+                    <option value="INPROGRESS">In Progress</option>
+                    <option value="ONHOLD">On Hold</option>
+                    <option value="DONE">Completed</option>
                   </select>
                 </div>
               </div>
@@ -562,6 +671,83 @@ function SubtaskForm({
                   <option value="Public">Public</option>
                   <option value="Internal">Internal</option>
                 </select>
+              </div>
+
+              {/* Tags */}
+              <div className="form-group">
+                <label className="form-label">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Tags
+                  {mode === 'create' && parentTask?.tags && parentTask.tags.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-2">(Inherited from parent)</span>
+                  )}
+                </label>
+                <div className="space-y-2">
+                  {/* Tag Input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const trimmedTag = tagInput.trim();
+                          if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+                            setFormData({ ...formData, tags: [...formData.tags, trimmedTag] });
+                            setTagInput('');
+                          }
+                        }
+                      }}
+                      placeholder="Type tag and press Enter..."
+                      className="form-input flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trimmedTag = tagInput.trim();
+                        if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+                          setFormData({ ...formData, tags: [...formData.tags, trimmedTag] });
+                          setTagInput('');
+                        }
+                      }}
+                      className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  
+                  {/* Tags Display */}
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded border border-gray-200">
+                      {formData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                tags: formData.tags.filter((_, i) => i !== index)
+                              });
+                            }}
+                            className="hover:text-indigo-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    Tags can be edited independently from parent task
+                  </div>
+                </div>
               </div>
 
               {/* Description */}

@@ -1,0 +1,218 @@
+{
+  "milestoneTaskPermissions": {
+    "INDIVIDUAL": {
+      "canCreate": false,
+      "canView": false,
+      "canEdit": false,
+      "canDelete": false,
+      "canLinkTask": false,
+      "canUnlinkTask": false,
+      "canCreateSubtask": false,
+      "canEditSubtask": false,
+      "canDeleteSubtask": false,
+      "canViewSubtask": false,
+      "restrictions": [
+        "No access to milestone tasks at all",
+        "Milestone tasks require organization context"
+      ]
+    },
+    "EMPLOYEE": {
+      "canCreate": false,
+      "canView": true,
+      "canEdit": false,
+      "canDelete": false,
+      "canLinkTask": false,
+      "canUnlinkTask": false,
+      "canCreateSubtask": false,
+      "canEditSubtask": false,
+      "canDeleteSubtask": false,
+      "canViewSubtask": true,
+      "viewConditions": "Only milestones assigned to them",
+      "restrictions": [
+        "Read-only access to milestone tasks",
+        "Cannot modify milestone structure (link/unlink tasks)",
+        "Cannot create or manage subtasks under milestone",
+        "Can view linked tasks but cannot modify them"
+      ]
+    },
+    "MANAGER": {
+      "canCreate": true,
+      "canView": true,
+      "canEdit": true,
+      "canDelete": true,
+      "canLinkTask": true,
+      "canUnlinkTask": true,
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "canViewSubtask": true,
+      "deleteConditions": "Only if status is OPEN",
+      "restrictions": [
+        "Can manage own milestones and team milestones",
+        "Full control over milestone structure"
+      ]
+    },
+    "ORG_ADMIN": {
+      "canCreate": true,
+      "canView": true,
+      "canEdit": true,
+      "canDelete": true,
+      "canLinkTask": true,
+      "canUnlinkTask": true,
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "canViewSubtask": true,
+      "restrictions": [
+        "Full access to all milestones in organization",
+        "Can override all permissions"
+      ]
+    },
+    "TASKSETU_ADMIN": {
+      "canCreate": true,
+      "canView": true,
+      "canEdit": true,
+      "canDelete": true,
+      "canLinkTask": true,
+      "canUnlinkTask": true,
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "canViewSubtask": true,
+      "restrictions": [
+        "Global access across all organizations",
+        "Platform-level administrative privileges"
+      ]
+    }
+  },
+  "regularTaskSubtaskPermissions": {
+    "INDIVIDUAL": {
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "conditions": "Only for tasks they created or are assigned to"
+    },
+    "EMPLOYEE": {
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "conditions": "Only for tasks they created or are assigned to"
+    },
+    "MANAGER": {
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "conditions": "For own tasks, assigned tasks, and team tasks"
+    },
+    "ORG_ADMIN": {
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "conditions": "For all tasks in organization"
+    },
+    "TASKSETU_ADMIN": {
+      "canCreateSubtask": true,
+      "canEditSubtask": true,
+      "canDeleteSubtask": true,
+      "conditions": "For all tasks globally"
+    }
+  },
+  "taskTypeLinkingRules": {
+    "REGULAR": {
+      "canLinkToMilestone": true,
+      "notes": "Fully supported as linked tasks"
+    },
+    "RECURRING_PATTERN": {
+      "canLinkToMilestone": false,
+      "errorMessage": "Recurring pattern cannot be linked to milestones. Only specific recurring instances can be linked.",
+      "notes": "Pattern itself cannot be linked, only instances"
+    },
+    "RECURRING_INSTANCE": {
+      "canLinkToMilestone": true,
+      "notes": "Individual occurrences can be linked"
+    },
+    "MILESTONE": {
+      "canLinkToMilestone": true,
+      "notes": "Other milestones can be linked as dependencies"
+    },
+    "QUICK": {
+      "canLinkToMilestone": false,
+      "errorMessage": "Quick tasks cannot be linked to milestones. Quick tasks are single-step actions.",
+      "notes": "Single-step tasks, cannot be part of milestone structure"
+    },
+    "APPROVAL": {
+      "canLinkToMilestone": false,
+      "errorMessage": "Approval tasks cannot be linked to milestones. Approval tasks are atomic by design.",
+      "notes": "Atomic by design, cannot be linked"
+    }
+  },
+  "subtaskCreationRules": {
+    "MILESTONE": {
+      "allowedRoles": ["MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "deniedRoles": ["EMPLOYEE", "INDIVIDUAL"],
+      "errorMessage": "Access denied: Only Manager or Org Admin can create subtasks under milestone tasks. Milestone subtasks are managed by project leads only.",
+      "notes": "Subtasks under milestone behave like mini-deliverables"
+    },
+    "REGULAR": {
+      "allowedRoles": ["INDIVIDUAL", "EMPLOYEE", "MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "conditions": "User must be creator or assignee (for Employee/Individual)",
+      "notes": "Standard subtask creation logic applies"
+    },
+    "QUICK": {
+      "allowedRoles": [],
+      "deniedRoles": ["ALL"],
+      "errorMessage": "Subtasks are not allowed for Quick tasks. Quick tasks are single-step by design.",
+      "notes": "Quick tasks cannot have subtasks"
+    },
+    "APPROVAL": {
+      "allowedRoles": [],
+      "deniedRoles": ["ALL"],
+      "errorMessage": "Subtasks are not allowed for Approval tasks. Approval tasks are atomic by design.",
+      "notes": "Approval tasks cannot have subtasks"
+    }
+  },
+  "errorMessages": {
+    "MILESTONE_CREATE_DENIED_EMPLOYEE": "Access denied: Only Manager or Org Admin can create milestone tasks. Milestone tasks represent major project phases and can only be managed by project leads.",
+    "MILESTONE_CREATE_DENIED_INDIVIDUAL": "Access denied: Milestone tasks require an organization context. Individual users cannot create milestone tasks.",
+    "MILESTONE_SUBTASK_CREATE_DENIED": "Access denied: Only Manager or Org Admin can create subtasks under milestone tasks. Milestone subtasks are managed by project leads only.",
+    "MILESTONE_LINK_TASK_DENIED": "Access denied: Only Manager or Org Admin can link tasks to milestones. Employees can view linked tasks but cannot modify them.",
+    "MILESTONE_UNLINK_TASK_DENIED": "Access denied: Only Manager or Org Admin can unlink tasks from milestones. Employees can view linked tasks but cannot modify them.",
+    "QUICK_TASK_CANNOT_LINK": "Quick tasks cannot be linked to milestones. Quick tasks are single-step actions.",
+    "APPROVAL_TASK_CANNOT_LINK": "Approval tasks cannot be linked to milestones. Approval tasks are atomic by design.",
+    "RECURRING_PATTERN_CANNOT_LINK": "Recurring pattern cannot be linked to milestones. Only specific recurring instances can be linked."
+  },
+  "frontendVisibilityRules": {
+    "milestoneCreateButton": {
+      "showFor": ["MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "hideFor": ["EMPLOYEE", "INDIVIDUAL"]
+    },
+    "milestoneSubtaskButton": {
+      "showFor": ["MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "hideFor": ["EMPLOYEE", "INDIVIDUAL"],
+      "condition": "task.taskType === 'milestone'"
+    },
+    "milestoneLinkTaskButton": {
+      "showFor": ["MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "hideFor": ["EMPLOYEE", "INDIVIDUAL"],
+      "condition": "task.taskType === 'milestone'"
+    },
+    "regularTaskSubtaskButton": {
+      "showFor": ["INDIVIDUAL", "EMPLOYEE", "MANAGER", "ORG_ADMIN", "TASKSETU_ADMIN"],
+      "condition": "task.taskType !== 'milestone' && (isCreator || isAssignee)"
+    }
+  },
+  "documentReferences": {
+    "section_4_3_1": "Milestone Task Definition",
+    "section_4_3_2": "User-Wise Control — Milestone Task Access",
+    "section_4_3_5": "Subtasks Under Milestone",
+    "section_2": "Supported Relationships (Task Types)"
+  },
+  "implementationStatus": {
+    "milestoneCreationValidation": "COMPLETE",
+    "subtaskCreationValidation": "COMPLETE",
+    "linkTaskValidation": "COMPLETE",
+    "unlinkTaskValidation": "COMPLETE",
+    "taskTypeRestrictions": "COMPLETE",
+    "recurringPatternValidation": "COMPLETE"
+  }
+}

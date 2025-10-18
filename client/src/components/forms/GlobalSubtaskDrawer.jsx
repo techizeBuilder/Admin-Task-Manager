@@ -3,7 +3,7 @@ import { useSubtask } from '../../contexts/SubtaskContext';
 import SubtaskForm from './SubtaskForm';
 
 const GlobalSubtaskDrawer = () => {
-  const { isSubtaskDrawerOpen, parentTask, editData, mode, closeSubtaskDrawer } = useSubtask();
+  const { isSubtaskDrawerOpen, parentTask, editData, mode, closeSubtaskDrawer, onUpdateSubtask } = useSubtask();
 
   console.log('🔍 GlobalSubtaskDrawer render:', {
     isSubtaskDrawerOpen,
@@ -13,7 +13,8 @@ const GlobalSubtaskDrawer = () => {
     parentTask_id: parentTask?._id,
     parentTaskDocId: parentTask?._doc?._id,
     mode,
-    editData
+    editData,
+    hasUpdateHandler: !!onUpdateSubtask
   });
 
   if (!isSubtaskDrawerOpen || !parentTask) {
@@ -27,6 +28,7 @@ const GlobalSubtaskDrawer = () => {
       parentTask={parentTask}
       editData={editData}
       mode={mode}
+      onUpdateSubmit={onUpdateSubtask}
     />
   );
 };

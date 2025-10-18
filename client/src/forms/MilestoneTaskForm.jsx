@@ -11,7 +11,6 @@ const MilestoneTaskForm = ({
   user,
   onSubmit,
   isOrgUser,
-  assignmentOptions = [],
   existingTasks = [], // Tasks available for linking
   collaboratorOptions = [], // Collaborators from parent component
   isLoadingCollaborators = false, // Loading state from parent
@@ -111,6 +110,23 @@ const MilestoneTaskForm = ({
     { value: "high", label: "High" },
     { value: "critical", label: "Critical" },
   ];
+
+  // Assignment options (for org users) - Build from collaboratorOptions
+  const assignmentOptions = isOrgUser
+    ? [
+        { value: "self", label: "Self" },
+      ...collaboratorsList,
+      ]
+    : [{ value: "self", label: "Self" }];
+
+  // Debug logging
+  console.log('MilestoneTaskForm - Assignment Debug:', {
+    isOrgUser,
+    collaboratorOptionsCount: collaboratorsList.length,
+    collaboratorsList,
+    assignmentOptions,
+    isCollaboratorsLoading
+  });
 
   // Filter tasks to exclude milestones for linking
   const availableTasksForLinking = existingTasks.filter(

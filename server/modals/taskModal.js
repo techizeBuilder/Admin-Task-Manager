@@ -53,8 +53,8 @@ const TaskSchema = mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["open", "todo", "in-progress", "completed", "on-hold", "cancelled"],
-      default: "open",
+      enum: ["OPEN", "INPROGRESS", "DONE", "ONHOLD", "CANCELLED"],
+      default: "OPEN",
     },
     dueDate: {
       type: Date,

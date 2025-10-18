@@ -695,6 +695,15 @@ export const RecurringTaskForm = ({
       ]
     : [{ value: "self", label: "Self" }];
 
+  // Debug logging
+  console.log('RecurringTaskForm - Assignment Debug:', {
+    isOrgUser,
+    collaboratorOptionsCount: collaboratorOptions.length,
+    collaboratorOptions,
+    assignmentOptions,
+    isLoadingCollaborators
+  });
+
   // File upload handler
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);

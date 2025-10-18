@@ -145,6 +145,8 @@ export default function CreateTask({
       fetchCollaborators(); // Fetch collaborators for milestone tasks too
     } else if (selectedTaskType === "recurring") {
       fetchCollaborators(); // Fetch collaborators for recurring tasks too
+    } else if (selectedTaskType === "regular") {
+      fetchCollaborators(); // Fetch collaborators for regular tasks too
     }
   }, [selectedTaskType, canCreateApprovals, canCreateMilestones]);
 
@@ -192,8 +194,19 @@ export default function CreateTask({
     onCancel: onClose,
     isOrgUser: canAssignToOthers,
     assignmentOptions,
+    collaboratorOptions: collaboratorsList,
+    isLoadingCollaborators,
     userRole: role,
     canAssignToOthers,
+  };
+
+  // Helper function to strip HTML tags from description
+  const stripHtmlTags = (html) => {
+    if (!html) return "";
+    // Create a temporary div element
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
   };
 
   // Updated: Now actually calls the API to create the task
@@ -234,10 +247,17 @@ export default function CreateTask({
           .filter(Boolean);
       }
 
+      // Fix description: strip HTML tags from rich text editor
+      let description = data.description || "";
+      if (description) {
+        description = stripHtmlTags(description).trim();
+      }
+
       // Map taskName to title for backend compatibility
       data.title = data.taskName || data.title;
       delete data.taskName;
       console.log("DEBUG: data.title =", data.title);
+      console.log("DEBUG: description (cleaned) =", description);
       console.log("DEBUG: full data =", data);
       if (!data.title || data.title.trim() === "") {
         alert("Title is required.");
@@ -251,7 +271,7 @@ export default function CreateTask({
       // Use regular task API for ALL task types including milestone
       const submitData = new FormData();
       submitData.append("title", data.title);
-      submitData.append("description", data.description || "");
+      submitData.append("description", description);
       submitData.append("taskType", selectedTaskType);
       submitData.append("priority", priority || "medium");
       submitData.append("visibility", data.visibility || "private");
